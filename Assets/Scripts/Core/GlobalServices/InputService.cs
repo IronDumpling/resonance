@@ -34,6 +34,8 @@ namespace Resonance.Core.GlobalServices
         public event Action<Vector2> OnMove;
         public event Action OnJump;
         public event Action OnInteract;
+        public event Action<bool> OnRun; // true when starting to run, false when stopping
+        public event Action OnAttack;
 
         public void Initialize()
         {
@@ -64,12 +66,19 @@ namespace Resonance.Core.GlobalServices
 
         private void SetupInputCallbacks()
         {
+            if (_playerMap == null) return;
+
             // Player input callbacks
-            // _playerMap["Move"].performed += OnMovePerformed;
-            // _playerMap["Move"].canceled += OnMoveCanceled;
+            _playerMap["Move"].performed += OnMovePerformed;
+            _playerMap["Move"].canceled += OnMoveCanceled;
             
-            // _playerMap["Jump"].performed += OnJumpPerformed;
-            // _playerMap["Interact"].performed += OnInteractPerformed;
+            _playerMap["Jump"].performed += OnJumpPerformed;
+            _playerMap["Interact"].performed += OnInteractPerformed;
+            
+            _playerMap["Run"].started += OnRunStarted;
+            _playerMap["Run"].canceled += OnRunCanceled;
+            
+            _playerMap["Attack"].performed += OnAttackPerformed;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext context)
@@ -91,6 +100,21 @@ namespace Resonance.Core.GlobalServices
         private void OnInteractPerformed(InputAction.CallbackContext context)
         {
             OnInteract?.Invoke();
+        }
+
+        private void OnRunStarted(InputAction.CallbackContext context)
+        {
+            OnRun?.Invoke(true);
+        }
+
+        private void OnRunCanceled(InputAction.CallbackContext context)
+        {
+            OnRun?.Invoke(false);
+        }
+
+        private void OnAttackPerformed(InputAction.CallbackContext context)
+        {
+            OnAttack?.Invoke();
         }
 
         public void EnablePlayerInput()
@@ -146,6 +170,8 @@ namespace Resonance.Core.GlobalServices
             OnMove = null;
             OnJump = null;
             OnInteract = null;
+            OnRun = null;
+            OnAttack = null;
 
             State = SystemState.Shutdown;
         }
