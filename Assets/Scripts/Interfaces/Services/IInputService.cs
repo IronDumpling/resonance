@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Resonance.Core
+namespace Resonance.Interfaces.Services
 {
     public interface IInputService : IGameService
     {

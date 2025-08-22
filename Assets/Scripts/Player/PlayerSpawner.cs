@@ -2,6 +2,7 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Player;
 using Resonance.Utilities;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Player
 {

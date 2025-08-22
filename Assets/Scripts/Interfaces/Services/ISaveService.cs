@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Resonance.Player.Data;
 
-namespace Resonance.Core
+namespace Resonance.Interfaces.Services
 {
     /// <summary>
     /// Interface for the save/load system.

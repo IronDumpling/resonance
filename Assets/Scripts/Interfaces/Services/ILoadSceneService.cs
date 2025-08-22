@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.SceneManagement;
 
-namespace Resonance.Core
+namespace Resonance.Interfaces.Services
 {
     public interface ILoadSceneService : IGameService
     {

@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using Resonance.Utilities;
 using Resonance.Core;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core
 {
@@ -12,6 +13,7 @@ namespace Resonance.Core
         private GlobalServices.LoadSceneService _loadSceneService;
         private GlobalServices.UIService _uiService;
         private GlobalServices.PlayerService _playerService;
+        private GlobalServices.InteractionService _interactionService;
         private List<IGameService> _systems;
         private bool _isInitialized = false;
         private GameObject _gameManagerObject;
@@ -50,11 +52,17 @@ namespace Resonance.Core
                 _playerService = new GlobalServices.PlayerService();
             }
 
+            if (_interactionService == null)
+            {
+                _interactionService = new GlobalServices.InteractionService();
+            }
+
             // Add services to list
             AddService(_inputService);
             AddService(_loadSceneService);
             AddService(_uiService);
             AddService(_playerService);
+            AddService(_interactionService);
         }
 
         private void AddService(IGameService system)

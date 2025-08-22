@@ -1,4 +1,4 @@
-namespace Resonance.Core
+namespace Resonance.Interfaces.Services
 {
     public enum SystemState
     {

@@ -4,6 +4,7 @@ using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Player
 {
@@ -44,6 +45,7 @@ namespace Resonance.Player
         private CharacterController _characterController;
         private PlayerController _playerController;
         private IInputService _inputService;
+        private IInteractionService _interactionService;
 
         // Physics
         private bool _isGrounded;
@@ -83,6 +85,14 @@ namespace Resonance.Player
             if (_inputService == null)
             {
                 Debug.LogError("PlayerMonoBehaviour: InputService not found!");
+                return;
+            }
+
+            // Get interaction service
+            _interactionService = ServiceRegistry.Get<IInteractionService>();
+            if (_interactionService == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: InteractionService not found!");
                 return;
             }
 
@@ -190,13 +200,30 @@ namespace Resonance.Player
 
         private void HandleInteractInput()
         {
-            if (!IsInitialized) return;
+            if (!IsInitialized || _interactionService == null) return;
             
             // Only allow interaction in Normal state
             if (_playerController.StateMachine.CanInteract())
             {
-                // Handle interaction logic
-                Debug.Log("PlayerMonoBehaviour: Interact input received");
+                // 执行交互
+                bool interactionSuccess = _interactionService.PerformInteraction(transform);
+                
+                if (interactionSuccess)
+                {
+                    Debug.Log("PlayerMonoBehaviour: Interaction successful");
+                }
+                else if (_interactionService.HasInteractable)
+                {
+                    Debug.LogWarning("PlayerMonoBehaviour: Interaction failed");
+                }
+                else
+                {
+                    Debug.Log("PlayerMonoBehaviour: No interactable object nearby");
+                }
+            }
+            else
+            {
+                Debug.Log("PlayerMonoBehaviour: Cannot interact in current state");
             }
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Resonance.Player;
 using Resonance.Player.Data;
 using Resonance.Core;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {

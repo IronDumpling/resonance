@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Resonance.Core;
+using Resonance.Core;   
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {

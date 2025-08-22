@@ -2,6 +2,7 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
 using System.Collections.Generic;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.UI
 {
