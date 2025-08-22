@@ -46,10 +46,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _defaultSpawnPoint: {fileID: 0}
   _namedSpawnPoints:
-  - spawnID: 
+  - spawnID: level01_start
     spawnPoint: {fileID: 0}
     description: 
   _autoSpawnOnStart: 1
-  _defaultSpawnID: default
-  _playerPrefab: {fileID: 0}
+  _defaultSpawnID: level01_start
+  _playerPrefab: {fileID: 86024930582619460, guid: 35fa8d6917485554e882959b940a3290, type: 3}
   _playerPrefabResourcePath: Prefabs/Player/Player
