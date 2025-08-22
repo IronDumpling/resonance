@@ -12,6 +12,15 @@ namespace Resonance.Core.StateMachine.States
         {
             Debug.Log("State: Entering Initializing");
             
+            // Delay UI display to allow CanvasUIManager to register panels first
+            GameManager.Instance.StartCoroutine(ShowUIWhenReady());
+        }
+
+        private System.Collections.IEnumerator ShowUIWhenReady()
+        {
+            // Wait a frame for CanvasUIManager to register panels
+            yield return null;
+            
             // Show initializing UI
             var uiService = ServiceRegistry.Get<IUIService>();
             uiService?.ShowPanelsForState("Initializing");

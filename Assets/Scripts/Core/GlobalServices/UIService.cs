@@ -6,6 +6,10 @@ using Resonance.Core;
 
 namespace Resonance.Core.GlobalServices
 {
+    /// <summary>
+    /// Global Canvas UI management service. Handles state-driven UI display logic
+    /// and coordinates with scene-local CanvasUIManagers for actual UI operations.
+    /// </summary>
     public class UIService : IUIService
     {
         public int Priority => 15;
@@ -38,9 +42,9 @@ namespace Resonance.Core.GlobalServices
 
         private void SetupDefaultStatePanels()
         {
-            // Configure which panels should be shown for each game state
+            // Configure which Canvas UI panels should be shown for each game state
             SetStatePanels("Initializing", "LoadingPanel");
-            SetStatePanels("MainMenu", "MainMenuPanel", "SettingsPanel");
+            SetStatePanels("MainMenu", "MainMenuPanel");
             SetStatePanels("Gameplay", "HUDPanel", "InventoryPanel");
             SetStatePanels("Paused", "HUDPanel", "PauseMenuPanel");
         }
@@ -78,7 +82,7 @@ namespace Resonance.Core.GlobalServices
         {
             if (!_panels.TryGetValue(panelName, out IUIPanel panel))
             {
-                Debug.LogWarning($"UIService: Panel {panelName} not found");
+                Debug.LogWarning($"UIService: Canvas UI Panel {panelName} not found. Make sure it's registered by CanvasUIManager.");
                 return;
             }
 
@@ -90,7 +94,7 @@ namespace Resonance.Core.GlobalServices
                     _visiblePanels.Add(panelName);
                 }
                 OnPanelShown?.Invoke(panelName);
-                Debug.Log($"UIService: Showed panel {panelName}");
+                Debug.Log($"UIService: Showed Canvas UI panel {panelName}");
             }
         }
 
