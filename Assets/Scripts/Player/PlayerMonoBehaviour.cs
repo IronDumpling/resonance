@@ -140,12 +140,15 @@ namespace Resonance.Player
         {
             _playerController = new PlayerController(_baseStats);
             
+            // 使用gameObject引用来初始化射击系统
+            _playerController.Initialize(_baseStats, gameObject);
+            
             // Subscribe to player events
             _playerController.OnPlayerDied += HandlePlayerDeath;
             _playerController.OnHealthChanged += HandleHealthChanged;
 
             OnPlayerInitialized?.Invoke(_playerController);
-            Debug.Log("PlayerMonoBehaviour: Player controller initialized");
+            Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
         }
 
         #endregion
@@ -222,7 +225,14 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
             
-            _playerController.PerformShoot();
+            // 计算射击起始位置（从玩家中心稍微前方）
+            Vector3 shootOrigin = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+            
+            var result = _playerController.PerformShoot(shootOrigin);
+            if (result.success && _showDebugInfo)
+            {
+                Debug.Log($"Shot fired: Hit={result.hasHit}, Target={result.hitObject?.name ?? "None"}");
+            }
         }
 
         private void HandleLookInput(Vector2 lookDelta)

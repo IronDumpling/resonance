@@ -4,6 +4,7 @@ using Resonance.Player.Data;
 using Resonance.Player.States;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Items;
 
 namespace Resonance.Player.Core
 {
@@ -17,6 +18,8 @@ namespace Resonance.Player.Core
         private PlayerRuntimeStats _stats;
         private PlayerInventory _inventory;
         private PlayerMovement _movement;
+        private WeaponManager _weaponManager;
+        private ShootingSystem _shootingSystem;
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
@@ -47,6 +50,8 @@ namespace Resonance.Player.Core
         public PlayerRuntimeStats Stats => _stats;
         public PlayerInventory Inventory => _inventory;
         public PlayerMovement Movement => _movement;
+        public WeaponManager WeaponManager => _weaponManager;
+        public ShootingSystem ShootingSystem => _shootingSystem;
         public int Level => _level;
         public float Experience => _experience;
         public List<string> UnlockedAbilities => _unlockedAbilities;
@@ -57,11 +62,29 @@ namespace Resonance.Player.Core
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public Vector2 AimDirection => _aimDirection;
         public bool IsAiming => CurrentState == "Aiming";
+        public bool HasWeapon => _weaponManager?.HasWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
 
         public PlayerController(PlayerBaseStats baseStats)
         {
+            Initialize(baseStats, null);
+        }
+
+        /// <summary>
+        /// 初始化PlayerController，需要PlayerMonoBehaviour传入GameObject引用
+        /// </summary>
+        /// <param name="baseStats">基础属性</param>
+        /// <param name="playerGameObject">玩家GameObject（用于射击系统）</param>
+        public void Initialize(PlayerBaseStats baseStats, GameObject playerGameObject)
+        {
             Initialize(baseStats);
+            
+            // 如果有GameObject引用，初始化射击系统
+            if (playerGameObject != null)
+            {
+                _shootingSystem = new ShootingSystem(playerGameObject);
+                Debug.Log("PlayerController: ShootingSystem initialized");
+            }
         }
 
         private void Initialize(PlayerBaseStats baseStats)
@@ -69,6 +92,7 @@ namespace Resonance.Player.Core
             _stats = baseStats.CreateRuntimeStats();
             _inventory = new PlayerInventory(_stats.maxInventorySlots, _stats.maxCarryWeight);
             _movement = new PlayerMovement(_stats);
+            _weaponManager = new WeaponManager();
 
             _unlockedAbilities = new List<string>();
             _levelFlags = new Dictionary<string, bool>();
@@ -79,7 +103,7 @@ namespace Resonance.Player.Core
             _stateMachine.OnStateChanged += (stateName) => OnStateChanged?.Invoke(stateName);
             _stateMachine.Initialize();
 
-            Debug.Log("PlayerController: Initialized with base stats and state machine");
+            Debug.Log("PlayerController: Initialized with base stats, weapon manager, and state machine");
         }
 
         /// <summary>
@@ -196,16 +220,46 @@ namespace Resonance.Player.Core
             return IsAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
         }
 
-        public void PerformShoot()
+        /// <summary>
+        /// 执行射击
+        /// </summary>
+        /// <param name="shootOrigin">射击起始位置</param>
+        /// <returns>射击结果</returns>
+        public ShootingResult PerformShoot(Vector3 shootOrigin)
         {
-            if (!CanShoot()) return;
+            if (!CanShoot())
+            {
+                return new ShootingResult { success = false };
+            }
+
+            // 消耗弹药
+            if (!_weaponManager.ConsumeAmmo())
+            {
+                Debug.LogWarning("PlayerController: Failed to consume ammo");
+                return new ShootingResult { success = false };
+            }
 
             _lastAttackTime = Time.time;
-            OnShoot?.Invoke();
-            Debug.Log($"PlayerController: Shot fired in direction {_aimDirection} with {_stats.attackDamage} damage");
             
-            // Shooting logic would be implemented here
-            // This could involve spawning bullets, raycasting, etc.
+            GunData currentGun = _weaponManager.CurrentGun;
+            
+            // 计算3D射击方向
+            Vector3 shootDirection = new Vector3(_aimDirection.x, 0f, _aimDirection.y).normalized;
+            
+            // 执行HitScan射击
+            ShootingResult result = new ShootingResult { success = false };
+            if (_shootingSystem != null)
+            {
+                result = _shootingSystem.PerformShoot(shootOrigin, shootDirection, currentGun);
+            }
+            
+            // 触发射击事件
+            OnShoot?.Invoke();
+            
+            Debug.Log($"PlayerController: Shot fired with {currentGun.weaponName} in direction {shootDirection}. " +
+                     $"Damage: {currentGun.damage}, Remaining ammo: {currentGun.currentAmmo}, Hit: {result.hasHit}");
+            
+            return result;
         }
 
         #endregion
