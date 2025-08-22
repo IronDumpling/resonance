@@ -76,7 +76,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   _enableEdgeProtection: 1
-  _edgeDetectionDistance: 0.7
+  _edgeDetectionDistance: 0.6
   _edgeDetectionLayerMask:
     serializedVersion: 2
     m_Bits: 64
