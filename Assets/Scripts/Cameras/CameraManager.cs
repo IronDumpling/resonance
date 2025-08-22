@@ -84,12 +84,12 @@ namespace Resonance.Cameras
                 Debug.Log($"CameraManager: Auto-discovered {_cameras.Count} cameras in scene {gameObject.scene.name}");
             }
             
-            // Add manually assigned cameras
+            // Add manually assigned cameras (only if not already auto-discovered)
             if (_manualCameras != null)
             {
                 foreach (var camera in _manualCameras)
                 {
-                    if (camera != null)
+                    if (camera != null && !_cameras.ContainsKey(camera.name))
                     {
                         RegisterCamera(camera);
                     }
@@ -99,11 +99,6 @@ namespace Resonance.Cameras
         
         private void RegisterCamera(CinemachineCamera camera)
         {
-            if (_cameras.ContainsKey(camera.name))
-            {
-                Debug.LogWarning($"CameraManager: Camera {camera.name} already registered. Overwriting.");
-            }
-            
             _cameras[camera.name] = camera;
             
             // Set initial priority (inactive cameras should have priority 0)
