@@ -1,7 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Player.Data;
+using Resonance.Player.States;
 using Resonance.Core;
+using Resonance.Utilities;
 
 namespace Resonance.Player.Core
 {
@@ -16,7 +18,11 @@ namespace Resonance.Player.Core
         private PlayerInventory _inventory;
         private PlayerMovement _movement;
 
-        // State
+        // Player State Management
+        private PlayerStateMachine _stateMachine;
+        private Vector2 _aimDirection = Vector2.right;
+
+        // Progression
         private int _level = 1;
         private float _experience = 0f;
         private List<string> _unlockedAbilities;
@@ -33,6 +39,9 @@ namespace Resonance.Player.Core
         public System.Action OnPlayerDied;
         public System.Action<int> OnLevelChanged;
         public System.Action<float> OnExperienceChanged;
+        public System.Action<string> OnStateChanged; // Changed to string for state name
+        public System.Action<Vector2> OnAimDirectionChanged;
+        public System.Action OnShoot;
 
         // Properties
         public PlayerRuntimeStats Stats => _stats;
@@ -45,6 +54,10 @@ namespace Resonance.Player.Core
         public Dictionary<string, float> GameVariables => _gameVariables;
         public bool IsInvulnerable => _isInvulnerable;
         public bool IsAlive => _stats.IsAlive;
+        public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
+        public Vector2 AimDirection => _aimDirection;
+        public bool IsAiming => CurrentState == "Aiming";
+        public PlayerStateMachine StateMachine => _stateMachine;
 
         public PlayerController(PlayerBaseStats baseStats)
         {
@@ -61,7 +74,12 @@ namespace Resonance.Player.Core
             _levelFlags = new Dictionary<string, bool>();
             _gameVariables = new Dictionary<string, float>();
 
-            Debug.Log("PlayerController: Initialized with base stats");
+            // Initialize state machine
+            _stateMachine = new PlayerStateMachine(this);
+            _stateMachine.OnStateChanged += (stateName) => OnStateChanged?.Invoke(stateName);
+            _stateMachine.Initialize();
+
+            Debug.Log("PlayerController: Initialized with base stats and state machine");
         }
 
         /// <summary>
@@ -72,6 +90,7 @@ namespace Resonance.Player.Core
             UpdateInvulnerability(deltaTime);
             UpdateHealthRegeneration(deltaTime);
             _movement.Update(deltaTime);
+            _stateMachine?.Update();
         }
 
         #region Health System
@@ -107,6 +126,7 @@ namespace Resonance.Player.Core
 
             if (_stats.currentHealth <= 0f)
             {
+                _stateMachine?.Die();
                 OnPlayerDied?.Invoke();
                 Debug.Log("PlayerController: Player died");
             }
@@ -137,22 +157,55 @@ namespace Resonance.Player.Core
 
         #endregion
 
-        #region Combat System
+        #region State Management
 
-        public bool CanAttack()
+        public void StartAiming()
         {
-            return IsAlive && Time.time >= _lastAttackTime + _stats.attackCooldown;
+            _stateMachine?.StartAiming();
         }
 
-        public void PerformAttack()
+        public void StopAiming()
         {
-            if (!CanAttack()) return;
+            _stateMachine?.StopAiming();
+        }
+
+        public void StartInteracting()
+        {
+            _stateMachine?.StartInteracting();
+        }
+
+        public void StopInteracting()
+        {
+            _stateMachine?.StopInteracting();
+        }
+
+        public void SetAimDirection(Vector2 direction)
+        {
+            if (!IsAiming) return;
+
+            _aimDirection = direction.normalized;
+            OnAimDirectionChanged?.Invoke(_aimDirection);
+        }
+
+        #endregion
+
+        #region Combat System
+
+        public bool CanShoot()
+        {
+            return IsAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
+        }
+
+        public void PerformShoot()
+        {
+            if (!CanShoot()) return;
 
             _lastAttackTime = Time.time;
-            Debug.Log($"PlayerController: Performed attack with {_stats.attackDamage} damage");
+            OnShoot?.Invoke();
+            Debug.Log($"PlayerController: Shot fired in direction {_aimDirection} with {_stats.attackDamage} damage");
             
-            // Attack logic would be implemented here
-            // This could involve raycasting, collision detection, etc.
+            // Shooting logic would be implemented here
+            // This could involve spawning bullets, raycasting, etc.
         }
 
         #endregion

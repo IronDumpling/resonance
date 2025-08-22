@@ -20,6 +20,10 @@ namespace Resonance.Player
         [SerializeField] private LayerMask _groundLayerMask = 1;
         [SerializeField] private float _groundCheckDistance = 0.1f;
         [SerializeField] private float _gravity = -9.81f;
+        
+        [Header("2D Platform Settings")]
+        [SerializeField] private bool _lockYPosition = false;
+        [SerializeField] private float _fixedYPosition = 0f;
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -108,8 +112,6 @@ namespace Resonance.Player
             // Subscribe to player events
             _playerController.OnPlayerDied += HandlePlayerDeath;
             _playerController.OnHealthChanged += HandleHealthChanged;
-            _playerController.Movement.OnJump += HandleJump;
-            _playerController.Movement.OnLand += HandleLand;
 
             OnPlayerInitialized?.Invoke(_playerController);
             Debug.Log("PlayerMonoBehaviour: Player controller initialized");
@@ -124,10 +126,11 @@ namespace Resonance.Player
             if (_inputService == null) return;
 
             _inputService.OnMove += HandleMoveInput;
-            _inputService.OnJump += HandleJumpInput;
             _inputService.OnInteract += HandleInteractInput;
             _inputService.OnRun += HandleRunInput;
-            _inputService.OnAttack += HandleAttackInput;
+            _inputService.OnAim += HandleAimInput;
+            _inputService.OnShoot += HandleShootInput;
+            _inputService.OnLook += HandleLookInput;
         }
 
         private void UnsubscribeFromInput()
@@ -135,10 +138,11 @@ namespace Resonance.Player
             if (_inputService == null) return;
 
             _inputService.OnMove -= HandleMoveInput;
-            _inputService.OnJump -= HandleJumpInput;
             _inputService.OnInteract -= HandleInteractInput;
             _inputService.OnRun -= HandleRunInput;
-            _inputService.OnAttack -= HandleAttackInput;
+            _inputService.OnAim -= HandleAimInput;
+            _inputService.OnShoot -= HandleShootInput;
+            _inputService.OnLook -= HandleLookInput;
         }
 
         private void HandleMoveInput(Vector2 input)
@@ -148,19 +152,16 @@ namespace Resonance.Player
             _playerController.Movement.SetMovementInput(input);
         }
 
-        private void HandleJumpInput()
-        {
-            if (!IsInitialized) return;
-            
-            _playerController.Movement.RequestJump();
-        }
-
         private void HandleInteractInput()
         {
             if (!IsInitialized) return;
             
-            // Handle interaction logic
-            Debug.Log("PlayerMonoBehaviour: Interact input received");
+            // Only allow interaction in Normal state
+            if (_playerController.StateMachine.CanInteract())
+            {
+                // Handle interaction logic
+                Debug.Log("PlayerMonoBehaviour: Interact input received");
+            }
         }
 
         private void HandleRunInput(bool isRunning)
@@ -170,11 +171,39 @@ namespace Resonance.Player
             _playerController.Movement.SetRunning(isRunning);
         }
 
-        private void HandleAttackInput()
+        private void HandleAimInput(bool isAiming)
         {
             if (!IsInitialized) return;
             
-            _playerController.PerformAttack();
+            if (isAiming)
+            {
+                _playerController.StartAiming();
+            }
+            else
+            {
+                _playerController.StopAiming();
+            }
+        }
+
+        private void HandleShootInput()
+        {
+            if (!IsInitialized) return;
+            
+            _playerController.PerformShoot();
+        }
+
+        private void HandleLookInput(Vector2 lookDelta)
+        {
+            if (!IsInitialized) return;
+            
+            // Only process look input when aiming
+            if (_playerController.IsAiming)
+            {
+                // Convert mouse delta to aim direction
+                // This is a simple implementation - you might want to make this more sophisticated
+                Vector2 newAimDirection = _playerController.AimDirection + lookDelta * 0.01f;
+                _playerController.SetAimDirection(newAimDirection);
+            }
         }
 
         #endregion
@@ -183,38 +212,58 @@ namespace Resonance.Player
 
         private void HandlePhysics()
         {
-            // Ground check
+            // Ground check for 2D platform game
             CheckGrounded();
 
             // Calculate movement
             Vector3 movement = _playerController.Movement.CalculateMovement(Time.deltaTime);
 
-            // Apply gravity
-            if (_isGrounded && _velocity.y < 0)
+            // Handle gravity and Y-axis movement
+            Vector3 verticalMovement = Vector3.zero;
+            
+            if (_lockYPosition)
             {
-                _velocity.y = -2f; // Small downward force to keep grounded
+                // For pure 2D games, lock Y position
+                _velocity.y = 0f;
+                transform.position = new Vector3(transform.position.x, _fixedYPosition, transform.position.z);
             }
             else
             {
-                _velocity.y += _gravity * Time.deltaTime;
+                // Standard gravity for 2.5D platform games
+                if (_isGrounded && _velocity.y < 0)
+                {
+                    _velocity.y = -2f; // Small downward force to keep grounded
+                }
+                else
+                {
+                    _velocity.y += _gravity * Time.deltaTime;
+                }
+                verticalMovement = new Vector3(0, _velocity.y * Time.deltaTime, 0);
             }
 
-            // Update velocity from player controller
-            _velocity = _playerController.Movement.CalculateVelocity(_velocity, Time.deltaTime);
-
             // Apply movement
-            Vector3 finalMovement = movement + (_velocity * Time.deltaTime);
+            Vector3 finalMovement = movement + verticalMovement;
             _characterController.Move(finalMovement);
         }
 
         private void CheckGrounded()
         {
             bool wasGrounded = _isGrounded;
-            _isGrounded = Physics.CheckSphere(
-                transform.position + Vector3.down * _groundCheckDistance,
-                0.1f,
-                _groundLayerMask
-            );
+            
+            if (_lockYPosition)
+            {
+                // For pure 2D games, always consider grounded
+                _isGrounded = true;
+            }
+            else
+            {
+                // Standard ground check for 2.5D platform games
+                _isGrounded = Physics.CheckSphere(
+                    transform.position + Vector3.down * _groundCheckDistance,
+                    0.1f,
+                    _groundLayerMask
+                );
+            }
 
             _playerController.Movement.SetGrounded(_isGrounded);
         }
@@ -247,17 +296,7 @@ namespace Resonance.Player
             // Update UI, play effects, etc.
         }
 
-        private void HandleJump()
-        {
-            Debug.Log("PlayerMonoBehaviour: Player jumped");
-            // Play jump animation, sound effects, etc.
-        }
 
-        private void HandleLand()
-        {
-            Debug.Log("PlayerMonoBehaviour: Player landed");
-            // Play land animation, sound effects, etc.
-        }
 
         #endregion
 
@@ -324,24 +363,39 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
 
-            // Draw ground check
-            Debug.DrawRay(transform.position, Vector3.down * _groundCheckDistance, 
-                _isGrounded ? Color.green : Color.red);
+            // Draw ground check (if not locked Y position)
+            if (!_lockYPosition)
+            {
+                Debug.DrawRay(transform.position, Vector3.down * _groundCheckDistance, 
+                    _isGrounded ? Color.green : Color.red);
+            }
 
             // Display stats in scene view
             var stats = _playerController.Stats;
             Debug.Log($"Health: {stats.currentHealth}/{stats.maxHealth}, " +
+                     $"State: {_playerController.CurrentState}, " +
                      $"Grounded: {_isGrounded}, " +
-                     $"Velocity: {_velocity}");
+                     $"Can Move: {_playerController.StateMachine.CanMove()}");
         }
 
         void OnDrawGizmosSelected()
         {
-            // Draw ground check sphere
-            Gizmos.color = _isGrounded ? Color.green : Color.red;
-            Gizmos.DrawWireSphere(transform.position + Vector3.down * _groundCheckDistance, 0.1f);
-
-            // No need to draw spawn point - handled by PlayerSpawner
+            // Draw ground check sphere (only if not locked Y position)
+            if (!_lockYPosition)
+            {
+                Gizmos.color = _isGrounded ? Color.green : Color.red;
+                Gizmos.DrawWireSphere(transform.position + Vector3.down * _groundCheckDistance, 0.1f);
+            }
+            
+            // Draw fixed Y position line for 2D mode
+            if (_lockYPosition)
+            {
+                Gizmos.color = Color.blue;
+                Vector3 start = transform.position + Vector3.left * 2f;
+                Vector3 end = transform.position + Vector3.right * 2f;
+                start.y = end.y = _fixedYPosition;
+                Gizmos.DrawLine(start, end);
+            }
         }
 
         #endregion

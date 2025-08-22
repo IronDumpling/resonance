@@ -4,7 +4,7 @@ using Resonance.Player.Data;
 namespace Resonance.Player.Core
 {
     /// <summary>
-    /// Player movement system that handles physics-based movement.
+    /// Player movement system that handles 2D platform movement.
     /// Works with PlayerMonoBehaviour to control the player GameObject.
     /// </summary>
     public class PlayerMovement
@@ -12,17 +12,13 @@ namespace Resonance.Player.Core
         private PlayerRuntimeStats _stats;
         private Vector2 _inputVector;
         private bool _isRunning;
-        private bool _jumpRequested;
-        private int _jumpsRemaining;
         private bool _isGrounded;
 
         // State
         private Vector3 _velocity;
-        private bool _wasGroundedLastFrame;
 
-        // Events
-        public System.Action OnJump;
-        public System.Action OnLand;
+        // Movement modifier for aiming state
+        private float _movementSpeedModifier = 1f;
 
         // Properties
         public Vector2 InputVector => _inputVector;
@@ -30,17 +26,21 @@ namespace Resonance.Player.Core
         public bool IsGrounded => _isGrounded;
         public Vector3 Velocity => _velocity;
         public bool IsMoving => _inputVector.sqrMagnitude > 0.01f;
+        public float MovementSpeedModifier 
+        { 
+            get => _movementSpeedModifier; 
+            set => _movementSpeedModifier = Mathf.Clamp01(value); 
+        }
 
         public PlayerMovement(PlayerRuntimeStats stats)
         {
             _stats = stats;
-            _jumpsRemaining = _stats.maxJumps;
         }
 
         public void Update(float deltaTime)
         {
-            UpdateGroundedState();
-            UpdateJumpState();
+            // Simple update for 2D platform movement
+            // No complex state management needed
         }
 
         #region Input Handling
@@ -55,11 +55,6 @@ namespace Resonance.Player.Core
             _isRunning = isRunning;
         }
 
-        public void RequestJump()
-        {
-            _jumpRequested = true;
-        }
-
         #endregion
 
         #region Movement Calculation
@@ -68,7 +63,7 @@ namespace Resonance.Player.Core
         {
             Vector3 movement = Vector3.zero;
 
-            // Horizontal movement
+            // Horizontal movement (2D platform style)
             if (IsMoving)
             {
                 float speed = _stats.moveSpeed;
@@ -76,6 +71,9 @@ namespace Resonance.Player.Core
                 {
                     speed *= _stats.runSpeedMultiplier;
                 }
+
+                // Apply movement speed modifier (for aiming state)
+                speed *= _movementSpeedModifier;
 
                 movement.x = _inputVector.x * speed * deltaTime;
                 movement.z = _inputVector.y * speed * deltaTime; // Y input maps to Z movement
@@ -87,76 +85,23 @@ namespace Resonance.Player.Core
         public Vector3 CalculateVelocity(Vector3 currentVelocity, float deltaTime)
         {
             _velocity = currentVelocity;
-
-            // Handle jumping
-            if (_jumpRequested && CanJump())
-            {
-                PerformJump();
-            }
-
-            _jumpRequested = false;
+            // For 2D platform games, we primarily use CharacterController.Move()
+            // Velocity is mainly used for gravity
             return _velocity;
         }
 
         #endregion
 
-        #region Jump System
-
-        private void UpdateGroundedState()
-        {
-            _wasGroundedLastFrame = _isGrounded;
-            // Grounded state should be set externally by PlayerMonoBehaviour
-            // after checking collision with ground
-        }
+        #region Ground System
 
         public void SetGrounded(bool grounded)
         {
             _isGrounded = grounded;
-
-            // Reset jumps when landing
-            if (_isGrounded && !_wasGroundedLastFrame)
-            {
-                _jumpsRemaining = _stats.maxJumps;
-                OnLand?.Invoke();
-            }
-        }
-
-        private void UpdateJumpState()
-        {
-            // Handle landing detection and jump reset
-            if (_isGrounded && !_wasGroundedLastFrame)
-            {
-                _jumpsRemaining = _stats.maxJumps;
-            }
-        }
-
-        private bool CanJump()
-        {
-            return _jumpsRemaining > 0;
-        }
-
-        private void PerformJump()
-        {
-            _velocity.y = _stats.jumpForce;
-            _jumpsRemaining--;
-            OnJump?.Invoke();
-            
-            Debug.Log($"PlayerMovement: Jumped! Jumps remaining: {_jumpsRemaining}");
         }
 
         #endregion
 
         #region State Queries
-
-        public bool IsFalling()
-        {
-            return !_isGrounded && _velocity.y < -0.1f;
-        }
-
-        public bool IsRising()
-        {
-            return !_isGrounded && _velocity.y > 0.1f;
-        }
 
         public float GetMovementSpeed()
         {
@@ -165,6 +110,7 @@ namespace Resonance.Player.Core
             {
                 speed *= _stats.runSpeedMultiplier;
             }
+            speed *= _movementSpeedModifier;
             return speed;
         }
 
