@@ -65,11 +65,11 @@ namespace Resonance.Core.GlobalServices
         private void SetupInputCallbacks()
         {
             // Player input callbacks
-            _playerMap["Move"].performed += OnMovePerformed;
-            _playerMap["Move"].canceled += OnMoveCanceled;
+            // _playerMap["Move"].performed += OnMovePerformed;
+            // _playerMap["Move"].canceled += OnMoveCanceled;
             
-            _playerMap["Jump"].performed += OnJumpPerformed;
-            _playerMap["Interact"].performed += OnInteractPerformed;
+            // _playerMap["Jump"].performed += OnJumpPerformed;
+            // _playerMap["Interact"].performed += OnInteractPerformed;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext context)

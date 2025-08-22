@@ -9,18 +9,18 @@ namespace Resonance.Core
     public class Services
     {
         private GlobalServices.InputService _inputService;
-        private List<IGameSystem> _systems;
+        private List<IGameService> _systems;
         private bool _isInitialized = false;
         private GameObject _gameManagerObject;
 
         public Services(GameObject gameManagerObject, ServiceConfiguration configuration)
         {
             _gameManagerObject = gameManagerObject;
-            _systems = new List<IGameSystem>();
+            _systems = new List<IGameService>();
             DiscoverServices(configuration);
         }
 
-        public T GetService<T>() where T : class, IGameSystem
+        public T GetService<T>() where T : class, IGameService
         {
             return ServiceRegistry.Get<T>();
         }
@@ -36,7 +36,7 @@ namespace Resonance.Core
             AddService(_inputService);
         }
 
-        private void AddService(IGameSystem system)
+        private void AddService(IGameService system)
         {
             if (system != null && !_systems.Contains(system))
             {
@@ -78,11 +78,11 @@ namespace Resonance.Core
             Debug.Log("Services: All global services initialized");
         }
 
-        private void RegisterSystemInRegistry(IGameSystem system)
+        private void RegisterSystemInRegistry(IGameService system)
         {
             // Register by interface type
             var interfaces = system.GetType().GetInterfaces()
-                .Where(i => i != typeof(IGameSystem) && typeof(IGameSystem).IsAssignableFrom(i));
+                .Where(i => i != typeof(IGameService) && typeof(IGameService).IsAssignableFrom(i));
 
             foreach (var interfaceType in interfaces)
             {
@@ -119,7 +119,7 @@ namespace Resonance.Core
             _isInitialized = false;
         }
 
-        public bool IsServiceAvailable<T>() where T : class, IGameSystem
+        public bool IsServiceAvailable<T>() where T : class, IGameService
         {
             return ServiceRegistry.IsRegistered<T>();
         }

@@ -8,7 +8,7 @@ namespace Resonance.Core
         Shutdown
     }
 
-    public interface IGameSystem
+    public interface IGameService
     {
         int Priority { get; }
         SystemState State { get; }

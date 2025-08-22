@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Resonance.Core
 {
-    public interface IInputService : IGameSystem
+    public interface IInputService : IGameService
     {
         event Action<Vector2> OnMove;
         event Action OnJump;

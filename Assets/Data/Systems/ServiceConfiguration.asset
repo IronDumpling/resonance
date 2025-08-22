@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 194744ddc86296645ad2cc2e34997a7f, type: 3}
+  m_Name: ServiceConfiguration
+  m_EditorClassIdentifier: 
+  inputActions: {fileID: -944628639613478452, guid: 08c6a2186d07ef0429e24f4c98a1f040, type: 3}
+  masterMixerGroup: {fileID: 0}
+  saveFilePath: SaveData
+  useAddressables: 1

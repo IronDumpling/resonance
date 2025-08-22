@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Utilities;
 using Resonance.Core;
+using Resonance.Core.StateMachine.States;
 
 namespace Resonance.Core.StateMachine
 {
@@ -53,9 +54,14 @@ namespace Resonance.Core.StateMachine
             }
         }
 
-        public bool ChangeState(string stateName)
+        public bool ChangeState(string statePath)
         {
-            return _stateMachine?.ChangeState(stateName) ?? false;
+            return _stateMachine?.ChangeState(statePath) ?? false;
+        }
+
+        public string GetCurrentStatePath()
+        {
+            return _stateMachine?.CurrentStatePath ?? "";
         }
 
         public bool ChangeState(IState state)
@@ -76,113 +82,6 @@ namespace Resonance.Core.StateMachine
                 _stateMachine?.Clear();
                 _isInitialized = false;
             }
-        }
-    }
-
-    // Basic game states
-    public class InitializingState : IState
-    {
-        public string Name => "Initializing";
-
-        public void Enter()
-        {
-            Debug.Log("State: Entering Initializing");
-        }
-
-        public void Update()
-        {
-            // Auto-transition to main menu after initialization
-            if (GameManager.Instance.Services != null)
-            {
-                GameManager.Instance.StateMachine.ChangeState("MainMenu");
-            }
-        }
-
-        public void Exit()
-        {
-            Debug.Log("State: Exiting Initializing");
-        }
-
-        public bool CanTransitionTo(IState newState)
-        {
-            return newState.Name == "MainMenu";
-        }
-    }
-
-    public class MainMenuState : IState
-    {
-        public string Name => "MainMenu";
-
-        public void Enter()
-        {
-            Debug.Log("State: Entering MainMenu");
-        }
-
-        public void Update()
-        {
-            // Handle main menu logic
-        }
-
-        public void Exit()
-        {
-            Debug.Log("State: Exiting MainMenu");
-        }
-
-        public bool CanTransitionTo(IState newState)
-        {
-            return newState.Name == "Gameplay";
-        }
-    }
-
-    public class GameplayState : IState
-    {
-        public string Name => "Gameplay";
-
-        public void Enter()
-        {
-            Debug.Log("State: Entering Gameplay");
-        }
-
-        public void Update()
-        {
-            // Handle gameplay logic
-        }
-
-        public void Exit()
-        {
-            Debug.Log("State: Exiting Gameplay");
-        }
-
-        public bool CanTransitionTo(IState newState)
-        {
-            return newState.Name == "Paused" || newState.Name == "MainMenu";
-        }
-    }
-
-    public class PausedState : IState
-    {
-        public string Name => "Paused";
-
-        public void Enter()
-        {
-            Debug.Log("State: Entering Paused");
-            GameManager.Instance.PauseGame();
-        }
-
-        public void Update()
-        {
-            // Handle pause menu logic
-        }
-
-        public void Exit()
-        {
-            Debug.Log("State: Exiting Paused");
-            GameManager.Instance.ResumeGame();
-        }
-
-        public bool CanTransitionTo(IState newState)
-        {
-            return newState.Name == "Gameplay" || newState.Name == "MainMenu";
         }
     }
 }
