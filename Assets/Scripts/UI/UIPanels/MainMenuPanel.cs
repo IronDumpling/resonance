@@ -43,9 +43,9 @@ namespace Resonance.UI
         {
             // Auto-find buttons if not assigned
             if (_startGameButton == null)
-                _startGameButton = FindButtonByName("StartGame", "Start", "Play");
+                _startGameButton = FindButtonByName("Start", "Play");
             if (_settingsButton == null)
-                _settingsButton = FindButtonByName("Settings", "Options");
+                _settingsButton = FindButtonByName("Settings");
             if (_quitButton == null)
                 _quitButton = FindButtonByName("Quit", "Exit");
 
