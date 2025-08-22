@@ -15,8 +15,6 @@ namespace Resonance.Items
         [SerializeField] private GunData _gunData;
         
         [Header("Interaction")]
-        [SerializeField] private float _interactionRange = 2f;
-        [SerializeField] private LayerMask _playerLayerMask = 1;
         [SerializeField] private string _interactionText = "Press E to pick up";
         
         [Header("Visual")]
@@ -51,7 +49,6 @@ namespace Resonance.Items
         public bool IsPickedUp => _isPickedUp;
         public bool PlayerInRange => _playerInRange;
         public string InteractionText => _interactionText;
-        public float InteractionRange => _interactionRange;
 
         void Start()
         {
@@ -74,6 +71,9 @@ namespace Resonance.Items
             {
                 _visualModel = gameObject;
             }
+
+            // 设置Visual子对象的触发器事件
+            SetupVisualTrigger();
 
             // 获取交互服务
             _interactionService = ServiceRegistry.Get<IInteractionService>();
@@ -106,9 +106,6 @@ namespace Resonance.Items
         void Update()
         {
             if (_isPickedUp) return;
-
-            // 检测玩家范围
-            DetectPlayer();
             
             // 执行视觉动画
             PerformVisualAnimations();
@@ -135,49 +132,157 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 检测附近的玩家
+        /// 设置Visual子对象的触发器事件
         /// </summary>
-        private void DetectPlayer()
+        private void SetupVisualTrigger()
         {
-            Collider[] playersInRange = Physics.OverlapSphere(transform.position, _interactionRange, _playerLayerMask);
+            Debug.Log($"GunMonoBehaviour: Setting up trigger for Visual object");
             
-            bool foundPlayer = false;
-            foreach (var collider in playersInRange)
+            // 查找Visual子对象上的触发器
+            Collider visualCollider = null;
+            if (_visualModel != null && _visualModel != gameObject)
             {
-                if (collider.CompareTag("Player"))
+                visualCollider = _visualModel.GetComponent<Collider>();
+            }
+            
+            if (visualCollider == null)
+            {
+                // 如果Visual模型没有collider，检查是否有名为"Visual"的子对象
+                Transform visualChild = transform.Find("Visual");
+                if (visualChild != null)
                 {
-                    foundPlayer = true;
-                    if (!_playerInRange)
-                    {
-                        _playerInRange = true;
-                        _playerTransform = collider.transform;
-                        OnPlayerEnterRange?.Invoke(this);
-                        
-                        // 设置为当前可交互对象
-                        if (_interactionService != null)
-                        {
-                            _interactionService.SetCurrentInteractable(gameObject, _interactionText);
-                        }
-                        
-                        Debug.Log($"GunMonoBehaviour: Player entered range of {_gunData.weaponName}");
-                    }
-                    break;
+                    visualCollider = visualChild.GetComponent<Collider>();
+                    _visualModel = visualChild.gameObject;
+                    Debug.Log($"GunMonoBehaviour: Found Visual child object: {visualChild.name}");
                 }
             }
             
-            if (!foundPlayer && _playerInRange)
+            if (visualCollider == null)
             {
-                _playerInRange = false;
-                _playerTransform = null;
-                OnPlayerExitRange?.Invoke(this);
+                Debug.LogError($"GunMonoBehaviour: No trigger collider found on Visual object! Please ensure the Visual child has a Collider component set as Trigger.");
+                return;
+            }
+            
+            if (!visualCollider.isTrigger)
+            {
+                Debug.LogError($"GunMonoBehaviour: Collider on {visualCollider.name} is not set as Trigger! Please check 'Is Trigger' in the Collider component.");
+                return;
+            }
+            
+            Debug.Log($"GunMonoBehaviour: Visual trigger setup complete - Object: {visualCollider.name}, Type: {visualCollider.GetType().Name}, IsTrigger: {visualCollider.isTrigger}");
+            
+            // 添加一个简单的触发器处理组件到Visual对象
+            var existingHandler = visualCollider.GetComponent<GunVisualTriggerHandler>();
+            if (existingHandler == null)
+            {
+                var handler = visualCollider.gameObject.AddComponent<GunVisualTriggerHandler>();
+                handler.SetGunMonoBehaviour(this);
+                Debug.Log($"GunMonoBehaviour: Added trigger handler to {visualCollider.name}");
+            }
+            else
+            {
+                existingHandler.SetGunMonoBehaviour(this);
+                Debug.Log($"GunMonoBehaviour: Updated existing trigger handler on {visualCollider.name}");
+            }
+        }
+
+        /// <summary>
+        /// 处理触发器进入事件（由GunVisualTriggerHandler调用）
+        /// </summary>
+        /// <param name="other">进入触发器的碰撞体</param>
+        public void HandleTriggerEnter(Collider other)
+        {
+            Debug.Log($"GunMonoBehaviour: HandleTriggerEnter called with {other.name} (Tag: {other.tag}, Layer: {other.gameObject.layer})");
+            
+            if (_isPickedUp) 
+            {
+                Debug.Log("GunMonoBehaviour: Gun already picked up, ignoring trigger");
+                return;
+            }
+            
+            // Check if the collider belongs to a player
+            if (other.CompareTag("Player"))
+            {
+                Debug.Log($"GunMonoBehaviour: Found Player collider: {other.name}");
                 
-                // 清除当前可交互对象
-                if (_interactionService != null && _interactionService.CurrentInteractable == gameObject)
+                // Get the root player transform (might be on a child collider)
+                Transform playerRoot = other.transform;
+                var playerMono = other.GetComponentInParent<Resonance.Player.PlayerMonoBehaviour>();
+                if (playerMono != null)
                 {
-                    _interactionService.ClearCurrentInteractable();
+                    playerRoot = playerMono.transform;
+                    Debug.Log($"GunMonoBehaviour: Found PlayerMonoBehaviour on {playerRoot.name}");
                 }
                 
-                Debug.Log($"GunMonoBehaviour: Player left range of {_gunData.weaponName}");
+                if (!_playerInRange)
+                {
+                    _playerInRange = true;
+                    _playerTransform = playerRoot;
+                    OnPlayerEnterRange?.Invoke(this);
+                    
+                    // 设置为当前可交互对象
+                    if (_interactionService != null)
+                    {
+                        _interactionService.SetCurrentInteractable(gameObject, _interactionText);
+                        Debug.Log($"GunMonoBehaviour: Set current interactable to {gameObject.name}");
+                    }
+                    else
+                    {
+                        Debug.LogError("GunMonoBehaviour: InteractionService is null!");
+                    }
+                    
+                    Debug.Log($"GunMonoBehaviour: Player entered range of {_gunData.weaponName}");
+                }
+            }
+            else
+            {
+                Debug.Log($"GunMonoBehaviour: Collider {other.name} doesn't have Player tag (Tag: {other.tag})");
+            }
+        }
+        
+        /// <summary>
+        /// 处理触发器退出事件（由GunVisualTriggerHandler调用）
+        /// </summary>
+        /// <param name="other">退出触发器的碰撞体</param>
+        public void HandleTriggerExit(Collider other)
+        {
+            Debug.Log($"GunMonoBehaviour: HandleTriggerExit called with {other.name} (Tag: {other.tag}, Layer: {other.gameObject.layer})");
+            
+            if (_isPickedUp) 
+            {
+                Debug.Log("GunMonoBehaviour: Gun already picked up, ignoring trigger exit");
+                return;
+            }
+            
+            // Check if the collider belongs to a player
+            if (other.CompareTag("Player"))
+            {
+                Debug.Log($"GunMonoBehaviour: Player collider {other.name} exiting trigger");
+                
+                // Get the root player transform (might be on a child collider)
+                Transform playerRoot = other.transform;
+                var playerMono = other.GetComponentInParent<Resonance.Player.PlayerMonoBehaviour>();
+                if (playerMono != null)
+                {
+                    playerRoot = playerMono.transform;
+                }
+                
+                // Only clear if this is the same player that entered
+                if (_playerInRange && _playerTransform == playerRoot)
+                {
+                    _playerInRange = false;
+                    _playerTransform = null;
+                    OnPlayerExitRange?.Invoke(this);
+                    
+                    // 清除当前可交互对象
+                    if (_interactionService != null && _interactionService.CurrentInteractable == gameObject)
+                    {
+                        _interactionService.ClearCurrentInteractable();
+                        Debug.Log($"GunMonoBehaviour: Cleared current interactable");
+                    }
+                    
+                    Debug.Log($"GunMonoBehaviour: Player left range of {_gunData.weaponName}");
+                }
             }
         }
 
@@ -210,18 +315,7 @@ namespace Resonance.Items
             _visualModel.transform.eulerAngles = currentRotation;
         }
 
-        /// <summary>
-        /// 检查玩家是否在交互范围内
-        /// </summary>
-        /// <param name="playerPosition">玩家位置</param>
-        /// <returns>是否可以交互</returns>
-        public bool CanInteract(Vector3 playerPosition)
-        {
-            if (_isPickedUp) return false;
-            
-            float distance = Vector3.Distance(transform.position, playerPosition);
-            return distance <= _interactionRange;
-        }
+
 
         /// <summary>
         /// 直接检查当前是否可以被交互
@@ -281,21 +375,34 @@ namespace Resonance.Items
             gameObject.SetActive(true);
             Debug.Log($"GunMonoBehaviour: {_gunData.weaponName} reset");
         }
+    }
 
-        void OnDrawGizmosSelected()
+    /// <summary>
+    /// 简单的触发器处理器，用于转发触发器事件到父对象的GunMonoBehaviour
+    /// 此组件会被自动添加到Visual子对象上
+    /// </summary>
+    public class GunVisualTriggerHandler : MonoBehaviour
+    {
+        private GunMonoBehaviour _gunMonoBehaviour;
+
+        public void SetGunMonoBehaviour(GunMonoBehaviour gunMono)
         {
-            // 绘制交互范围
-            Gizmos.color = _isPickedUp ? Color.gray : Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, _interactionRange);
+            _gunMonoBehaviour = gunMono;
         }
 
-        void OnDrawGizmos()
+        void OnTriggerEnter(Collider other)
         {
-            // 始终显示一个小的交互指示
-            if (!_isPickedUp)
+            if (_gunMonoBehaviour != null)
             {
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere(transform.position + Vector3.up * 0.5f, 0.2f);
+                _gunMonoBehaviour.HandleTriggerEnter(other);
+            }
+        }
+
+        void OnTriggerExit(Collider other)
+        {
+            if (_gunMonoBehaviour != null)
+            {
+                _gunMonoBehaviour.HandleTriggerExit(other);
             }
         }
     }

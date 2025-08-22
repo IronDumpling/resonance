@@ -75,6 +75,9 @@ namespace Resonance.Player
                 return;
             }
 
+            // Ensure Visual child object is properly configured for interaction
+            SetupVisualForInteraction();
+
             InitializePlayer();
         }
 
@@ -145,6 +148,69 @@ namespace Resonance.Player
         #endregion
 
         #region Player Initialization
+
+        private void SetupVisualForInteraction()
+        {
+            Debug.Log($"PlayerMonoBehaviour: Setting up Visual child for interaction");
+            
+            // 查找Visual子对象
+            Transform visualChild = transform.Find("Visual");
+            if (visualChild == null)
+            {
+                Debug.LogWarning("PlayerMonoBehaviour: No 'Visual' child found. Looking for _playerVisual reference...");
+                if (_playerVisual != null)
+                {
+                    visualChild = _playerVisual;
+                    Debug.Log($"PlayerMonoBehaviour: Using _playerVisual reference: {visualChild.name}");
+                }
+                else
+                {
+                    Debug.LogError("PlayerMonoBehaviour: No Visual child found and _playerVisual is not set!");
+                    return;
+                }
+            }
+            
+            // 确保Visual子对象有正确的标签
+            if (!visualChild.CompareTag("Player"))
+            {
+                visualChild.tag = "Player";
+                Debug.Log($"PlayerMonoBehaviour: Set Player tag on Visual child: {visualChild.name}");
+            }
+            
+            // 检查Visual子对象的collider设置
+            Collider visualCollider = visualChild.GetComponent<Collider>();
+            if (visualCollider != null)
+            {
+                Debug.Log($"PlayerMonoBehaviour: Visual collider found - Name: {visualChild.name}, " +
+                         $"Layer: {visualChild.gameObject.layer} ({LayerMask.LayerToName(visualChild.gameObject.layer)}), " +
+                         $"Tag: {visualChild.tag}, IsTrigger: {visualCollider.isTrigger}");
+                
+                // 建议设置（但不强制）
+                if (!visualCollider.isTrigger)
+                {
+                    Debug.LogWarning($"PlayerMonoBehaviour: Visual collider {visualChild.name} is not set as Trigger. " +
+                                   "This may cause physics conflicts with CharacterController. Consider setting it as Trigger.");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"PlayerMonoBehaviour: No collider found on Visual child {visualChild.name}");
+            }
+            
+            // 检查所有子colliders并确保有Player标签
+            Collider[] childColliders = GetComponentsInChildren<Collider>();
+            foreach (var collider in childColliders)
+            {
+                // 跳过CharacterController
+                if (collider == _characterController) continue;
+                
+                if (!collider.CompareTag("Player"))
+                {
+                    collider.tag = "Player";
+                    Debug.Log($"PlayerMonoBehaviour: Set Player tag on child collider: {collider.name}");
+                }
+            }
+        }
 
         private void InitializePlayer()
         {
