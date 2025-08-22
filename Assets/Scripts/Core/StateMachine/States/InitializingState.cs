@@ -12,26 +12,18 @@ namespace Resonance.Core.StateMachine.States
         {
             Debug.Log("State: Entering Initializing");
             
-            // Delay UI display to allow CanvasUIManager to register panels first
-            GameManager.Instance.StartCoroutine(ShowUIWhenReady());
+            // No UI display needed during initialization
+            // LoadingPanel will be shown in other scenes when needed
         }
 
-        private System.Collections.IEnumerator ShowUIWhenReady()
-        {
-            // Wait a frame for CanvasUIManager to register panels
-            yield return null;
-            
-            // Show initializing UI
-            var uiService = ServiceRegistry.Get<IUIService>();
-            uiService?.ShowPanelsForState("Initializing");
-        }
+
 
         public void Update()
         {
-            // Auto-transition to main menu after initialization
+            // Auto-transition to main menu after all services are initialized
             if (GameManager.Instance.Services != null)
             {
-                // Check if all services are running
+                // Check if all core services are running
                 var inputService = ServiceRegistry.Get<IInputService>();
                 var loadSceneService = ServiceRegistry.Get<ILoadSceneService>();
                 var uiService = ServiceRegistry.Get<IUIService>();
@@ -40,7 +32,7 @@ namespace Resonance.Core.StateMachine.States
                     loadSceneService?.State == SystemState.Running &&
                     uiService?.State == SystemState.Running)
                 {
-                    Debug.Log("State: All services initialized, transitioning to MainMenu");
+                    Debug.Log("InitializingState: All services initialized, transitioning to MainMenu");
                     GameManager.Instance.StateMachine.ChangeState("MainMenu");
                 }
             }

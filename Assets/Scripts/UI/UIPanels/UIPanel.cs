@@ -145,16 +145,19 @@ namespace Resonance.UI
         {
             IsVisible = visible;
             
-            // Control main canvas group
+            // Primary method: Use CanvasGroup for performance (recommended)
             if (_mainCanvasGroup != null)
             {
                 _mainCanvasGroup.alpha = visible ? 1f : 0f;
                 _mainCanvasGroup.interactable = visible;
                 _mainCanvasGroup.blocksRaycasts = visible;
+                
+                // Don't fall through to other methods if CanvasGroup exists
+                return;
             }
 
-            // Control individual component canvas groups
-            if (_componentCanvasGroups != null)
+            // Secondary method: Control individual component canvas groups
+            if (_componentCanvasGroups != null && _componentCanvasGroups.Length > 0)
             {
                 foreach (var canvasGroup in _componentCanvasGroups)
                 {
@@ -165,11 +168,13 @@ namespace Resonance.UI
                         canvasGroup.blocksRaycasts = visible;
                     }
                 }
+                return;
             }
 
-            // Fallback: control individual UI components
-            if (_uiComponents != null)
+            // Fallback method: Control individual UI components (less efficient)
+            if (_uiComponents != null && _uiComponents.Length > 0)
             {
+                Debug.LogWarning($"UIPanel {_panelName}: Using SetActive() fallback. Consider adding a CanvasGroup for better performance.");
                 foreach (var component in _uiComponents)
                 {
                     if (component != null)
@@ -177,13 +182,12 @@ namespace Resonance.UI
                         component.SetActive(visible);
                     }
                 }
+                return;
             }
 
-            // Last resort: control entire GameObject
-            if (_mainCanvasGroup == null && (_uiComponents == null || _uiComponents.Length == 0))
-            {
-                gameObject.SetActive(visible);
-            }
+            // Last resort: Control entire GameObject (avoid this for UI panels)
+            Debug.LogWarning($"UIPanel {_panelName}: Using GameObject.SetActive() as last resort. This may cause performance issues and break the 'no destroy' principle.");
+            gameObject.SetActive(visible);
         }
 
         // Public methods for managing individual UI components

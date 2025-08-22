@@ -24,7 +24,7 @@ namespace Resonance.UI
             base.Awake();
             
             // Set panel configuration
-            _panelName = "MainMenu";
+            _panelName = "MainMenuPanel";
             _layer = UILayer.Menu;
         }
 

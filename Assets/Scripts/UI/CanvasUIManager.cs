@@ -60,7 +60,18 @@ namespace Resonance.UI
                 {
                     GameObject instance = Instantiate(prefab, _uiRoot);
                     _instantiatedPrefabs.Add(instance);
-                    Debug.Log($"CanvasUIManager: Loaded UI prefab from {resourcePath}");
+                    
+                    // Directly get and register the UIPanel component
+                    UIPanel panel = instance.GetComponent<UIPanel>();
+                    if (panel != null)
+                    {
+                        _discoveredPanels.Add(panel);
+                        Debug.Log($"CanvasUIManager: Loaded and registered UI prefab {panel.PanelName} from {resourcePath}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"CanvasUIManager: Loaded prefab {resourcePath} but no UIPanel component found");
+                    }
                 }
                 else
                 {
@@ -71,7 +82,8 @@ namespace Resonance.UI
 
         private void DiscoverUIPanels()
         {
-            _discoveredPanels.Clear();
+            // Don't clear, as LoadUIPrefabs() already added panels
+            // _discoveredPanels.Clear();
 
             if (_autoDiscoverPanels)
             {
@@ -82,8 +94,8 @@ namespace Resonance.UI
                 
                 foreach (var panel in foundPanels)
                 {
-                    // Only register panels that belong to this scene
-                    if (panel.gameObject.scene == gameObject.scene)
+                    // Only register panels that belong to this scene and aren't already registered
+                    if (panel.gameObject.scene == gameObject.scene && !_discoveredPanels.Contains(panel))
                     {
                         _discoveredPanels.Add(panel);
                     }

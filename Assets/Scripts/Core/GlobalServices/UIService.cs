@@ -43,7 +43,6 @@ namespace Resonance.Core.GlobalServices
         private void SetupDefaultStatePanels()
         {
             // Configure which Canvas UI panels should be shown for each game state
-            SetStatePanels("Initializing", "LoadingPanel");
             SetStatePanels("MainMenu", "MainMenuPanel");
             SetStatePanels("Gameplay", "HUDPanel", "InventoryPanel");
             SetStatePanels("Paused", "HUDPanel", "PauseMenuPanel");
