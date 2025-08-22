@@ -11,6 +11,7 @@ namespace Resonance.Core
         private GlobalServices.InputService _inputService;
         private GlobalServices.LoadSceneService _loadSceneService;
         private GlobalServices.UIService _uiService;
+        private GlobalServices.PlayerService _playerService;
         private List<IGameService> _systems;
         private bool _isInitialized = false;
         private GameObject _gameManagerObject;
@@ -44,10 +45,16 @@ namespace Resonance.Core
                 _uiService = new GlobalServices.UIService();
             }
 
+            if (_playerService == null)
+            {
+                _playerService = new GlobalServices.PlayerService();
+            }
+
             // Add services to list
             AddService(_inputService);
             AddService(_loadSceneService);
             AddService(_uiService);
+            AddService(_playerService);
         }
 
         private void AddService(IGameService system)

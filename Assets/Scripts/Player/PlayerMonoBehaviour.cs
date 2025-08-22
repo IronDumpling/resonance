@@ -15,7 +15,6 @@ namespace Resonance.Player
     {
         [Header("Player Configuration")]
         [SerializeField] private PlayerBaseStats _baseStats;
-        [SerializeField] private Transform _spawnPoint;
 
         [Header("Physics")]
         [SerializeField] private LayerMask _groundLayerMask = 1;
@@ -40,7 +39,6 @@ namespace Resonance.Player
         // Properties
         public PlayerController Controller => _playerController;
         public bool IsInitialized => _playerController != null;
-        public Vector3 SpawnPosition => _spawnPoint != null ? _spawnPoint.position : transform.position;
 
         #region Unity Lifecycle
 
@@ -343,12 +341,7 @@ namespace Resonance.Player
             Gizmos.color = _isGrounded ? Color.green : Color.red;
             Gizmos.DrawWireSphere(transform.position + Vector3.down * _groundCheckDistance, 0.1f);
 
-            // Draw spawn point
-            if (_spawnPoint != null)
-            {
-                Gizmos.color = Color.blue;
-                Gizmos.DrawWireCube(_spawnPoint.position, Vector3.one);
-            }
+            // No need to draw spawn point - handled by PlayerSpawner
         }
 
         #endregion
