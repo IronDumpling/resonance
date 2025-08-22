@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Utilities;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -10,6 +11,10 @@ namespace Resonance.Core.StateMachine.States
         public void Enter()
         {
             Debug.Log("State: Entering Initializing");
+            
+            // Show initializing UI
+            var uiService = ServiceRegistry.Get<IUIService>();
+            uiService?.ShowPanelsForState("Initializing");
         }
 
         public void Update()
@@ -17,7 +22,18 @@ namespace Resonance.Core.StateMachine.States
             // Auto-transition to main menu after initialization
             if (GameManager.Instance.Services != null)
             {
-                GameManager.Instance.StateMachine.ChangeState("MainMenu");
+                // Check if all services are running
+                var inputService = ServiceRegistry.Get<IInputService>();
+                var loadSceneService = ServiceRegistry.Get<ILoadSceneService>();
+                var uiService = ServiceRegistry.Get<IUIService>();
+                
+                if (inputService?.State == SystemState.Running &&
+                    loadSceneService?.State == SystemState.Running &&
+                    uiService?.State == SystemState.Running)
+                {
+                    Debug.Log("State: All services initialized, transitioning to MainMenu");
+                    GameManager.Instance.StateMachine.ChangeState("MainMenu");
+                }
             }
         }
 

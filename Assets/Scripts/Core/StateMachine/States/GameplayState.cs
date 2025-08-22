@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Utilities;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -10,6 +11,10 @@ namespace Resonance.Core.StateMachine.States
         public void Enter()
         {
             Debug.Log("State: Entering Gameplay");
+            
+            // Show gameplay UI
+            var uiService = ServiceRegistry.Get<IUIService>();
+            uiService?.ShowPanelsForState("Gameplay");
         }
 
         public void Update()

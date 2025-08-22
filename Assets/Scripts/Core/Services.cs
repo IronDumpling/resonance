@@ -9,6 +9,8 @@ namespace Resonance.Core
     public class Services
     {
         private GlobalServices.InputService _inputService;
+        private GlobalServices.LoadSceneService _loadSceneService;
+        private GlobalServices.UIService _uiService;
         private List<IGameService> _systems;
         private bool _isInitialized = false;
         private GameObject _gameManagerObject;
@@ -32,8 +34,20 @@ namespace Resonance.Core
                 _inputService = new GlobalServices.InputService(configuration);
             }
 
+            if (_loadSceneService == null)
+            {
+                _loadSceneService = new GlobalServices.LoadSceneService(_gameManagerObject.GetComponent<MonoBehaviour>());
+            }
+
+            if (_uiService == null)
+            {
+                _uiService = new GlobalServices.UIService();
+            }
+
             // Add services to list
             AddService(_inputService);
+            AddService(_loadSceneService);
+            AddService(_uiService);
         }
 
         private void AddService(IGameService system)

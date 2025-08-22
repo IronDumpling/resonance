@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Utilities;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -11,6 +12,10 @@ namespace Resonance.Core.StateMachine.States
         {
             Debug.Log("State: Entering Paused");
             GameManager.Instance.PauseGame();
+            
+            // Show pause UI
+            var uiService = ServiceRegistry.Get<IUIService>();
+            uiService?.ShowPanelsForState("Paused");
         }
 
         public void Update()
