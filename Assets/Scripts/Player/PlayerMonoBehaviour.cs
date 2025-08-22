@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
@@ -372,8 +373,17 @@ namespace Resonance.Player
         {
             if (_playerCamera == null) return Vector3.zero;
 
+            // Get mouse position using new Input System
+            Vector2 mousePosition = Mouse.current?.position.ReadValue() ?? Vector2.zero;
+            
+            if (mousePosition == Vector2.zero)
+            {
+                // Fallback: This could happen if mouse is not connected or Input System is not properly set up
+                return Vector3.zero;
+            }
+
             // Cast ray from camera through mouse position
-            Ray ray = _playerCamera.ScreenPointToRay(Input.mousePosition);
+            Ray ray = _playerCamera.ScreenPointToRay(mousePosition);
             
             // For 2D platform games, we'll intersect with a plane at the player's Z position
             Plane targetPlane = new Plane(Vector3.forward, transform.position);
