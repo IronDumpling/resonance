@@ -86,11 +86,13 @@ namespace Resonance.Core
 
             foreach (var interfaceType in interfaces)
             {
-                ServiceRegistry.Register(interfaceType, system);
+                var registerMethod = typeof(ServiceRegistry).GetMethod("Register").MakeGenericMethod(interfaceType);
+                registerMethod.Invoke(null, new object[] { system });
             }
 
             // Also register by concrete type
-            ServiceRegistry.Register(system);
+            var concreteRegisterMethod = typeof(ServiceRegistry).GetMethod("Register").MakeGenericMethod(system.GetType());
+            concreteRegisterMethod.Invoke(null, new object[] { system });
         }
 
         public void Shutdown()

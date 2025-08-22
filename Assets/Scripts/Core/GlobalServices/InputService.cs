@@ -32,14 +32,8 @@ namespace Resonance.Core.GlobalServices
 
         // Input events
         public event Action<Vector2> OnMove;
-        public event Action<Vector2> OnLook;
-        public event Action OnAttack;
         public event Action OnJump;
-        public event Action OnCrouch;
-        public event Action OnSprint;
         public event Action OnInteract;
-        public event Action OnNext;
-        public event Action OnPrevious;
 
         public void Initialize()
         {
@@ -74,16 +68,8 @@ namespace Resonance.Core.GlobalServices
             _playerMap["Move"].performed += OnMovePerformed;
             _playerMap["Move"].canceled += OnMoveCanceled;
             
-            _playerMap["Look"].performed += OnLookPerformed;
-            _playerMap["Look"].canceled += OnLookCanceled;
-            
-            _playerMap["Attack"].performed += OnAttackPerformed;
             _playerMap["Jump"].performed += OnJumpPerformed;
-            _playerMap["Crouch"].performed += OnCrouchPerformed;
-            _playerMap["Sprint"].performed += OnSprintPerformed;
             _playerMap["Interact"].performed += OnInteractPerformed;
-            _playerMap["Next"].performed += OnNextPerformed;
-            _playerMap["Previous"].performed += OnPreviousPerformed;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext context)
@@ -97,50 +83,14 @@ namespace Resonance.Core.GlobalServices
             OnMove?.Invoke(Vector2.zero);
         }
 
-        private void OnLookPerformed(InputAction.CallbackContext context)
-        {
-            Vector2 lookInput = context.ReadValue<Vector2>();
-            OnLook?.Invoke(lookInput);
-        }
-
-        private void OnLookCanceled(InputAction.CallbackContext context)
-        {
-            OnLook?.Invoke(Vector2.zero);
-        }
-
-        private void OnAttackPerformed(InputAction.CallbackContext context)
-        {
-            OnAttack?.Invoke();
-        }
-
         private void OnJumpPerformed(InputAction.CallbackContext context)
         {
             OnJump?.Invoke();
         }
 
-        private void OnCrouchPerformed(InputAction.CallbackContext context)
-        {
-            OnCrouch?.Invoke();
-        }
-
-        private void OnSprintPerformed(InputAction.CallbackContext context)
-        {
-            OnSprint?.Invoke();
-        }
-
         private void OnInteractPerformed(InputAction.CallbackContext context)
         {
             OnInteract?.Invoke();
-        }
-
-        private void OnNextPerformed(InputAction.CallbackContext context)
-        {
-            OnNext?.Invoke();
-        }
-
-        private void OnPreviousPerformed(InputAction.CallbackContext context)
-        {
-            OnPrevious?.Invoke();
         }
 
         public void EnablePlayerInput()
@@ -189,20 +139,13 @@ namespace Resonance.Core.GlobalServices
             if (_inputActions != null)
             {
                 _inputActions.Disable();
-                _inputActions.Dispose();
                 _inputActions = null;
             }
 
             // Clear all event listeners
             OnMove = null;
-            OnLook = null;
-            OnAttack = null;
             OnJump = null;
-            OnCrouch = null;
-            OnSprint = null;
             OnInteract = null;
-            OnNext = null;
-            OnPrevious = null;
 
             State = SystemState.Shutdown;
         }

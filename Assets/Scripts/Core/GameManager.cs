@@ -58,10 +58,11 @@ namespace Resonance.Core
             _stateMachine?.Update();
         }
 
-        void OnDestroy()
+        protected override void OnDestroy()
         {
             _stateMachine?.Shutdown();
             _services?.Shutdown();
+            base.OnDestroy();
         }
 
         public void PauseGame()
