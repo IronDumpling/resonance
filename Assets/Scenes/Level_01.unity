@@ -212,7 +212,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8642219602593282508, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.5882199
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8642219602593282508, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: m_LocalPosition.y
@@ -220,7 +220,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8642219602593282508, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.64804
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8642219602593282508, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: m_LocalRotation.w
@@ -249,14 +249,6 @@ PrefabInstance:
     - target: {fileID: 8642219602593282508, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
-      propertyPath: _prefabResourcePaths.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
-      propertyPath: '_prefabResourcePaths.Array.data[0]'
-      value: Prefabs/UIs/LoadingPanel
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -395,14 +387,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 442382469308402775, guid: d912f24270960324ab530a7e6141c53e, type: 3}
-      propertyPath: orthographic
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 442382469308402775, guid: d912f24270960324ab530a7e6141c53e, type: 3}
-      propertyPath: orthographic size
-      value: 5
-      objectReference: {fileID: 0}
     - target: {fileID: 2544163692143342212, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -446,10 +430,6 @@ PrefabInstance:
     - target: {fileID: 2975946517316456033, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_Name
       value: LevelCameraManager
-      objectReference: {fileID: 0}
-    - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -15
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

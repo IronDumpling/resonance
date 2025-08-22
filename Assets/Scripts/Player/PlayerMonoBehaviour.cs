@@ -28,6 +28,10 @@ namespace Resonance.Player
         [SerializeField] private LayerMask _edgeDetectionLayerMask = 1;
         [SerializeField] private float _edgeRaycastHeight = 0.5f;
 
+        [Header("Player Rotation")]
+        [SerializeField] private Transform _playerVisual;
+        [SerializeField] private float _playerRotationSpeed = 8f;
+        
         [Header("Right Arm Animation")]
         [SerializeField] private Transform _rightArm;
         [SerializeField] private float _armRotationSpeed = 5f;
@@ -107,6 +111,7 @@ namespace Resonance.Player
             if (!IsInitialized) return;
 
             HandlePhysics();
+            UpdatePlayerVisualRotation();
             UpdateRightArmAnimation();
             _playerController.Update(Time.deltaTime);
 
@@ -342,6 +347,99 @@ namespace Resonance.Player
 
         #endregion
 
+        #region Player Visual Rotation
+
+        private void UpdatePlayerVisualRotation()
+        {
+            if (_playerVisual == null || _playerCamera == null) return;
+
+            // 获取鼠标世界坐标
+            Vector3 mouseWorldPosition = GetMouseWorldPosition();
+            if (mouseWorldPosition == Vector3.zero) return;
+
+            // 计算Player Visual的Y轴旋转角度
+            float targetYRotation = CalculatePlayerYRotation(transform.position, mouseWorldPosition);
+            
+            // 应用平滑旋转（仅Y轴）
+            ApplyPlayerYRotation(targetYRotation);
+        }
+
+        /// <summary>
+        /// 计算Player Visual应该面向的Y轴旋转角度
+        /// 算法说明：
+        /// 1. 计算从Player到鼠标的方向向量（仅考虑XZ平面）
+        /// 2. 使用Atan2函数计算该方向在XZ平面的角度
+        /// 3. 转换为Unity的Y轴旋转角度
+        /// </summary>
+        /// <param name="playerPosition">玩家位置</param>
+        /// <param name="mousePosition">鼠标世界坐标</param>
+        /// <returns>Y轴旋转角度（度数）</returns>
+        private float CalculatePlayerYRotation(Vector3 playerPosition, Vector3 mousePosition)
+        {
+            // 步骤1: 计算从Player到鼠标的方向向量
+            Vector3 directionToMouse = mousePosition - playerPosition;
+            
+            // 步骤2: 将Y轴分量设为0，确保只考虑XZ平面的旋转
+            directionToMouse.y = 0f;
+            
+            // 步骤3: 确保方向向量有效（避免除零错误）
+            if (directionToMouse.sqrMagnitude < 0.001f)
+            {
+                // 如果鼠标和玩家位置过于接近，保持当前旋转
+                return _playerVisual.eulerAngles.y;
+            }
+            
+            // 步骤4: 标准化方向向量
+            directionToMouse.Normalize();
+            
+            // 步骤5: 使用Atan2计算角度
+            // Atan2(z, x) 计算从X轴正方向到(x,z)点的角度
+            // Unity的前方是Z轴正方向，所以我们使用 Atan2(x, z)
+            float angleInRadians = Mathf.Atan2(directionToMouse.x, directionToMouse.z);
+            
+            // 步骤6: 转换为度数
+            float angleInDegrees = angleInRadians * Mathf.Rad2Deg;
+            
+            // 步骤7: 确保角度在0-360度范围内
+            if (angleInDegrees < 0f)
+            {
+                angleInDegrees += 360f;
+            }
+            
+            return angleInDegrees;
+        }
+
+        /// <summary>
+        /// 平滑地旋转Player Visual到目标Y轴角度
+        /// 使用Quaternion.Slerp进行球面线性插值，确保旋转自然
+        /// </summary>
+        /// <param name="targetYRotation">目标Y轴旋转角度</param>
+        private void ApplyPlayerYRotation(float targetYRotation)
+        {
+            // 获取当前旋转
+            Vector3 currentEulerAngles = _playerVisual.eulerAngles;
+            
+            // 创建目标旋转（保持X和Z轴不变，只改变Y轴）
+            Vector3 targetEulerAngles = new Vector3(
+                currentEulerAngles.x,  // 保持X轴旋转
+                targetYRotation,       // 设置新的Y轴旋转
+                currentEulerAngles.z   // 保持Z轴旋转
+            );
+            
+            // 转换为Quaternion
+            Quaternion currentRotation = _playerVisual.rotation;
+            Quaternion targetRotation = Quaternion.Euler(targetEulerAngles);
+            
+            // 使用球面线性插值进行平滑旋转
+            _playerVisual.rotation = Quaternion.Slerp(
+                currentRotation, 
+                targetRotation, 
+                _playerRotationSpeed * Time.deltaTime
+            );
+        }
+
+        #endregion
+
         #region Right Arm Animation
 
         private void UpdateRightArmAnimation()
@@ -350,23 +448,66 @@ namespace Resonance.Player
 
             if (_playerController.IsAiming)
             {
-                // Get mouse position in world space
+                // 获取鼠标世界坐标
                 Vector3 mouseWorldPosition = GetMouseWorldPosition();
                 if (mouseWorldPosition != Vector3.zero)
                 {
-                    // Calculate direction from arm to mouse position
-                    Vector3 directionToMouse = (mouseWorldPosition - _rightArm.position).normalized;
+                    // 计算Right Arm的全方向旋转
+                    Quaternion targetArmRotation = CalculateRightArmRotation(_rightArm.position, mouseWorldPosition);
                     
-                    // Calculate target rotation
-                    Quaternion targetRotation = Quaternion.LookRotation(directionToMouse, Vector3.up);
-                    
-                    // Smoothly rotate towards target
-                    _rightArm.rotation = Quaternion.Slerp(_rightArm.rotation, targetRotation, 
-                        _armRotationSpeed * Time.deltaTime);
+                    // 应用平滑旋转（全方向）
+                    ApplyRightArmRotation(targetArmRotation);
                 }
             }
-            // When not aiming, the arm could return to a default position
-            // You can add this logic if needed
+            // 当不在瞄准状态时，可以添加返回默认位置的逻辑
+        }
+
+        /// <summary>
+        /// 计算Right Arm应该指向的全方向旋转
+        /// 算法说明：
+        /// 1. 计算从手臂到鼠标的方向向量（3D全方向）
+        /// 2. 使用Quaternion.LookRotation计算旋转
+        /// 3. 保持Up向量为世界坐标的上方向，确保旋转自然
+        /// </summary>
+        /// <param name="armPosition">手臂位置</param>
+        /// <param name="mousePosition">鼠标世界坐标</param>
+        /// <returns>目标旋转四元数</returns>
+        private Quaternion CalculateRightArmRotation(Vector3 armPosition, Vector3 mousePosition)
+        {
+            // 步骤1: 计算从手臂到鼠标的方向向量（全3D方向）
+            Vector3 directionToMouse = mousePosition - armPosition;
+            
+            // 步骤2: 检查方向向量是否有效
+            if (directionToMouse.sqrMagnitude < 0.001f)
+            {
+                // 如果距离过近，保持当前旋转
+                return _rightArm.rotation;
+            }
+            
+            // 步骤3: 标准化方向向量
+            directionToMouse.Normalize();
+            
+            // 步骤4: 使用LookRotation计算目标旋转
+            // LookRotation(forward, up) 创建一个旋转，使前方指向forward方向
+            // 使用Vector3.up作为上方向，确保旋转看起来自然
+            Quaternion targetRotation = Quaternion.LookRotation(directionToMouse, Vector3.up);
+            
+            return targetRotation;
+        }
+
+        /// <summary>
+        /// 平滑地旋转Right Arm到目标旋转
+        /// 使用Quaternion.Slerp进行球面线性插值
+        /// </summary>
+        /// <param name="targetRotation">目标旋转四元数</param>
+        private void ApplyRightArmRotation(Quaternion targetRotation)
+        {
+            // 使用球面线性插值进行平滑旋转（全方向）
+            _rightArm.rotation = Quaternion.Slerp(
+                _rightArm.rotation, 
+                targetRotation, 
+                _armRotationSpeed * Time.deltaTime
+            );
         }
 
         private Vector3 GetMouseWorldPosition()

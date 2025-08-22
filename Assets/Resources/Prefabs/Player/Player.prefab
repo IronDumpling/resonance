@@ -81,6 +81,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   _edgeRaycastHeight: 0
+  _playerVisual: {fileID: 1430024339774719344}
+  _playerRotationSpeed: 5
   _rightArm: {fileID: 805687583871536803}
   _armRotationSpeed: 5
   _playerCamera: {fileID: 0}
