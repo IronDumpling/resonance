@@ -18,13 +18,20 @@ namespace Resonance.Player
 
         [Header("Physics")]
         [SerializeField] private LayerMask _groundLayerMask = 1;
-        [SerializeField] private float _groundCheckDistance = 0.1f;
-        [SerializeField] private float _gravity = -9.81f;
         
-        [Header("2D Platform Settings")]
-        [SerializeField] private bool _lockYPosition = false;
-        [SerializeField] private float _fixedYPosition = 0f;
 
+        
+        [Header("Edge Protection")]
+        [SerializeField] private bool _enableEdgeProtection = true;
+        [SerializeField] private float _edgeDetectionDistance = 1f;
+        [SerializeField] private LayerMask _edgeDetectionLayerMask = 1;
+        [SerializeField] private float _edgeRaycastHeight = 0.5f;
+
+        [Header("Right Arm Animation")]
+        [SerializeField] private Transform _rightArm;
+        [SerializeField] private float _armRotationSpeed = 5f;
+        [SerializeField] private Camera _playerCamera;
+        
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
 
@@ -34,8 +41,13 @@ namespace Resonance.Player
         private IInputService _inputService;
 
         // Physics
-        private Vector3 _velocity;
         private bool _isGrounded;
+        
+        // Edge Protection
+        private bool _canMoveForward = true;
+        private bool _canMoveBackward = true;
+        private bool _canMoveLeft = true;
+        private bool _canMoveRight = true;
 
         // Events
         public System.Action<PlayerController> OnPlayerInitialized;
@@ -69,6 +81,16 @@ namespace Resonance.Player
                 return;
             }
 
+            // Auto-detect camera if not assigned
+            if (_playerCamera == null)
+            {
+                _playerCamera = Camera.main;
+                if (_playerCamera == null)
+                {
+                    _playerCamera = FindAnyObjectByType<Camera>();
+                }
+            }
+
             // Subscribe to input events
             SubscribeToInput();
 
@@ -84,10 +106,13 @@ namespace Resonance.Player
             if (!IsInitialized) return;
 
             HandlePhysics();
+            UpdateRightArmAnimation();
             _playerController.Update(Time.deltaTime);
 
-            if (_showDebugInfo)
+            // Update debug info less frequently to avoid performance issues
+            if (_showDebugInfo && Time.frameCount % 10 == 0)
             {
+                UpdateEdgeDebugInfo();
                 DrawDebugInfo();
             }
         }
@@ -149,7 +174,9 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
             
-            _playerController.Movement.SetMovementInput(input);
+            // Apply edge protection to movement input
+            Vector2 filteredInput = ApplyEdgeProtection(input);
+            _playerController.Movement.SetMovementInput(filteredInput);
         }
 
         private void HandleInteractInput()
@@ -212,60 +239,151 @@ namespace Resonance.Player
 
         private void HandlePhysics()
         {
-            // Ground check for 2D platform game
-            CheckGrounded();
-
-            // Calculate movement
+            // Calculate movement (XZ plane only for 2D game)
             Vector3 movement = _playerController.Movement.CalculateMovement(Time.deltaTime);
 
-            // Handle gravity and Y-axis movement
-            Vector3 verticalMovement = Vector3.zero;
-            
-            if (_lockYPosition)
+            // Apply edge protection to movement before moving
+            if (_enableEdgeProtection)
             {
-                // For pure 2D games, lock Y position
-                _velocity.y = 0f;
-                transform.position = new Vector3(transform.position.x, _fixedYPosition, transform.position.z);
-            }
-            else
-            {
-                // Standard gravity for 2.5D platform games
-                if (_isGrounded && _velocity.y < 0)
-                {
-                    _velocity.y = -2f; // Small downward force to keep grounded
-                }
-                else
-                {
-                    _velocity.y += _gravity * Time.deltaTime;
-                }
-                verticalMovement = new Vector3(0, _velocity.y * Time.deltaTime, 0);
+                movement = ApplyEdgeProtectionToMovement(movement);
             }
 
-            // Apply movement
-            Vector3 finalMovement = movement + verticalMovement;
-            _characterController.Move(finalMovement);
+            // Apply movement - no gravity or Y-axis movement for 2D game
+            _characterController.Move(movement);
         }
 
         private void CheckGrounded()
         {
-            bool wasGrounded = _isGrounded;
-            
-            if (_lockYPosition)
+            // For 2D games, always consider grounded (no jumping/falling)
+            _isGrounded = true;
+            _playerController.Movement.SetGrounded(_isGrounded);
+        }
+
+        #endregion
+
+        #region Edge Protection
+
+        private Vector3 ApplyEdgeProtectionToMovement(Vector3 movement)
+        {
+            if (!_enableEdgeProtection || movement.magnitude < 0.001f) return movement;
+
+            Vector3 currentPosition = transform.position;
+            Vector3 intendedPosition = currentPosition + movement;
+            Vector3 safeMovement = movement;
+
+            // Check X movement (left/right)
+            if (Mathf.Abs(movement.x) > 0.001f)
             {
-                // For pure 2D games, always consider grounded
-                _isGrounded = true;
-            }
-            else
-            {
-                // Standard ground check for 2.5D platform games
-                _isGrounded = Physics.CheckSphere(
-                    transform.position + Vector3.down * _groundCheckDistance,
-                    0.1f,
-                    _groundLayerMask
-                );
+                Vector3 directionX = movement.x > 0 ? Vector3.right : Vector3.left;
+                if (!IsPositionSafe(currentPosition, directionX, Mathf.Abs(movement.x)))
+                {
+                    safeMovement.x = 0f;
+                }
             }
 
-            _playerController.Movement.SetGrounded(_isGrounded);
+            // Check Z movement (forward/backward)
+            if (Mathf.Abs(movement.z) > 0.001f)
+            {
+                Vector3 directionZ = movement.z > 0 ? Vector3.forward : Vector3.back;
+                if (!IsPositionSafe(currentPosition, directionZ, Mathf.Abs(movement.z)))
+                {
+                    safeMovement.z = 0f;
+                }
+            }
+
+            return safeMovement;
+        }
+
+        private bool IsPositionSafe(Vector3 fromPosition, Vector3 direction, float distance)
+        {
+            // Calculate the position we want to check
+            Vector3 checkPosition = fromPosition + direction * (distance + _edgeDetectionDistance);
+            checkPosition.y = fromPosition.y + _edgeRaycastHeight;
+
+            // Cast ray downward from the intended position to check for ground
+            bool hasGround = Physics.Raycast(checkPosition, Vector3.down, 2f, _edgeDetectionLayerMask);
+
+            return hasGround;
+        }
+
+        private Vector2 ApplyEdgeProtection(Vector2 input)
+        {
+            // This method is kept for backward compatibility but now uses real-time checking
+            if (!_enableEdgeProtection) return input;
+
+            Vector2 filteredInput = input;
+            Vector3 currentPosition = transform.position;
+
+            // Check each direction in real-time
+            if (input.x > 0 && !IsPositionSafe(currentPosition, Vector3.right, 0.1f))
+                filteredInput.x = 0;
+            if (input.x < 0 && !IsPositionSafe(currentPosition, Vector3.left, 0.1f))
+                filteredInput.x = 0;
+            if (input.y > 0 && !IsPositionSafe(currentPosition, Vector3.forward, 0.1f))
+                filteredInput.y = 0;
+            if (input.y < 0 && !IsPositionSafe(currentPosition, Vector3.back, 0.1f))
+                filteredInput.y = 0;
+
+            return filteredInput;
+        }
+
+        // Update edge state for debug display (optional, called less frequently)
+        private void UpdateEdgeDebugInfo()
+        {
+            if (!_enableEdgeProtection) return;
+
+            Vector3 currentPosition = transform.position;
+            _canMoveForward = IsPositionSafe(currentPosition, Vector3.forward, 0.1f);
+            _canMoveBackward = IsPositionSafe(currentPosition, Vector3.back, 0.1f);
+            _canMoveLeft = IsPositionSafe(currentPosition, Vector3.left, 0.1f);
+            _canMoveRight = IsPositionSafe(currentPosition, Vector3.right, 0.1f);
+        }
+
+        #endregion
+
+        #region Right Arm Animation
+
+        private void UpdateRightArmAnimation()
+        {
+            if (_rightArm == null || _playerCamera == null) return;
+
+            if (_playerController.IsAiming)
+            {
+                // Get mouse position in world space
+                Vector3 mouseWorldPosition = GetMouseWorldPosition();
+                if (mouseWorldPosition != Vector3.zero)
+                {
+                    // Calculate direction from arm to mouse position
+                    Vector3 directionToMouse = (mouseWorldPosition - _rightArm.position).normalized;
+                    
+                    // Calculate target rotation
+                    Quaternion targetRotation = Quaternion.LookRotation(directionToMouse, Vector3.up);
+                    
+                    // Smoothly rotate towards target
+                    _rightArm.rotation = Quaternion.Slerp(_rightArm.rotation, targetRotation, 
+                        _armRotationSpeed * Time.deltaTime);
+                }
+            }
+            // When not aiming, the arm could return to a default position
+            // You can add this logic if needed
+        }
+
+        private Vector3 GetMouseWorldPosition()
+        {
+            if (_playerCamera == null) return Vector3.zero;
+
+            // Cast ray from camera through mouse position
+            Ray ray = _playerCamera.ScreenPointToRay(Input.mousePosition);
+            
+            // For 2D platform games, we'll intersect with a plane at the player's Z position
+            Plane targetPlane = new Plane(Vector3.forward, transform.position);
+            
+            if (targetPlane.Raycast(ray, out float distance))
+            {
+                return ray.GetPoint(distance);
+            }
+            
+            return Vector3.zero;
         }
 
         #endregion
@@ -363,38 +481,45 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
 
-            // Draw ground check (if not locked Y position)
-            if (!_lockYPosition)
-            {
-                Debug.DrawRay(transform.position, Vector3.down * _groundCheckDistance, 
-                    _isGrounded ? Color.green : Color.red);
-            }
-
             // Display stats in scene view
             var stats = _playerController.Stats;
+            string edgeInfo = _enableEdgeProtection ? 
+                $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
+                "Edge Protection: OFF";
+                
             Debug.Log($"Health: {stats.currentHealth}/{stats.maxHealth}, " +
                      $"State: {_playerController.CurrentState}, " +
-                     $"Grounded: {_isGrounded}, " +
-                     $"Can Move: {_playerController.StateMachine.CanMove()}");
+                     $"Can Move: {_playerController.StateMachine.CanMove()}, " +
+                     $"{edgeInfo}");
         }
 
         void OnDrawGizmosSelected()
-        {
-            // Draw ground check sphere (only if not locked Y position)
-            if (!_lockYPosition)
+        {            
+            // Draw edge detection rays
+            if (_enableEdgeProtection)
             {
-                Gizmos.color = _isGrounded ? Color.green : Color.red;
-                Gizmos.DrawWireSphere(transform.position + Vector3.down * _groundCheckDistance, 0.1f);
-            }
-            
-            // Draw fixed Y position line for 2D mode
-            if (_lockYPosition)
-            {
-                Gizmos.color = Color.blue;
-                Vector3 start = transform.position + Vector3.left * 2f;
-                Vector3 end = transform.position + Vector3.right * 2f;
-                start.y = end.y = _fixedYPosition;
-                Gizmos.DrawLine(start, end);
+                Vector3 rayOrigin = transform.position + Vector3.up * _edgeRaycastHeight;
+                Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+                
+                for (int i = 0; i < directions.Length; i++)
+                {
+                    Vector3 edgePosition = rayOrigin + directions[i] * _edgeDetectionDistance;
+                    
+                    // Real-time check for this direction
+                    bool isSafe = IsPositionSafe(transform.position, directions[i], 0.1f);
+                    
+                    // Draw horizontal ray
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawLine(rayOrigin, edgePosition);
+                    
+                    // Draw downward ray from edge (2米长度)
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawLine(edgePosition, edgePosition + Vector3.down * 2f);
+                    
+                    // Draw a small sphere at the check position for better visualization
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawWireSphere(edgePosition, 0.1f);
+                }
             }
         }
 
