@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Resonance.Core;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.UI
 {

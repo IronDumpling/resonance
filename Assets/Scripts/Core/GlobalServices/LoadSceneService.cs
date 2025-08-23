@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Resonance.Core;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {

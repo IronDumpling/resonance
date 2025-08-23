@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {

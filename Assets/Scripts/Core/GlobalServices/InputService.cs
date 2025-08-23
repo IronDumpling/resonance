@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Resonance.Core;
+using Resonance.Core;   
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {
@@ -32,8 +33,11 @@ namespace Resonance.Core.GlobalServices
 
         // Input events
         public event Action<Vector2> OnMove;
-        public event Action OnJump;
         public event Action OnInteract;
+        public event Action<bool> OnRun; // true when starting to run, false when stopping
+        public event Action<bool> OnAim; // true when starting to aim, false when stopping
+        public event Action OnShoot;
+        public event Action<Vector2> OnLook;
 
         public void Initialize()
         {
@@ -64,12 +68,23 @@ namespace Resonance.Core.GlobalServices
 
         private void SetupInputCallbacks()
         {
+            if (_playerMap == null) return;
+
             // Player input callbacks
-            // _playerMap["Move"].performed += OnMovePerformed;
-            // _playerMap["Move"].canceled += OnMoveCanceled;
+            _playerMap["Move"].performed += OnMovePerformed;
+            _playerMap["Move"].canceled += OnMoveCanceled;
             
-            // _playerMap["Jump"].performed += OnJumpPerformed;
-            // _playerMap["Interact"].performed += OnInteractPerformed;
+            _playerMap["Interact"].performed += OnInteractPerformed;
+            
+            _playerMap["Run"].started += OnRunStarted;
+            _playerMap["Run"].canceled += OnRunCanceled;
+            
+            _playerMap["Aim"].started += OnAimStarted;
+            _playerMap["Aim"].canceled += OnAimCanceled;
+            
+            _playerMap["Shoot"].performed += OnShootPerformed;
+            
+            _playerMap["Look"].performed += OnLookPerformed;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext context)
@@ -83,14 +98,40 @@ namespace Resonance.Core.GlobalServices
             OnMove?.Invoke(Vector2.zero);
         }
 
-        private void OnJumpPerformed(InputAction.CallbackContext context)
-        {
-            OnJump?.Invoke();
-        }
-
         private void OnInteractPerformed(InputAction.CallbackContext context)
         {
             OnInteract?.Invoke();
+        }
+
+        private void OnRunStarted(InputAction.CallbackContext context)
+        {
+            OnRun?.Invoke(true);
+        }
+
+        private void OnRunCanceled(InputAction.CallbackContext context)
+        {
+            OnRun?.Invoke(false);
+        }
+
+        private void OnAimStarted(InputAction.CallbackContext context)
+        {
+            OnAim?.Invoke(true);
+        }
+
+        private void OnAimCanceled(InputAction.CallbackContext context)
+        {
+            OnAim?.Invoke(false);
+        }
+
+        private void OnShootPerformed(InputAction.CallbackContext context)
+        {
+            OnShoot?.Invoke();
+        }
+
+        private void OnLookPerformed(InputAction.CallbackContext context)
+        {
+            Vector2 lookInput = context.ReadValue<Vector2>();
+            OnLook?.Invoke(lookInput);
         }
 
         public void EnablePlayerInput()
@@ -144,8 +185,11 @@ namespace Resonance.Core.GlobalServices
 
             // Clear all event listeners
             OnMove = null;
-            OnJump = null;
             OnInteract = null;
+            OnRun = null;
+            OnAim = null;
+            OnShoot = null;
+            OnLook = null;
 
             State = SystemState.Shutdown;
         }

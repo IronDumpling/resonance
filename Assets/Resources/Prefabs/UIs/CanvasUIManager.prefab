@@ -47,6 +47,5 @@ MonoBehaviour:
   _autoDiscoverPanels: 1
   _manualPanels: []
   _prefabResourcePaths:
-  - Prefabs/UIs/MainMenuPanel
   - Prefabs/UIs/LoadingPanel
   _uiRoot: {fileID: 8642219602593282508}
