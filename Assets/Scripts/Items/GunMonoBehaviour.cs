@@ -7,6 +7,12 @@ namespace Resonance.Items
     /// <summary>
     /// 场景中可交互的Gun物体
     /// 玩家可以拾取并装备到武器管理器中
+    /// 
+    /// Visual System Responsibilities:
+    /// - _pickupVisual: The visual representation for the gun in the world (pickup state)
+    /// - This handles pickup animations (bob, rotation) and interaction triggers
+    /// - When equipped, the gun data is passed to WeaponManager but no visual weapon is shown on player yet
+    /// - Future: Add equipped weapon visual system to player for when gun is equipped
     /// </summary>
     public class GunMonoBehaviour : MonoBehaviour
     {
@@ -17,8 +23,8 @@ namespace Resonance.Items
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "Press E to pick up";
         
-        [Header("Visual")]
-        [SerializeField] private GameObject _visualModel;
+        [Header("Pickup Visual")]
+        [SerializeField] private GameObject _pickupVisual;
         [SerializeField] private bool _rotateWhenIdle = true;
         [SerializeField] private float _rotationSpeed = 30f;
         [SerializeField] private bool _bobUpAndDown = true;
@@ -66,10 +72,10 @@ namespace Resonance.Items
             // 记录原始位置用于动画
             _originalPosition = transform.position;
             
-            // 如果没有指定视觉模型，使用自身
-            if (_visualModel == null)
+            // 如果没有指定拾取视觉模型，使用自身
+            if (_pickupVisual == null)
             {
-                _visualModel = gameObject;
+                _pickupVisual = gameObject;
             }
 
             // 设置Visual子对象的触发器事件
@@ -140,19 +146,19 @@ namespace Resonance.Items
             
             // 查找Visual子对象上的触发器
             Collider visualCollider = null;
-            if (_visualModel != null && _visualModel != gameObject)
+            if (_pickupVisual != null && _pickupVisual != gameObject)
             {
-                visualCollider = _visualModel.GetComponent<Collider>();
+                visualCollider = _pickupVisual.GetComponent<Collider>();
             }
             
             if (visualCollider == null)
             {
-                // 如果Visual模型没有collider，检查是否有名为"Visual"的子对象
+                // 如果拾取视觉模型没有collider，检查是否有名为"Visual"的子对象
                 Transform visualChild = transform.Find("Visual");
                 if (visualChild != null)
                 {
                     visualCollider = visualChild.GetComponent<Collider>();
-                    _visualModel = visualChild.gameObject;
+                    _pickupVisual = visualChild.gameObject;
                     Debug.Log($"GunMonoBehaviour: Found Visual child object: {visualChild.name}");
                 }
             }
@@ -291,10 +297,10 @@ namespace Resonance.Items
         /// </summary>
         private void PerformVisualAnimations()
         {
-            if (_visualModel == null) return;
+            if (_pickupVisual == null) return;
 
             Vector3 currentPosition = _originalPosition;
-            Vector3 currentRotation = _visualModel.transform.eulerAngles;
+            Vector3 currentRotation = _pickupVisual.transform.eulerAngles;
 
             // 上下浮动动画
             if (_bobUpAndDown)
@@ -312,7 +318,7 @@ namespace Resonance.Items
 
             // 应用变换
             transform.position = currentPosition;
-            _visualModel.transform.eulerAngles = currentRotation;
+            _pickupVisual.transform.eulerAngles = currentRotation;
         }
 
 
@@ -351,10 +357,10 @@ namespace Resonance.Items
             // 停止所有动画
             StopAllCoroutines();
             
-            // 隐藏物体（或销毁，根据需要）
-            if (_visualModel != null)
+            // 隐藏拾取视觉对象（或销毁，根据需要）
+            if (_pickupVisual != null)
             {
-                _visualModel.SetActive(false);
+                _pickupVisual.SetActive(false);
             }
             else
             {

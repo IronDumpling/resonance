@@ -184,13 +184,6 @@ namespace Resonance.Player
                 Debug.Log($"PlayerMonoBehaviour: Visual collider found - Name: {visualChild.name}, " +
                          $"Layer: {visualChild.gameObject.layer} ({LayerMask.LayerToName(visualChild.gameObject.layer)}), " +
                          $"Tag: {visualChild.tag}, IsTrigger: {visualCollider.isTrigger}");
-                
-                // 建议设置（但不强制）
-                if (!visualCollider.isTrigger)
-                {
-                    Debug.LogWarning($"PlayerMonoBehaviour: Visual collider {visualChild.name} is not set as Trigger. " +
-                                   "This may cause physics conflicts with CharacterController. Consider setting it as Trigger.");
-                }
             }
             else
             {

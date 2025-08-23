@@ -24,7 +24,6 @@ namespace Resonance.Items
         public float fireRate = 1f; // shots per second
         
         [Header("Visual")]
-        public GameObject weaponPrefab;
         public Sprite weaponIcon;
         
         [Header("Inventory")]
@@ -47,7 +46,6 @@ namespace Resonance.Items
                 damage = this.damage,
                 range = this.range,
                 fireRate = this.fireRate,
-                weaponPrefab = this.weaponPrefab,
                 weaponIcon = this.weaponIcon,
                 gridWidth = this.gridWidth,
                 gridHeight = this.gridHeight

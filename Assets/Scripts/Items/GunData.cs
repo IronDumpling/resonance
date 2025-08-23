@@ -4,6 +4,11 @@ namespace Resonance.Items
 {
     /// <summary>
     /// Gun的数据结构，包含武器的所有属性
+    /// 
+    /// Visual System Notes:
+    /// - weaponIcon: Used for UI/inventory display
+    /// - No equipped weapon prefab field - visual representation when equipped is handled separately
+    /// - This data structure focuses on gameplay stats and UI elements
     /// </summary>
     [System.Serializable]
     public class GunData
@@ -23,7 +28,6 @@ namespace Resonance.Items
         public float fireRate = 1f; // shots per second
         
         [Header("Visual")]
-        public GameObject weaponPrefab;
         public Sprite weaponIcon;
         
         [Header("Inventory")]
@@ -46,7 +50,6 @@ namespace Resonance.Items
                 damage = this.damage,
                 range = this.range,
                 fireRate = this.fireRate,
-                weaponPrefab = this.weaponPrefab,
                 weaponIcon = this.weaponIcon,
                 gridWidth = this.gridWidth,
                 gridHeight = this.gridHeight

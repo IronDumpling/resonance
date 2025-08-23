@@ -195,12 +195,11 @@ MonoBehaviour:
     damage: 25
     range: 100
     fireRate: 1
-    weaponPrefab: {fileID: 0}
     weaponIcon: {fileID: 0}
     gridWidth: 2
     gridHeight: 3
   _interactionText: Press E
-  _visualModel: {fileID: 1012015472892952182}
+  _pickupVisual: {fileID: 1012015472892952182}
   _rotateWhenIdle: 1
   _rotationSpeed: 30
   _bobUpAndDown: 1
