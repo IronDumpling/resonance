@@ -50,6 +50,7 @@ namespace Resonance.Items
         
         // Services
         private IInteractionService _interactionService;
+        private IAudioService _audioService;
 
         // Events
         public System.Action<GunMonoBehaviour> OnPlayerEnterRange;
@@ -82,6 +83,9 @@ namespace Resonance.Items
                 _pickupVisual = gameObject;
             }
 
+            // 设置音频服务
+            SetupAudioService();
+            
             // 设置Visual子对象的触发器事件
             SetupVisualTrigger();
             
@@ -122,6 +126,22 @@ namespace Resonance.Items
             
             // 执行视觉动画
             PerformVisualAnimations();
+        }
+
+        /// <summary>
+        /// 设置音频服务引用
+        /// </summary>
+        private void SetupAudioService()
+        {
+            _audioService = ServiceRegistry.Get<IAudioService>();
+            if (_audioService == null)
+            {
+                Debug.LogWarning("GunMonoBehaviour: AudioService not found. Audio effects will be disabled.");
+            }
+            else
+            {
+                Debug.Log("GunMonoBehaviour: AudioService connected successfully");
+            }
         }
 
         /// <summary>
@@ -434,6 +454,8 @@ namespace Resonance.Items
 
             _isPickedUp = true;
             _playerInRange = false;
+
+            PlayPickuoAudio(transform.position);
             
             // 隐藏交互UI
             SetInteractionUIVisible(false);
@@ -447,7 +469,7 @@ namespace Resonance.Items
             // 停止所有动画
             StopAllCoroutines();
             
-            // 隐藏拾取视觉对象（或销毁，根据需要）
+            // 隐藏拾取视觉对象
             if (_pickupVisual != null)
             {
                 _pickupVisual.SetActive(false);
@@ -460,6 +482,20 @@ namespace Resonance.Items
             Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} picked up by {(player ? player.name : "unknown player")}");
             
             return gunCopy;
+        }
+
+        /// <summary>
+        /// 播放拾取音频
+        /// </summary>
+        /// <param name="pickupPosition">拾取位置</param>
+        private void PlayPickuoAudio(Vector3 pickupPosition)
+        {
+            if (_audioService == null) return;
+
+            AudioClipType audioClipType = AudioClipType.ItemPickup;
+            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.8f, 1f);
+
+            Debug.Log($"GunMonoBehaviour: Played pickup audio {audioClipType} at {pickupPosition}");
         }
 
         /// <summary>

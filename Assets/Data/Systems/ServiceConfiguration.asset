@@ -81,6 +81,18 @@ MonoBehaviour:
       mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
+  - clipType: 18
+    clipData:
+      clip: {fileID: 8300000, guid: 5e7f633dda3117f4f90253f51ee065f0, type: 3}
+      volume: 0.7
+      pitch: 1
+      pitchVariation: 0.1
+      spatialBlend: 1
+      minDistance: 1
+      maxDistance: 10
+      mixerGroup: {fileID: 7962919766892052580, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      loop: 0
+      priority: 0
   defaultMasterVolume: 1
   defaultSFXVolume: 1
   defaultMusicVolume: 0.7
