@@ -126,6 +126,7 @@ namespace Resonance.Player
             HandlePhysics();
             UpdatePlayerVisualRotation();
             UpdateRightArmAnimation();
+            UpdateAimingLine();
             _playerController.Update(Time.deltaTime);
 
             // Update debug info less frequently to avoid performance issues
@@ -233,7 +234,6 @@ namespace Resonance.Player
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
-            _inputService.OnLook += HandleLookInput;
         }
 
         private void UnsubscribeFromInput()
@@ -245,7 +245,6 @@ namespace Resonance.Player
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
             _inputService.OnShoot -= HandleShootInput;
-            _inputService.OnLook -= HandleLookInput;
         }
 
         private void HandleMoveInput(Vector2 input)
@@ -318,20 +317,6 @@ namespace Resonance.Player
             if (result.success && _showDebugInfo)
             {
                 Debug.Log($"Shot fired: Hit={result.hasHit}, Target={result.hitObject?.name ?? "None"}");
-            }
-        }
-
-        private void HandleLookInput(Vector2 lookDelta)
-        {
-            if (!IsInitialized) return;
-            
-            // Only process look input when aiming
-            if (_playerController.IsAiming)
-            {
-                // Convert mouse delta to aim direction
-                // This is a simple implementation - you might want to make this more sophisticated
-                Vector2 newAimDirection = _playerController.AimDirection + lookDelta * 0.01f;
-                _playerController.SetAimDirection(newAimDirection);
             }
         }
 
@@ -532,6 +517,33 @@ namespace Resonance.Player
                 targetRotation, 
                 _playerRotationSpeed * Time.deltaTime
             );
+        }
+
+        #endregion
+
+        #region Aiming Line Management
+
+        /// <summary>
+        /// 更新瞄准线显示
+        /// </summary>
+        private void UpdateAimingLine()
+        {
+            if (!IsInitialized) return;
+            
+            // 只在瞄准状态下显示瞄准线
+            if (_playerController.IsAiming)
+            {
+                // 计算射击起始位置（与射击时相同）
+                Vector3 shootOrigin = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+                
+                // 更新瞄准线
+                _playerController.ShootingSystem?.UpdateAimingLine(shootOrigin);
+            }
+            else
+            {
+                // 不在瞄准状态时隐藏瞄准线
+                _playerController.ShootingSystem?.HideAimingLine();
+            }
         }
 
         #endregion

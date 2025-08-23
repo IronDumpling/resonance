@@ -23,7 +23,6 @@ namespace Resonance.Player.Core
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
-        private Vector2 _aimDirection = Vector2.right;
 
         // Progression
         private int _level = 1;
@@ -43,7 +42,6 @@ namespace Resonance.Player.Core
         public System.Action<int> OnLevelChanged;
         public System.Action<float> OnExperienceChanged;
         public System.Action<string> OnStateChanged; // Changed to string for state name
-        public System.Action<Vector2> OnAimDirectionChanged;
         public System.Action OnShoot;
 
         // Properties
@@ -60,7 +58,6 @@ namespace Resonance.Player.Core
         public bool IsInvulnerable => _isInvulnerable;
         public bool IsAlive => _stats.IsAlive;
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
-        public Vector2 AimDirection => _aimDirection;
         public bool IsAiming => CurrentState == "Aiming";
         public bool HasWeapon => _weaponManager?.HasWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
@@ -203,13 +200,7 @@ namespace Resonance.Player.Core
             _stateMachine?.StopInteracting();
         }
 
-        public void SetAimDirection(Vector2 direction)
-        {
-            if (!IsAiming) return;
 
-            _aimDirection = direction.normalized;
-            OnAimDirectionChanged?.Invoke(_aimDirection);
-        }
 
         #endregion
 
@@ -221,7 +212,7 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 执行射击
+        /// 执行基于鼠标的射击
         /// </summary>
         /// <param name="shootOrigin">射击起始位置</param>
         /// <returns>射击结果</returns>
@@ -243,21 +234,19 @@ namespace Resonance.Player.Core
             
             GunDataAsset currentGun = _weaponManager.CurrentGun;
             
-            // 计算3D射击方向
-            Vector3 shootDirection = new Vector3(_aimDirection.x, 0f, _aimDirection.y).normalized;
-            
-            // 执行HitScan射击
+            // 执行基于鼠标的两阶段射击
             ShootingResult result = new ShootingResult { success = false };
             if (_shootingSystem != null)
             {
-                result = _shootingSystem.PerformShoot(shootOrigin, shootDirection, currentGun);
+                result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun);
             }
             
             // 触发射击事件
             OnShoot?.Invoke();
             
-            Debug.Log($"PlayerController: Shot fired with {currentGun.weaponName} in direction {shootDirection}. " +
-                     $"Damage: {currentGun.damage}, Remaining ammo: {currentGun.CurrentAmmo}, Hit: {result.hasHit}");
+            Debug.Log($"PlayerController: Mouse-based shot fired with {currentGun.weaponName}. " +
+                     $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
+                     $"Damage: {currentGun.damage}, Remaining ammo: {currentGun.CurrentAmmo}");
             
             return result;
         }
