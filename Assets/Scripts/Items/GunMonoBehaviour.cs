@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
 
@@ -20,7 +22,7 @@ namespace Resonance.Items
         [SerializeField] private GunDataAsset _gunDataAsset;
         
         [Header("Interaction")]
-        [SerializeField] private string _interactionText = "Press E to pick up";
+        [SerializeField] private string _interactionText = "Press E";
         
         [Header("Pickup Visual")]
         [SerializeField] private GameObject _pickupVisual;
@@ -29,6 +31,11 @@ namespace Resonance.Items
         [SerializeField] private bool _bobUpAndDown = true;
         [SerializeField] private float _bobSpeed = 2f;
         [SerializeField] private float _bobHeight = 0.2f;
+        
+        [Header("Interaction UI")]
+        [SerializeField] private GameObject _interactUI;
+        [SerializeField] private TextMeshProUGUI _interactText; // For TextMeshPro
+        [SerializeField] private Text _interactTextLegacy; // For legacy UI Text
 
         // 是否已被拾取
         private bool _isPickedUp = false;
@@ -77,6 +84,9 @@ namespace Resonance.Items
 
             // 设置Visual子对象的触发器事件
             SetupVisualTrigger();
+            
+            // 设置交互UI
+            SetupInteractionUI();
 
             // 获取交互服务
             _interactionService = ServiceRegistry.Get<IInteractionService>();
@@ -114,7 +124,99 @@ namespace Resonance.Items
             PerformVisualAnimations();
         }
 
+        /// <summary>
+        /// 设置交互UI
+        /// </summary>
+        private void SetupInteractionUI()
+        {
+            // 查找InteractUI子对象（如果没有手动分配）
+            if (_interactUI == null)
+            {
+                Transform interactUIChild = transform.Find("InteractUI");
+                if (interactUIChild != null)
+                {
+                    _interactUI = interactUIChild.gameObject;
+                    Debug.Log($"GunMonoBehaviour: Found InteractUI child object: {interactUIChild.name}");
+                }
+            }
+            
+            if (_interactUI == null)
+            {
+                Debug.LogWarning($"GunMonoBehaviour: No InteractUI found on {gameObject.name}. UI interaction will be disabled.");
+                return;
+            }
+            
+            // 查找Text组件（支持TextMeshPro和Legacy Text）
+            if (_interactText == null && _interactTextLegacy == null)
+            {
+                // 先尝试找TextMeshPro组件
+                _interactText = _interactUI.GetComponentInChildren<TextMeshProUGUI>();
+                
+                // 如果没找到，尝试找Legacy Text组件
+                if (_interactText == null)
+                {
+                    _interactTextLegacy = _interactUI.GetComponentInChildren<Text>();
+                }
+                
+                // 也可以尝试查找名为"Text"的子对象
+                if (_interactText == null && _interactTextLegacy == null)
+                {
+                    Transform textChild = _interactUI.transform.Find("Text");
+                    if (textChild != null)
+                    {
+                        _interactText = textChild.GetComponent<TextMeshProUGUI>();
+                        if (_interactText == null)
+                        {
+                            _interactTextLegacy = textChild.GetComponent<Text>();
+                        }
+                    }
+                }
+            }
+            
+            if (_interactText == null && _interactTextLegacy == null)
+            {
+                Debug.LogWarning($"GunMonoBehaviour: No Text component found in InteractUI on {gameObject.name}");
+            }
+            else
+            {
+                string textType = _interactText != null ? "TextMeshPro" : "Legacy Text";
+                Debug.Log($"GunMonoBehaviour: Found {textType} component for interaction UI");
+            }
+            
+            // 初始化UI文本内容
+            UpdateInteractionText();
+            
+            // 初始状态：隐藏UI
+            SetInteractionUIVisible(false);
+        }
 
+        /// <summary>
+        /// 更新交互UI的文本内容
+        /// </summary>
+        private void UpdateInteractionText()
+        {
+            if (_interactText != null)
+            {
+                _interactText.text = _interactionText;
+            }
+            else if (_interactTextLegacy != null)
+            {
+                _interactTextLegacy.text = _interactionText;
+            }
+        }
+        
+        /// <summary>
+        /// 显示/隐藏交互UI
+        /// </summary>
+        /// <param name="visible">是否显示</param>
+        private void SetInteractionUIVisible(bool visible)
+        {
+            if (_interactUI != null)
+            {
+                _interactUI.SetActive(visible);
+                Debug.Log($"GunMonoBehaviour: Set interaction UI {(visible ? "visible" : "hidden")} for {_gunDataAsset.weaponName}");
+            }
+        }
 
         /// <summary>
         /// 设置Visual子对象的触发器事件
@@ -205,6 +307,9 @@ namespace Resonance.Items
                     _playerTransform = playerRoot;
                     OnPlayerEnterRange?.Invoke(this);
                     
+                    // 显示交互UI
+                    SetInteractionUIVisible(true);
+                    
                     // 设置为当前可交互对象
                     if (_interactionService != null)
                     {
@@ -258,6 +363,9 @@ namespace Resonance.Items
                     _playerInRange = false;
                     _playerTransform = null;
                     OnPlayerExitRange?.Invoke(this);
+                    
+                    // 隐藏交互UI
+                    SetInteractionUIVisible(false);
                     
                     // 清除当前可交互对象
                     if (_interactionService != null && _interactionService.CurrentInteractable == gameObject)
@@ -327,6 +435,9 @@ namespace Resonance.Items
             _isPickedUp = true;
             _playerInRange = false;
             
+            // 隐藏交互UI
+            SetInteractionUIVisible(false);
+            
             // 创建运行时副本
             GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
             
@@ -358,7 +469,19 @@ namespace Resonance.Items
         {
             _isPickedUp = false;
             gameObject.SetActive(true);
+            SetInteractionUIVisible(false); // 重置时隐藏UI
             Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} reset");
+        }
+
+        /// <summary>
+        /// 设置交互文本内容（运行时更改）
+        /// </summary>
+        /// <param name="newText">新的交互文本</param>
+        public void SetInteractionText(string newText)
+        {
+            _interactionText = newText;
+            UpdateInteractionText();
+            Debug.Log($"GunMonoBehaviour: Updated interaction text to '{newText}'");
         }
     }
 
