@@ -239,13 +239,6 @@ namespace Resonance.Enemies
             }
         }
 
-        void OnDrawGizmosSelected()
-        {
-            // 显示详细信息
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireCube(transform.position, transform.localScale);
-        }
-
         #endregion
 
         #region Public Utility Methods

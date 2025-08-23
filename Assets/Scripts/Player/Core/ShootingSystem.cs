@@ -52,11 +52,11 @@ namespace Resonance.Player.Core
         /// </summary>
         private void SetDefaultLayerMasks()
         {
-            // 鼠标射线检测层：Ground (Default), Enemy, Environment等
-            _mouseRaycastLayerMask = (1 << 0) | (1 << 6) | (1 << 7); // Default, Enemy, Environment
+            // 鼠标射线检测层：Default, Environment, Enemy
+            _mouseRaycastLayerMask = (1 << 0) | (1 << 6) | (1 << 8); // Default, Environment, Enemy
             
-            // 射击目标检测层：Enemy, Environment, Destructible等
-            _targetLayerMask = (1 << 6) | (1 << 7); // Enemy, Environment
+            // 射击目标检测层：应该与鼠标射线检测层保持一致，确保两阶段射击的一致性
+            _targetLayerMask = (1 << 0) | (1 << 6) | (1 << 8); // Default, Environment，Enemy
             
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
         }
@@ -98,6 +98,9 @@ namespace Resonance.Player.Core
             bool hasHit = Physics.Raycast(shootOrigin, shootDirection, out hitInfo, gunData.range, _targetLayerMask);
             
             Vector3 endPoint = hasHit ? hitInfo.point : targetPoint;
+            
+            // 调试信息
+            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {targetPoint}, direction: {shootDirection}, range: {gunData.range}, layerMask: {_targetLayerMask}");
             
             // 显示射击线条
             if (_showShootingLine)
@@ -315,17 +318,17 @@ namespace Resonance.Player.Core
             // 创建从相机通过鼠标的射线
             Ray mouseRay = _mainCamera.ScreenPointToRay(mousePosition);
             
-            // 阶段1：尝试射线检测 Ground/Enemy/Objects
+            // 阶段1：尝试射线检测 Environment/Enemy/Objects
             RaycastHit hitInfo;
             if (Physics.Raycast(mouseRay, out hitInfo, Mathf.Infinity, _mouseRaycastLayerMask))
             {
-                Debug.Log($"ShootingSystem: Mouse hit {hitInfo.collider.name} at {hitInfo.point}");
+                // Debug.Log($"ShootingSystem: Mouse hit {hitInfo.collider.name}");
                 return hitInfo.point;
             }
             
             // 备用方案：使用平面交点
             Vector3 fallbackPoint = IntersectPlane(mouseRay, _playerTransform.position.y);
-            Debug.Log($"ShootingSystem: Using plane intersection at {fallbackPoint}");
+            // Debug.Log($"ShootingSystem: Using plane intersection at {fallbackPoint}");
             return fallbackPoint;
         }
 
@@ -440,29 +443,69 @@ namespace Resonance.Player.Core
         {
             GameObject hitObject = hitInfo.collider.gameObject;
             
-            // 尝试对可受伤害的对象造成伤害
+            Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
+            
+            // 首先尝试在命中对象上查找组件
             IDamageable damageable = hitObject.GetComponent<IDamageable>();
+            IDestructible destructible = hitObject.GetComponent<IDestructible>();
+            
+            // 确定要使用的GameObject引用
+            GameObject damageableObject = hitObject;
+            GameObject destructibleObject = hitObject;
+            
+            // 如果在命中对象上找到了组件，更新GameObject引用
             if (damageable != null)
             {
+                damageableObject = (damageable as MonoBehaviour)?.gameObject ?? hitObject;
+            }
+            if (destructible != null)
+            {
+                destructibleObject = (destructible as MonoBehaviour)?.gameObject ?? hitObject;
+            }
+            
+            if (damageable == null)
+            {
+                damageable = hitObject.GetComponentInParent<IDamageable>();
+                if (damageable != null)
+                {
+                    damageableObject = (damageable as MonoBehaviour)?.gameObject ?? hitObject;
+                    Debug.Log($"ShootingSystem: Found IDamageable on parent {damageableObject.name} of {hitObject.name}");
+                }
+            }
+            
+            if (destructible == null)
+            {
+                destructible = hitObject.GetComponentInParent<IDestructible>();
+                if (destructible != null)
+                {
+                    destructibleObject = (destructible as MonoBehaviour)?.gameObject ?? hitObject;
+                    Debug.Log($"ShootingSystem: Found IDestructible on parent {destructibleObject.name} of {hitObject.name}");
+                }
+            }
+            
+            // 处理可受伤害的对象
+            if (damageable != null)
+            {
+                Debug.Log($"ShootingSystem: Found IDamageable on {damageableObject.name}, dealing {damage} damage");
                 damageable.TakeDamage(damage, damageSource, "Bullet");
-                OnHit?.Invoke(hitInfo.point, hitObject, damage);
-                Debug.Log($"ShootingSystem: Dealt {damage} damage to {hitObject.name}");
+                OnHit?.Invoke(hitInfo.point, damageableObject, damage);
+                Debug.Log($"ShootingSystem: Dealt {damage} damage to {damageableObject.name}");
                 return;
             }
 
-            // 尝试破坏可破坏的对象
-            IDestructible destructible = hitObject.GetComponent<IDestructible>();
+            // 处理可破坏的对象
             if (destructible != null)
             {
+                Debug.Log($"ShootingSystem: Found IDestructible on {destructibleObject.name}, dealing {damage} damage");
                 destructible.TakeDamage(damage, damageSource);
-                OnHit?.Invoke(hitInfo.point, hitObject, damage);
-                Debug.Log($"ShootingSystem: Dealt {damage} damage to destructible {hitObject.name}");
+                OnHit?.Invoke(hitInfo.point, destructibleObject, damage);
+                Debug.Log($"ShootingSystem: Dealt {damage} damage to destructible {destructibleObject.name}");
                 return;
             }
 
             // 如果不是可受伤害或可破坏的对象，仍然触发命中事件（用于音效、粒子效果等）
             OnHit?.Invoke(hitInfo.point, hitObject, 0f);
-            Debug.Log($"ShootingSystem: Hit non-damageable object {hitObject.name}");
+            Debug.Log($"ShootingSystem: Hit non-damageable object {hitObject.name} - no damage dealt");
         }
 
         #endregion
