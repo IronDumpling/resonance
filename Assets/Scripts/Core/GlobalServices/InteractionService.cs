@@ -188,7 +188,7 @@ namespace Resonance.Core.GlobalServices
             }
 
             // 拾取武器
-            GunData gunData = gun.PickupWeapon(playerTransform);
+            var gunData = gun.PickupWeapon(playerTransform);
             if (gunData != null)
             {
                 // 装备武器到玩家

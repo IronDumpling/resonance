@@ -43,7 +43,7 @@ namespace Resonance.Player.Core
         /// <param name="shootDirection">射击方向</param>
         /// <param name="gunData">武器数据</param>
         /// <returns>射击结果</returns>
-        public ShootingResult PerformShoot(Vector3 shootOrigin, Vector3 shootDirection, GunData gunData)
+        public ShootingResult PerformShoot(Vector3 shootOrigin, Vector3 shootDirection, GunDataAsset gunData)
         {
             if (gunData == null)
             {

@@ -18,7 +18,6 @@ namespace Resonance.Items
     {
         [Header("Gun Configuration")]
         [SerializeField] private GunDataAsset _gunDataAsset;
-        [SerializeField] private GunData _gunData;
         
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "Press E to pick up";
@@ -51,23 +50,21 @@ namespace Resonance.Items
         public System.Action<GunMonoBehaviour, Transform> OnPickedUp;
 
         // Properties
-        public GunData GunData => _gunData;
+        public GunDataAsset GunData => _gunDataAsset;
         public bool IsPickedUp => _isPickedUp;
         public bool PlayerInRange => _playerInRange;
         public string InteractionText => _interactionText;
 
         void Start()
         {
-            // 从ScriptableObject创建Gun数据，如果没有则创建默认数据
-            if (_gunDataAsset != null)
+            // 验证Gun数据资产
+            if (_gunDataAsset == null)
             {
-                _gunData = _gunDataAsset.CreateGunData();
-                Debug.Log($"GunMonoBehaviour: Created gun data from asset: {_gunData.weaponName}");
+                Debug.LogError($"GunMonoBehaviour: No GunDataAsset assigned to {gameObject.name}!");
+                return;
             }
-            else if (_gunData == null)
-            {
-                CreateDefaultGunData();
-            }
+
+            Debug.Log($"GunMonoBehaviour: Using gun data asset: {_gunDataAsset.weaponName}");
 
             // 记录原始位置用于动画
             _originalPosition = transform.position;
@@ -86,14 +83,14 @@ namespace Resonance.Items
             if (_interactionService != null)
             {
                 _interactionService.RegisterInteractable(gameObject);
-                Debug.Log($"GunMonoBehaviour: {_gunData.weaponName} registered with InteractionService");
+                Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} registered with InteractionService");
             }
             else
             {
                 Debug.LogWarning("GunMonoBehaviour: InteractionService not found");
             }
 
-            Debug.Log($"GunMonoBehaviour: {_gunData.weaponName} ready for pickup");
+            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} ready for pickup");
         }
 
         void OnDestroy()
@@ -117,25 +114,7 @@ namespace Resonance.Items
             PerformVisualAnimations();
         }
 
-        /// <summary>
-        /// 创建默认的Gun数据（用于测试）
-        /// </summary>
-        private void CreateDefaultGunData()
-        {
-            _gunData = new GunData
-            {
-                weaponName = "Test Gun",
-                weaponDescription = "A test weapon",
-                maxAmmo = 8,
-                currentAmmo = 8,
-                ammoType = "TypeA",
-                damage = 25f,
-                range = 100f,
-                fireRate = 1f,
-                gridWidth = 2,
-                gridHeight = 3
-            };
-        }
+
 
         /// <summary>
         /// 设置Visual子对象的触发器事件
@@ -237,7 +216,7 @@ namespace Resonance.Items
                         Debug.LogError("GunMonoBehaviour: InteractionService is null!");
                     }
                     
-                    Debug.Log($"GunMonoBehaviour: Player entered range of {_gunData.weaponName}");
+                    Debug.Log($"GunMonoBehaviour: Player entered range of {_gunDataAsset.weaponName}");
                 }
             }
             else
@@ -287,7 +266,7 @@ namespace Resonance.Items
                         Debug.Log($"GunMonoBehaviour: Cleared current interactable");
                     }
                     
-                    Debug.Log($"GunMonoBehaviour: Player left range of {_gunData.weaponName}");
+                    Debug.Log($"GunMonoBehaviour: Player left range of {_gunDataAsset.weaponName}");
                 }
             }
         }
@@ -337,7 +316,7 @@ namespace Resonance.Items
         /// </summary>
         /// <param name="player">拾取的玩家Transform</param>
         /// <returns>武器数据的副本</returns>
-        public GunData PickupWeapon(Transform player = null)
+        public GunDataAsset PickupWeapon(Transform player = null)
         {
             if (_isPickedUp)
             {
@@ -348,8 +327,8 @@ namespace Resonance.Items
             _isPickedUp = true;
             _playerInRange = false;
             
-            // 创建数据副本
-            GunData gunCopy = _gunData.Clone();
+            // 创建运行时副本
+            GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
             
             // 触发拾取事件
             OnPickedUp?.Invoke(this, player);
@@ -367,7 +346,7 @@ namespace Resonance.Items
                 gameObject.SetActive(false);
             }
             
-            Debug.Log($"GunMonoBehaviour: {_gunData.weaponName} picked up by {(player ? player.name : "unknown player")}");
+            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} picked up by {(player ? player.name : "unknown player")}");
             
             return gunCopy;
         }
@@ -379,7 +358,7 @@ namespace Resonance.Items
         {
             _isPickedUp = false;
             gameObject.SetActive(true);
-            Debug.Log($"GunMonoBehaviour: {_gunData.weaponName} reset");
+            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} reset");
         }
     }
 

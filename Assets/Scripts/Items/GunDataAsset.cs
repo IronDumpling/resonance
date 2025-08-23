@@ -18,6 +18,9 @@ namespace Resonance.Items
         public int maxAmmo = 8;
         public string ammoType = "TypeA";
         
+        // Runtime state - not serialized, reset each time
+        [System.NonSerialized] private int _currentAmmo = -1; // -1 means not initialized
+        
         [Header("Combat Stats")]
         public float damage = 25f;
         public float range = 100f;
@@ -30,26 +33,15 @@ namespace Resonance.Items
         public int gridWidth = 2;
         public int gridHeight = 3;
 
-        /// <summary>
-        /// 创建GunData实例
-        /// </summary>
-        /// <returns>GunData实例</returns>
-        public GunData CreateGunData()
-        {
-            return new GunData
-            {
-                weaponName = this.weaponName,
-                weaponDescription = this.weaponDescription,
-                maxAmmo = this.maxAmmo,
-                currentAmmo = this.maxAmmo, // 默认满弹药
-                ammoType = this.ammoType,
-                damage = this.damage,
-                range = this.range,
-                fireRate = this.fireRate,
-                weaponIcon = this.weaponIcon,
-                gridWidth = this.gridWidth,
-                gridHeight = this.gridHeight
-            };
+        // Runtime Properties
+        public int CurrentAmmo 
+        { 
+            get 
+            { 
+                if (_currentAmmo == -1) _currentAmmo = maxAmmo; // Initialize on first access
+                return _currentAmmo; 
+            } 
+            set { _currentAmmo = value; } 
         }
 
         /// <summary>
@@ -90,6 +82,87 @@ namespace Resonance.Items
 
             return true;
         }
+
+        #region Runtime Methods
+
+        /// <summary>
+        /// 检查是否有弹药
+        /// </summary>
+        /// <returns>是否有弹药</returns>
+        public bool HasAmmo()
+        {
+            return CurrentAmmo > 0;
+        }
+
+        /// <summary>
+        /// 检查是否是满弹药
+        /// </summary>
+        /// <returns>是否满弹药</returns>
+        public bool IsFullAmmo()
+        {
+            return CurrentAmmo >= maxAmmo;
+        }
+
+        /// <summary>
+        /// 获取弹药百分比
+        /// </summary>
+        /// <returns>弹药百分比 (0-1)</returns>
+        public float GetAmmoPercentage()
+        {
+            if (maxAmmo <= 0) return 0f;
+            return (float)CurrentAmmo / maxAmmo;
+        }
+
+        /// <summary>
+        /// 重置弹药到满弹药状态
+        /// </summary>
+        public void ResetAmmo()
+        {
+            CurrentAmmo = maxAmmo;
+        }
+
+        /// <summary>
+        /// 消耗一发弹药
+        /// </summary>
+        /// <returns>是否成功消耗</returns>
+        public bool ConsumeAmmo()
+        {
+            if (CurrentAmmo > 0)
+            {
+                CurrentAmmo--;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 创建这个武器的独立副本（用于拾取时给玩家）
+        /// 注意：这会创建一个新的ScriptableObject实例，用于运行时独立的武器状态
+        /// </summary>
+        /// <returns>武器副本</returns>
+        public GunDataAsset CreateRuntimeCopy()
+        {
+            var copy = ScriptableObject.CreateInstance<GunDataAsset>();
+            
+            // Copy all properties
+            copy.weaponName = this.weaponName;
+            copy.weaponDescription = this.weaponDescription;
+            copy.maxAmmo = this.maxAmmo;
+            copy.ammoType = this.ammoType;
+            copy.damage = this.damage;
+            copy.range = this.range;
+            copy.fireRate = this.fireRate;
+            copy.weaponIcon = this.weaponIcon;
+            copy.gridWidth = this.gridWidth;
+            copy.gridHeight = this.gridHeight;
+            
+            // Initialize runtime state
+            copy._currentAmmo = this.maxAmmo; // Start with full ammo
+            
+            return copy;
+        }
+
+        #endregion
 
         #region Unity Editor
 

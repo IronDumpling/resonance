@@ -241,7 +241,7 @@ namespace Resonance.Player.Core
 
             _lastAttackTime = Time.time;
             
-            GunData currentGun = _weaponManager.CurrentGun;
+            GunDataAsset currentGun = _weaponManager.CurrentGun;
             
             // 计算3D射击方向
             Vector3 shootDirection = new Vector3(_aimDirection.x, 0f, _aimDirection.y).normalized;
@@ -257,7 +257,7 @@ namespace Resonance.Player.Core
             OnShoot?.Invoke();
             
             Debug.Log($"PlayerController: Shot fired with {currentGun.weaponName} in direction {shootDirection}. " +
-                     $"Damage: {currentGun.damage}, Remaining ammo: {currentGun.currentAmmo}, Hit: {result.hasHit}");
+                     $"Damage: {currentGun.damage}, Remaining ammo: {currentGun.CurrentAmmo}, Hit: {result.hasHit}");
             
             return result;
         }
