@@ -14,15 +14,16 @@ namespace Resonance.Enemies
         [SerializeField] private float _currentHealth = 100f;
         
         [Header("Visual Feedback")]
-        [SerializeField] private Color _normalColor = Color.white;
-        [SerializeField] private Color _damageColor = Color.red;
         [SerializeField] private float _damageFlashDuration = 0.2f;
+        [SerializeField] private string _normalMaterialPath = "Art/Materials/Enemy_Body";
+        [SerializeField] private string _damageMaterialPath = "Art/Materials/Damage_Body";
         
         [Header("Debug")]
         [SerializeField] private bool _showHealthBar = true;
         
-        private Renderer _renderer;
-        private Material _originalMaterial;
+        private Renderer _bodyRenderer;
+        private Material _normalMaterial;
+        private Material _damageMaterial;
         private bool _isDead = false;
         
         // 伤害统计
@@ -37,14 +38,95 @@ namespace Resonance.Enemies
         void Start()
         {
             _currentHealth = _maxHealth;
-            _renderer = GetComponent<Renderer>();
             
-            if (_renderer != null)
+            // 查找Body渲染器（在Visual/Body路径下）
+            FindBodyRenderer();
+            
+            // 加载材质资源
+            LoadMaterials();
+            
+            // 设置初始材质
+            if (_bodyRenderer != null && _normalMaterial != null)
             {
-                _originalMaterial = _renderer.material;
+                _bodyRenderer.material = _normalMaterial;
             }
             
             Debug.Log($"TestTarget: {gameObject.name} initialized with {_maxHealth} health");
+        }
+
+        /// <summary>
+        /// 查找Body渲染器组件
+        /// </summary>
+        private void FindBodyRenderer()
+        {
+            // 尝试查找Visual/Body路径
+            Transform visualChild = transform.Find("Visual");
+            if (visualChild != null)
+            {
+                Transform bodyChild = visualChild.Find("Body");
+                if (bodyChild != null)
+                {
+                    _bodyRenderer = bodyChild.GetComponent<Renderer>();
+                    if (_bodyRenderer != null)
+                    {
+                        Debug.Log($"TestTarget: Found Body renderer at Visual/Body path");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"TestTarget: Body child found but no Renderer component on {bodyChild.name}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"TestTarget: Visual child found but no Body child in {gameObject.name}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"TestTarget: No Visual child found in {gameObject.name}");
+            }
+
+            // 如果没找到，尝试在当前对象上查找
+            if (_bodyRenderer == null)
+            {
+                _bodyRenderer = GetComponent<Renderer>();
+                if (_bodyRenderer != null)
+                {
+                    Debug.LogWarning($"TestTarget: Using renderer from root object as fallback");
+                }
+                else
+                {
+                    Debug.LogError($"TestTarget: No renderer found anywhere on {gameObject.name}!");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从Resources加载材质资源
+        /// </summary>
+        private void LoadMaterials()
+        {
+            // 加载正常材质
+            _normalMaterial = Resources.Load<Material>(_normalMaterialPath);
+            if (_normalMaterial == null)
+            {
+                Debug.LogError($"TestTarget: Failed to load normal material from {_normalMaterialPath}");
+            }
+            else
+            {
+                Debug.Log($"TestTarget: Loaded normal material: {_normalMaterial.name}");
+            }
+
+            // 加载受伤材质
+            _damageMaterial = Resources.Load<Material>(_damageMaterialPath);
+            if (_damageMaterial == null)
+            {
+                Debug.LogError($"TestTarget: Failed to load damage material from {_damageMaterialPath}");
+            }
+            else
+            {
+                Debug.Log($"TestTarget: Loaded damage material: {_damageMaterial.name}");
+            }
         }
 
         #region IDamageable Implementation
@@ -76,7 +158,7 @@ namespace Resonance.Enemies
 
         private void ShowDamageEffect()
         {
-            if (_renderer != null)
+            if (_bodyRenderer != null && _damageMaterial != null)
             {
                 StartCoroutine(DamageFlashCoroutine());
             }
@@ -84,18 +166,20 @@ namespace Resonance.Enemies
 
         private System.Collections.IEnumerator DamageFlashCoroutine()
         {
-            // 改变颜色为受伤颜色
-            if (_renderer != null)
+            // 切换到受伤材质
+            if (_bodyRenderer != null && _damageMaterial != null)
             {
-                _renderer.material.color = _damageColor;
+                _bodyRenderer.material = _damageMaterial;
+                Debug.Log("TestTarget: Switched to damage material");
             }
             
             yield return new WaitForSeconds(_damageFlashDuration);
             
-            // 恢复原始颜色
-            if (_renderer != null && !_isDead)
+            // 恢复正常材质
+            if (_bodyRenderer != null && _normalMaterial != null && !_isDead)
             {
-                _renderer.material.color = _normalColor;
+                _bodyRenderer.material = _normalMaterial;
+                Debug.Log("TestTarget: Switched back to normal material");
             }
         }
 
@@ -106,10 +190,11 @@ namespace Resonance.Enemies
             Debug.Log($"TestTarget: {gameObject.name} destroyed! Stats: " +
                      $"Times hit: {_timesHit}, Total damage: {_totalDamageTaken}");
             
-            // 死亡效果
-            if (_renderer != null)
+            // 死亡效果 - 保持受伤材质或者你可以创建一个死亡材质
+            if (_bodyRenderer != null && _damageMaterial != null)
             {
-                _renderer.material.color = Color.gray;
+                _bodyRenderer.material = _damageMaterial;
+                Debug.Log("TestTarget: Applied death visual effect");
             }
             
             // 可以添加死亡动画、音效等
@@ -175,9 +260,10 @@ namespace Resonance.Enemies
             _timesHit = 0;
             _totalDamageTaken = 0f;
             
-            if (_renderer != null)
+            // 恢复正常材质
+            if (_bodyRenderer != null && _normalMaterial != null)
             {
-                _renderer.material.color = _normalColor;
+                _bodyRenderer.material = _normalMaterial;
             }
             
             Debug.Log($"TestTarget: {gameObject.name} reset to full health");
@@ -190,6 +276,44 @@ namespace Resonance.Enemies
         public string GetStats()
         {
             return $"Health: {_currentHealth:F1}/{_maxHealth}, Hits: {_timesHit}, Damage: {_totalDamageTaken:F1}";
+        }
+
+        /// <summary>
+        /// 手动切换到受伤材质（用于测试）
+        /// </summary>
+        public void TestDamageMaterial()
+        {
+            if (_bodyRenderer != null && _damageMaterial != null)
+            {
+                _bodyRenderer.material = _damageMaterial;
+                Debug.Log("TestTarget: Manually switched to damage material");
+            }
+        }
+
+        /// <summary>
+        /// 手动切换到正常材质（用于测试）
+        /// </summary>
+        public void TestNormalMaterial()
+        {
+            if (_bodyRenderer != null && _normalMaterial != null)
+            {
+                _bodyRenderer.material = _normalMaterial;
+                Debug.Log("TestTarget: Manually switched to normal material");
+            }
+        }
+
+        /// <summary>
+        /// 获取当前使用的材质信息
+        /// </summary>
+        /// <returns>材质信息</returns>
+        public string GetMaterialInfo()
+        {
+            if (_bodyRenderer == null) return "No renderer found";
+            
+            Material currentMat = _bodyRenderer.material;
+            string currentName = currentMat != null ? currentMat.name : "None";
+            
+            return $"Current: {currentName}, Normal: {(_normalMaterial != null ? _normalMaterial.name : "None")}, Damage: {(_damageMaterial != null ? _damageMaterial.name : "None")}";
         }
 
         #endregion
