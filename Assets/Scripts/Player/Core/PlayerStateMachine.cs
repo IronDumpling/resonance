@@ -199,12 +199,12 @@ namespace Resonance.Player.Core
 
         public bool CanAim()
         {
-            return IsInState("Normal") && _playerController.HasWeapon;
+            return IsInState("Normal") && _playerController.HasEquippedWeapon;
         }
 
         public bool CanShoot()
         {
-            return IsInState("Aiming") && _playerController.HasWeapon && _playerController.WeaponManager.CanShoot();
+            return IsInState("Aiming") && _playerController.HasEquippedWeapon && _playerController.WeaponManager.CanShoot();
         }
 
         #endregion

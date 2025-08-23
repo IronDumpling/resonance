@@ -180,7 +180,7 @@ namespace Resonance.Core.GlobalServices
             }
 
             // 检查玩家是否已有武器
-            if (playerController.HasWeapon)
+            if (playerController.HasEquippedWeapon)
             {
                 Debug.LogWarning("InteractionService: Player already has a weapon");
                 // 这里可以实现武器替换逻辑

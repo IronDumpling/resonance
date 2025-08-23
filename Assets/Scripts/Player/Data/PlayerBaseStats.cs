@@ -9,7 +9,16 @@ namespace Resonance.Player.Data
     [CreateAssetMenu(fileName = "PlayerBaseStats", menuName = "Resonance/Player/Base Stats")]
     public class PlayerBaseStats : ScriptableObject
     {
-        [Header("Health")]
+        [Header("Physical Health")]
+        [SerializeField] private float _maxPhysicalHealth = 100f;
+        [SerializeField] private float _physicalHealthRegenRate = 0f; // Physical health per second
+        
+        [Header("Mental Health")]
+        [SerializeField] private float _maxMentalHealth = 50f;
+        [SerializeField] private float _mentalHealthDecayRate = 1f; // Mental health decay per second when in core mode
+        [SerializeField] private float _mentalHealthRegenRate = 0f; // Mental health regen per second in normal state
+        
+        [Header("Legacy Health (Backwards Compatibility)")]
         [SerializeField] private float _maxHealth = 100f;
         [SerializeField] private float _healthRegenRate = 0f; // Health per second
 
@@ -28,9 +37,18 @@ namespace Resonance.Player.Data
         [SerializeField] private int _maxInventorySlots = 20;
         [SerializeField] private float _maxCarryWeight = 100f;
 
-        // Properties
+        // Dual Health Properties
+        public float MaxPhysicalHealth => _maxPhysicalHealth;
+        public float PhysicalHealthRegenRate => _physicalHealthRegenRate;
+        public float MaxMentalHealth => _maxMentalHealth;
+        public float MentalHealthDecayRate => _mentalHealthDecayRate;
+        public float MentalHealthRegenRate => _mentalHealthRegenRate;
+        
+        // Legacy Properties (Backwards Compatibility)
         public float MaxHealth => _maxHealth;
         public float HealthRegenRate => _healthRegenRate;
+        
+        // Other Properties
         public float MoveSpeed => _moveSpeed;
         public float RunSpeedMultiplier => _runSpeedMultiplier;
         public float JumpForce => _jumpForce;
@@ -58,7 +76,18 @@ namespace Resonance.Player.Data
     [System.Serializable]
     public class PlayerRuntimeStats
     {
-        [Header("Current Health")]
+        [Header("Current Physical Health")]
+        public float currentPhysicalHealth;
+        public float maxPhysicalHealth;
+        public float physicalHealthRegenRate;
+        
+        [Header("Current Mental Health")]
+        public float currentMentalHealth;
+        public float maxMentalHealth;
+        public float mentalHealthDecayRate;
+        public float mentalHealthRegenRate;
+        
+        [Header("Legacy Health (Backwards Compatibility)")]
         public float currentHealth;
         public float maxHealth;
         public float healthRegenRate;
@@ -80,7 +109,17 @@ namespace Resonance.Player.Data
 
         public PlayerRuntimeStats(PlayerBaseStats baseStats)
         {
-            // Copy base stats to runtime stats
+            // Copy dual health stats to runtime stats
+            maxPhysicalHealth = baseStats.MaxPhysicalHealth;
+            currentPhysicalHealth = maxPhysicalHealth; // Start at full physical health
+            physicalHealthRegenRate = baseStats.PhysicalHealthRegenRate;
+            
+            maxMentalHealth = baseStats.MaxMentalHealth;
+            currentMentalHealth = maxMentalHealth; // Start at full mental health
+            mentalHealthDecayRate = baseStats.MentalHealthDecayRate;
+            mentalHealthRegenRate = baseStats.MentalHealthRegenRate;
+            
+            // Copy legacy health stats for backwards compatibility
             maxHealth = baseStats.MaxHealth;
             currentHealth = maxHealth; // Start at full health
             healthRegenRate = baseStats.HealthRegenRate;
@@ -99,20 +138,70 @@ namespace Resonance.Player.Data
         }
 
         /// <summary>
-        /// Restore health to maximum (used at save points)
+        /// Restore all health to maximum (used at save points)
         /// </summary>
         public void RestoreToFullHealth()
         {
+            currentPhysicalHealth = maxPhysicalHealth;
+            currentMentalHealth = maxMentalHealth;
+            // Also restore legacy health for backwards compatibility
             currentHealth = maxHealth;
         }
 
         /// <summary>
-        /// Check if player is alive
+        /// Restore only physical health to maximum
+        /// </summary>
+        public void RestorePhysicalHealth()
+        {
+            currentPhysicalHealth = maxPhysicalHealth;
+        }
+
+        /// <summary>
+        /// Restore only mental health to maximum
+        /// </summary>
+        public void RestoreMentalHealth()
+        {
+            currentMentalHealth = maxMentalHealth;
+        }
+
+        /// <summary>
+        /// Check if player is physically alive (physical health > 0)
+        /// </summary>
+        public bool IsPhysicallyAlive => currentPhysicalHealth > 0f;
+
+        /// <summary>
+        /// Check if player is mentally alive (mental health > 0)
+        /// </summary>
+        public bool IsMentallyAlive => currentMentalHealth > 0f;
+
+        /// <summary>
+        /// Check if player is truly alive (both physical and mental health > 0)
+        /// True death occurs when mental health reaches 0
+        /// </summary>
+        public bool IsTrulyAlive => currentMentalHealth > 0f;
+
+        /// <summary>
+        /// Check if player is in physical death state (physical health = 0 but mental health > 0)
+        /// </summary>
+        public bool IsInPhysicalDeathState => currentPhysicalHealth <= 0f && currentMentalHealth > 0f;
+
+        /// <summary>
+        /// Legacy alive check for backwards compatibility
         /// </summary>
         public bool IsAlive => currentHealth > 0f;
 
         /// <summary>
-        /// Get health percentage (0-1)
+        /// Get physical health percentage (0-1)
+        /// </summary>
+        public float PhysicalHealthPercentage => maxPhysicalHealth > 0 ? currentPhysicalHealth / maxPhysicalHealth : 0f;
+
+        /// <summary>
+        /// Get mental health percentage (0-1)
+        /// </summary>
+        public float MentalHealthPercentage => maxMentalHealth > 0 ? currentMentalHealth / maxMentalHealth : 0f;
+
+        /// <summary>
+        /// Legacy health percentage for backwards compatibility
         /// </summary>
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
     }

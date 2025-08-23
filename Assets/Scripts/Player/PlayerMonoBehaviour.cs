@@ -213,7 +213,11 @@ namespace Resonance.Player
             // 使用gameObject引用来初始化射击系统
             _playerController.Initialize(_baseStats, gameObject);
             
-            // Subscribe to player events
+            // Subscribe to death events for game logic (not UI)
+            _playerController.OnPhysicalDeath += HandlePhysicalDeath;
+            _playerController.OnTrueDeath += HandleTrueDeath;
+            
+            // Subscribe to legacy events for backwards compatibility
             _playerController.OnPlayerDied += HandlePlayerDeath;
             _playerController.OnHealthChanged += HandleHealthChanged;
 
@@ -663,9 +667,40 @@ namespace Resonance.Player
 
         #region Event Handlers
 
+
+
+        private void HandlePhysicalDeath()
+        {
+            Debug.Log("PlayerMonoBehaviour: Physical death - player entering core mode");
+            
+            // TODO: Transition to core movement mode
+            // This will be implemented when we add the new player states
+            
+            // Play physical death effects
+            // Show core exposure effects
+        }
+
+        private void HandleTrueDeath()
+        {
+            Debug.Log("PlayerMonoBehaviour: True death - triggering game over sequence");
+            
+            // Disable input
+            if (_inputService != null)
+            {
+                _inputService.IsEnabled = false;
+            }
+
+            // Trigger true death animation/effects
+            // This should trigger game over screen, respawn logic, etc.
+            
+            // For now, just load the last save
+            var saveSystem = ServiceRegistry.Get<ISaveService>();
+            saveSystem?.LoadLastSave();
+        }
+
         private void HandlePlayerDeath()
         {
-            Debug.Log("PlayerMonoBehaviour: Player died - triggering death sequence");
+            Debug.Log("PlayerMonoBehaviour: Player died (legacy) - triggering death sequence");
             
             // Disable input
             if (_inputService != null)
@@ -683,7 +718,7 @@ namespace Resonance.Player
 
         private void HandleHealthChanged(float newHealth)
         {
-            Debug.Log($"PlayerMonoBehaviour: Health changed to {newHealth}");
+            Debug.Log($"PlayerMonoBehaviour: Health changed (legacy) to {newHealth}");
             // Update UI, play effects, etc.
         }
 
@@ -730,6 +765,31 @@ namespace Resonance.Player
             transform.eulerAngles = rotation;
         }
 
+        /// <summary>
+        /// Take physical damage (affects physical health)
+        /// </summary>
+        public void TakePhysicalDamage(float damage)
+        {
+            if (IsInitialized)
+            {
+                _playerController.TakePhysicalDamage(damage);
+            }
+        }
+
+        /// <summary>
+        /// Take mental damage (affects mental health)
+        /// </summary>
+        public void TakeMentalDamage(float damage)
+        {
+            if (IsInitialized)
+            {
+                _playerController.TakeMentalDamage(damage);
+            }
+        }
+
+        /// <summary>
+        /// Legacy damage method for backwards compatibility
+        /// </summary>
         public void TakeDamage(float damage)
         {
             if (IsInitialized)
@@ -738,6 +798,31 @@ namespace Resonance.Player
             }
         }
 
+        /// <summary>
+        /// Heal physical health
+        /// </summary>
+        public void HealPhysical(float amount)
+        {
+            if (IsInitialized)
+            {
+                _playerController.HealPhysical(amount);
+            }
+        }
+
+        /// <summary>
+        /// Heal mental health
+        /// </summary>
+        public void HealMental(float amount)
+        {
+            if (IsInitialized)
+            {
+                _playerController.HealMental(amount);
+            }
+        }
+
+        /// <summary>
+        /// Legacy heal method for backwards compatibility
+        /// </summary>
         public void Heal(float amount)
         {
             if (IsInitialized)

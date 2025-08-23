@@ -24,7 +24,7 @@ namespace Resonance.Player.States
             Debug.Log("PlayerState: Entered Aiming state");
             
             // Safety check: Ensure player has a weapon
-            if (!_playerController.HasWeapon)
+            if (!_playerController.HasEquippedWeapon)
             {
                 Debug.LogWarning("PlayerAimingState: Player entered aiming state without weapon! This should not happen.");
                 return;
@@ -37,7 +37,7 @@ namespace Resonance.Player.States
         public void Update()
         {
             // Safety check: If weapon is removed while aiming, exit aiming state
-            if (!_playerController.HasWeapon)
+            if (!_playerController.HasEquippedWeapon)
             {
                 Debug.Log("PlayerAimingState: Weapon removed while aiming, exiting aiming state");
                 _playerController.StateMachine.StopAiming();
