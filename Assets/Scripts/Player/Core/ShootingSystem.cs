@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Items;
 using Resonance.Interfaces;
+using Resonance.Interfaces.Services;
 using Resonance.Utilities;
 
 namespace Resonance.Player.Core
@@ -20,6 +21,9 @@ namespace Resonance.Player.Core
         // 相机引用
         private Camera _mainCamera;
         private Transform _playerTransform;
+        
+        // 音频服务引用
+        private IAudioService _audioService;
         
         // 射击线条视觉效果
         private LineRenderer _shootingLineRenderer;  // 射击瞬间的闪烁线条
@@ -42,9 +46,26 @@ namespace Resonance.Player.Core
             _playerTransform = playerObject.transform;
             SetupCamera();
             SetupLineRenderers(playerObject);
+            SetupAudioService();
             
             // 设置默认层级
             SetDefaultLayerMasks();
+        }
+        
+        /// <summary>
+        /// 设置音频服务引用
+        /// </summary>
+        private void SetupAudioService()
+        {
+            _audioService = ServiceRegistry.Get<IAudioService>();
+            if (_audioService == null)
+            {
+                Debug.LogWarning("ShootingSystem: AudioService not found. Audio effects will be disabled.");
+            }
+            else
+            {
+                Debug.Log("ShootingSystem: AudioService connected successfully");
+            }
         }
 
         /// <summary>
@@ -107,6 +128,9 @@ namespace Resonance.Player.Core
             {
                 ShowShootingLine(shootOrigin, endPoint);
             }
+            
+            // 播放射击音效
+            PlayShootingAudio(shootOrigin, gunData);
             
             // 触发射击事件
             OnShoot?.Invoke(shootOrigin, gunData.damage);
@@ -488,6 +512,7 @@ namespace Resonance.Player.Core
             {
                 Debug.Log($"ShootingSystem: Found IDamageable on {damageableObject.name}, dealing {damage} damage");
                 damageable.TakeDamage(damage, damageSource, "Bullet");
+                PlayHitAudio(hitInfo.point, damageableObject);
                 OnHit?.Invoke(hitInfo.point, damageableObject, damage);
                 Debug.Log($"ShootingSystem: Dealt {damage} damage to {damageableObject.name}");
                 return;
@@ -498,14 +523,111 @@ namespace Resonance.Player.Core
             {
                 Debug.Log($"ShootingSystem: Found IDestructible on {destructibleObject.name}, dealing {damage} damage");
                 destructible.TakeDamage(damage, damageSource);
+                PlayHitAudio(hitInfo.point, destructibleObject);
                 OnHit?.Invoke(hitInfo.point, destructibleObject, damage);
                 Debug.Log($"ShootingSystem: Dealt {damage} damage to destructible {destructibleObject.name}");
                 return;
             }
 
             // 如果不是可受伤害或可破坏的对象，仍然触发命中事件（用于音效、粒子效果等）
+            PlayHitAudio(hitInfo.point, hitObject);
             OnHit?.Invoke(hitInfo.point, hitObject, 0f);
             Debug.Log($"ShootingSystem: Hit non-damageable object {hitObject.name} - no damage dealt");
+        }
+
+        #endregion
+
+        #region Audio Effects
+        
+        /// <summary>
+        /// 播放射击音效
+        /// </summary>
+        /// <param name="shootOrigin">射击位置</param>
+        /// <param name="gunData">武器数据</param>
+        private void PlayShootingAudio(Vector3 shootOrigin, GunDataAsset gunData)
+        {
+            if (_audioService == null) return;
+            
+            // 根据武器类型选择音效
+            AudioClipType shootingClipType = GetShootingAudioClipType(gunData);
+            
+            // 播放3D射击音效
+            _audioService.PlaySFX3D(shootingClipType, shootOrigin, 0.8f, 1f);
+            
+            Debug.Log($"ShootingSystem: Played shooting audio {shootingClipType} at {shootOrigin}");
+        }
+        
+        /// <summary>
+        /// 根据武器数据获取对应的射击音效类型
+        /// </summary>
+        /// <param name="gunData">武器数据</param>
+        /// <returns>音效类型</returns>
+        private AudioClipType GetShootingAudioClipType(GunDataAsset gunData)
+        {
+            // 根据武器名称或类型来选择音效
+            // 这里可以根据实际的武器系统进行扩展
+            string weaponName = gunData.weaponName.ToLower();
+            
+            if (weaponName.Contains("rifle"))
+            {
+                return AudioClipType.GunFireRifle;
+            }
+            else
+            {
+                // 默认使用手枪音效
+                return AudioClipType.GunFirePistol;
+            }
+        }
+        
+        /// <summary>
+        /// 播放命中音效
+        /// </summary>
+        /// <param name="hitPoint">命中位置</param>
+        /// <param name="hitObject">命中对象</param>
+        private void PlayHitAudio(Vector3 hitPoint, GameObject hitObject)
+        {
+            if (_audioService == null) return;
+            
+            // 根据命中对象的标签或层级来选择音效
+            AudioClipType hitClipType = GetHitAudioClipType(hitObject);
+            
+            // 播放3D命中音效
+            _audioService.PlaySFX3D(hitClipType, hitPoint, 0.6f, 1f);
+            
+            Debug.Log($"ShootingSystem: Played hit audio {hitClipType} at {hitPoint}");
+        }
+        
+        /// <summary>
+        /// 根据命中对象获取对应的命中音效类型
+        /// </summary>
+        /// <param name="hitObject">命中的游戏对象</param>
+        /// <returns>音效类型</returns>
+        private AudioClipType GetHitAudioClipType(GameObject hitObject)
+        {
+            // 根据对象标签或名称来选择合适的命中音效
+            string tag = hitObject.tag.ToLower();
+            string name = hitObject.name.ToLower();
+            
+            if (tag.Contains("enemy") || name.Contains("enemy"))
+            {
+                // 进一步检查是否是金属或血肉
+                if (name.Contains("metal") || name.Contains("robot"))
+                {
+                    return AudioClipType.EnemyHitMetal;
+                }
+                else
+                {
+                    return AudioClipType.EnemyHitFlesh;
+                }
+            }
+            else if (tag.Contains("player") || name.Contains("player"))
+            {
+                return AudioClipType.PlayerHit;
+            }
+            else
+            {
+                return AudioClipType.EnemyHit; // 默认命中音效
+            }
         }
 
         #endregion

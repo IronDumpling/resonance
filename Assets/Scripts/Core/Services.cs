@@ -14,6 +14,7 @@ namespace Resonance.Core
         private GlobalServices.UIService _uiService;
         private GlobalServices.PlayerService _playerService;
         private GlobalServices.InteractionService _interactionService;
+        private GlobalServices.AudioService _audioService;
         private List<IGameService> _systems;
         private bool _isInitialized = false;
         private GameObject _gameManagerObject;
@@ -57,12 +58,18 @@ namespace Resonance.Core
                 _interactionService = new GlobalServices.InteractionService();
             }
 
+            if (_audioService == null)
+            {
+                _audioService = new GlobalServices.AudioService(configuration, _gameManagerObject.GetComponent<MonoBehaviour>());
+            }
+
             // Add services to list
             AddService(_inputService);
             AddService(_loadSceneService);
             AddService(_uiService);
             AddService(_playerService);
             AddService(_interactionService);
+            AddService(_audioService);
         }
 
         private void AddService(IGameService system)

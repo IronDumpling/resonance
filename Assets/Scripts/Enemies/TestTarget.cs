@@ -1,5 +1,7 @@
 using UnityEngine;
 using Resonance.Interfaces;
+using Resonance.Interfaces.Services;
+using Resonance.Utilities;
 
 namespace Resonance.Enemies
 {
@@ -26,6 +28,9 @@ namespace Resonance.Enemies
         private Material _damageMaterial;
         private bool _isDead = false;
         
+        // 音频服务引用
+        private IAudioService _audioService;
+        
         // 伤害统计
         private int _timesHit = 0;
         private float _totalDamageTaken = 0f;
@@ -44,6 +49,9 @@ namespace Resonance.Enemies
             
             // 加载材质资源
             LoadMaterials();
+            
+            // 设置音频服务
+            SetupAudioService();
             
             // 设置初始材质
             if (_bodyRenderer != null && _normalMaterial != null)
@@ -129,6 +137,22 @@ namespace Resonance.Enemies
             }
         }
 
+        /// <summary>
+        /// 设置音频服务引用
+        /// </summary>
+        private void SetupAudioService()
+        {
+            _audioService = ServiceRegistry.Get<IAudioService>();
+            if (_audioService == null)
+            {
+                Debug.LogWarning("TestTarget: AudioService not found. Audio effects will be disabled.");
+            }
+            else
+            {
+                Debug.Log("TestTarget: AudioService connected successfully");
+            }
+        }
+
         #region IDamageable Implementation
 
         public void TakeDamage(float damage, Vector3 damageSource, string damageType = "Normal")
@@ -141,6 +165,9 @@ namespace Resonance.Enemies
             
             Debug.Log($"TestTarget: {gameObject.name} took {damage} {damageType} damage. " +
                      $"Health: {_currentHealth}/{_maxHealth}");
+
+            // 播放受击音效
+            PlayHitAudio(damageSource, damage);
 
             // 视觉反馈
             ShowDamageEffect();
@@ -190,6 +217,9 @@ namespace Resonance.Enemies
             Debug.Log($"TestTarget: {gameObject.name} destroyed! Stats: " +
                      $"Times hit: {_timesHit}, Total damage: {_totalDamageTaken}");
             
+            // 播放死亡音效
+            PlayDeathAudio();
+            
             // 死亡效果 - 保持受伤材质或者你可以创建一个死亡材质
             if (_bodyRenderer != null && _damageMaterial != null)
             {
@@ -200,6 +230,89 @@ namespace Resonance.Enemies
             // 可以添加死亡动画、音效等
             // 这里我们在3秒后销毁对象
             Destroy(gameObject, 3f);
+        }
+
+        #endregion
+
+        #region Audio Effects
+
+        /// <summary>
+        /// 播放受击音效
+        /// </summary>
+        /// <param name="damageSource">伤害来源位置</param>
+        /// <param name="damage">伤害值</param>
+        private void PlayHitAudio(Vector3 damageSource, float damage)
+        {
+            if (_audioService == null) return;
+
+            // 根据敌人类型和伤害来源选择音效
+            AudioClipType hitClipType = GetHitAudioClipType(damage);
+            
+            // 播放3D受击音效，位置在敌人身上
+            _audioService.PlaySFX3D(hitClipType, transform.position, 0.7f, 1f);
+            
+            Debug.Log($"TestTarget: Played hit audio {hitClipType} at {transform.position}");
+        }
+
+        /// <summary>
+        /// 播放死亡音效
+        /// </summary>
+        private void PlayDeathAudio()
+        {
+            if (_audioService == null) return;
+
+            // 根据敌人类型选择死亡音效
+            AudioClipType deathClipType = GetDeathAudioClipType();
+            
+            // 播放3D死亡音效
+            _audioService.PlaySFX3D(deathClipType, transform.position, 0.9f, 1f);
+            
+            Debug.Log($"TestTarget: Played death audio {deathClipType} at {transform.position}");
+        }
+
+        /// <summary>
+        /// 根据伤害类型获取受击音效类型
+        /// </summary>
+        /// <param name="damage">伤害值</param>
+        /// <returns>音效类型</returns>
+        private AudioClipType GetHitAudioClipType(float damage)
+        {
+            // 根据敌人名称或类型来选择音效
+            string enemyName = gameObject.name.ToLower();
+            
+            if (enemyName.Contains("metal") || enemyName.Contains("robot"))
+            {
+                return AudioClipType.EnemyHitMetal;
+            }
+            else if (enemyName.Contains("flesh") || enemyName.Contains("organic"))
+            {
+                return AudioClipType.EnemyHitFlesh;
+            }
+            else
+            {
+                // 默认敌人受击音效
+                return AudioClipType.EnemyHit;
+            }
+        }
+
+        /// <summary>
+        /// 根据敌人类型获取死亡音效类型
+        /// </summary>
+        /// <returns>音效类型</returns>
+        private AudioClipType GetDeathAudioClipType()
+        {
+            // 根据敌人名称或类型来选择死亡音效
+            string enemyName = gameObject.name.ToLower();
+            
+            if (enemyName.Contains("boss") || enemyName.Contains("explosion"))
+            {
+                return AudioClipType.EnemyDeathExplosion;
+            }
+            else
+            {
+                // 默认敌人死亡音效
+                return AudioClipType.EnemyDeath;
+            }
         }
 
         #endregion
