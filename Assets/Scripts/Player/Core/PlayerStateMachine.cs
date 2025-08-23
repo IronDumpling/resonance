@@ -124,10 +124,11 @@ namespace Resonance.Player.Core
 
         public bool StartAiming()
         {
-            if (IsInState("Normal"))
+            if (CanAim())
             {
                 return ChangeState("Aiming");
             }
+            Debug.Log("PlayerStateMachine: Cannot start aiming - no weapon equipped or not in Normal state");
             return false;
         }
 

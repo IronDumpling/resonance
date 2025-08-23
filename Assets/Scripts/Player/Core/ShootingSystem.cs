@@ -210,6 +210,16 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
+        /// 获取当前鼠标指向的世界坐标点（公共方法）
+        /// 与射击系统使用相同的逻辑，确保玩家朝向和射击方向一致
+        /// </summary>
+        /// <returns>鼠标指向的世界坐标点</returns>
+        public Vector3 GetCurrentMouseTargetPoint()
+        {
+            return GetMouseTargetPoint();
+        }
+
+        /// <summary>
         /// 设置射击线条显示时长
         /// </summary>
         /// <param name="duration">显示时长（秒）</param>

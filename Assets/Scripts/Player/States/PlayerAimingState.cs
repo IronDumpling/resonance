@@ -23,12 +23,27 @@ namespace Resonance.Player.States
         {
             Debug.Log("PlayerState: Entered Aiming state");
             
+            // Safety check: Ensure player has a weapon
+            if (!_playerController.HasWeapon)
+            {
+                Debug.LogWarning("PlayerAimingState: Player entered aiming state without weapon! This should not happen.");
+                return;
+            }
+            
             // Slow down movement while aiming
             _playerController.Movement.MovementSpeedModifier = 0.5f;
         }
 
         public void Update()
         {
+            // Safety check: If weapon is removed while aiming, exit aiming state
+            if (!_playerController.HasWeapon)
+            {
+                Debug.Log("PlayerAimingState: Weapon removed while aiming, exiting aiming state");
+                _playerController.StateMachine.StopAiming();
+                return;
+            }
+            
             // Aiming state update logic
             // Could include auto-aim assistance, reticle updates, etc.
         }

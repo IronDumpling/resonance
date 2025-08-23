@@ -432,51 +432,65 @@ namespace Resonance.Player
 
         private void UpdatePlayerVisualRotation()
         {
-            if (_playerVisual == null || _playerCamera == null) return;
+            if (_playerVisual == null) return;
 
-            // 获取鼠标世界坐标
-            Vector3 mouseWorldPosition = GetMouseWorldPosition();
-            if (mouseWorldPosition == Vector3.zero) return;
+            // 使用ShootingSystem的鼠标目标点逻辑，确保玩家朝向和射击方向一致
+            Vector3 mouseTargetPoint = GetMouseTargetPointFromShootingSystem();
+            if (mouseTargetPoint == Vector3.zero) return;
 
-            // 计算Player Visual的Y轴旋转角度
-            float targetYRotation = CalculatePlayerYRotation(transform.position, mouseWorldPosition);
+            // 计算Player Visual的Y轴旋转角度（仅使用XZ平面）
+            float targetYRotation = CalculatePlayerYRotation(transform.position, mouseTargetPoint);
             
             // 应用平滑旋转（仅Y轴）
             ApplyPlayerYRotation(targetYRotation);
         }
 
         /// <summary>
+        /// 从ShootingSystem获取鼠标目标点
+        /// 使用与射击系统相同的逻辑，确保玩家朝向和射击方向一致
+        /// </summary>
+        /// <returns>鼠标指向的世界坐标点</returns>
+        private Vector3 GetMouseTargetPointFromShootingSystem()
+        {
+            if (!IsInitialized) return Vector3.zero;
+
+            // 使用ShootingSystem的统一鼠标目标点逻辑
+            return _playerController.ShootingSystem?.GetCurrentMouseTargetPoint() ?? Vector3.zero;
+        }
+
+        /// <summary>
         /// 计算Player Visual应该面向的Y轴旋转角度
+        /// 使用与ShootingSystem相同的鼠标目标点，确保玩家朝向和射击方向一致
         /// 算法说明：
-        /// 1. 计算从Player到鼠标的方向向量（仅考虑XZ平面）
+        /// 1. 计算从Player到目标点的方向向量（仅考虑XZ平面）
         /// 2. 使用Atan2函数计算该方向在XZ平面的角度
         /// 3. 转换为Unity的Y轴旋转角度
         /// </summary>
         /// <param name="playerPosition">玩家位置</param>
-        /// <param name="mousePosition">鼠标世界坐标</param>
+        /// <param name="targetPosition">目标点世界坐标（来自ShootingSystem）</param>
         /// <returns>Y轴旋转角度（度数）</returns>
-        private float CalculatePlayerYRotation(Vector3 playerPosition, Vector3 mousePosition)
+        private float CalculatePlayerYRotation(Vector3 playerPosition, Vector3 targetPosition)
         {
-            // 步骤1: 计算从Player到鼠标的方向向量
-            Vector3 directionToMouse = mousePosition - playerPosition;
+            // 步骤1: 计算从Player到目标点的方向向量
+            Vector3 directionToTarget = targetPosition - playerPosition;
             
             // 步骤2: 将Y轴分量设为0，确保只考虑XZ平面的旋转
-            directionToMouse.y = 0f;
+            directionToTarget.y = 0f;
             
             // 步骤3: 确保方向向量有效（避免除零错误）
-            if (directionToMouse.sqrMagnitude < 0.001f)
+            if (directionToTarget.sqrMagnitude < 0.001f)
             {
-                // 如果鼠标和玩家位置过于接近，保持当前旋转
+                // 如果目标点和玩家位置过于接近，保持当前旋转
                 return _playerVisual.eulerAngles.y;
             }
             
             // 步骤4: 标准化方向向量
-            directionToMouse.Normalize();
+            directionToTarget.Normalize();
             
             // 步骤5: 使用Atan2计算角度
             // Atan2(z, x) 计算从X轴正方向到(x,z)点的角度
             // Unity的前方是Z轴正方向，所以我们使用 Atan2(x, z)
-            float angleInRadians = Mathf.Atan2(directionToMouse.x, directionToMouse.z);
+            float angleInRadians = Mathf.Atan2(directionToTarget.x, directionToTarget.z);
             
             // 步骤6: 转换为度数
             float angleInDegrees = angleInRadians * Mathf.Rad2Deg;
