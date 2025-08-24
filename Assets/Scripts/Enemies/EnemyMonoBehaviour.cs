@@ -22,6 +22,10 @@ namespace Resonance.Enemies
         [SerializeField] private Transform _visualTransform;
         [SerializeField] private Renderer _bodyRenderer;
 
+        [Header("Detection System")]
+        [SerializeField] private SphereCollider _detectionCollider;
+        [SerializeField] private SphereCollider _attackCollider;
+
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
 
@@ -65,6 +69,9 @@ namespace Resonance.Enemies
             // Setup visual components
             SetupVisualComponents();
 
+            // Setup detection system
+            SetupDetectionSystem();
+
             // Initialize enemy
             InitializeEnemy();
         }
@@ -79,6 +86,9 @@ namespace Resonance.Enemies
 
             // Set initial material
             SetMaterial(_normalMaterial);
+
+            // Update collider radii in case stats changed
+            UpdateColliderRadii();
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started successfully");
         }
@@ -210,7 +220,82 @@ namespace Resonance.Enemies
             if (_revivalMaterial == null)
             {
                 Debug.LogWarning($"EnemyMonoBehaviour: Failed to load revival material from {_baseStats.revivalMaterialPath}");
-                _revivalMaterial = _damageMaterial; // Use damage material as fallback
+                _revivalMaterial = _damageMaterial;
+            }
+        }
+
+        private void SetupDetectionSystem()
+        {
+            // Setup detection collider
+            if (_detectionCollider == null)
+            {
+                // Try to find existing detection collider
+                Transform detectionChild = transform.Find("DetectionRange");
+                if (detectionChild != null)
+                {
+                    _detectionCollider = detectionChild.GetComponent<SphereCollider>();
+                    detectionChild.gameObject.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Detection);
+                }
+
+                // Create detection collider if not found
+                if (_detectionCollider == null)
+                {
+                    GameObject detectionGO = new GameObject("DetectionRange");
+                    detectionGO.transform.SetParent(transform);
+                    detectionGO.transform.localPosition = Vector3.zero;
+                    detectionGO.layer = gameObject.layer; // Use same layer as parent
+                    
+                    _detectionCollider = detectionGO.AddComponent<SphereCollider>();
+                    _detectionCollider.isTrigger = true;
+                    
+                    // Add a component to identify this collider
+                    detectionGO.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Detection);
+                }
+            }
+
+            // Setup attack collider
+            if (_attackCollider == null)
+            {
+                // Try to find existing attack collider
+                Transform attackChild = transform.Find("AttackRange");
+                if (attackChild != null)
+                {
+                    _attackCollider = attackChild.GetComponent<SphereCollider>();
+                    attackChild.gameObject.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Attack);
+                }
+
+                // Create attack collider if not found
+                if (_attackCollider == null)
+                {
+                    GameObject attackGO = new GameObject("AttackRange");
+                    attackGO.transform.SetParent(transform);
+                    attackGO.transform.localPosition = Vector3.zero;
+                    attackGO.layer = gameObject.layer; // Use same layer as parent
+                    
+                    _attackCollider = attackGO.AddComponent<SphereCollider>();
+                    _attackCollider.isTrigger = true;
+                    
+                    // Add a component to identify this collider
+                    attackGO.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Attack);
+                }
+            }
+
+            // Set initial radii
+            UpdateColliderRadii();
+        }
+
+        private void UpdateColliderRadii()
+        {
+            if (_baseStats == null) return;
+
+            if (_detectionCollider != null)
+            {
+                _detectionCollider.radius = _baseStats.detectionRange;
+            }
+
+            if (_attackCollider != null)
+            {
+                _attackCollider.radius = _baseStats.attackRange;
             }
         }
 
@@ -492,6 +577,69 @@ namespace Resonance.Enemies
 
         #endregion
 
+        #region Trigger System
+
+        /// <summary>
+        /// 处理触发器进入事件
+        /// </summary>
+        public void HandleTriggerEnter(TriggerType triggerType, Collider other)
+        {
+            if (!IsInitialized) return;
+
+            Transform playerTransform = other.transform;
+
+            switch (triggerType)
+            {
+                case TriggerType.Detection:
+                    // 玩家进入检测范围
+                    _enemyController.SetPlayerTarget(playerTransform);
+                    Debug.Log($"EnemyMonoBehaviour: Player entered detection range");
+                    break;
+
+                case TriggerType.Attack:
+                    // 玩家进入攻击范围
+                    _enemyController.SetPlayerInAttackRange(true);
+                    Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 处理触发器退出事件
+        /// </summary>
+        public void HandleTriggerExit(TriggerType triggerType, Collider other)
+        {
+            if (!IsInitialized) return;
+
+            switch (triggerType)
+            {
+                case TriggerType.Detection:
+                    // 玩家离开检测范围
+                    _enemyController.LosePlayer();
+                    Debug.Log($"EnemyMonoBehaviour: Player exited detection range");
+                    break;
+
+                case TriggerType.Attack:
+                    // 玩家离开攻击范围
+                    _enemyController.SetPlayerInAttackRange(false);
+                    Debug.Log($"EnemyMonoBehaviour: Player exited attack range");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 处理触发器停留事件
+        /// </summary>
+        public void HandleTriggerStay(TriggerType triggerType, Collider other)
+        {
+            if (!IsInitialized) return;
+
+            // 可以在这里处理持续触发的逻辑
+            // 例如持续更新玩家位置等
+        }
+
+        #endregion
+
         #region Debug
 
         private void DrawDebugInfo()
@@ -547,20 +695,20 @@ namespace Resonance.Enemies
 
         void OnDrawGizmosSelected()
         {
-            if (!IsInitialized) return;
-
             // Draw detection range
-            if (_baseStats.showDetectionRange)
+            if (_baseStats != null && _baseStats.showDetectionRange)
             {
                 Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere(transform.position, _baseStats.detectionRange);
+                float detectionRadius = _detectionCollider != null ? _detectionCollider.radius : _baseStats.detectionRange;
+                Gizmos.DrawWireSphere(transform.position, detectionRadius);
             }
 
             // Draw attack range
-            if (_baseStats.showAttackRange)
+            if (_baseStats != null && _baseStats.showAttackRange)
             {
                 Gizmos.color = Color.red;
-                Gizmos.DrawWireSphere(transform.position, _baseStats.attackRange);
+                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.attackRange;
+                Gizmos.DrawWireSphere(transform.position, attackRadius);
             }
         }
 

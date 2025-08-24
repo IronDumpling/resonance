@@ -25,6 +25,7 @@ namespace Resonance.Enemies.Core
         private Transform _playerTarget;
         private Vector3 _lastKnownPlayerPosition;
         private bool _hasPlayerTarget = false;
+        private bool _isPlayerInAttackRange = false;
         
         // Patrol State
         private Vector3 _patrolCenter;
@@ -264,25 +265,21 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Check if player is in attack range
+        /// Check if player is in attack range (now handled by trigger system)
         /// </summary>
         public bool IsPlayerInAttackRange()
         {
-            if (!HasPlayerTarget) return false;
-            
-            float distance = Vector3.Distance(_patrolCenter, _playerTarget.position);
-            return distance <= _stats.attackRange;
+            // This will be set by the trigger system
+            return _isPlayerInAttackRange;
         }
 
         /// <summary>
-        /// Check if player is in detection range
+        /// Check if player is in detection range (now handled by trigger system)
         /// </summary>
         public bool IsPlayerInDetectionRange()
         {
-            if (!HasPlayerTarget) return false;
-            
-            float distance = Vector3.Distance(_patrolCenter, _playerTarget.position);
-            return distance <= _stats.detectionRange;
+            // This will be set by the trigger system
+            return HasPlayerTarget;
         }
 
         #endregion
@@ -291,22 +288,10 @@ namespace Resonance.Enemies.Core
 
         private void UpdatePlayerDetection()
         {
-            // Find player if we don't have one
-            if (!HasPlayerTarget)
-            {
-                FindPlayer();
-            }
-            
-            // Update player tracking
+            // Update player tracking (position tracking only, range detection handled by triggers)
             if (HasPlayerTarget)
             {
                 _lastKnownPlayerPosition = _playerTarget.position;
-                
-                // Check if player is still in detection range
-                if (!IsPlayerInDetectionRange())
-                {
-                    LosePlayer();
-                }
             }
         }
 
@@ -338,8 +323,17 @@ namespace Resonance.Enemies.Core
         {
             _playerTarget = null;
             _hasPlayerTarget = false;
+            _isPlayerInAttackRange = false; // Also reset attack range
             OnPlayerLost?.Invoke();
             // Debug.Log("EnemyController: Player lost");
+        }
+
+        /// <summary>
+        /// Set player in attack range (called by trigger system)
+        /// </summary>
+        public void SetPlayerInAttackRange(bool inRange)
+        {
+            _isPlayerInAttackRange = inRange;
         }
 
         #endregion
