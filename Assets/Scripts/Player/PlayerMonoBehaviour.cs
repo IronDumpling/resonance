@@ -216,10 +216,6 @@ namespace Resonance.Player
             // Subscribe to death events for game logic (not UI)
             _playerController.OnPhysicalDeath += HandlePhysicalDeath;
             _playerController.OnTrueDeath += HandleTrueDeath;
-            
-            // Subscribe to legacy events for backwards compatibility
-            _playerController.OnPlayerDied += HandlePlayerDeath;
-            _playerController.OnHealthChanged += HandleHealthChanged;
 
             OnPlayerInitialized?.Invoke(_playerController);
             Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
@@ -698,32 +694,6 @@ namespace Resonance.Player
             saveSystem?.LoadLastSave();
         }
 
-        private void HandlePlayerDeath()
-        {
-            Debug.Log("PlayerMonoBehaviour: Player died (legacy) - triggering death sequence");
-            
-            // Disable input
-            if (_inputService != null)
-            {
-                _inputService.IsEnabled = false;
-            }
-
-            // Trigger death animation/effects
-            // This could trigger a death screen, respawn logic, etc.
-            
-            // For now, just load the last save
-            var saveSystem = ServiceRegistry.Get<ISaveService>();
-            saveSystem?.LoadLastSave();
-        }
-
-        private void HandleHealthChanged(float newHealth)
-        {
-            Debug.Log($"PlayerMonoBehaviour: Health changed (legacy) to {newHealth}");
-            // Update UI, play effects, etc.
-        }
-
-
-
         #endregion
 
         #region Save/Load Integration
@@ -788,17 +758,6 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Legacy damage method for backwards compatibility
-        /// </summary>
-        public void TakeDamage(float damage)
-        {
-            if (IsInitialized)
-            {
-                _playerController.TakeDamage(damage);
-            }
-        }
-
-        /// <summary>
         /// Heal physical health
         /// </summary>
         public void HealPhysical(float amount)
@@ -820,17 +779,6 @@ namespace Resonance.Player
             }
         }
 
-        /// <summary>
-        /// Legacy heal method for backwards compatibility
-        /// </summary>
-        public void Heal(float amount)
-        {
-            if (IsInitialized)
-            {
-                _playerController.Heal(amount);
-            }
-        }
-
         #endregion
 
         #region Debug
@@ -845,7 +793,8 @@ namespace Resonance.Player
                 $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
                 "Edge Protection: OFF";
                 
-            Debug.Log($"Health: {stats.currentHealth}/{stats.maxHealth}, " +
+            Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
+                     $"Mental Health: {stats.currentMentalHealth}/{stats.maxMentalHealth}, " +
                      $"State: {_playerController.CurrentState}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
                      $"{edgeInfo}");

@@ -51,8 +51,9 @@ namespace Resonance.Player.Core
             _stateMachine.AddState(new PlayerNormalState(_playerController));
             _stateMachine.AddState(new PlayerAimingState(_playerController));
             _stateMachine.AddState(new PlayerInteractingState(_playerController));
-            _stateMachine.AddState(new PlayerDeadState(_playerController));
-
+            _stateMachine.AddState(new PlayerPhysicalDeathState(_playerController));
+            _stateMachine.AddState(new PlayerTrueDeathState(_playerController));
+            _stateMachine.AddState(new PlayerCoreState());
             // Start with normal state
             _stateMachine.ChangeState("Normal");
         }
@@ -159,19 +160,30 @@ namespace Resonance.Player.Core
             return false;
         }
 
-        public bool Die()
+        public bool EnterPhysicalDeath()
         {
-            // Can die from any state except already dead
-            if (!IsInState("Dead"))
+            // Can enter physical death from any state except already in death states
+            if (!IsInState("PhysicalDeath") && !IsInState("TrueDeath"))
             {
-                return ChangeState("Dead");
+                return ChangeState("PhysicalDeath");
+            }
+            return false;
+        }
+
+        public bool EnterTrueDeath()
+        {
+            // Can enter true death from any state
+            if (!IsInState("TrueDeath"))
+            {
+                return ChangeState("TrueDeath");
             }
             return false;
         }
 
         public bool Respawn()
         {
-            if (IsInState("Dead"))
+            // Can respawn from physical death or true death (through external systems)
+            if (IsInState("PhysicalDeath") || IsInState("TrueDeath"))
             {
                 return ChangeState("Normal");
             }
@@ -184,7 +196,7 @@ namespace Resonance.Player.Core
 
         public bool CanMove()
         {
-            return IsInState("Normal") || IsInState("Aiming");
+            return IsInState("Normal") || IsInState("Aiming") || IsInState("PhysicalDeath");
         }
 
         public bool CanRun()
@@ -205,6 +217,21 @@ namespace Resonance.Player.Core
         public bool CanShoot()
         {
             return IsInState("Aiming") && _playerController.HasEquippedWeapon && _playerController.WeaponManager.CanShoot();
+        }
+
+        public bool IsPhysicallyDead()
+        {
+            return IsInState("PhysicalDeath");
+        }
+
+        public bool IsTrulyDead()
+        {
+            return IsInState("TrueDeath");
+        }
+
+        public bool IsAlive()
+        {
+            return !IsInState("PhysicalDeath") && !IsInState("TrueDeath");
         }
 
         #endregion

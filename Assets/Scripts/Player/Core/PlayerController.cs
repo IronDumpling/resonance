@@ -42,10 +42,6 @@ namespace Resonance.Player.Core
         public System.Action OnPhysicalDeath; // Physical health reaches 0
         public System.Action OnTrueDeath; // Mental health reaches 0
         
-        // Legacy Events (backwards compatibility)
-        public System.Action<float> OnHealthChanged;
-        public System.Action OnPlayerDied;
-        
         // Other Events
         public System.Action<int> OnLevelChanged;
         public System.Action<float> OnExperienceChanged;
@@ -71,8 +67,8 @@ namespace Resonance.Player.Core
         public bool IsTrulyAlive => _stats.IsTrulyAlive;
         public bool IsInPhysicalDeathState => _stats.IsInPhysicalDeathState;
         
-        // Legacy Property (backwards compatibility)
-        public bool IsAlive => _stats.IsAlive;
+        // Legacy Property (backwards compatibility) - Updated to use dual health system
+        public bool IsAlive => _stats.IsTrulyAlive;
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public bool IsAiming => CurrentState == "Aiming";
@@ -185,13 +181,8 @@ namespace Resonance.Player.Core
                 healthChanged = true;
             }
             
-            // Legacy health regeneration for backwards compatibility
-            if (_stats.healthRegenRate > 0f && _stats.currentHealth < _stats.maxHealth)
-            {
-                _stats.currentHealth = Mathf.Min(_stats.maxHealth, 
-                    _stats.currentHealth + _stats.healthRegenRate * deltaTime);
-                OnHealthChanged?.Invoke(_stats.currentHealth);
-            }
+            // Legacy health regeneration - REMOVED
+            // Dual health system handles all health logic now
         }
 
         /// <summary>
@@ -238,28 +229,15 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Legacy damage method for backwards compatibility
+        /// Legacy damage method - REMOVED
+        /// Use TakePhysicalDamage() or TakeMentalDamage() instead
         /// </summary>
+        [System.Obsolete("Use TakePhysicalDamage() or TakeMentalDamage() instead")]
         public void TakeDamage(float damage)
         {
-            if (_isInvulnerable || !IsAlive) return;
-
-            _stats.currentHealth = Mathf.Max(0f, _stats.currentHealth - damage);
-            OnHealthChanged?.Invoke(_stats.currentHealth);
-
-            if (_stats.currentHealth <= 0f)
-            {
-                _stateMachine?.Die();
-                OnPlayerDied?.Invoke();
-                Debug.Log("PlayerController: Player died (legacy)");
-            }
-            else
-            {
-                // Start invulnerability period
-                _isInvulnerable = true;
-                _invulnerabilityTimer = _stats.invulnerabilityTime;
-                Debug.Log($"PlayerController: Took {damage} damage (legacy), health: {_stats.currentHealth}");
-            }
+            Debug.LogWarning("PlayerController: TakeDamage() is deprecated. Use TakePhysicalDamage() or TakeMentalDamage() instead.");
+            // For backwards compatibility, treat as physical damage
+            TakePhysicalDamage(damage);
         }
 
         /// <summary>
@@ -287,15 +265,15 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Legacy heal method for backwards compatibility
+        /// Legacy heal method - REMOVED
+        /// Use HealPhysical() or HealMental() instead
         /// </summary>
+        [System.Obsolete("Use HealPhysical() or HealMental() instead")]
         public void Heal(float amount)
         {
-            if (!IsAlive) return;
-
-            _stats.currentHealth = Mathf.Min(_stats.maxHealth, _stats.currentHealth + amount);
-            OnHealthChanged?.Invoke(_stats.currentHealth);
-            Debug.Log($"PlayerController: Healed {amount} (legacy), health: {_stats.currentHealth}");
+            Debug.LogWarning("PlayerController: Heal() is deprecated. Use HealPhysical() or HealMental() instead.");
+            // For backwards compatibility, treat as physical healing
+            HealPhysical(amount);
         }
 
         /// <summary>
@@ -305,7 +283,7 @@ namespace Resonance.Player.Core
         {
             Debug.Log("PlayerController: Physical death - entering core mode");
             OnPhysicalDeath?.Invoke();
-            // TODO: Transition to physical death state when state machine is updated
+            _stateMachine?.EnterPhysicalDeath();
         }
 
         /// <summary>
@@ -315,8 +293,7 @@ namespace Resonance.Player.Core
         {
             Debug.Log("PlayerController: True death - game over");
             OnTrueDeath?.Invoke();
-            _stateMachine?.Die();
-            // TODO: Transition to true death state when state machine is updated
+            _stateMachine?.EnterTrueDeath();
         }
 
         /// <summary>
@@ -327,7 +304,6 @@ namespace Resonance.Player.Core
             _stats.RestoreToFullHealth();
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
-            OnHealthChanged?.Invoke(_stats.currentHealth); // Legacy
             Debug.Log("PlayerController: All health restored to full");
         }
 
@@ -494,7 +470,6 @@ namespace Resonance.Player.Core
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
             
             // Notify UI of other changes
-            OnHealthChanged?.Invoke(_stats.currentHealth); // Legacy
             OnLevelChanged?.Invoke(_level);
             OnExperienceChanged?.Invoke(_experience);
         }

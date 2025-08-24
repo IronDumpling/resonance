@@ -55,8 +55,10 @@ namespace Resonance.Player.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition back to Normal or to Dead
-            return newState.Name == "Normal" || newState.Name == "Dead";
+            // Can transition back to Normal or to death states
+            return newState.Name == "Normal" || 
+                   newState.Name == "PhysicalDeath" ||
+                   newState.Name == "TrueDeath";
         }
     }
 }
