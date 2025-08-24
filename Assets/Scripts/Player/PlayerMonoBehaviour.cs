@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
+using Resonance.Enemies;
 using Resonance.Utilities;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -47,6 +48,7 @@ namespace Resonance.Player
         private PlayerController _playerController;
         private IInputService _inputService;
         private IInteractionService _interactionService;
+        private MentalAttackTrigger _mentalAttackTrigger;
 
         // Physics
         private bool _isGrounded;
@@ -117,6 +119,9 @@ namespace Resonance.Player
             var playerService = ServiceRegistry.Get<IPlayerService>();
             playerService?.RegisterPlayer(this);
 
+            // Initialize MentalAttackTrigger
+            InitializeMentalAttackTrigger();
+
             Debug.Log("PlayerMonoBehaviour: Initialized and registered");
         }
 
@@ -141,6 +146,14 @@ namespace Resonance.Player
         void OnDestroy()
         {
             UnsubscribeFromInput();
+            
+            // Cleanup MentalAttackTrigger events
+            if (_mentalAttackTrigger != null)
+            {
+                _mentalAttackTrigger.OnDeadEnemyEntered -= OnDeadEnemyEnteredRange;
+                _mentalAttackTrigger.OnDeadEnemyExited -= OnDeadEnemyExitedRange;
+                _mentalAttackTrigger.OnDeadEnemiesChanged -= OnDeadEnemiesChangedInRange;
+            }
             
             // Unregister from PlayerService
             var playerService = ServiceRegistry.Get<IPlayerService>();
@@ -220,6 +233,45 @@ namespace Resonance.Player
 
             OnPlayerInitialized?.Invoke(_playerController);
             Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
+        }
+
+        /// <summary>
+        /// Initialize the MentalAttackTrigger component
+        /// </summary>
+        private void InitializeMentalAttackTrigger()
+        {
+            if (_playerController == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: Cannot initialize MentalAttackTrigger - PlayerController is null");
+                return;
+            }
+
+            // Find the MentalAttackRange GameObject
+            Transform mentalAttackRangeTransform = transform.Find("MentalAttackRange");
+            if (mentalAttackRangeTransform == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: MentalAttackRange GameObject not found as child of Player");
+                return;
+            }
+
+            // Get or add the MentalAttackTrigger component
+            _mentalAttackTrigger = mentalAttackRangeTransform.GetComponent<MentalAttackTrigger>();
+            if (_mentalAttackTrigger == null)
+            {
+                _mentalAttackTrigger = mentalAttackRangeTransform.gameObject.AddComponent<MentalAttackTrigger>();
+                Debug.Log("PlayerMonoBehaviour: Added MentalAttackTrigger component to MentalAttackRange GameObject");
+            }
+
+            // Initialize with player controller and range from base stats
+            float mentalAttackRange = _baseStats?.MentalAttackRange ?? 1.5f;
+            _mentalAttackTrigger.Initialize(_playerController, mentalAttackRange);
+
+            // Subscribe to events for debugging
+            _mentalAttackTrigger.OnDeadEnemyEntered += OnDeadEnemyEnteredRange;
+            _mentalAttackTrigger.OnDeadEnemyExited += OnDeadEnemyExitedRange;
+            _mentalAttackTrigger.OnDeadEnemiesChanged += OnDeadEnemiesChangedInRange;
+
+            Debug.Log($"PlayerMonoBehaviour: MentalAttackTrigger initialized with range {mentalAttackRange}");
         }
 
         #endregion
@@ -794,11 +846,16 @@ namespace Resonance.Player
                 $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
                 "Edge Protection: OFF";
                 
+            // MentalAttackTrigger debug info
+            string mentalAttackInfo = GetMentalAttackRangeDebugInfo();
+            
             Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
                      $"Mental Health: {stats.currentMentalHealth}/{stats.maxMentalHealth}, " +
-                     $"State: {_playerController.CurrentState}, " +
+                     $"Mental Tier: {_playerController.MentalTier}, Physical Tier: {_playerController.PhysicalTier}, " +
+                     $"Slots: {_playerController.MentalHealthInSlots:F1}/{stats.mentalHealthSlots}, " +
+                     $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
-                     $"{edgeInfo}");
+                     $"{edgeInfo}, {mentalAttackInfo}");
         }
 
         void OnDrawGizmosSelected()
@@ -929,6 +986,71 @@ namespace Resonance.Player
         /// Max mental health
         /// </summary>
         public float MaxMentalHealth => IsInitialized ? _playerController.Stats.maxMentalHealth : 0f;
+
+        #endregion
+
+        #region MentalAttackTrigger Events
+
+        /// <summary>
+        /// Called when a dead enemy enters mental attack range
+        /// </summary>
+        /// <param name="enemy">The enemy that entered range</param>
+        private void OnDeadEnemyEnteredRange(EnemyMonoBehaviour enemy)
+        {
+            if (enemy != null)
+            {
+                Debug.Log($"PlayerMonoBehaviour: Dead enemy {enemy.name} entered mental attack range");
+            }
+        }
+
+        /// <summary>
+        /// Called when a dead enemy exits mental attack range
+        /// </summary>
+        /// <param name="enemy">The enemy that exited range</param>
+        private void OnDeadEnemyExitedRange(EnemyMonoBehaviour enemy)
+        {
+            if (enemy != null)
+            {
+                Debug.Log($"PlayerMonoBehaviour: Dead enemy {enemy.name} exited mental attack range");
+            }
+        }
+
+        /// <summary>
+        /// Called when the list of dead enemies in range changes
+        /// </summary>
+        private void OnDeadEnemiesChangedInRange()
+        {
+            int deadEnemyCount = _mentalAttackTrigger?.DeadEnemyCount ?? 0;
+            Debug.Log($"PlayerMonoBehaviour: Dead enemies in mental attack range: {deadEnemyCount}");
+        }
+
+        /// <summary>
+        /// Public method to check if there are dead enemies in mental attack range
+        /// Used by ActionController for priority logic
+        /// </summary>
+        /// <returns>True if there are dead enemies in range</returns>
+        public bool HasDeadEnemiesInMentalAttackRange()
+        {
+            return _mentalAttackTrigger?.HasDeadEnemiesInRange ?? false;
+        }
+
+        /// <summary>
+        /// Get the number of dead enemies in mental attack range
+        /// </summary>
+        /// <returns>Number of dead enemies in range</returns>
+        public int GetDeadEnemyCount()
+        {
+            return _mentalAttackTrigger?.DeadEnemyCount ?? 0;
+        }
+
+        /// <summary>
+        /// Get debug information about mental attack range detection
+        /// </summary>
+        /// <returns>Debug info string</returns>
+        public string GetMentalAttackRangeDebugInfo()
+        {
+            return _mentalAttackTrigger?.GetDebugInfo() ?? "MentalAttackTrigger not initialized";
+        }
 
         #endregion
     }

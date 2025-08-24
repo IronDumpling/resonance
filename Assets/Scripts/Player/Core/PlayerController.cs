@@ -6,6 +6,7 @@ using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Items;
 using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Objects;
 
 namespace Resonance.Player.Core
 {
@@ -24,6 +25,7 @@ namespace Resonance.Player.Core
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
+        private ActionController _actionController;
 
         // Services
         private IAudioService _audioService;
@@ -86,6 +88,7 @@ namespace Resonance.Player.Core
         public bool IsAiming => CurrentState == "Aiming";
         public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
+        public ActionController ActionController => _actionController;
 
         public PlayerController(PlayerBaseStats baseStats)
         {
@@ -133,7 +136,11 @@ namespace Resonance.Player.Core
             _stateMachine.OnStateChanged += (stateName) => OnStateChanged?.Invoke(stateName);
             _stateMachine.Initialize();
 
-            Debug.Log("PlayerController: Initialized with base stats, weapon manager, and state machine");
+            // Initialize action controller
+            _actionController = new ActionController(this);
+            _actionController.Initialize();
+
+            Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
         }
 
         /// <summary>
@@ -145,6 +152,7 @@ namespace Resonance.Player.Core
             UpdateHealthRegeneration(deltaTime);
             _movement.Update(deltaTime);
             _stateMachine?.Update();
+            _actionController?.Update(deltaTime);
         }
 
         #region Health System
@@ -208,6 +216,9 @@ namespace Resonance.Player.Core
         {
             if (_isInvulnerable || !IsMentallyAlive) return;
 
+            // Check Action system invulnerability
+            if (_actionController?.IsInvulnerable == true) return;
+
             // Store old tier for comparison
             var oldPhysicalTier = _stats.physicalTier;
 
@@ -224,6 +235,9 @@ namespace Resonance.Player.Core
             }
 
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+
+            // Notify ActionController of damage taken (for interruption logic)
+            _actionController?.OnPlayerDamageTaken();
 
             // Play hit audio effect
             PlayHitAudio();
@@ -434,7 +448,10 @@ namespace Resonance.Player.Core
 
         public bool CanShoot()
         {
-            return IsPhysicallyAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
+            return IsPhysicallyAlive && 
+                   _stateMachine.CanShoot() && 
+                   Time.time >= _lastAttackTime + _stats.attackCooldown &&
+                   !(_actionController?.IsBlocking ?? false); // Actions can block shooting
         }
 
         /// <summary>
@@ -465,6 +482,14 @@ namespace Resonance.Player.Core
             if (_shootingSystem != null)
             {
                 result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun);
+                
+                // Mental health recovery: 10 physical damage = 2 mental health recovery
+                if (result.success && result.hasHit && result.damage > 0)
+                {
+                    float mentalRecovery = result.damage * 0.2f; // 10 damage = 2 recovery
+                    HealMental(mentalRecovery);
+                    Debug.Log($"PlayerController: Recovered {mentalRecovery} mental health from dealing {result.damage} damage");
+                }
             }
             
             // 触发射击事件
@@ -556,6 +581,65 @@ namespace Resonance.Player.Core
 
         #endregion
 
+        #region Action Management
+        
+        /// <summary>
+        /// Register a new action with the ActionController
+        /// </summary>
+        /// <param name="action">The action to register</param>
+        public void RegisterAction(IPlayerAction action)
+        {
+            _actionController?.RegisterAction(action);
+        }
+
+        /// <summary>
+        /// Try to start an action by name
+        /// </summary>
+        /// <param name="actionName">Name of the action to start</param>
+        /// <returns>True if action was started successfully</returns>
+        public bool TryStartAction(string actionName)
+        {
+            return _actionController?.TryStartAction(actionName) ?? false;
+        }
+
+        /// <summary>
+        /// Cancel the currently running action
+        /// </summary>
+        public void CancelCurrentAction()
+        {
+            _actionController?.CancelCurrentAction();
+        }
+
+        /// <summary>
+        /// Check if a specific action can start
+        /// </summary>
+        /// <param name="actionName">Name of the action to check</param>
+        /// <returns>True if action can start</returns>
+        public bool CanStartAction(string actionName)
+        {
+            return _actionController?.CanStartAction(actionName) ?? false;
+        }
+
+        /// <summary>
+        /// Get the name of the currently running action
+        /// </summary>
+        /// <returns>Name of current action or "None"</returns>
+        public string GetCurrentActionName()
+        {
+            return _actionController?.CurrentActionName ?? "None";
+        }
+
+        /// <summary>
+        /// Check if an action is currently running
+        /// </summary>
+        /// <returns>True if an action is active</returns>
+        public bool IsActionActive()
+        {
+            return _actionController?.IsActive ?? false;
+        }
+
+        #endregion
+
         #region Mental Health Slot Management
         
         /// <summary>
@@ -582,6 +666,36 @@ namespace Resonance.Player.Core
             }
             
             return success;
+        }
+
+        #endregion
+
+        #region Cleanup
+
+        /// <summary>
+        /// Cleanup the player controller when it's being destroyed
+        /// </summary>
+        public void Cleanup()
+        {
+            // Cleanup action controller
+            _actionController?.Cleanup();
+
+            // Cleanup state machine
+            _stateMachine?.Shutdown();
+
+            // Clear events
+            OnPhysicalHealthChanged = null;
+            OnMentalHealthChanged = null;
+            OnPhysicalDeath = null;
+            OnTrueDeath = null;
+            OnMentalTierChanged = null;
+            OnPhysicalTierChanged = null;
+            OnLevelChanged = null;
+            OnExperienceChanged = null;
+            OnStateChanged = null;
+            OnShoot = null;
+
+            Debug.Log("PlayerController: Cleaned up");
         }
 
         #endregion
