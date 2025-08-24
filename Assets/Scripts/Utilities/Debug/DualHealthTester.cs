@@ -160,7 +160,7 @@ namespace Resonance.Player.Core
 
         private void OnMentalHealthChanged(float current, float max)
         {
-            Debug.Log($"<color=blue>Mental Health Changed: {current:F1}/{max:F1} ({(current/max):P1})</color>");
+            // Debug.Log($"<color=blue>Mental Health Changed: {current:F1}/{max:F1} ({(current/max):P1})</color>");
         }
 
         private void OnPhysicalDeath()

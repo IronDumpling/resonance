@@ -180,9 +180,6 @@ namespace Resonance.Player.Core
                 OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
                 healthChanged = true;
             }
-            
-            // Legacy health regeneration - REMOVED
-            // Dual health system handles all health logic now
         }
 
         /// <summary>
@@ -229,18 +226,6 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Legacy damage method - REMOVED
-        /// Use TakePhysicalDamage() or TakeMentalDamage() instead
-        /// </summary>
-        [System.Obsolete("Use TakePhysicalDamage() or TakeMentalDamage() instead")]
-        public void TakeDamage(float damage)
-        {
-            Debug.LogWarning("PlayerController: TakeDamage() is deprecated. Use TakePhysicalDamage() or TakeMentalDamage() instead.");
-            // For backwards compatibility, treat as physical damage
-            TakePhysicalDamage(damage);
-        }
-
-        /// <summary>
         /// Heal physical health
         /// </summary>
         public void HealPhysical(float amount)
@@ -262,18 +247,6 @@ namespace Resonance.Player.Core
             _stats.currentMentalHealth = Mathf.Min(_stats.maxMentalHealth, _stats.currentMentalHealth + amount);
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
             Debug.Log($"PlayerController: Healed {amount} mental health, current: {_stats.currentMentalHealth}");
-        }
-
-        /// <summary>
-        /// Legacy heal method - REMOVED
-        /// Use HealPhysical() or HealMental() instead
-        /// </summary>
-        [System.Obsolete("Use HealPhysical() or HealMental() instead")]
-        public void Heal(float amount)
-        {
-            Debug.LogWarning("PlayerController: Heal() is deprecated. Use HealPhysical() or HealMental() instead.");
-            // For backwards compatibility, treat as physical healing
-            HealPhysical(amount);
         }
 
         /// <summary>

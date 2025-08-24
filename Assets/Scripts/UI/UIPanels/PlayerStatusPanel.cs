@@ -322,7 +322,7 @@ namespace Resonance.UI
             Sprite healthSprite = null;
             if (healthPercentage > 0.7f)
                 healthSprite = _normalHealthSprite;
-            else if (healthPercentage >= 0.3f)
+            else if (healthPercentage > 0.3f)
                 healthSprite = _medianHealthSprite;
             else
                 healthSprite = _badHealthSprite;
