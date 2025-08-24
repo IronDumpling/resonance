@@ -149,9 +149,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 631622349711839967}
-  - component: {fileID: 3505414344865794560}
+  - component: {fileID: 4135306899194896982}
   m_Layer: 8
-  m_Name: TestEnemy
+  m_Name: Enemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -173,7 +173,7 @@ Transform:
   - {fileID: 3203894000571929562}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3505414344865794560
+--- !u!114 &4135306899194896982
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -182,12 +182,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 6416059392138926664}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 644cfcec60179894d80bbfc009dd5bb9, type: 3}
+  m_Script: {fileID: 11500000, guid: 773eb02e4a459874487c9b06c4ce0839, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _maxHealth: 100
-  _currentHealth: 100
-  _damageFlashDuration: 0.2
-  _normalMaterialPath: Art/Materials/Enemy_Body
-  _damageMaterialPath: Art/Materials/Damage_Body
-  _showHealthBar: 1
+  _baseStats: {fileID: 11400000, guid: 5fb68305d3d8aed4192352c8f046812e, type: 2}
+  _visualTransform: {fileID: 3203894000571929562}
+  _bodyRenderer: {fileID: 1294134832740095054}
+  _showDebugInfo: 0
