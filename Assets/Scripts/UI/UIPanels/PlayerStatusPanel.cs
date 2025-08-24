@@ -34,9 +34,9 @@ namespace Resonance.UI
         [SerializeField] private Image _mentalHealthValue;
         
         [Header("Physical Health Sprites")]
-        [SerializeField] private Sprite _normalHealthSprite;
-        [SerializeField] private Sprite _medianHealthSprite;
-        [SerializeField] private Sprite _badHealthSprite;
+        [SerializeField] private Sprite _healthyHealthSprite;
+        [SerializeField] private Sprite _woundedHealthSprite;
+        [SerializeField] private Sprite _criticalHealthSprite;
         
         // Services and Controllers
         private IPlayerService _playerService;
@@ -104,20 +104,20 @@ namespace Resonance.UI
         private void LoadHealthSprites()
         {
             // Load physical health sprites from Resources
-            if (_normalHealthSprite == null)
-                _normalHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/normal_health");
-            if (_medianHealthSprite == null)
-                _medianHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/median_health");
-            if (_badHealthSprite == null)
-                _badHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/bad_health");
+            if (_healthyHealthSprite == null)
+                _healthyHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/healthy_health");
+            if (_woundedHealthSprite == null)
+                _woundedHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/wounded_health");
+            if (_criticalHealthSprite == null)
+                _criticalHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/critical_health");
             
             // Log warnings if sprites couldn't be loaded
-            if (_normalHealthSprite == null)
-                Debug.LogWarning("PlayerStatusPanel: Could not load normal_health sprite from Resources");
-            if (_medianHealthSprite == null)
-                Debug.LogWarning("PlayerStatusPanel: Could not load median_health sprite from Resources");
-            if (_badHealthSprite == null)
-                Debug.LogWarning("PlayerStatusPanel: Could not load bad_health sprite from Resources");
+            if (_healthyHealthSprite == null)
+                Debug.LogWarning("PlayerStatusPanel: Could not load healthy_health sprite from Resources");
+            if (_woundedHealthSprite == null)
+                Debug.LogWarning("PlayerStatusPanel: Could not load wounded_health sprite from Resources");
+            if (_criticalHealthSprite == null)
+                Debug.LogWarning("PlayerStatusPanel: Could not load critical_health sprite from Resources");
         }
 
         private void InitializeWithServices()
@@ -321,11 +321,11 @@ namespace Resonance.UI
             // Determine which sprite to use based on health percentage
             Sprite healthSprite = null;
             if (healthPercentage > 0.7f)
-                healthSprite = _normalHealthSprite;
+                healthSprite = _healthyHealthSprite;
             else if (healthPercentage > 0.3f)
-                healthSprite = _medianHealthSprite;
+                healthSprite = _woundedHealthSprite;
             else
-                healthSprite = _badHealthSprite;
+                healthSprite = _criticalHealthSprite;
             
             // Update the image
             if (healthSprite != null)

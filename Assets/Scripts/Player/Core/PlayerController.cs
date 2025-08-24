@@ -47,6 +47,10 @@ namespace Resonance.Player.Core
         public System.Action OnPhysicalDeath; // Physical health reaches 0
         public System.Action OnTrueDeath; // Mental health reaches 0
         
+        // Health Tier Events
+        public System.Action<MentalHealthTier> OnMentalTierChanged;
+        public System.Action<PhysicalHealthTier> OnPhysicalTierChanged;
+        
         // Other Events
         public System.Action<int> OnLevelChanged;
         public System.Action<float> OnExperienceChanged;
@@ -70,6 +74,13 @@ namespace Resonance.Player.Core
         public bool IsPhysicallyAlive => _stats.IsPhysicallyAlive;
         public bool IsMentallyAlive => _stats.IsMentallyAlive;
         public bool IsInPhysicalDeathState => _stats.IsInPhysicalDeathState;
+        
+        // Health Tier Properties
+        public MentalHealthTier MentalTier => _stats.mentalTier;
+        public PhysicalHealthTier PhysicalTier => _stats.physicalTier;
+        public float SlotValue => _stats.slotValue;
+        public float MentalHealthInSlots => _stats.GetMentalHealthInSlots();
+        public bool CanConsumeSlot => _stats.CanConsumeSlot();
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public bool IsAiming => CurrentState == "Aiming";
@@ -197,7 +208,21 @@ namespace Resonance.Player.Core
         {
             if (_isInvulnerable || !IsMentallyAlive) return;
 
+            // Store old tier for comparison
+            var oldPhysicalTier = _stats.physicalTier;
+
             _stats.currentPhysicalHealth = Mathf.Max(0f, _stats.currentPhysicalHealth - damage);
+            
+            // Update tiers after health change
+            _stats.UpdateHealthTiers();
+            
+            // Fire tier change event if tier changed
+            if (oldPhysicalTier != _stats.physicalTier)
+            {
+                OnPhysicalTierChanged?.Invoke(_stats.physicalTier);
+                Debug.Log($"PlayerController: Physical tier changed from {oldPhysicalTier} to {_stats.physicalTier}");
+            }
+
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
 
             // Play hit audio effect
@@ -223,7 +248,21 @@ namespace Resonance.Player.Core
         {
             if (!IsMentallyAlive) return;
 
+            // Store old tier for comparison
+            var oldMentalTier = _stats.mentalTier;
+
             _stats.currentMentalHealth = Mathf.Max(0f, _stats.currentMentalHealth - damage);
+            
+            // Update tiers after health change
+            _stats.UpdateHealthTiers();
+            
+            // Fire tier change event if tier changed
+            if (oldMentalTier != _stats.mentalTier)
+            {
+                OnMentalTierChanged?.Invoke(_stats.mentalTier);
+                Debug.Log($"PlayerController: Mental tier changed from {oldMentalTier} to {_stats.mentalTier}");
+            }
+
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
 
             if (_stats.currentMentalHealth <= 0f && _stats.currentPhysicalHealth <= 0f)
@@ -243,7 +282,21 @@ namespace Resonance.Player.Core
         {
             if (!IsMentallyAlive) return;
 
+            // Store old tier for comparison
+            var oldPhysicalTier = _stats.physicalTier;
+
             _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, _stats.currentPhysicalHealth + amount);
+            
+            // Update tiers after health change
+            _stats.UpdateHealthTiers();
+            
+            // Fire tier change event if tier changed
+            if (oldPhysicalTier != _stats.physicalTier)
+            {
+                OnPhysicalTierChanged?.Invoke(_stats.physicalTier);
+                Debug.Log($"PlayerController: Physical tier changed from {oldPhysicalTier} to {_stats.physicalTier}");
+            }
+
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
             Debug.Log($"PlayerController: Healed {amount} physical health, current: {_stats.currentPhysicalHealth}");
         }
@@ -255,7 +308,21 @@ namespace Resonance.Player.Core
         {
             if (!IsMentallyAlive) return;
 
+            // Store old tier for comparison
+            var oldMentalTier = _stats.mentalTier;
+
             _stats.currentMentalHealth = Mathf.Min(_stats.maxMentalHealth, _stats.currentMentalHealth + amount);
+            
+            // Update tiers after health change
+            _stats.UpdateHealthTiers();
+            
+            // Fire tier change event if tier changed
+            if (oldMentalTier != _stats.mentalTier)
+            {
+                OnMentalTierChanged?.Invoke(_stats.mentalTier);
+                Debug.Log($"PlayerController: Mental tier changed from {oldMentalTier} to {_stats.mentalTier}");
+            }
+
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
             Debug.Log($"PlayerController: Healed {amount} mental health, current: {_stats.currentMentalHealth}");
         }
@@ -412,48 +479,6 @@ namespace Resonance.Player.Core
 
         #endregion
 
-        #region Progression System
-
-        public void AddExperience(float amount)
-        {
-            _experience += amount;
-            OnExperienceChanged?.Invoke(_experience);
-
-            // Simple level up calculation (can be made more complex)
-            int newLevel = Mathf.FloorToInt(_experience / 100f) + 1;
-            if (newLevel > _level)
-            {
-                LevelUp(newLevel);
-            }
-        }
-
-        private void LevelUp(int newLevel)
-        {
-            _level = newLevel;
-            OnLevelChanged?.Invoke(_level);
-
-            // Restore health on level up
-            RestoreToFullHealth();
-
-            Debug.Log($"PlayerController: Level up! New level: {_level}");
-        }
-
-        public void UnlockAbility(string abilityName)
-        {
-            if (!_unlockedAbilities.Contains(abilityName))
-            {
-                _unlockedAbilities.Add(abilityName);
-                Debug.Log($"PlayerController: Unlocked ability: {abilityName}");
-            }
-        }
-
-        public bool HasAbility(string abilityName)
-        {
-            return _unlockedAbilities.Contains(abilityName);
-        }
-
-        #endregion
-
         #region Save/Load System
 
         public void LoadFromSaveData(PlayerSaveData saveData)
@@ -527,6 +552,36 @@ namespace Resonance.Player.Core
         public float GetGameVariable(string varName)
         {
             return _gameVariables.TryGetValue(varName, out float value) ? value : 0f;
+        }
+
+        #endregion
+
+        #region Mental Health Slot Management
+        
+        /// <summary>
+        /// Consume one mental health slot for actions
+        /// </summary>
+        /// <returns>True if successful, false if insufficient mental health</returns>
+        public bool ConsumeSlot()
+        {
+            var oldMentalTier = _stats.mentalTier;
+            bool success = _stats.ConsumeSlot();
+            
+            if (success)
+            {
+                // Fire events
+                OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+                
+                if (oldMentalTier != _stats.mentalTier)
+                {
+                    OnMentalTierChanged?.Invoke(_stats.mentalTier);
+                    Debug.Log($"PlayerController: Mental tier changed from {oldMentalTier} to {_stats.mentalTier} after slot consumption");
+                }
+                
+                Debug.Log($"PlayerController: Consumed 1 slot ({_stats.slotValue} mental health). Remaining: {_stats.currentMentalHealth}/{_stats.maxMentalHealth} ({_stats.GetMentalHealthInSlots():F1} slots)");
+            }
+            
+            return success;
         }
 
         #endregion
