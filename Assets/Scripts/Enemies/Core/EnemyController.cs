@@ -328,7 +328,7 @@ namespace Resonance.Enemies.Core
             _hasPlayerTarget = true;
             _lastKnownPlayerPosition = player.position;
             OnPlayerDetected?.Invoke(player);
-            Debug.Log($"EnemyController: Player detected at {player.position}");
+            // Debug.Log($"EnemyController: Player detected at {player.position}");
         }
 
         /// <summary>

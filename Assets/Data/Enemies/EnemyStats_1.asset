@@ -30,7 +30,7 @@ MonoBehaviour:
   revivalDuration: 5
   normalMaterialPath: Art/Materials/Enemy_Body
   damageMaterialPath: Art/Materials/Damage_Body
-  revivalMaterialPath: Art/Materials/Revival_Body
+  revivalMaterialPath: Art/Materials/Enemy_Revival
   damageFlashDuration: 0.2
   enableAudio: 1
   showHealthBar: 1

@@ -93,6 +93,30 @@ MonoBehaviour:
       mixerGroup: {fileID: 7962919766892052580, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
+  - clipType: 8
+    clipData:
+      clip: {fileID: 8300000, guid: a1e47709d296c064f978e30b69067e02, type: 3}
+      volume: 0.7
+      pitch: 1
+      pitchVariation: 0.1
+      spatialBlend: 1
+      minDistance: 1
+      maxDistance: 10
+      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      loop: 0
+      priority: 0
+  - clipType: 10
+    clipData:
+      clip: {fileID: 8300000, guid: 0d23ed292d770f54c82e437f21a25273, type: 3}
+      volume: 0.7
+      pitch: 1
+      pitchVariation: 0.1
+      spatialBlend: 1
+      minDistance: 1
+      maxDistance: 10
+      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      loop: 0
+      priority: 0
   defaultMasterVolume: 1
   defaultSFXVolume: 1
   defaultMusicVolume: 0.7
