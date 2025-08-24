@@ -192,7 +192,7 @@ namespace Resonance.Player.Core
             _stats.currentPhysicalHealth = Mathf.Max(0f, _stats.currentPhysicalHealth - damage);
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
 
-            if (_stats.currentPhysicalHealth <= 0f && IsPhysicallyAlive)
+            if (_stats.currentPhysicalHealth <= 0f)
             {
                 HandlePhysicalDeath();
             }
@@ -254,6 +254,12 @@ namespace Resonance.Player.Core
         /// </summary>
         private void HandlePhysicalDeath()
         {
+            // Prevent multiple calls - only trigger if not already in death states
+            if (_stateMachine?.IsPhysicallyDead() == true || _stateMachine?.IsTrulyDead() == true)
+            {
+                return;
+            }
+            
             Debug.Log("PlayerController: Physical death - entering core mode");
             OnPhysicalDeath?.Invoke();
             _stateMachine?.EnterPhysicalDeath();

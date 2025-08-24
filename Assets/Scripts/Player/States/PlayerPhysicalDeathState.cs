@@ -25,7 +25,7 @@ namespace Resonance.Player.States
             Debug.Log("PlayerState: Entered Physical Death state - Physical health depleted, entering core mode");
             
             // Disable normal movement and combat
-            _playerController.Movement.MovementSpeedModifier = 0.3f; // Slower movement in core mode
+            _playerController.Movement.MovementSpeedModifier = 0f;
             
             // TODO: Visual effects for core exposure
             // TODO: Start mental health decay (handled in PlayerController)
