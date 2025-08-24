@@ -156,8 +156,7 @@ namespace Resonance.Player.Core
                 // Mental health decays when in physical death state (core mode)
                 if (_stats.mentalHealthDecayRate > 0f && _stats.currentMentalHealth > 0f)
                 {
-                    _stats.currentMentalHealth = Mathf.Max(0f, 
-                        _stats.currentMentalHealth - _stats.mentalHealthDecayRate * deltaTime);
+                    _stats.currentMentalHealth = Mathf.Max(0f, _stats.currentMentalHealth - _stats.mentalHealthDecayRate * deltaTime);
                     OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
                     healthChanged = true;
                     
