@@ -128,6 +128,9 @@ namespace Resonance.UI
                     Debug.Log($"CanvasUIManager: Registered Canvas UI panel {panel.PanelName} from scene {gameObject.scene.name}");
                 }
             }
+            
+            _uiService.NotifySceneUIPanelsReady(gameObject.scene.name);
+            Debug.Log($"CanvasUIManager: Notified UIService that scene {gameObject.scene.name} UI panels are ready");
         }
 
         void OnDestroy()

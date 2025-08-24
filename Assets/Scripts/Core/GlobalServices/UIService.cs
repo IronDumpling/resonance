@@ -18,6 +18,7 @@ namespace Resonance.Core.GlobalServices
 
         public event Action<string> OnPanelShown;
         public event Action<string> OnPanelHidden;
+        public event Action<string> OnSceneUIPanelsReady;
 
         private readonly Dictionary<string, IUIPanel> _panels = new();
         private readonly Dictionary<string, List<string>> _statePanels = new();
@@ -172,6 +173,12 @@ namespace Resonance.Core.GlobalServices
             return new List<string>(_visiblePanels);
         }
 
+        public void NotifySceneUIPanelsReady(string sceneName)
+        {
+            Debug.Log($"UIService: Scene UI panels ready for scene {sceneName}");
+            OnSceneUIPanelsReady?.Invoke(sceneName);
+        }
+
         public void Shutdown()
         {
             if (State == SystemState.Shutdown)
@@ -192,6 +199,7 @@ namespace Resonance.Core.GlobalServices
             // Clear events
             OnPanelShown = null;
             OnPanelHidden = null;
+            OnSceneUIPanelsReady = null;
 
             State = SystemState.Shutdown;
         }
