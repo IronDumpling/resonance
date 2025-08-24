@@ -64,11 +64,7 @@ namespace Resonance.Player.Core
         // Dual Health Properties
         public bool IsPhysicallyAlive => _stats.IsPhysicallyAlive;
         public bool IsMentallyAlive => _stats.IsMentallyAlive;
-        public bool IsTrulyAlive => _stats.IsTrulyAlive;
         public bool IsInPhysicalDeathState => _stats.IsInPhysicalDeathState;
-        
-        // Legacy Property (backwards compatibility) - Updated to use dual health system
-        public bool IsAlive => _stats.IsTrulyAlive;
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public bool IsAiming => CurrentState == "Aiming";
@@ -187,7 +183,7 @@ namespace Resonance.Player.Core
         /// </summary>
         public void TakePhysicalDamage(float damage)
         {
-            if (_isInvulnerable || !IsTrulyAlive) return;
+            if (_isInvulnerable || !IsMentallyAlive) return;
 
             _stats.currentPhysicalHealth = Mathf.Max(0f, _stats.currentPhysicalHealth - damage);
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
@@ -210,12 +206,12 @@ namespace Resonance.Player.Core
         /// </summary>
         public void TakeMentalDamage(float damage)
         {
-            if (!IsTrulyAlive) return;
+            if (!IsMentallyAlive) return;
 
             _stats.currentMentalHealth = Mathf.Max(0f, _stats.currentMentalHealth - damage);
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
 
-            if (_stats.currentMentalHealth <= 0f)
+            if (_stats.currentMentalHealth <= 0f && _stats.currentPhysicalHealth <= 0f)
             {
                 HandleTrueDeath();
             }
@@ -230,7 +226,7 @@ namespace Resonance.Player.Core
         /// </summary>
         public void HealPhysical(float amount)
         {
-            if (!IsTrulyAlive) return;
+            if (!IsMentallyAlive) return;
 
             _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, _stats.currentPhysicalHealth + amount);
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
@@ -242,7 +238,7 @@ namespace Resonance.Player.Core
         /// </summary>
         public void HealMental(float amount)
         {
-            if (!IsTrulyAlive) return;
+            if (!IsMentallyAlive) return;
 
             _stats.currentMentalHealth = Mathf.Min(_stats.maxMentalHealth, _stats.currentMentalHealth + amount);
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
@@ -255,7 +251,7 @@ namespace Resonance.Player.Core
         private void HandlePhysicalDeath()
         {
             // Prevent multiple calls - only trigger if not already in death states
-            if (_stateMachine?.IsPhysicallyDead() == true || _stateMachine?.IsTrulyDead() == true)
+            if (_stateMachine?.IsPhysicallyDead() == true || _stateMachine?.IsMentallyDead() == true)
             {
                 return;
             }
@@ -338,7 +334,7 @@ namespace Resonance.Player.Core
 
         public bool CanShoot()
         {
-            return IsAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
+            return IsPhysicallyAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
         }
 
         /// <summary>

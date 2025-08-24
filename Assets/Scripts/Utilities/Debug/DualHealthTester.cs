@@ -144,7 +144,7 @@ namespace Resonance.Player.Core
                          $"Mental: {stats.currentMentalHealth:F1}/{stats.maxMentalHealth:F1} ({stats.MentalHealthPercentage:P1})\n" +
                          $"IsPhysicallyAlive: {_playerController.IsPhysicallyAlive}\n" +
                          $"IsMentallyAlive: {_playerController.IsMentallyAlive}\n" +
-                         $"IsTrulyAlive: {_playerController.IsTrulyAlive}\n" +
+                         $"IsMentallyAlive: {_playerController.IsMentallyAlive}\n" +
                          $"IsInPhysicalDeathState: {_playerController.IsInPhysicalDeathState}");
             }
         }

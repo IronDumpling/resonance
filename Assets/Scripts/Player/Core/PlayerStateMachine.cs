@@ -224,12 +224,12 @@ namespace Resonance.Player.Core
             return IsInState("PhysicalDeath");
         }
 
-        public bool IsTrulyDead()
+        public bool IsMentallyDead()
         {
             return IsInState("TrueDeath");
         }
 
-        public bool IsAlive()
+        public bool IsInActiveState()
         {
             return !IsInState("PhysicalDeath") && !IsInState("TrueDeath");
         }

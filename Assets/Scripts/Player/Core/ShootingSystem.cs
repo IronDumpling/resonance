@@ -156,7 +156,7 @@ namespace Resonance.Player.Core
                 result.hitDistance = hitInfo.distance;
                 
                 // 处理伤害
-                ProcessHit(hitInfo, gunData.damage, shootOrigin);
+                ProcessHit(hitInfo, gunData.damage, shootOrigin, gunData);
                 _hits++;
                 
                 Debug.Log($"ShootingSystem: Hit {hitInfo.collider.name} at distance {hitInfo.distance:F2}m for {gunData.damage} damage");
@@ -463,7 +463,7 @@ namespace Resonance.Player.Core
         /// <param name="hitInfo">射线命中信息</param>
         /// <param name="damage">伤害值</param>
         /// <param name="damageSource">伤害来源</param>
-        private void ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource)
+        private void ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource, GunDataAsset gunData = null)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
             
@@ -511,10 +511,23 @@ namespace Resonance.Player.Core
             if (damageable != null)
             {
                 Debug.Log($"ShootingSystem: Found IDamageable on {damageableObject.name}, dealing {damage} damage");
-                damageable.TakeDamage(damage, damageSource, "Bullet");
+                
+                if (gunData != null)
+                {
+                    DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
+                    damageable.TakeDamage(damageInfo);
+                    Debug.Log($"ShootingSystem: Dealt {damage} {gunData.damageType} damage to {damageableObject.name}");
+                }
+                else
+                {
+                    // 如果没有武器数据，创建默认的物理伤害
+                    DamageInfo defaultDamage = new DamageInfo(damage, DamageType.Physical, damageSource, _playerTransform.gameObject, "Unknown weapon");
+                    damageable.TakeDamage(defaultDamage);
+                    Debug.Log($"ShootingSystem: Dealt {damage} default physical damage to {damageableObject.name}");
+                }
+                
                 PlayHitAudio(hitInfo.point, damageableObject);
                 OnHit?.Invoke(hitInfo.point, damageableObject, damage);
-                Debug.Log($"ShootingSystem: Dealt {damage} damage to {damageableObject.name}");
                 return;
             }
 

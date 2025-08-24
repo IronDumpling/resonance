@@ -36,9 +36,16 @@ namespace Resonance.Enemies
         private float _totalDamageTaken = 0f;
         
         // Properties
-        public bool IsAlive => !_isDead && _currentHealth > 0;
+        public bool IsPhysicallyAlive => !_isDead && _currentHealth > 0;
+        public bool IsMentallyAlive => !_isDead && _currentHealth > 0;
+        public bool IsInPhysicalDeathState => _isDead && _currentHealth > 0;
         public float CurrentHealth => _currentHealth;
         public float MaxHealth => _maxHealth;
+
+        public float CurrentPhysicalHealth => _currentHealth;
+        public float MaxPhysicalHealth => _maxHealth;
+        public float CurrentMentalHealth => _currentHealth;
+        public float MaxMentalHealth => _maxHealth;
 
         void Start()
         {
@@ -155,8 +162,12 @@ namespace Resonance.Enemies
 
         #region IDamageable Implementation
 
-        public void TakeDamage(float damage, Vector3 damageSource, string damageType = "Normal")
+        public void TakeDamage(DamageInfo damageInfo)
         {
+            float damage = damageInfo.amount;
+            string damageType = damageInfo.type.ToString();
+            Vector3 damageSource = damageInfo.sourcePosition;
+            
             if (_isDead || damage <= 0f) return;
 
             _currentHealth = Mathf.Max(0f, _currentHealth - damage);
@@ -177,6 +188,16 @@ namespace Resonance.Enemies
             {
                 Die();
             }
+        }
+
+        public void TakePhysicalDamage(float damage, Vector3 damageSource)
+        {
+            TakeDamage(new DamageInfo(damage, DamageType.Physical, damageSource));
+        }
+
+        public void TakeMentalDamage(float damage, Vector3 damageSource)
+        {
+            TakeDamage(new DamageInfo(damage, DamageType.Mental, damageSource));
         }
 
         #endregion

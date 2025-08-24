@@ -1,4 +1,5 @@
 using UnityEngine;
+using Resonance.Interfaces;
 
 namespace Resonance.Items
 {
@@ -25,6 +26,14 @@ namespace Resonance.Items
         public float damage = 25f;
         public float range = 100f;
         public float fireRate = 1f; // shots per second
+        
+        [Header("Damage Type")]
+        [Tooltip("Type of damage this weapon deals")]
+        public DamageType damageType = DamageType.Physical;
+        
+        [Tooltip("For Mixed damage type: ratio of physical damage (0-1). 1.0 = all physical, 0.0 = all mental")]
+        [Range(0f, 1f)]
+        public float physicalDamageRatio = 0.5f;
         
         [Header("Visual")]
         public Sprite weaponIcon;
@@ -136,6 +145,40 @@ namespace Resonance.Items
         }
 
         /// <summary>
+        /// 创建伤害信息结构体
+        /// </summary>
+        /// <param name="sourcePosition">伤害来源位置</param>
+        /// <param name="sourceObject">伤害来源对象</param>
+        /// <returns>伤害信息</returns>
+        public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null)
+        {
+            return new DamageInfo(
+                amount: damage,
+                type: damageType,
+                sourcePosition: sourcePosition,
+                physicalRatio: damageType == DamageType.Mixed ? physicalDamageRatio : (damageType == DamageType.Physical ? 1.0f : 0.0f),
+                sourceObject: sourceObject,
+                description: $"{weaponName} shot"
+            );
+        }
+        
+        /// <summary>
+        /// 获取伤害类型的描述文本
+        /// </summary>
+        /// <returns>伤害类型描述</returns>
+        public string GetDamageTypeDescription()
+        {
+            return damageType switch
+            {
+                DamageType.Physical => "物理伤害 - 影响物理血量",
+                DamageType.Mental => "精神伤害 - 影响精神血量",
+                DamageType.Mixed => $"混合伤害 - 物理{physicalDamageRatio:P0}/精神{(1-physicalDamageRatio):P0}",
+                DamageType.True => "真实伤害 - 直接影响核心生命",
+                _ => "未知伤害类型"
+            };
+        }
+
+        /// <summary>
         /// 创建这个武器的独立副本（用于拾取时给玩家）
         /// 注意：这会创建一个新的ScriptableObject实例，用于运行时独立的武器状态
         /// </summary>
@@ -152,6 +195,8 @@ namespace Resonance.Items
             copy.damage = this.damage;
             copy.range = this.range;
             copy.fireRate = this.fireRate;
+            copy.damageType = this.damageType;
+            copy.physicalDamageRatio = this.physicalDamageRatio;
             copy.weaponIcon = this.weaponIcon;
             copy.gridWidth = this.gridWidth;
             copy.gridHeight = this.gridHeight;

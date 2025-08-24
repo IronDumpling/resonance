@@ -175,20 +175,9 @@ namespace Resonance.Player.Data
         public bool IsMentallyAlive => currentMentalHealth > 0f;
 
         /// <summary>
-        /// Check if player is truly alive (both physical and mental health > 0)
-        /// True death occurs when mental health reaches 0
-        /// </summary>
-        public bool IsTrulyAlive => currentMentalHealth > 0f;
-
-        /// <summary>
         /// Check if player is in physical death state (physical health = 0 but mental health > 0)
         /// </summary>
         public bool IsInPhysicalDeathState => currentPhysicalHealth <= 0f && currentMentalHealth > 0f;
-
-        /// <summary>
-        /// Legacy alive check for backwards compatibility
-        /// </summary>
-        public bool IsAlive => currentHealth > 0f;
 
         /// <summary>
         /// Get physical health percentage (0-1)
