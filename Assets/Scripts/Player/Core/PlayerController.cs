@@ -5,6 +5,7 @@ using Resonance.Player.States;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Items;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Player.Core
 {
@@ -23,6 +24,10 @@ namespace Resonance.Player.Core
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
+
+        // Services
+        private IAudioService _audioService;
+        private GameObject _playerGameObject; // For 3D audio positioning
 
         // Progression
         private int _level = 1;
@@ -80,16 +85,24 @@ namespace Resonance.Player.Core
         /// 初始化PlayerController，需要PlayerMonoBehaviour传入GameObject引用
         /// </summary>
         /// <param name="baseStats">基础属性</param>
-        /// <param name="playerGameObject">玩家GameObject（用于射击系统）</param>
+        /// <param name="playerGameObject">玩家GameObject（用于射击系统和音频定位）</param>
         public void Initialize(PlayerBaseStats baseStats, GameObject playerGameObject)
         {
             Initialize(baseStats);
+            
+            // 获取音频服务
+            _audioService = ServiceRegistry.Get<IAudioService>();
+            if (_audioService == null)
+            {
+                Debug.LogWarning("PlayerController: AudioService not found. Audio effects will be disabled.");
+            }
             
             // 如果有GameObject引用，初始化射击系统
             if (playerGameObject != null)
             {
                 _shootingSystem = new ShootingSystem(playerGameObject);
                 Debug.Log("PlayerController: ShootingSystem initialized");
+                _playerGameObject = playerGameObject;
             }
         }
 
@@ -186,6 +199,9 @@ namespace Resonance.Player.Core
 
             _stats.currentPhysicalHealth = Mathf.Max(0f, _stats.currentPhysicalHealth - damage);
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+
+            // Play hit audio effect
+            PlayHitAudio();
 
             if (_stats.currentPhysicalHealth <= 0f)
             {
@@ -299,6 +315,24 @@ namespace Resonance.Player.Core
             _stats.RestoreMentalHealth();
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
             Debug.Log("PlayerController: Mental health restored to full");
+        }
+
+        /// <summary>
+        /// Play hit audio effect when player takes damage
+        /// </summary>
+        private void PlayHitAudio()
+        {
+            if (_audioService == null) return;
+
+            // Use 3D audio if we have player GameObject, otherwise use 2D
+            if (_playerGameObject != null)
+            {
+                _audioService.PlaySFX3D(AudioClipType.PlayerHit, _playerGameObject.transform.position, 0.8f, 1f);
+            }
+            else
+            {
+                _audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.8f, 1f);
+            }
         }
 
         #endregion

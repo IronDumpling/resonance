@@ -634,8 +634,22 @@ namespace Resonance.Enemies
         {
             if (!IsInitialized) return;
 
-            // 可以在这里处理持续触发的逻辑
-            // 例如持续更新玩家位置等
+            Transform playerTransform = other.transform;
+
+            switch (triggerType)
+            {
+                case TriggerType.Detection:
+                    // 玩家进入检测范围
+                    _enemyController.SetPlayerTarget(playerTransform);
+                    // Debug.Log($"EnemyMonoBehaviour: Player still in detection range");
+                    break;
+
+                case TriggerType.Attack:
+                    // 玩家进入攻击范围
+                    _enemyController.SetPlayerInAttackRange(true);
+                    // Debug.Log($"EnemyMonoBehaviour: Player still in attack range");
+                    break;
+            }
         }
 
         #endregion

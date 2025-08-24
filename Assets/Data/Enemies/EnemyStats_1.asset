@@ -21,11 +21,11 @@ MonoBehaviour:
   revivalRate: 10
   attackDamage: 20
   attackCooldown: 2
-  attackRange: 3
-  detectionRange: 8
+  attackRange: 2
+  detectionRange: 5
   moveSpeed: 3
   alertMoveSpeed: 5
-  patrolRadius: 5
+  patrolRadius: 2
   revivalDelay: 2
   revivalDuration: 5
   normalMaterialPath: Art/Materials/Enemy_Body
