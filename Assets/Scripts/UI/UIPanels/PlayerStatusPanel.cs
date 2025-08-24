@@ -52,8 +52,12 @@ namespace Resonance.UI
             
             // Set panel configuration
             _panelName = "PlayerStatusPanel";
-            _layer = UILayer.Overlay;
+            _layer = UILayer.Game;
             _hideOnStart = false; // Player status should be visible by default
+            
+            // Force correct scale and visibility (override prefab settings)
+            transform.localScale = Vector3.one;
+            gameObject.SetActive(true);
         }
 
         protected override void Start()
@@ -126,23 +130,45 @@ namespace Resonance.UI
                 return;
             }
 
-            // Get player controller
-            _playerController = _playerService.CurrentPlayer.Controller;
-            if (_playerController != null)
+            // Check if CurrentPlayer exists and is initialized
+            if (_playerService.CurrentPlayer != null && _playerService.CurrentPlayer.IsInitialized)
             {
-                _weaponManager = _playerController.WeaponManager;
-                SubscribeToPlayerEvents();
-                _isInitialized = true;
-                
-                // Initial UI update
-                UpdateAllUI();
-                Debug.Log("PlayerStatusPanel: Initialized successfully");
+                _playerController = _playerService.CurrentPlayer.Controller;
+                if (_playerController != null)
+                {
+                    _weaponManager = _playerController.WeaponManager;
+                    SubscribeToPlayerEvents();
+                    _isInitialized = true;
+                    
+                    // Initial UI update
+                    UpdateAllUI();
+                    Debug.Log("PlayerStatusPanel: Initialized successfully");
+                    return;
+                }
             }
-            else
+
+            // Player or Controller not ready yet, subscribe to registration event and retry
+            Debug.LogWarning("PlayerStatusPanel: Player not ready yet, waiting for player registration");
+            _playerService.OnPlayerRegistered += OnPlayerRegistered;
+            
+            // Also try again in a few frames as fallback
+            Invoke(nameof(RetryInitialization), 0.1f);
+        }
+
+        private void OnPlayerRegistered(PlayerMonoBehaviour player)
+        {
+            Debug.Log("PlayerStatusPanel: Player registered, attempting initialization");
+            
+            // Unsubscribe from the event
+            if (_playerService != null)
             {
-                Debug.LogWarning("PlayerStatusPanel: PlayerController not available yet, will retry");
-                // Try again in a few frames
-                Invoke(nameof(RetryInitialization), 0.1f);
+                _playerService.OnPlayerRegistered -= OnPlayerRegistered;
+            }
+            
+            // Try to initialize now that player is registered
+            if (!_isInitialized)
+            {
+                InitializeWithServices();
             }
         }
 
@@ -184,6 +210,12 @@ namespace Resonance.UI
                 _weaponManager.OnWeaponEquipped -= OnWeaponEquipped;
                 _weaponManager.OnWeaponUnequipped -= OnWeaponUnequipped;
                 _weaponManager.OnAmmoChanged -= OnAmmoChanged;
+            }
+            
+            // Unsubscribe from player service events
+            if (_playerService != null)
+            {
+                _playerService.OnPlayerRegistered -= OnPlayerRegistered;
             }
         }
 

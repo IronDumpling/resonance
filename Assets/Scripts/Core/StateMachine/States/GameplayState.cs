@@ -2,6 +2,7 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
+using System.Collections;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -12,6 +13,18 @@ namespace Resonance.Core.StateMachine.States
         public void Enter()
         {
             Debug.Log("State: Entering Gameplay");
+            
+            // Delay UI display to ensure CanvasUIManager has registered panels
+            GameManager.Instance.StartCoroutine(ShowUIAfterDelay());
+        }
+
+        private IEnumerator ShowUIAfterDelay()
+        {
+            // Wait a few frames to ensure CanvasUIManager has completed UI discovery and registration
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
+            
+            Debug.Log("GameplayState: Attempting to show gameplay UI after delay");
             
             // Show gameplay UI
             var uiService = ServiceRegistry.Get<IUIService>();

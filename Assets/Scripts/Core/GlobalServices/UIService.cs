@@ -45,8 +45,8 @@ namespace Resonance.Core.GlobalServices
         {
             // Configure which Canvas UI panels should be shown for each game state
             SetStatePanels("MainMenu", "MainMenuPanel");
-            SetStatePanels("Gameplay", "HUDPanel", "InventoryPanel");
-            SetStatePanels("Paused", "HUDPanel", "PauseMenuPanel");
+            SetStatePanels("Gameplay", "PlayerStatusPanel");
+            SetStatePanels("Paused", "PauseMenuPanel");
         }
 
         public void RegisterPanel(IUIPanel panel)
@@ -111,7 +111,7 @@ namespace Resonance.Core.GlobalServices
                 panel.Hide();
                 _visiblePanels.Remove(panelName);
                 OnPanelHidden?.Invoke(panelName);
-                Debug.Log($"UIService: Hid panel {panelName}");
+                Debug.Log($"UIService: Hide panel {panelName}");
             }
         }
 
