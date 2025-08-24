@@ -166,9 +166,11 @@ namespace Resonance.Interfaces.Services
         EnemyHitFlesh,
         EnemyDeath,
         EnemyDeathExplosion,
+        EnemyAttack,
         PlayerHit,
         PlayerDeath,
-        
+        PlayerInteraction,
+
         // 移动音效
         FootstepWalk,
         FootstepRun,

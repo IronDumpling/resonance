@@ -17,8 +17,17 @@ MonoBehaviour:
   masterMixerGroup: {fileID: 24300002, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
   sfxMixerGroup: {fileID: 7962919766892052580, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
   musicMixerGroup: {fileID: -756763753016513087, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
-  combatMixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
-  movementMixerGroup: {fileID: 5030794733693290057, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  weaponsMixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  enemiesMixerGroup: {fileID: 7038339297394777898, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  enemiesMovementMixerGroup: {fileID: 3095051897658587563, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  enemiesHurtMixerGroup: {fileID: -5484685057279478027, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  enemiesDeathMixerGroup: {fileID: -1948028737757446445, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  enemiesAttackMixerGroup: {fileID: -643489735359269928, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  playerMixerGroup: {fileID: 5239852805852809485, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  playerMovementMixerGroup: {fileID: 5030794733693290057, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  playerHurtMixerGroup: {fileID: 7851371029311866321, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  playerDeathMixerGroup: {fileID: -4946543164468206909, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+  playerInteractionMixerGroup: {fileID: 1530335028455296835, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
   uiMixerGroup: {fileID: -7480586609092305232, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
   audioClipEntries:
   - clipType: 0
@@ -54,7 +63,7 @@ MonoBehaviour:
       spatialBlend: 0
       minDistance: 0
       maxDistance: 0
-      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      mixerGroup: {fileID: -5484685057279478027, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
   - clipType: 2
@@ -78,10 +87,10 @@ MonoBehaviour:
       spatialBlend: 1
       minDistance: 1
       maxDistance: 10
-      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      mixerGroup: {fileID: -5484685057279478027, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
-  - clipType: 18
+  - clipType: 20
     clipData:
       clip: {fileID: 8300000, guid: 5e7f633dda3117f4f90253f51ee065f0, type: 3}
       volume: 0.7
@@ -90,7 +99,7 @@ MonoBehaviour:
       spatialBlend: 1
       minDistance: 1
       maxDistance: 10
-      mixerGroup: {fileID: 7962919766892052580, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      mixerGroup: {fileID: 1530335028455296835, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
   - clipType: 8
@@ -102,10 +111,10 @@ MonoBehaviour:
       spatialBlend: 1
       minDistance: 1
       maxDistance: 10
-      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      mixerGroup: {fileID: -1948028737757446445, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
-  - clipType: 10
+  - clipType: 11
     clipData:
       clip: {fileID: 8300000, guid: 0d23ed292d770f54c82e437f21a25273, type: 3}
       volume: 0.7
@@ -114,7 +123,7 @@ MonoBehaviour:
       spatialBlend: 1
       minDistance: 1
       maxDistance: 10
-      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      mixerGroup: {fileID: 7851371029311866321, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
   defaultMasterVolume: 1

@@ -14,10 +14,24 @@ namespace Resonance.Core
         [Header("Audio System Configuration")]
         public AudioMixer audioMixer;
         public AudioMixerGroup masterMixerGroup;
+        
         public AudioMixerGroup sfxMixerGroup;
         public AudioMixerGroup musicMixerGroup;
-        public AudioMixerGroup combatMixerGroup;
-        public AudioMixerGroup movementMixerGroup;
+
+        public AudioMixerGroup weaponsMixerGroup;
+        
+        public AudioMixerGroup enemiesMixerGroup;
+        public AudioMixerGroup enemiesMovementMixerGroup;
+        public AudioMixerGroup enemiesHurtMixerGroup;
+        public AudioMixerGroup enemiesDeathMixerGroup;
+        public AudioMixerGroup enemiesAttackMixerGroup;
+
+        public AudioMixerGroup playerMixerGroup;
+        public AudioMixerGroup playerMovementMixerGroup;
+        public AudioMixerGroup playerHurtMixerGroup;
+        public AudioMixerGroup playerDeathMixerGroup;
+        public AudioMixerGroup playerInteractionMixerGroup;
+
         public AudioMixerGroup uiMixerGroup;
         
         [Header("Audio Clip Configuration")]
@@ -56,7 +70,6 @@ namespace Resonance.Core
         {
             if (audioClipEntries == null) return null;
             
-            // 直接通过clipType匹配，不依赖索引顺序
             for (int i = 0; i < audioClipEntries.Length; i++)
             {
                 if (audioClipEntries[i].clipType == clipType)
@@ -79,32 +92,44 @@ namespace Resonance.Core
             // 根据音效类型返回对应的混合器组
             switch (clipType)
             {
-                // 射击音效 -> 战斗组
                 case AudioClipType.GunFirePistol:
                 case AudioClipType.GunFireRifle:
                 case AudioClipType.GunReload:
                 case AudioClipType.GunEmpty:
                 case AudioClipType.GunCock:
-                    return combatMixerGroup;
+                    return weaponsMixerGroup;
                 
-                // 战斗音效 -> 战斗组
+                // Enemy SFX
                 case AudioClipType.EnemyHit:
                 case AudioClipType.EnemyHitMetal:
                 case AudioClipType.EnemyHitFlesh:
+                    return enemiesHurtMixerGroup;
                 case AudioClipType.EnemyDeath:
                 case AudioClipType.EnemyDeathExplosion:
+                    return enemiesDeathMixerGroup;
+                case AudioClipType.EnemyAttack:
+                    return enemiesAttackMixerGroup;
+
+                // Player SFX
                 case AudioClipType.PlayerHit:
+                    return playerHurtMixerGroup;
                 case AudioClipType.PlayerDeath:
-                    return combatMixerGroup;
+                    return playerDeathMixerGroup;
+                case AudioClipType.ItemPickup:
+                case AudioClipType.ItemDrop:
+                case AudioClipType.DoorOpen:
+                case AudioClipType.DoorClose:
+                case AudioClipType.ButtonPress:
+                    return playerInteractionMixerGroup;
                 
-                // 移动音效 -> 移动组
+                // Player Movement SFX
                 case AudioClipType.FootstepWalk:
                 case AudioClipType.FootstepRun:
                 case AudioClipType.FootstepStop:
                 case AudioClipType.FootstepGrass:
                 case AudioClipType.FootstepStone:
                 case AudioClipType.FootstepMetal:
-                    return movementMixerGroup;
+                    return playerMovementMixerGroup;
                 
                 // UI音效 -> UI组
                 case AudioClipType.UIButtonClick:

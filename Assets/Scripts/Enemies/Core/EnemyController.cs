@@ -339,7 +339,7 @@ namespace Resonance.Enemies.Core
             _playerTarget = null;
             _hasPlayerTarget = false;
             OnPlayerLost?.Invoke();
-            Debug.Log("EnemyController: Player lost");
+            // Debug.Log("EnemyController: Player lost");
         }
 
         #endregion
