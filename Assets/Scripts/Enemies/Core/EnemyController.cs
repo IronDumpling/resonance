@@ -256,12 +256,67 @@ namespace Resonance.Enemies.Core
 
             _lastAttackTime = Time.time;
             _attacksLaunched++;
-            _totalDamageDealt += _stats.attackDamage;
             
-            OnAttackLaunched?.Invoke(_stats.attackDamage);
-            Debug.Log($"EnemyController: Launched attack for {_stats.attackDamage} damage");
+            // Actually find and damage the player
+            bool damageDealt = DealDamageToPlayer();
             
-            return true;
+            if (damageDealt)
+            {
+                _totalDamageDealt += _stats.attackDamage;
+                OnAttackLaunched?.Invoke(_stats.attackDamage);
+                Debug.Log($"EnemyController: Successfully attacked player for {_stats.attackDamage} damage");
+            }
+            else
+            {
+                Debug.LogWarning($"EnemyController: Attack launched but no damage dealt to player");
+            }
+            
+            return damageDealt;
+        }
+
+        /// <summary>
+        /// Deal damage to the player target
+        /// </summary>
+        private bool DealDamageToPlayer()
+        {
+            if (!HasPlayerTarget || _playerTarget == null)
+            {
+                Debug.LogWarning("EnemyController: No player target for damage dealing");
+                return false;
+            }
+
+            // Try to find IDamageable component on player
+            IDamageable playerDamageable = _playerTarget.GetComponent<IDamageable>();
+            if (playerDamageable == null)
+            {
+                // Try to find it on parent or children
+                playerDamageable = _playerTarget.GetComponentInParent<IDamageable>();
+                if (playerDamageable == null)
+                {
+                    playerDamageable = _playerTarget.GetComponentInChildren<IDamageable>();
+                }
+            }
+
+            if (playerDamageable != null)
+            {
+                // Create damage info for the attack
+                DamageInfo damageInfo = new DamageInfo(
+                    amount: _stats.attackDamage,
+                    type: DamageType.Physical, 
+                    sourcePosition: _patrolCenter,
+                    sourceObject: null, 
+                    description: "Enemy attack"
+                );
+
+                playerDamageable.TakeDamage(damageInfo);
+                Debug.Log($"EnemyController: Dealt {_stats.attackDamage} damage to player at {_playerTarget.position}");
+                return true;
+            }
+            else
+            {
+                Debug.LogError($"EnemyController: Player target {_playerTarget.name} has no IDamageable component!");
+                return false;
+            }
         }
 
         /// <summary>
