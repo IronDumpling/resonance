@@ -5,6 +5,7 @@ using Resonance.Player.States;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Items;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Player.Core
 {
@@ -24,6 +25,10 @@ namespace Resonance.Player.Core
         // Player State Management
         private PlayerStateMachine _stateMachine;
 
+        // Services
+        private IAudioService _audioService;
+        private GameObject _playerGameObject; // For 3D audio positioning
+
         // Progression
         private int _level = 1;
         private float _experience = 0f;
@@ -36,9 +41,13 @@ namespace Resonance.Player.Core
         private float _invulnerabilityTimer = 0f;
         private float _lastAttackTime = 0f;
 
-        // Events
-        public System.Action<float> OnHealthChanged;
-        public System.Action OnPlayerDied;
+        // Dual Health Events
+        public System.Action<float, float> OnPhysicalHealthChanged; // current, max
+        public System.Action<float, float> OnMentalHealthChanged; // current, max
+        public System.Action OnPhysicalDeath; // Physical health reaches 0
+        public System.Action OnTrueDeath; // Mental health reaches 0
+        
+        // Other Events
         public System.Action<int> OnLevelChanged;
         public System.Action<float> OnExperienceChanged;
         public System.Action<string> OnStateChanged; // Changed to string for state name
@@ -56,10 +65,15 @@ namespace Resonance.Player.Core
         public Dictionary<string, bool> LevelFlags => _levelFlags;
         public Dictionary<string, float> GameVariables => _gameVariables;
         public bool IsInvulnerable => _isInvulnerable;
-        public bool IsAlive => _stats.IsAlive;
+        
+        // Dual Health Properties
+        public bool IsPhysicallyAlive => _stats.IsPhysicallyAlive;
+        public bool IsMentallyAlive => _stats.IsMentallyAlive;
+        public bool IsInPhysicalDeathState => _stats.IsInPhysicalDeathState;
+        
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public bool IsAiming => CurrentState == "Aiming";
-        public bool HasWeapon => _weaponManager?.HasWeapon ?? false;
+        public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
 
         public PlayerController(PlayerBaseStats baseStats)
@@ -71,16 +85,24 @@ namespace Resonance.Player.Core
         /// 初始化PlayerController，需要PlayerMonoBehaviour传入GameObject引用
         /// </summary>
         /// <param name="baseStats">基础属性</param>
-        /// <param name="playerGameObject">玩家GameObject（用于射击系统）</param>
+        /// <param name="playerGameObject">玩家GameObject（用于射击系统和音频定位）</param>
         public void Initialize(PlayerBaseStats baseStats, GameObject playerGameObject)
         {
             Initialize(baseStats);
+            
+            // 获取音频服务
+            _audioService = ServiceRegistry.Get<IAudioService>();
+            if (_audioService == null)
+            {
+                Debug.LogWarning("PlayerController: AudioService not found. Audio effects will be disabled.");
+            }
             
             // 如果有GameObject引用，初始化射击系统
             if (playerGameObject != null)
             {
                 _shootingSystem = new ShootingSystem(playerGameObject);
                 Debug.Log("PlayerController: ShootingSystem initialized");
+                _playerGameObject = playerGameObject;
             }
         }
 
@@ -130,50 +152,187 @@ namespace Resonance.Player.Core
 
         private void UpdateHealthRegeneration(float deltaTime)
         {
-            if (_stats.healthRegenRate > 0f && _stats.currentHealth < _stats.maxHealth)
+            bool healthChanged = false;
+            
+            // Physical health regeneration (only when physically alive)
+            if (_stats.physicalHealthRegenRate > 0f && _stats.currentPhysicalHealth < _stats.maxPhysicalHealth && IsPhysicallyAlive)
             {
-                _stats.currentHealth = Mathf.Min(_stats.maxHealth, 
-                    _stats.currentHealth + _stats.healthRegenRate * deltaTime);
-                OnHealthChanged?.Invoke(_stats.currentHealth);
+                _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, 
+                    _stats.currentPhysicalHealth + _stats.physicalHealthRegenRate * deltaTime);
+                OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+                healthChanged = true;
+            }
+            
+            // Mental health regeneration (only in normal state) or decay (in core state)
+            if (IsInPhysicalDeathState)
+            {
+                // Mental health decays when in physical death state (core mode)
+                if (_stats.mentalHealthDecayRate > 0f && _stats.currentMentalHealth > 0f)
+                {
+                    _stats.currentMentalHealth = Mathf.Max(0f, _stats.currentMentalHealth - _stats.mentalHealthDecayRate * deltaTime);
+                    OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+                    healthChanged = true;
+                    
+                    // Check for true death
+                    if (_stats.currentMentalHealth <= 0f)
+                    {
+                        HandleTrueDeath();
+                    }
+                }
+            }
+            else if (_stats.mentalHealthRegenRate > 0f && _stats.currentMentalHealth < _stats.maxMentalHealth)
+            {
+                // Mental health regenerates in normal state
+                _stats.currentMentalHealth = Mathf.Min(_stats.maxMentalHealth, 
+                    _stats.currentMentalHealth + _stats.mentalHealthRegenRate * deltaTime);
+                OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+                healthChanged = true;
             }
         }
 
-        public void TakeDamage(float damage)
+        /// <summary>
+        /// Take physical damage (affects physical health)
+        /// </summary>
+        public void TakePhysicalDamage(float damage)
         {
-            if (_isInvulnerable || !IsAlive) return;
+            if (_isInvulnerable || !IsMentallyAlive) return;
 
-            _stats.currentHealth = Mathf.Max(0f, _stats.currentHealth - damage);
-            OnHealthChanged?.Invoke(_stats.currentHealth);
+            _stats.currentPhysicalHealth = Mathf.Max(0f, _stats.currentPhysicalHealth - damage);
+            OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
 
-            if (_stats.currentHealth <= 0f)
+            // Play hit audio effect
+            PlayHitAudio();
+
+            if (_stats.currentPhysicalHealth <= 0f)
             {
-                _stateMachine?.Die();
-                OnPlayerDied?.Invoke();
-                Debug.Log("PlayerController: Player died");
+                HandlePhysicalDeath();
             }
             else
             {
-                // Start invulnerability period
+                // Start invulnerability period for physical damage
                 _isInvulnerable = true;
                 _invulnerabilityTimer = _stats.invulnerabilityTime;
-                Debug.Log($"PlayerController: Took {damage} damage, health: {_stats.currentHealth}");
+                Debug.Log($"PlayerController: Took {damage} physical damage, physical health: {_stats.currentPhysicalHealth}");
             }
         }
 
-        public void Heal(float amount)
+        /// <summary>
+        /// Take mental damage (affects mental health)
+        /// </summary>
+        public void TakeMentalDamage(float damage)
         {
-            if (!IsAlive) return;
+            if (!IsMentallyAlive) return;
 
-            _stats.currentHealth = Mathf.Min(_stats.maxHealth, _stats.currentHealth + amount);
-            OnHealthChanged?.Invoke(_stats.currentHealth);
-            Debug.Log($"PlayerController: Healed {amount}, health: {_stats.currentHealth}");
+            _stats.currentMentalHealth = Mathf.Max(0f, _stats.currentMentalHealth - damage);
+            OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+
+            if (_stats.currentMentalHealth <= 0f && _stats.currentPhysicalHealth <= 0f)
+            {
+                HandleTrueDeath();
+            }
+            else
+            {
+                Debug.Log($"PlayerController: Took {damage} mental damage, mental health: {_stats.currentMentalHealth}");
+            }
         }
 
+        /// <summary>
+        /// Heal physical health
+        /// </summary>
+        public void HealPhysical(float amount)
+        {
+            if (!IsMentallyAlive) return;
+
+            _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, _stats.currentPhysicalHealth + amount);
+            OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+            Debug.Log($"PlayerController: Healed {amount} physical health, current: {_stats.currentPhysicalHealth}");
+        }
+
+        /// <summary>
+        /// Heal mental health
+        /// </summary>
+        public void HealMental(float amount)
+        {
+            if (!IsMentallyAlive) return;
+
+            _stats.currentMentalHealth = Mathf.Min(_stats.maxMentalHealth, _stats.currentMentalHealth + amount);
+            OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+            Debug.Log($"PlayerController: Healed {amount} mental health, current: {_stats.currentMentalHealth}");
+        }
+
+        /// <summary>
+        /// Handle physical death (physical health reaches 0)
+        /// </summary>
+        private void HandlePhysicalDeath()
+        {
+            // Prevent multiple calls - only trigger if not already in death states
+            if (_stateMachine?.IsPhysicallyDead() == true || _stateMachine?.IsMentallyDead() == true)
+            {
+                return;
+            }
+            
+            Debug.Log("PlayerController: Physical death - entering core mode");
+            OnPhysicalDeath?.Invoke();
+            _stateMachine?.EnterPhysicalDeath();
+        }
+
+        /// <summary>
+        /// Handle true death (mental health reaches 0)
+        /// </summary>
+        private void HandleTrueDeath()
+        {
+            Debug.Log("PlayerController: True death - game over");
+            OnTrueDeath?.Invoke();
+            _stateMachine?.EnterTrueDeath();
+        }
+
+        /// <summary>
+        /// Restore all health to full
+        /// </summary>
         public void RestoreToFullHealth()
         {
             _stats.RestoreToFullHealth();
-            OnHealthChanged?.Invoke(_stats.currentHealth);
-            Debug.Log("PlayerController: Health restored to full");
+            OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+            OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+            Debug.Log("PlayerController: All health restored to full");
+        }
+
+        /// <summary>
+        /// Restore only physical health
+        /// </summary>
+        public void RestorePhysicalHealth()
+        {
+            _stats.RestorePhysicalHealth();
+            OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+            Debug.Log("PlayerController: Physical health restored to full");
+        }
+
+        /// <summary>
+        /// Restore only mental health
+        /// </summary>
+        public void RestoreMentalHealth()
+        {
+            _stats.RestoreMentalHealth();
+            OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+            Debug.Log("PlayerController: Mental health restored to full");
+        }
+
+        /// <summary>
+        /// Play hit audio effect when player takes damage
+        /// </summary>
+        private void PlayHitAudio()
+        {
+            if (_audioService == null) return;
+
+            // Use 3D audio if we have player GameObject, otherwise use 2D
+            if (_playerGameObject != null)
+            {
+                _audioService.PlaySFX3D(AudioClipType.PlayerHit, _playerGameObject.transform.position, 0.8f, 1f);
+            }
+            else
+            {
+                _audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.8f, 1f);
+            }
         }
 
         #endregion
@@ -208,7 +367,7 @@ namespace Resonance.Player.Core
 
         public bool CanShoot()
         {
-            return IsAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
+            return IsPhysicallyAlive && _stateMachine.CanShoot() && Time.time >= _lastAttackTime + _stats.attackCooldown;
         }
 
         /// <summary>
@@ -314,8 +473,11 @@ namespace Resonance.Player.Core
 
             Debug.Log($"PlayerController: Loaded save data from {saveData.saveID}");
 
-            // Notify UI of changes
-            OnHealthChanged?.Invoke(_stats.currentHealth);
+            // Notify UI of dual health changes
+            OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+            OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
+            
+            // Notify UI of other changes
             OnLevelChanged?.Invoke(_level);
             OnExperienceChanged?.Invoke(_experience);
         }

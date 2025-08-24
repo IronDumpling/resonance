@@ -17,8 +17,6 @@ namespace Resonance.Core.StateMachine.States
             // LoadingPanel will be shown in other scenes when needed
         }
 
-
-
         public void Update()
         {
             // Auto-transition to main menu after all services are initialized

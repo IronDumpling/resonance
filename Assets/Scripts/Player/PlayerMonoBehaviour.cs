@@ -4,6 +4,7 @@ using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 
 namespace Resonance.Player
@@ -13,7 +14,7 @@ namespace Resonance.Player
     /// Acts as a bridge between Unity's GameObject system and the player logic.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerMonoBehaviour : MonoBehaviour
+    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable
     {
         [Header("Player Configuration")]
         [SerializeField] private PlayerBaseStats _baseStats;
@@ -213,9 +214,9 @@ namespace Resonance.Player
             // 使用gameObject引用来初始化射击系统
             _playerController.Initialize(_baseStats, gameObject);
             
-            // Subscribe to player events
-            _playerController.OnPlayerDied += HandlePlayerDeath;
-            _playerController.OnHealthChanged += HandleHealthChanged;
+            // Subscribe to death events for game logic (not UI)
+            _playerController.OnPhysicalDeath += HandlePhysicalDeath;
+            _playerController.OnTrueDeath += HandleTrueDeath;
 
             OnPlayerInitialized?.Invoke(_playerController);
             Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
@@ -663,9 +664,22 @@ namespace Resonance.Player
 
         #region Event Handlers
 
-        private void HandlePlayerDeath()
+
+
+        private void HandlePhysicalDeath()
         {
-            Debug.Log("PlayerMonoBehaviour: Player died - triggering death sequence");
+            Debug.Log("PlayerMonoBehaviour: Physical death - player entering core mode");
+            
+            // TODO: Transition to core movement mode
+            // This will be implemented when we add the new player states
+            
+            // Play physical death effects
+            // Show core exposure effects
+        }
+
+        private void HandleTrueDeath()
+        {
+            Debug.Log("PlayerMonoBehaviour: True death - triggering game over sequence");
             
             // Disable input
             if (_inputService != null)
@@ -673,21 +687,13 @@ namespace Resonance.Player
                 _inputService.IsEnabled = false;
             }
 
-            // Trigger death animation/effects
-            // This could trigger a death screen, respawn logic, etc.
+            // Trigger true death animation/effects
+            // This should trigger game over screen, respawn logic, etc.
             
             // For now, just load the last save
             var saveSystem = ServiceRegistry.Get<ISaveService>();
             saveSystem?.LoadLastSave();
         }
-
-        private void HandleHealthChanged(float newHealth)
-        {
-            Debug.Log($"PlayerMonoBehaviour: Health changed to {newHealth}");
-            // Update UI, play effects, etc.
-        }
-
-
 
         #endregion
 
@@ -730,19 +736,47 @@ namespace Resonance.Player
             transform.eulerAngles = rotation;
         }
 
-        public void TakeDamage(float damage)
+        /// <summary>
+        /// Take physical damage (affects physical health)
+        /// </summary>
+        public void TakePhysicalDamage(float damage)
         {
             if (IsInitialized)
             {
-                _playerController.TakeDamage(damage);
+                _playerController.TakePhysicalDamage(damage);
             }
         }
 
-        public void Heal(float amount)
+        /// <summary>
+        /// Take mental damage (affects mental health)
+        /// </summary>
+        public void TakeMentalDamage(float damage)
         {
             if (IsInitialized)
             {
-                _playerController.Heal(amount);
+                _playerController.TakeMentalDamage(damage);
+            }
+        }
+
+        /// <summary>
+        /// Heal physical health
+        /// </summary>
+        public void HealPhysical(float amount)
+        {
+            if (IsInitialized)
+            {
+                _playerController.HealPhysical(amount);
+            }
+        }
+
+        /// <summary>
+        /// Heal mental health
+        /// </summary>
+        public void HealMental(float amount)
+        {
+            if (IsInitialized)
+            {
+                _playerController.HealMental(amount);
             }
         }
 
@@ -760,7 +794,8 @@ namespace Resonance.Player
                 $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
                 "Edge Protection: OFF";
                 
-            Debug.Log($"Health: {stats.currentHealth}/{stats.maxHealth}, " +
+            Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
+                     $"Mental Health: {stats.currentMentalHealth}/{stats.maxMentalHealth}, " +
                      $"State: {_playerController.CurrentState}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
                      $"{edgeInfo}");
@@ -795,6 +830,105 @@ namespace Resonance.Player
                 }
             }
         }
+
+        #endregion
+
+        #region IDamageable Implementation
+
+        /// <summary>
+        /// Take damage using the new dual health system
+        /// </summary>
+        public void TakeDamage(DamageInfo damageInfo)
+        {
+            if (!IsInitialized) return;
+
+            switch (damageInfo.type)
+            {
+                case DamageType.Physical:
+                    _playerController.TakePhysicalDamage(damageInfo.amount);
+                    break;
+                    
+                case DamageType.Mental:
+                    _playerController.TakeMentalDamage(damageInfo.amount);
+                    break;
+                    
+                case DamageType.Mixed:
+                    float physicalDamage = damageInfo.amount * damageInfo.physicalRatio;
+                    float mentalDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
+                    _playerController.TakePhysicalDamage(physicalDamage);
+                    _playerController.TakeMentalDamage(mentalDamage);
+                    break;
+                    
+                case DamageType.True:
+                    // True damage bypasses dual health system - affects legacy health directly
+                    Debug.LogWarning("PlayerMonoBehaviour: True damage not fully implemented yet");
+                    _playerController.TakePhysicalDamage(damageInfo.amount);
+                    break;
+            }
+            
+            Debug.Log($"PlayerMonoBehaviour: Took {damageInfo.amount} {damageInfo.type} damage from {damageInfo.sourcePosition}");
+        }
+
+        /// <summary>
+        /// Take physical damage
+        /// </summary>
+        public void TakePhysicalDamage(float damage, Vector3 damageSource)
+        {
+            if (IsInitialized)
+            {
+                _playerController.TakePhysicalDamage(damage);
+            }
+        }
+
+        /// <summary>
+        /// Take mental damage
+        /// </summary>
+        public void TakeMentalDamage(float damage, Vector3 damageSource)
+        {
+            if (IsInitialized)
+            {
+                _playerController.TakeMentalDamage(damage);
+            }
+        }
+
+        #endregion
+
+        #region Health Properties
+
+        /// <summary>
+        /// Is physically alive (physical health > 0)
+        /// </summary>
+        public bool IsPhysicallyAlive => IsInitialized && _playerController.IsPhysicallyAlive;
+
+        /// <summary>
+        /// Is mentally alive (mental health > 0)
+        /// </summary>
+        public bool IsMentallyAlive => IsInitialized && _playerController.IsMentallyAlive;
+
+        /// <summary>
+        /// Is in physical death state (physical health = 0 but mental health > 0)
+        /// </summary>
+        public bool IsInPhysicalDeathState => IsInitialized && _playerController.IsInPhysicalDeathState;
+
+        /// <summary>
+        /// Current physical health
+        /// </summary>
+        public float CurrentPhysicalHealth => IsInitialized ? _playerController.Stats.currentPhysicalHealth : 0f;
+
+        /// <summary>
+        /// Max physical health
+        /// </summary>
+        public float MaxPhysicalHealth => IsInitialized ? _playerController.Stats.maxPhysicalHealth : 0f;
+
+        /// <summary>
+        /// Current mental health
+        /// </summary>
+        public float CurrentMentalHealth => IsInitialized ? _playerController.Stats.currentMentalHealth : 0f;
+
+        /// <summary>
+        /// Max mental health
+        /// </summary>
+        public float MaxMentalHealth => IsInitialized ? _playerController.Stats.maxMentalHealth : 0f;
 
         #endregion
     }

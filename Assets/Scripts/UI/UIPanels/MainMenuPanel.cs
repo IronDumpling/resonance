@@ -19,6 +19,7 @@ namespace Resonance.UI
         
         [Header("Services")]
         private ILoadSceneService _sceneService;
+        private GameManager _gameManager;
         
         protected override void Awake()
         {
@@ -35,6 +36,7 @@ namespace Resonance.UI
             
             // Get services
             _sceneService = ServiceRegistry.Get<ILoadSceneService>();
+            _gameManager = GameManager.Instance;
             
             // Setup button events
             SetupButtonEvents();
@@ -85,13 +87,32 @@ namespace Resonance.UI
         {
             Debug.Log("MainMenu: Start Game clicked");
             
-            if (_sceneService != null)
+            // Directly switch to Gameplay state first
+            if (_gameManager != null && _gameManager.StateMachine != null)
             {
-                _sceneService.LoadScene("Level_01");
+                bool success = _gameManager.StateMachine.ChangeState("Gameplay");
+                if (success)
+                {
+                    Debug.Log("MainMenu: Successfully switched to Gameplay state");
+                    
+                    // Then load the gameplay scene
+                    if (_sceneService != null)
+                    {
+                        _sceneService.LoadScene("Level_01");
+                    }
+                    else
+                    {
+                        Debug.LogError("MainMenu: LoadSceneService not found");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("MainMenu: Failed to switch to Gameplay state");
+                }
             }
             else
             {
-                Debug.LogError("MainMenu: LoadSceneService not found");
+                Debug.LogError("MainMenu: GameManager or StateMachine not found");
             }
         }
 

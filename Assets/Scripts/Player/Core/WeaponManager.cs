@@ -18,7 +18,7 @@ namespace Resonance.Player.Core
         public System.Action<int> OnAmmoChanged;
 
         // 属性
-        public bool HasWeapon => _currentGun != null;
+        public bool HasEquippedWeapon => _currentGun != null;
         public GunDataAsset CurrentGun => _currentGun;
         public int CurrentAmmo => _currentGun?.CurrentAmmo ?? 0;
         public int MaxAmmo => _currentGun?.maxAmmo ?? 0;
@@ -69,7 +69,7 @@ namespace Resonance.Player.Core
         /// <returns>是否可以射击</returns>
         public bool CanShoot()
         {
-            return HasWeapon && _currentGun.HasAmmo();
+            return HasEquippedWeapon && _currentGun.HasAmmo();
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace Resonance.Player.Core
         /// <returns>是否成功消耗</returns>
         public bool ConsumeAmmo()
         {
-            if (!HasWeapon) return false;
+            if (!HasEquippedWeapon) return false;
 
             bool consumed = _currentGun.ConsumeAmmo();
             if (consumed)
@@ -109,7 +109,7 @@ namespace Resonance.Player.Core
         /// <returns>武器信息字符串</returns>
         public string GetWeaponInfo()
         {
-            if (!HasWeapon) return "No Weapon";
+            if (!HasEquippedWeapon) return "No Weapon";
             
             return $"{_currentGun.weaponName} ({_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} {_currentGun.ammoType})";
         }

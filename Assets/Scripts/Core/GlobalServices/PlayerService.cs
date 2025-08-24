@@ -203,9 +203,14 @@ namespace Resonance.Core.GlobalServices
 
         #region Player State Queries
 
-        public bool IsPlayerAlive()
+        public bool IsPlayerPhysicallyAlive()
         {
-            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsAlive;
+            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsPhysicallyAlive;
+        }
+
+        public bool IsPlayerMentallyAlive()
+        {
+            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsMentallyAlive;
         }
 
         public float GetPlayerHealth()

@@ -32,7 +32,8 @@ namespace Resonance.Interfaces.Services
         void SpawnPlayerAtPosition(UnityEngine.Vector3 position, UnityEngine.Vector3 rotation);
 
         // Player State Queries
-        bool IsPlayerAlive();
+        bool IsPlayerPhysicallyAlive();
+        bool IsPlayerMentallyAlive();
         float GetPlayerHealth();
         int GetPlayerLevel();
     }

@@ -29,6 +29,7 @@ namespace Resonance.Interfaces.Services
     {
         event Action<string> OnPanelShown;
         event Action<string> OnPanelHidden;
+        event Action<string> OnSceneUIPanelsReady; 
 
         void RegisterPanel(IUIPanel panel);
         void UnregisterPanel(string panelName);
@@ -37,6 +38,7 @@ namespace Resonance.Interfaces.Services
         void HideAllPanels();
         void ShowPanelsForState(string stateName);
         void SetStatePanels(string stateName, params string[] panelNames);
+        void NotifySceneUIPanelsReady(string sceneName);
         
         T GetPanel<T>(string panelName) where T : class, IUIPanel;
         bool IsPanelVisible(string panelName);

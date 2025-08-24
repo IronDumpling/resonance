@@ -8,14 +8,30 @@ namespace Resonance.Core.StateMachine.States
     public class GameplayState : IState
     {
         public string Name => "Gameplay";
+        private IUIService _uiService;
+        private bool _hasShownUI = false;
 
         public void Enter()
         {
             Debug.Log("State: Entering Gameplay");
             
-            // Show gameplay UI
-            var uiService = ServiceRegistry.Get<IUIService>();
-            uiService?.ShowPanelsForState("Gameplay");
+            _uiService = ServiceRegistry.Get<IUIService>();
+            if (_uiService != null)
+            {
+                _uiService.OnSceneUIPanelsReady += OnSceneUIPanelsReady;
+                Debug.Log("GameplayState: Subscribed to OnSceneUIPanelsReady event");
+            }
+        }
+
+        private void OnSceneUIPanelsReady(string sceneName)
+        {
+            if (sceneName == "Level_01" && !_hasShownUI)
+            {
+                Debug.Log($"GameplayState: Scene {sceneName} UI panels are ready, showing gameplay UI");
+                _hasShownUI = true;
+                _uiService?.ShowPanelsForState("Gameplay");
+                _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
+            }
         }
 
         public void Update()
@@ -26,6 +42,13 @@ namespace Resonance.Core.StateMachine.States
         public void Exit()
         {
             Debug.Log("State: Exiting Gameplay");
+            
+            if (_uiService != null)
+            {
+                _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
+            }
+            
+            _hasShownUI = false;
         }
 
         public bool CanTransitionTo(IState newState)
