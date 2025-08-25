@@ -34,10 +34,28 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Interact",
+                    "name": "Resonance",
                     "type": "Button",
                     "id": "1a2b3c4d-5e6f-7890-abcd-ef1234567891",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Tap",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Recover",
+                    "type": "Button",
+                    "id": "8e9f0a1b-2c3d-4e5f-6789-012345678901",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Hold(duration=0.5)",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "9f0a1b2c-3d4e-5f67-8901-123456789012",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -142,6 +160,28 @@
                 {
                     "name": "",
                     "id": "01234567-8901-2345-3456-012345678901",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Resonance",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3d4a2a54-bd39-4f30-bd7c-86015b8f29bf",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Recover",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "34567890-1234-5678-9012-345678901234",
                     "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",

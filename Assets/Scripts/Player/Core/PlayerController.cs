@@ -7,6 +7,7 @@ using Resonance.Utilities;
 using Resonance.Items;
 using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
+using Resonance.Player.Actions;
 
 namespace Resonance.Player.Core
 {
@@ -139,6 +140,9 @@ namespace Resonance.Player.Core
             // Initialize action controller
             _actionController = new ActionController(this);
             _actionController.Initialize();
+            
+            // Register available actions
+            RegisterPlayerActions();
 
             Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
         }
@@ -666,6 +670,23 @@ namespace Resonance.Player.Core
             }
             
             return success;
+        }
+
+        #endregion
+
+        #region Action Registration
+
+        /// <summary>
+        /// Register all available player actions with the ActionController
+        /// </summary>
+        private void RegisterPlayerActions()
+        {
+            // Register core actions
+            RegisterAction(new PlayerResonanceAction());
+            RegisterAction(new PlayerRecoverAction());
+            RegisterAction(new PlayerInteractAction());
+
+            Debug.Log("PlayerController: Registered player actions (Resonance, Recover, Interact)");
         }
 
         #endregion

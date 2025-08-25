@@ -1,7 +1,7 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Objects;
 using Resonance.Utilities;
 
 namespace Resonance.Items
@@ -16,13 +16,14 @@ namespace Resonance.Items
     /// - When equipped, the gun data is passed to WeaponManager but no visual weapon is shown on player yet
     /// - Future: Add equipped weapon visual system to player for when gun is equipped
     /// </summary>
-    public class GunMonoBehaviour : MonoBehaviour
+    public class GunMonoBehaviour : MonoBehaviour, IInteractable
     {
         [Header("Gun Configuration")]
         [SerializeField] private GunDataAsset _gunDataAsset;
         
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "Press E";
+        [SerializeField] private float _interactionDuration = 1.0f; // Duration to pick up the weapon
         
         [Header("Pickup Visual")]
         [SerializeField] private GameObject _pickupVisual;
@@ -34,33 +35,33 @@ namespace Resonance.Items
         
         [Header("Interaction UI")]
         [SerializeField] private GameObject _interactUI;
-        [SerializeField] private TextMeshProUGUI _interactText; // For TextMeshPro
-        [SerializeField] private Text _interactTextLegacy; // For legacy UI Text
+        [SerializeField] private TextMeshProUGUI _interactTextComponent;
+        
+
 
         // 是否已被拾取
         private bool _isPickedUp = false;
+        
+        // 交互状态
+        private bool _isInteracting = false;
+        private float _interactionProgress = 0f;
         
         // 动画相关
         private Vector3 _originalPosition;
         private float _bobTimer = 0f;
         
-        // 玩家检测
-        private bool _playerInRange = false;
-        private Transform _playerTransform;
+        // 交互检测 (由InteractionService管理)
         
         // Services
         private IInteractionService _interactionService;
         private IAudioService _audioService;
 
         // Events
-        public System.Action<GunMonoBehaviour> OnPlayerEnterRange;
-        public System.Action<GunMonoBehaviour> OnPlayerExitRange;
         public System.Action<GunMonoBehaviour, Transform> OnPickedUp;
 
         // Properties
         public GunDataAsset GunData => _gunDataAsset;
         public bool IsPickedUp => _isPickedUp;
-        public bool PlayerInRange => _playerInRange;
         public string InteractionText => _interactionText;
 
         void Start()
@@ -86,13 +87,10 @@ namespace Resonance.Items
             // 设置音频服务
             SetupAudioService();
             
-            // 设置Visual子对象的触发器事件
-            SetupVisualTrigger();
-            
             // 设置交互UI
             SetupInteractionUI();
-
-            // 获取交互服务
+            
+            // 获取交互服务并注册为可交互对象
             _interactionService = ServiceRegistry.Get<IInteractionService>();
             if (_interactionService != null)
             {
@@ -104,7 +102,7 @@ namespace Resonance.Items
                 Debug.LogWarning("GunMonoBehaviour: InteractionService not found");
             }
 
-            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} ready for pickup");
+            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} ready for pickup via new InteractAction system");
         }
 
         void OnDestroy()
@@ -145,7 +143,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 设置交互UI
+        /// 设置交互UI - 查找并设置InteractUI和Text组件
         /// </summary>
         private void SetupInteractionUI()
         {
@@ -166,236 +164,37 @@ namespace Resonance.Items
                 return;
             }
             
-            // 查找Text组件（支持TextMeshPro和Legacy Text）
-            if (_interactText == null && _interactTextLegacy == null)
+            // 查找Text组件
+            if (_interactTextComponent == null)
             {
-                // 先尝试找TextMeshPro组件
-                _interactText = _interactUI.GetComponentInChildren<TextMeshProUGUI>();
+                _interactTextComponent = _interactUI.GetComponentInChildren<TextMeshProUGUI>();
                 
-                // 如果没找到，尝试找Legacy Text组件
-                if (_interactText == null)
-                {
-                    _interactTextLegacy = _interactUI.GetComponentInChildren<Text>();
-                }
-                
-                // 也可以尝试查找名为"Text"的子对象
-                if (_interactText == null && _interactTextLegacy == null)
+                // 如果没找到，尝试查找名为"Text"的子对象
+                if (_interactTextComponent == null)
                 {
                     Transform textChild = _interactUI.transform.Find("Text");
                     if (textChild != null)
                     {
-                        _interactText = textChild.GetComponent<TextMeshProUGUI>();
-                        if (_interactText == null)
-                        {
-                            _interactTextLegacy = textChild.GetComponent<Text>();
-                        }
+                        _interactTextComponent = textChild.GetComponent<TextMeshProUGUI>();
                     }
                 }
             }
             
-            if (_interactText == null && _interactTextLegacy == null)
+            if (_interactTextComponent == null)
             {
-                Debug.LogWarning($"GunMonoBehaviour: No Text component found in InteractUI on {gameObject.name}");
+                Debug.LogWarning($"GunMonoBehaviour: No TextMeshProUGUI component found in InteractUI on {gameObject.name}");
             }
             else
             {
-                string textType = _interactText != null ? "TextMeshPro" : "Legacy Text";
-                Debug.Log($"GunMonoBehaviour: Found {textType} component for interaction UI");
+                Debug.Log($"GunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
+                // 设置初始文本内容
+                _interactTextComponent.text = _interactionText;
             }
-            
-            // 初始化UI文本内容
-            UpdateInteractionText();
             
             // 初始状态：隐藏UI
-            SetInteractionUIVisible(false);
-        }
-
-        /// <summary>
-        /// 更新交互UI的文本内容
-        /// </summary>
-        private void UpdateInteractionText()
-        {
-            if (_interactText != null)
-            {
-                _interactText.text = _interactionText;
-            }
-            else if (_interactTextLegacy != null)
-            {
-                _interactTextLegacy.text = _interactionText;
-            }
-        }
-        
-        /// <summary>
-        /// 显示/隐藏交互UI
-        /// </summary>
-        /// <param name="visible">是否显示</param>
-        private void SetInteractionUIVisible(bool visible)
-        {
             if (_interactUI != null)
             {
-                _interactUI.SetActive(visible);
-                Debug.Log($"GunMonoBehaviour: Set interaction UI {(visible ? "visible" : "hidden")} for {_gunDataAsset.weaponName}");
-            }
-        }
-
-        /// <summary>
-        /// 设置Visual子对象的触发器事件
-        /// </summary>
-        private void SetupVisualTrigger()
-        {
-            Debug.Log($"GunMonoBehaviour: Setting up trigger for Visual object");
-            
-            // 查找Visual子对象上的触发器
-            Collider visualCollider = null;
-            if (_pickupVisual != null && _pickupVisual != gameObject)
-            {
-                visualCollider = _pickupVisual.GetComponent<Collider>();
-            }
-            
-            if (visualCollider == null)
-            {
-                // 如果拾取视觉模型没有collider，检查是否有名为"Visual"的子对象
-                Transform visualChild = transform.Find("Visual");
-                if (visualChild != null)
-                {
-                    visualCollider = visualChild.GetComponent<Collider>();
-                    _pickupVisual = visualChild.gameObject;
-                    Debug.Log($"GunMonoBehaviour: Found Visual child object: {visualChild.name}");
-                }
-            }
-            
-            if (visualCollider == null)
-            {
-                Debug.LogError($"GunMonoBehaviour: No trigger collider found on Visual object! Please ensure the Visual child has a Collider component set as Trigger.");
-                return;
-            }
-            
-            if (!visualCollider.isTrigger)
-            {
-                Debug.LogError($"GunMonoBehaviour: Collider on {visualCollider.name} is not set as Trigger! Please check 'Is Trigger' in the Collider component.");
-                return;
-            }
-            
-            Debug.Log($"GunMonoBehaviour: Visual trigger setup complete - Object: {visualCollider.name}, Type: {visualCollider.GetType().Name}, IsTrigger: {visualCollider.isTrigger}");
-            
-            // 添加一个简单的触发器处理组件到Visual对象
-            var existingHandler = visualCollider.GetComponent<GunVisualTriggerHandler>();
-            if (existingHandler == null)
-            {
-                var handler = visualCollider.gameObject.AddComponent<GunVisualTriggerHandler>();
-                handler.SetGunMonoBehaviour(this);
-                Debug.Log($"GunMonoBehaviour: Added trigger handler to {visualCollider.name}");
-            }
-            else
-            {
-                existingHandler.SetGunMonoBehaviour(this);
-                Debug.Log($"GunMonoBehaviour: Updated existing trigger handler on {visualCollider.name}");
-            }
-        }
-
-        /// <summary>
-        /// 处理触发器进入事件（由GunVisualTriggerHandler调用）
-        /// </summary>
-        /// <param name="other">进入触发器的碰撞体</param>
-        public void HandleTriggerEnter(Collider other)
-        {
-            Debug.Log($"GunMonoBehaviour: HandleTriggerEnter called with {other.name} (Tag: {other.tag}, Layer: {other.gameObject.layer})");
-            
-            if (_isPickedUp) 
-            {
-                Debug.Log("GunMonoBehaviour: Gun already picked up, ignoring trigger");
-                return;
-            }
-            
-            // Check if the collider belongs to a player
-            if (other.CompareTag("Player"))
-            {
-                Debug.Log($"GunMonoBehaviour: Found Player collider: {other.name}");
-                
-                // Get the root player transform (might be on a child collider)
-                Transform playerRoot = other.transform;
-                var playerMono = other.GetComponentInParent<Resonance.Player.PlayerMonoBehaviour>();
-                if (playerMono != null)
-                {
-                    playerRoot = playerMono.transform;
-                    Debug.Log($"GunMonoBehaviour: Found PlayerMonoBehaviour on {playerRoot.name}");
-                }
-                
-                if (!_playerInRange)
-                {
-                    _playerInRange = true;
-                    _playerTransform = playerRoot;
-                    OnPlayerEnterRange?.Invoke(this);
-                    
-                    // 显示交互UI
-                    SetInteractionUIVisible(true);
-                    
-                    // 设置为当前可交互对象
-                    if (_interactionService != null)
-                    {
-                        _interactionService.SetCurrentInteractable(gameObject, _interactionText);
-                        Debug.Log($"GunMonoBehaviour: Set current interactable to {gameObject.name}");
-                    }
-                    else
-                    {
-                        Debug.LogError("GunMonoBehaviour: InteractionService is null!");
-                    }
-                    
-                    Debug.Log($"GunMonoBehaviour: Player entered range of {_gunDataAsset.weaponName}");
-                }
-            }
-            else
-            {
-                Debug.Log($"GunMonoBehaviour: Collider {other.name} doesn't have Player tag (Tag: {other.tag})");
-            }
-        }
-        
-        /// <summary>
-        /// 处理触发器退出事件（由GunVisualTriggerHandler调用）
-        /// </summary>
-        /// <param name="other">退出触发器的碰撞体</param>
-        public void HandleTriggerExit(Collider other)
-        {
-            Debug.Log($"GunMonoBehaviour: HandleTriggerExit called with {other.name} (Tag: {other.tag}, Layer: {other.gameObject.layer})");
-            
-            if (_isPickedUp) 
-            {
-                Debug.Log("GunMonoBehaviour: Gun already picked up, ignoring trigger exit");
-                return;
-            }
-            
-            // Check if the collider belongs to a player
-            if (other.CompareTag("Player"))
-            {
-                Debug.Log($"GunMonoBehaviour: Player collider {other.name} exiting trigger");
-                
-                // Get the root player transform (might be on a child collider)
-                Transform playerRoot = other.transform;
-                var playerMono = other.GetComponentInParent<Resonance.Player.PlayerMonoBehaviour>();
-                if (playerMono != null)
-                {
-                    playerRoot = playerMono.transform;
-                }
-                
-                // Only clear if this is the same player that entered
-                if (_playerInRange && _playerTransform == playerRoot)
-                {
-                    _playerInRange = false;
-                    _playerTransform = null;
-                    OnPlayerExitRange?.Invoke(this);
-                    
-                    // 隐藏交互UI
-                    SetInteractionUIVisible(false);
-                    
-                    // 清除当前可交互对象
-                    if (_interactionService != null && _interactionService.CurrentInteractable == gameObject)
-                    {
-                        _interactionService.ClearCurrentInteractable();
-                        Debug.Log($"GunMonoBehaviour: Cleared current interactable");
-                    }
-                    
-                    Debug.Log($"GunMonoBehaviour: Player left range of {_gunDataAsset.weaponName}");
-                }
+                _interactUI.SetActive(false);
             }
         }
 
@@ -430,14 +229,176 @@ namespace Resonance.Items
 
 
 
+        #region IInteractable Implementation
+
         /// <summary>
-        /// 直接检查当前是否可以被交互
+        /// Check if this gun can currently be interacted with
         /// </summary>
-        /// <returns>是否可以交互</returns>
+        /// <returns>True if interaction is possible</returns>
         public bool CanInteract()
         {
-            return !_isPickedUp && _playerInRange;
+            return !_isPickedUp && !_isInteracting;
         }
+
+        /// <summary>
+        /// Get the interaction duration for picking up this weapon
+        /// </summary>
+        /// <returns>Duration of the interaction in seconds</returns>
+        public float GetInteractionDuration()
+        {
+            return _interactionDuration;
+        }
+
+        /// <summary>
+        /// Get the world position of this gun
+        /// </summary>
+        /// <returns>World position</returns>
+        public Vector3 GetPosition()
+        {
+            return transform.position;
+        }
+
+        /// <summary>
+        /// Start the interaction process
+        /// </summary>
+        public void StartInteraction()
+        {
+            if (!CanInteract())
+            {
+                Debug.LogWarning($"GunMonoBehaviour: Cannot start interaction with {_gunDataAsset.weaponName}");
+                return;
+            }
+
+            _isInteracting = true;
+            _interactionProgress = 0f;
+
+            Debug.Log($"GunMonoBehaviour: Started interaction with {_gunDataAsset.weaponName}");
+
+            // Show interaction UI
+            if (_interactUI != null)
+            {
+                _interactUI.SetActive(true);
+            }
+
+            // TODO: Play interaction start effects (visual/audio feedback)
+            // TODO: Show progress UI
+        }
+
+        /// <summary>
+        /// Update interaction progress
+        /// </summary>
+        /// <param name="progress">Progress from 0 to 1</param>
+        public void UpdateInteractionProgress(float progress)
+        {
+            if (!_isInteracting) return;
+
+            _interactionProgress = Mathf.Clamp01(progress);
+
+            // TODO: Update progress UI
+            // TODO: Update visual/audio effects based on progress
+
+            // Debug.Log($"GunMonoBehaviour: Interaction progress: {_interactionProgress:P0}");
+        }
+
+        /// <summary>
+        /// Complete the interaction successfully - pickup the weapon
+        /// </summary>
+        public void CompleteInteraction()
+        {
+            if (!_isInteracting)
+            {
+                Debug.LogWarning($"GunMonoBehaviour: CompleteInteraction called but not interacting with {_gunDataAsset.weaponName}");
+                return;
+            }
+
+            Debug.Log($"GunMonoBehaviour: Completing interaction with {_gunDataAsset.weaponName}");
+
+            // Get current player from PlayerService
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            Transform playerTransform = null;
+            
+            if (playerService?.CurrentPlayer != null)
+            {
+                playerTransform = playerService.CurrentPlayer.transform;
+            }
+
+            // Perform the actual pickup
+            var gunCopy = PickupWeapon(playerTransform);
+            
+            if (gunCopy != null && playerTransform != null)
+            {
+                // Try to equip the weapon to the player
+                var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
+                if (playerMono != null && playerMono.IsInitialized)
+                {
+                    var weaponManager = playerMono.Controller.WeaponManager;
+                    if (weaponManager != null)
+                    {
+                        bool hasEquippedWeapon = weaponManager.HasEquippedWeapon;
+                        if (hasEquippedWeapon)
+                        {
+                            Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} to player");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"GunMonoBehaviour: Failed to equip {gunCopy.weaponName} to player");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError("GunMonoBehaviour: Player's WeaponManager is null");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("GunMonoBehaviour: Player not found or not initialized");
+                }
+            }
+
+            _isInteracting = false;
+            _interactionProgress = 0f;
+
+            // Hide interaction UI
+            if (_interactUI != null)
+            {
+                _interactUI.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// Cancel the interaction
+        /// </summary>
+        public void CancelInteraction()
+        {
+            if (!_isInteracting) return;
+
+            Debug.Log($"GunMonoBehaviour: Cancelled interaction with {_gunDataAsset.weaponName}");
+
+            _isInteracting = false;
+            _interactionProgress = 0f;
+
+            // Hide interaction UI
+            if (_interactUI != null)
+            {
+                _interactUI.SetActive(false);
+            }
+
+            // TODO: Hide progress UI
+            // TODO: Stop interaction effects
+        }
+
+        /// <summary>
+        /// Get a descriptive name for this interactable
+        /// </summary>
+        /// <returns>Weapon name</returns>
+        public string GetInteractableName()
+        {
+            return _gunDataAsset?.weaponName ?? "Unknown Weapon";
+        }
+
+        #endregion
+
+        #region Legacy Interaction Methods
 
         /// <summary>
         /// 拾取武器
@@ -453,12 +414,10 @@ namespace Resonance.Items
             }
 
             _isPickedUp = true;
-            _playerInRange = false;
+            _isInteracting = false;
+            _interactionProgress = 0f;
 
             PlayPickuoAudio(transform.position);
-            
-            // 隐藏交互UI
-            SetInteractionUIVisible(false);
             
             // 创建运行时副本
             GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
@@ -504,8 +463,9 @@ namespace Resonance.Items
         public void ResetWeapon()
         {
             _isPickedUp = false;
+            _isInteracting = false;
+            _interactionProgress = 0f;
             gameObject.SetActive(true);
-            SetInteractionUIVisible(false); // 重置时隐藏UI
             Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} reset");
         }
 
@@ -516,38 +476,37 @@ namespace Resonance.Items
         public void SetInteractionText(string newText)
         {
             _interactionText = newText;
-            UpdateInteractionText();
+            if (_interactTextComponent != null)
+            {
+                _interactTextComponent.text = _interactionText;
+            }
             Debug.Log($"GunMonoBehaviour: Updated interaction text to '{newText}'");
         }
-    }
 
-    /// <summary>
-    /// 简单的触发器处理器，用于转发触发器事件到父对象的GunMonoBehaviour
-    /// 此组件会被自动添加到Visual子对象上
-    /// </summary>
-    public class GunVisualTriggerHandler : MonoBehaviour
-    {
-        private GunMonoBehaviour _gunMonoBehaviour;
-
-        public void SetGunMonoBehaviour(GunMonoBehaviour gunMono)
+        /// <summary>
+        /// Show the interaction UI (called by InteractionService when player enters range)
+        /// </summary>
+        public void ShowInteractionUI()
         {
-            _gunMonoBehaviour = gunMono;
-        }
-
-        void OnTriggerEnter(Collider other)
-        {
-            if (_gunMonoBehaviour != null)
+            if (_interactUI != null)
             {
-                _gunMonoBehaviour.HandleTriggerEnter(other);
+                _interactUI.SetActive(true);
+                Debug.Log($"GunMonoBehaviour: Showed interaction UI for {_gunDataAsset.weaponName}");
             }
         }
 
-        void OnTriggerExit(Collider other)
+        /// <summary>
+        /// Hide the interaction UI (called by InteractionService when player leaves range)
+        /// </summary>
+        public void HideInteractionUI()
         {
-            if (_gunMonoBehaviour != null)
+            if (_interactUI != null)
             {
-                _gunMonoBehaviour.HandleTriggerExit(other);
+                _interactUI.SetActive(false);
+                Debug.Log($"GunMonoBehaviour: Hid interaction UI for {_gunDataAsset.weaponName}");
             }
         }
+
+        #endregion
     }
 }

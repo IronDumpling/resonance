@@ -284,6 +284,8 @@ namespace Resonance.Player
 
             _inputService.OnMove += HandleMoveInput;
             _inputService.OnInteract += HandleInteractInput;
+            _inputService.OnResonance += HandleResonanceInput; // F key short press (Resonance)
+            _inputService.OnRecover += HandleRecoverInput; // F key long press (Recover)
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
@@ -295,6 +297,8 @@ namespace Resonance.Player
 
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
+            _inputService.OnResonance -= HandleResonanceInput;
+            _inputService.OnRecover -= HandleRecoverInput;
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
             _inputService.OnShoot -= HandleShootInput;
@@ -311,30 +315,77 @@ namespace Resonance.Player
 
         private void HandleInteractInput()
         {
-            if (!IsInitialized || _interactionService == null) return;
-            
-            // Only allow interaction in Normal state
-            if (_playerController.StateMachine.CanInteract())
+            if (!IsInitialized) return;
+
+            // Use new InteractAction system instead of legacy interaction service
+            bool interactStarted = _playerController.TryStartAction("Interact");
+            if (interactStarted)
             {
-                // 执行交互
-                bool interactionSuccess = _interactionService.PerformInteraction(transform);
-                
-                if (interactionSuccess)
+                Debug.Log("PlayerMonoBehaviour: Started InteractAction via E key");
+            }
+            else
+            {
+                Debug.Log("PlayerMonoBehaviour: InteractAction conditions not met");
+            }
+        }
+
+        /// <summary>
+        /// Handle action short press input (F key short press) - Resonance or Interaction based on priority
+        /// </summary>
+        private void HandleResonanceInput()
+        {
+            if (!IsInitialized) return;
+
+            // Priority logic: 
+            // 1. If dead enemies in mental attack range -> ResonanceAction
+            // 2. Otherwise -> InteractAction (E key functionality)
+            
+            bool hasDeadEnemiesInRange = HasDeadEnemiesInMentalAttackRange();
+            
+            if (hasDeadEnemiesInRange)
+            {
+                // Try to start ResonanceAction
+                bool resonanceStarted = _playerController.TryStartAction("Resonance");
+                if (resonanceStarted)
                 {
-                    Debug.Log("PlayerMonoBehaviour: Interaction successful");
-                }
-                else if (_interactionService.HasInteractable)
-                {
-                    Debug.LogWarning("PlayerMonoBehaviour: Interaction failed");
+                    Debug.Log("PlayerMonoBehaviour: Started ResonanceAction via short press F");
                 }
                 else
                 {
-                    Debug.Log("PlayerMonoBehaviour: No interactable object nearby");
+                    Debug.Log("PlayerMonoBehaviour: ResonanceAction conditions not met");
                 }
             }
             else
             {
-                Debug.Log("PlayerMonoBehaviour: Cannot interact in current state");
+                // Try to start InteractAction (same as E key)
+                bool interactStarted = _playerController.TryStartAction("Interact");
+                if (interactStarted)
+                {
+                    Debug.Log("PlayerMonoBehaviour: Started InteractAction via short press F");
+                }
+                else
+                {
+                    Debug.Log("PlayerMonoBehaviour: InteractAction conditions not met");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handle action long press input (F key long press) - RecoverAction
+        /// </summary>
+        private void HandleRecoverInput()
+        {
+            if (!IsInitialized) return;
+
+            // Try to start RecoverAction
+            bool recoverStarted = _playerController.TryStartAction("Recover");
+            if (recoverStarted)
+            {
+                Debug.Log("PlayerMonoBehaviour: Started RecoverAction via long press F");
+            }
+            else
+            {
+                Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
             }
         }
 

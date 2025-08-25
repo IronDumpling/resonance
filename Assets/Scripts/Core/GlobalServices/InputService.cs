@@ -34,6 +34,8 @@ namespace Resonance.Core.GlobalServices
         // Input events
         public event Action<Vector2> OnMove;
         public event Action OnInteract;
+        public event Action OnResonance; // Short press F (ResonanceAction)
+        public event Action OnRecover; // Long press F (RecoverAction)
         public event Action<bool> OnRun; // true when starting to run, false when stopping
         public event Action<bool> OnAim; // true when starting to aim, false when stopping
         public event Action OnShoot;
@@ -74,7 +76,15 @@ namespace Resonance.Core.GlobalServices
             _playerMap["Move"].performed += OnMovePerformed;
             _playerMap["Move"].canceled += OnMoveCanceled;
             
-            _playerMap["Interact"].performed += OnInteractPerformed;
+            // Legacy interact for backward compatibility
+            if (_playerMap.FindAction("Interact") != null)
+            {
+                _playerMap["Interact"].performed += OnInteractPerformed;
+            }
+            
+            // New action inputs (short and long press F)
+            _playerMap["Resonance"].performed += OnResonancePerformed;
+            _playerMap["Recover"].performed += OnRecoverPerformed;
             
             _playerMap["Run"].started += OnRunStarted;
             _playerMap["Run"].canceled += OnRunCanceled;
@@ -101,6 +111,18 @@ namespace Resonance.Core.GlobalServices
         private void OnInteractPerformed(InputAction.CallbackContext context)
         {
             OnInteract?.Invoke();
+        }
+
+        private void OnResonancePerformed(InputAction.CallbackContext context)
+        {
+            OnResonance?.Invoke();
+            Debug.Log("InputService: Action short press performed");
+        }
+
+        private void OnRecoverPerformed(InputAction.CallbackContext context)
+        {
+            OnRecover?.Invoke();
+            Debug.Log("InputService: Action long press performed");
         }
 
         private void OnRunStarted(InputAction.CallbackContext context)
@@ -186,6 +208,8 @@ namespace Resonance.Core.GlobalServices
             // Clear all event listeners
             OnMove = null;
             OnInteract = null;
+            OnResonance = null;
+            OnRecover = null;
             OnRun = null;
             OnAim = null;
             OnShoot = null;
