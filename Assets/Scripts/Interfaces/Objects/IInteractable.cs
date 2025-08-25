@@ -33,13 +33,6 @@ namespace Resonance.Interfaces.Objects
         void StartInteraction();
 
         /// <summary>
-        /// Update interaction progress
-        /// Called during the interaction to update progress (0-1)
-        /// </summary>
-        /// <param name="progress">Interaction progress from 0 to 1</param>
-        void UpdateInteractionProgress(float progress);
-
-        /// <summary>
         /// Complete the interaction successfully
         /// Called when the interaction duration is reached
         /// </summary>

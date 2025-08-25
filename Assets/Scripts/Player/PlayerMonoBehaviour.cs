@@ -330,7 +330,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle action short press input (F key short press) - Resonance or Interaction based on priority
+        /// Handle Resonance press input (F key short press) - Resonance or Interaction based on priority
         /// </summary>
         private void HandleResonanceInput()
         {
@@ -371,7 +371,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle action long press input (F key long press) - RecoverAction
+        /// Handle Recover press input (F key long press) - RecoverAction
         /// </summary>
         private void HandleRecoverInput()
         {

@@ -37,14 +37,11 @@ namespace Resonance.Items
         [SerializeField] private GameObject _interactUI;
         [SerializeField] private TextMeshProUGUI _interactTextComponent;
         
-
-
         // 是否已被拾取
         private bool _isPickedUp = false;
         
         // 交互状态
         private bool _isInteracting = false;
-        private float _interactionProgress = 0f;
         
         // 动画相关
         private Vector3 _originalPosition;
@@ -227,8 +224,6 @@ namespace Resonance.Items
             _pickupVisual.transform.eulerAngles = currentRotation;
         }
 
-
-
         #region IInteractable Implementation
 
         /// <summary>
@@ -270,7 +265,6 @@ namespace Resonance.Items
             }
 
             _isInteracting = true;
-            _interactionProgress = 0f;
 
             Debug.Log($"GunMonoBehaviour: Started interaction with {_gunDataAsset.weaponName}");
 
@@ -281,23 +275,6 @@ namespace Resonance.Items
             }
 
             // TODO: Play interaction start effects (visual/audio feedback)
-            // TODO: Show progress UI
-        }
-
-        /// <summary>
-        /// Update interaction progress
-        /// </summary>
-        /// <param name="progress">Progress from 0 to 1</param>
-        public void UpdateInteractionProgress(float progress)
-        {
-            if (!_isInteracting) return;
-
-            _interactionProgress = Mathf.Clamp01(progress);
-
-            // TODO: Update progress UI
-            // TODO: Update visual/audio effects based on progress
-
-            // Debug.Log($"GunMonoBehaviour: Interaction progress: {_interactionProgress:P0}");
         }
 
         /// <summary>
@@ -356,7 +333,6 @@ namespace Resonance.Items
             }
 
             _isInteracting = false;
-            _interactionProgress = 0f;
 
             // Hide interaction UI
             if (_interactUI != null)
@@ -375,7 +351,6 @@ namespace Resonance.Items
             Debug.Log($"GunMonoBehaviour: Cancelled interaction with {_gunDataAsset.weaponName}");
 
             _isInteracting = false;
-            _interactionProgress = 0f;
 
             // Hide interaction UI
             if (_interactUI != null)
@@ -383,7 +358,6 @@ namespace Resonance.Items
                 _interactUI.SetActive(false);
             }
 
-            // TODO: Hide progress UI
             // TODO: Stop interaction effects
         }
 
@@ -415,7 +389,6 @@ namespace Resonance.Items
 
             _isPickedUp = true;
             _isInteracting = false;
-            _interactionProgress = 0f;
 
             PlayPickuoAudio(transform.position);
             
@@ -464,7 +437,6 @@ namespace Resonance.Items
         {
             _isPickedUp = false;
             _isInteracting = false;
-            _interactionProgress = 0f;
             gameObject.SetActive(true);
             Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} reset");
         }

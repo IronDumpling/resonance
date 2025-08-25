@@ -106,11 +106,6 @@ namespace Resonance.Player.Core
                     FinishCurrentAction();
                 }
             }
-            else
-            {
-                // Try to start priority action if no action is running
-                TryStartPriorityAction();
-            }
         }
 
         /// <summary>
@@ -208,61 +203,6 @@ namespace Resonance.Player.Core
                 _currentAction.OnDamageTaken(_playerController);
                 CancelCurrentAction();
             }
-        }
-
-        /// <summary>
-        /// Try to start priority action based on current conditions
-        /// This implements the priority logic defined in requirements
-        /// </summary>
-        private void TryStartPriorityAction()
-        {
-            // Priority logic:
-            // 1. If there are dead enemies in mental attack range -> ResonanceAction
-            // 2. If no dead enemies in range -> RecoverAction
-            // 3. InteractAction has its own trigger conditions
-
-            // Check for dead enemies in range (placeholder logic)
-            bool hasDeadEnemiesInRange = HasDeadEnemiesInRange();
-
-            IPlayerAction priorityAction = null;
-
-            if (hasDeadEnemiesInRange)
-            {
-                // Priority 1: ResonanceAction
-                priorityAction = _availableActions.FirstOrDefault(a => a.Name == "Resonance");
-            }
-            else
-            {
-                // Priority 2: RecoverAction
-                priorityAction = _availableActions.FirstOrDefault(a => a.Name == "Recover");
-            }
-
-            // Try to start the priority action if conditions are met
-            if (priorityAction != null && priorityAction.CanStart(_playerController))
-            {
-                // Check for input triggers (this will be implemented when we add input handling)
-                // For now, actions need to be triggered manually
-            }
-        }
-
-        /// <summary>
-        /// Check if there are dead enemies in mental attack range
-        /// Uses PlayerMonoBehaviour's MentalAttackTrigger system
-        /// </summary>
-        /// <returns>True if dead enemies are in range</returns>
-        private bool HasDeadEnemiesInRange()
-        {
-            // Access PlayerMonoBehaviour through the PlayerController
-            // This requires a way to get the PlayerMonoBehaviour from PlayerController
-            // For now, we'll use a simpler approach through static access or service registry
-            
-            var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer != null)
-            {
-                return playerService.CurrentPlayer.HasDeadEnemiesInMentalAttackRange();
-            }
-            
-            return false;
         }
 
         /// <summary>

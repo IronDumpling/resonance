@@ -116,13 +116,13 @@ namespace Resonance.Core.GlobalServices
         private void OnResonancePerformed(InputAction.CallbackContext context)
         {
             OnResonance?.Invoke();
-            Debug.Log("InputService: Action short press performed");
+            Debug.Log("InputService: Resonance press performed");
         }
 
         private void OnRecoverPerformed(InputAction.CallbackContext context)
         {
             OnRecover?.Invoke();
-            Debug.Log("InputService: Action long press performed");
+            Debug.Log("InputService: Recover press performed");
         }
 
         private void OnRunStarted(InputAction.CallbackContext context)

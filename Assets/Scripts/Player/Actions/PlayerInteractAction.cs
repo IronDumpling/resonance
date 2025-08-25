@@ -157,11 +157,11 @@ namespace Resonance.Player.Actions
             }
 
             // Update interaction progress
-            float progress = actionDuration / _interactionDuration;
-            _targetInteractable.UpdateInteractionProgress(progress);
+            // float progress = actionDuration / _interactionDuration;
+            // _targetInteractable.UpdateInteractionProgress(progress);
 
             // Update visual effects
-            UpdateInteractionEffects(player, deltaTime, progress);
+            // UpdateInteractionEffects(player, deltaTime, progress);
         }
 
         /// <summary>
