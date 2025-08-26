@@ -294,7 +294,7 @@ namespace Resonance.Player
         private void UnsubscribeFromInput()
         {
             if (_inputService == null) return;
-
+ 
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
             _inputService.OnResonance -= HandleResonanceInput;

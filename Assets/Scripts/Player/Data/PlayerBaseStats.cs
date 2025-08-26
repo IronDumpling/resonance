@@ -17,16 +17,10 @@ namespace Resonance.Player.Data
         [SerializeField] private float _maxMentalHealth = 50f;
         [SerializeField] private float _mentalHealthDecayRate = 1f; // Mental health decay per second when in core mode
         [SerializeField] private float _mentalHealthRegenRate = 0f; // Mental health regen per second in normal state
-        
-        [Header("Legacy Health (Backwards Compatibility)")]
-        [SerializeField] private float _maxHealth = 100f;
-        [SerializeField] private float _healthRegenRate = 0f; // Health per second
 
         [Header("Movement")]
         [SerializeField] private float _moveSpeed = 5f;
         [SerializeField] private float _runSpeedMultiplier = 1.5f;
-        [SerializeField] private float _jumpForce = 10f;
-        [SerializeField] private int _maxJumps = 1; // Air jumps + ground jump
 
         [Header("Combat")]
         [SerializeField] private float _attackDamage = 25f;
@@ -52,15 +46,9 @@ namespace Resonance.Player.Data
         public float MentalHealthDecayRate => _mentalHealthDecayRate;
         public float MentalHealthRegenRate => _mentalHealthRegenRate;
         
-        // Legacy Properties (Backwards Compatibility)
-        public float MaxHealth => _maxHealth;
-        public float HealthRegenRate => _healthRegenRate;
-        
         // Other Properties
         public float MoveSpeed => _moveSpeed;
         public float RunSpeedMultiplier => _runSpeedMultiplier;
-        public float JumpForce => _jumpForce;
-        public int MaxJumps => _maxJumps;
         public float AttackDamage => _attackDamage;
         public float AttackCooldown => _attackCooldown;
         public float InvulnerabilityTime => _invulnerabilityTime;
@@ -141,15 +129,8 @@ namespace Resonance.Player.Data
             mentalHealthDecayRate = baseStats.MentalHealthDecayRate;
             mentalHealthRegenRate = baseStats.MentalHealthRegenRate;
             
-            // Copy legacy health stats for backwards compatibility
-            maxHealth = baseStats.MaxHealth;
-            currentHealth = maxHealth; // Start at full health
-            healthRegenRate = baseStats.HealthRegenRate;
-            
             moveSpeed = baseStats.MoveSpeed;
             runSpeedMultiplier = baseStats.RunSpeedMultiplier;
-            jumpForce = baseStats.JumpForce;
-            maxJumps = baseStats.MaxJumps;
             
             attackDamage = baseStats.AttackDamage;
             attackCooldown = baseStats.AttackCooldown;
@@ -171,8 +152,6 @@ namespace Resonance.Player.Data
         {
             currentPhysicalHealth = maxPhysicalHealth;
             currentMentalHealth = maxMentalHealth;
-            // Also restore legacy health for backwards compatibility
-            currentHealth = maxHealth;
         }
 
         /// <summary>
@@ -215,12 +194,7 @@ namespace Resonance.Player.Data
         /// Get mental health percentage (0-1)
         /// </summary>
         public float MentalHealthPercentage => maxMentalHealth > 0 ? currentMentalHealth / maxMentalHealth : 0f;
-
-        /// <summary>
-        /// Legacy health percentage for backwards compatibility
-        /// </summary>
-        public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
-
+        
         /// <summary>
         /// Update health tiers based on current health values
         /// </summary>
