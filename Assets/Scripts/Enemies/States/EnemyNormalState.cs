@@ -1,18 +1,20 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Enemies.Core;
+using Resonance.Enemies.Actions;
 
 namespace Resonance.Enemies.States
 {
     /// <summary>
-    /// Enemy正常状态，包含Normal、Alert、Attack子状态
+    /// Enemy正常状态，包含Patrol、Alert、Combat三个子状态
+    /// 每个子状态使用对应的Action执行具体行为
     /// </summary>
     public class EnemyNormalState : IState
     {
         private EnemyController _enemyController;
         private EnemySubState _currentSubState;
         private float _stateTimer = 0f;
-        private float _patrolTimer = 0f;
+        // private float _patrolTimer = 0f;
         private float _alertTimer = 0f;
         
         // Sub-state timings
@@ -24,9 +26,9 @@ namespace Resonance.Enemies.States
 
         private enum EnemySubState
         {
-            Normal,    // Idle or patrolling
-            Alert,     // Player detected, moving towards player
-            Attack     // Attacking player
+            Patrol,    // Patrolling between waypoints - uses PatrolAction
+            Alert,     // Player detected, chasing - uses ChaseAction
+            Combat     // Player in attack range - uses AttackAction
         }
 
         public EnemyNormalState(EnemyController enemyController)
@@ -38,14 +40,32 @@ namespace Resonance.Enemies.States
         {
             Debug.Log("EnemyState: Entered Normal state");
             
-            _currentSubState = EnemySubState.Normal;
+            // Determine initial sub-state based on player detection
+            if (_enemyController.HasPlayerTarget && _enemyController.IsPlayerInAttackRange())
+            {
+                _currentSubState = EnemySubState.Combat;
+            }
+            else if (_enemyController.HasPlayerTarget && _enemyController.IsPlayerInDetectionRange())
+            {
+                _currentSubState = EnemySubState.Alert;
+            }
+            else
+            {
+                _currentSubState = EnemySubState.Patrol;
+            }
+            
             _stateTimer = 0f;
-            _patrolTimer = 0f;
+            // _patrolTimer = 0f;
             _alertTimer = 0f;
+            
+            // Start the appropriate action for the initial sub-state
+            StartActionForSubState(_currentSubState);
             
             // Subscribe to enemy events
             _enemyController.OnPlayerDetected += HandlePlayerDetected;
             _enemyController.OnPlayerLost += HandlePlayerLost;
+            
+            Debug.Log($"EnemyNormalState: Started in {_currentSubState} sub-state");
         }
 
         public void Update()
@@ -54,14 +74,14 @@ namespace Resonance.Enemies.States
             
             switch (_currentSubState)
             {
-                case EnemySubState.Normal:
-                    UpdateNormalBehavior();
+                case EnemySubState.Patrol:
+                    UpdatePatrolBehavior();
                     break;
                 case EnemySubState.Alert:
                     UpdateAlertBehavior();
                     break;
-                case EnemySubState.Attack:
-                    UpdateAttackBehavior();
+                case EnemySubState.Combat:
+                    UpdateCombatBehavior();
                     break;
             }
         }
@@ -69,6 +89,9 @@ namespace Resonance.Enemies.States
         public void Exit()
         {
             Debug.Log("EnemyState: Exited Normal state");
+            
+            // Stop current action
+            StopCurrentAction();
             
             // Unsubscribe from enemy events
             _enemyController.OnPlayerDetected -= HandlePlayerDetected;
@@ -86,22 +109,25 @@ namespace Resonance.Enemies.States
 
         #region Sub-State Updates
 
-        private void UpdateNormalBehavior()
+        private void UpdatePatrolBehavior()
         {
             // Check for player detection
             if (_enemyController.HasPlayerTarget && _enemyController.IsPlayerInDetectionRange())
             {
-                TransitionToAlert();
+                if (_enemyController.IsPlayerInAttackRange())
+                {
+                    TransitionToCombat();
+                }
+                else
+                {
+                    TransitionToAlert();
+                }
                 return;
             }
             
-            // Handle patrolling
-            _patrolTimer += Time.deltaTime;
-            if (_patrolTimer >= PATROL_INTERVAL)
-            {
-                _patrolTimer = 0f;
-                StartPatrol();
-            }
+            // PatrolAction handles the actual patrolling behavior
+            // We just need to ensure it's running
+            EnsureActionIsRunning("Patrol");
         }
 
         private void UpdateAlertBehavior()
@@ -111,10 +137,10 @@ namespace Resonance.Enemies.States
             // Check if player is still detected
             if (!_enemyController.HasPlayerTarget || !_enemyController.IsPlayerInDetectionRange())
             {
-                // Player lost, return to normal after alert duration
+                // Player lost, return to patrol after alert duration
                 if (_alertTimer >= ALERT_DURATION)
                 {
-                    TransitionToNormal();
+                    TransitionToPatrol();
                     return;
                 }
             }
@@ -126,55 +152,71 @@ namespace Resonance.Enemies.States
                 // Check if player is in attack range
                 if (_enemyController.IsPlayerInAttackRange())
                 {
-                    TransitionToAttack();
+                    TransitionToCombat();
                     return;
                 }
             }
             
-            // Move towards player's last known position
-            // TODO: Implement movement logic when EnemyMovement is created
+            // ChaseAction handles the actual chasing behavior
+            EnsureActionIsRunning("Chase");
         }
 
-        private void UpdateAttackBehavior()
+        private void UpdateCombatBehavior()
         {
             // Check if player is still in attack range
             if (!_enemyController.HasPlayerTarget || !_enemyController.IsPlayerInAttackRange())
             {
-                TransitionToAlert();
+                // Player moved out of attack range
+                if (_enemyController.HasPlayerTarget && _enemyController.IsPlayerInDetectionRange())
+                {
+                    TransitionToAlert(); // Still detected, switch to chase
+                }
+                else
+                {
+                    TransitionToPatrol(); // Lost player completely
+                }
                 return;
             }
             
-            // Try to attack
-            if (_enemyController.CanAttack)
-            {
-                _enemyController.LaunchAttack();
-                Debug.Log("EnemyNormalState: Attack launched!");
-            }
+            // AttackAction handles the actual attacking behavior
+            EnsureActionIsRunning("Attack");
         }
 
         #endregion
 
         #region Sub-State Transitions
 
-        private void TransitionToNormal()
+        private void TransitionToPatrol()
         {
-            _currentSubState = EnemySubState.Normal;
+            if (_currentSubState == EnemySubState.Patrol) return;
+            
+            Debug.Log("EnemyNormalState: Transitioning to Patrol sub-state");
+            StopCurrentAction();
+            _currentSubState = EnemySubState.Patrol;
             _alertTimer = 0f;
-            _patrolTimer = 0f;
-            Debug.Log("EnemyNormalState: Transitioned to Normal sub-state");
+            // _patrolTimer = 0f;
+            StartActionForSubState(EnemySubState.Patrol);
         }
 
         private void TransitionToAlert()
         {
+            if (_currentSubState == EnemySubState.Alert) return;
+            
+            Debug.Log("EnemyNormalState: Transitioning to Alert sub-state");
+            StopCurrentAction();
             _currentSubState = EnemySubState.Alert;
             _alertTimer = 0f;
-            Debug.Log("EnemyNormalState: Transitioned to Alert sub-state");
+            StartActionForSubState(EnemySubState.Alert);
         }
 
-        private void TransitionToAttack()
+        private void TransitionToCombat()
         {
-            _currentSubState = EnemySubState.Attack;
-            Debug.Log("EnemyNormalState: Transitioned to Attack sub-state");
+            if (_currentSubState == EnemySubState.Combat) return;
+            
+            Debug.Log("EnemyNormalState: Transitioning to Combat sub-state");
+            StopCurrentAction();
+            _currentSubState = EnemySubState.Combat;
+            StartActionForSubState(EnemySubState.Combat);
         }
 
         #endregion
@@ -183,7 +225,12 @@ namespace Resonance.Enemies.States
 
         private void HandlePlayerDetected(Transform player)
         {
-            if (_currentSubState == EnemySubState.Normal)
+            // Player detected - transition to appropriate sub-state
+            if (_enemyController.IsPlayerInAttackRange())
+            {
+                TransitionToCombat();
+            }
+            else if (_enemyController.IsPlayerInDetectionRange())
             {
                 TransitionToAlert();
             }
@@ -191,24 +238,100 @@ namespace Resonance.Enemies.States
 
         private void HandlePlayerLost()
         {
-            if (_currentSubState == EnemySubState.Alert || _currentSubState == EnemySubState.Attack)
+            // Player lost - start alert timer to eventually return to patrol
+            if (_currentSubState == EnemySubState.Alert || _currentSubState == EnemySubState.Combat)
             {
-                // Start alert timer to eventually return to normal
-                _alertTimer = 0f;
+                _alertTimer = 0f; // Will trigger transition to patrol after ALERT_DURATION
             }
         }
 
         #endregion
 
-        #region Patrol Logic
-
-        private void StartPatrol()
+        #region Action Management
+        
+        /// <summary>
+        /// Start the appropriate action for the given sub-state
+        /// </summary>
+        private void StartActionForSubState(EnemySubState subState)
         {
-            Vector3 patrolPoint = _enemyController.GeneratePatrolPoint();
-            _enemyController.SetPatrolTarget(patrolPoint);
-            // Debug.Log($"EnemyNormalState: Started patrol to {patrolPoint}");
+            var actionController = _enemyController.ActionController;
+            
+            // First ensure all actions are registered (only register if not already registered)
+            EnsureActionsRegistered();
+            
+            // Then try to start the appropriate action
+            switch (subState)
+            {
+                case EnemySubState.Patrol:
+                    actionController.TryStartAction("Patrol");
+                    break;
+                    
+                case EnemySubState.Alert:
+                    actionController.TryStartAction("Chase");
+                    break;
+                    
+                case EnemySubState.Combat:
+                    actionController.TryStartAction("Attack");
+                    break;
+            }
         }
-
+        
+        /// <summary>
+        /// Ensure all required actions are registered (only register once)
+        /// </summary>
+        private void EnsureActionsRegistered()
+        {
+            var actionController = _enemyController.ActionController;
+            
+            // Register each action only if it's not already registered
+            if (!actionController.HasAction("Patrol"))
+            {
+                actionController.RegisterAction(new EnemyPatrolAction());
+            }
+            
+            if (!actionController.HasAction("Chase"))
+            {
+                actionController.RegisterAction(new EnemyChaseAction());
+            }
+            
+            if (!actionController.HasAction("Attack"))
+            {
+                actionController.RegisterAction(new EnemyAttackAction());
+            }
+        }
+        
+        /// <summary>
+        /// Ensure the correct action is running for current sub-state
+        /// </summary>
+        private void EnsureActionIsRunning(string expectedActionName)
+        {
+            var actionController = _enemyController.ActionController;
+            
+            if (!actionController.IsActive || actionController.CurrentActionName != expectedActionName)
+            {
+                // Current action finished or wrong action running, try to start the expected action
+                actionController.TryStartAction(expectedActionName);
+            }
+        }
+        
+        /// <summary>
+        /// Stop the current action
+        /// </summary>
+        private void StopCurrentAction()
+        {
+            var actionController = _enemyController.ActionController;
+            
+            if (actionController.IsActive)
+            {
+                actionController.CancelCurrentAction();
+            }
+            
+            // Unregister all actions
+            actionController.UnregisterAction("Patrol");
+            actionController.UnregisterAction("Chase");
+            actionController.UnregisterAction("Attack");
+        }
+        
         #endregion
 
         #region Public Queries
@@ -222,15 +345,15 @@ namespace Resonance.Enemies.States
         }
 
         /// <summary>
-        /// Check if enemy is currently attacking
+        /// Check if enemy is currently in combat
         /// </summary>
         public bool IsAttacking()
         {
-            return _currentSubState == EnemySubState.Attack;
+            return _currentSubState == EnemySubState.Combat;
         }
 
         /// <summary>
-        /// Check if enemy is alert
+        /// Check if enemy is alert (chasing)
         /// </summary>
         public bool IsAlert()
         {
@@ -238,11 +361,19 @@ namespace Resonance.Enemies.States
         }
 
         /// <summary>
-        /// Check if enemy is in normal behavior
+        /// Check if enemy is patrolling
+        /// </summary>
+        public bool IsPatrolling()
+        {
+            return _currentSubState == EnemySubState.Patrol;
+        }
+        
+        /// <summary>
+        /// Check if enemy is in normal behavior (patrolling)
         /// </summary>
         public bool IsNormal()
         {
-            return _currentSubState == EnemySubState.Normal;
+            return _currentSubState == EnemySubState.Patrol;
         }
 
         #endregion

@@ -57,7 +57,7 @@ namespace Resonance.Enemies.Core
                 return;
             }
 
-            if (_availableActions.Any(a => a.Name == action.Name))
+            if (HasAction(action.Name))
             {
                 Debug.LogWarning($"EnemyActionController: Action {action.Name} is already registered");
                 return;
@@ -67,6 +67,16 @@ namespace Resonance.Enemies.Core
             Debug.Log($"EnemyActionController: Registered action: {action.Name} (Priority: {action.Priority})");
         }
 
+        /// <summary>
+        /// Check if an action with the given name is registered
+        /// </summary>
+        /// <param name="actionName">Name of the action to check</param>
+        /// <returns>True if the action is registered</returns>
+        public bool HasAction(string actionName)
+        {
+            return _availableActions.Any(a => a.Name == actionName);
+        }
+        
         /// <summary>
         /// Unregister an action
         /// </summary>

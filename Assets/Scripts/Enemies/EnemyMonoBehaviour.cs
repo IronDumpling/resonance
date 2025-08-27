@@ -8,6 +8,13 @@ using System.Collections;
 
 namespace Resonance.Enemies
 {
+    // Patrol mode enumeration
+    public enum PatrolMode
+    {
+        Infinite,
+        Limited    
+    }
+
     /// <summary>
     /// MonoBehaviour component that handles Unity-specific enemy functionality.
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.
@@ -25,6 +32,39 @@ namespace Resonance.Enemies
         [Header("Detection System")]
         [SerializeField] private SphereCollider _detectionCollider;
         [SerializeField] private SphereCollider _attackCollider;
+        
+        [Header("Patrol System - Waypoints")]
+        [SerializeField] private Transform _patrolPointA;
+        [SerializeField] private Transform _patrolPointB;
+        [SerializeField] private bool _useTransformPoints = false;
+        [Tooltip("If true, use Transform references. If false, use Vector3 waypoints relative to enemy position.")]
+        
+        [SerializeField] private Vector3 _patrolWaypointA = Vector3.zero;
+        [SerializeField] private Vector3 _patrolWaypointB = Vector3.forward * 5f;
+        
+        [Header("Patrol System - Behavior")]
+        [SerializeField] private PatrolMode _patrolMode = PatrolMode.Infinite;
+        [Tooltip("Infinite: Never stops patrolling. Limited: Stops after specified cycles.")]
+        
+        [SerializeField] private int _maxPatrolCycles = 3;
+        [Tooltip("How many complete A→B→A cycles before stopping (only used in Limited mode).")]
+        
+        [SerializeField] private float _patrolSpeed = 2f;
+        [Tooltip("Movement speed while patrolling (units per second).")]
+        
+        [Header("Patrol System - Timing")]
+        [SerializeField] private float _singleCycleDuration = 10f;
+        [Tooltip("How long one complete patrol cycle (A→B→A) should take in seconds.")]
+        
+        [SerializeField] private float _waitAtWaypointDuration = 1f;
+        [Tooltip("How long to wait at each waypoint before moving to the next.")]
+        
+        [SerializeField] private float _arrivalThreshold = 0.5f;
+        [Tooltip("How close to waypoint before considering 'arrived' (meters).")]
+        
+        [Header("Patrol System - Visual")]
+        [SerializeField] private bool _showPatrolPath = true;
+        [Tooltip("Show patrol path in Scene view when enemy is selected.")]
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -89,6 +129,9 @@ namespace Resonance.Enemies
 
             // Update collider radii in case stats changed
             UpdateColliderRadii();
+            
+            // Setup patrol waypoints
+            SetupPatrolWaypoints();
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started successfully");
         }
@@ -122,6 +165,66 @@ namespace Resonance.Enemies
             }
         }
 
+        #endregion
+        
+        #region Patrol System Properties
+        
+        /// <summary>
+        /// Get patrol waypoint A in world coordinates
+        /// </summary>
+        public Vector3 PatrolWaypointA
+        {
+            get
+            {
+                if (_useTransformPoints && _patrolPointA != null)
+                    return _patrolPointA.position;
+                else
+                    return transform.position + _patrolWaypointA;
+            }
+        }
+        
+        /// <summary>
+        /// Get patrol waypoint B in world coordinates
+        /// </summary>
+        public Vector3 PatrolWaypointB
+        {
+            get
+            {
+                if (_useTransformPoints && _patrolPointB != null)
+                    return _patrolPointB.position;
+                else
+                    return transform.position + _patrolWaypointB;
+            }
+        }
+        
+        /// <summary>
+        /// Check if patrol waypoints are properly configured
+        /// </summary>
+        public bool HasValidPatrolWaypoints
+        {
+            get
+            {
+                if (_useTransformPoints)
+                {
+                    return _patrolPointA != null && _patrolPointB != null;
+                }
+                else
+                {
+                    return Vector3.Distance(_patrolWaypointA, _patrolWaypointB) > 0.1f;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Patrol configuration properties
+        /// </summary>
+        public PatrolMode EnemyPatrolMode => _patrolMode;
+        public int MaxPatrolCycles => _maxPatrolCycles;
+        public float PatrolSpeed => _patrolSpeed;
+        public float SingleCycleDuration => _singleCycleDuration;
+        public float WaitAtWaypointDuration => _waitAtWaypointDuration;
+        public float ArrivalThreshold => _arrivalThreshold;
+        
         #endregion
 
         #region Initialization
@@ -170,7 +273,7 @@ namespace Resonance.Enemies
 
         private void InitializeEnemy()
         {
-            _enemyController = new EnemyController(_baseStats, transform.position);
+            _enemyController = new EnemyController(_baseStats, transform.position, transform);
 
             // Subscribe to enemy events
             _enemyController.OnPhysicalHealthChanged += HandlePhysicalHealthChanged;
@@ -183,6 +286,10 @@ namespace Resonance.Enemies
             _enemyController.OnStateChanged += HandleStateChanged;
 
             _isInitialized = true;
+            
+            // Setup patrol waypoints after controller is initialized
+            SetupPatrolWaypoints();
+            
             OnEnemyInitialized?.Invoke(_enemyController);
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
@@ -283,6 +390,38 @@ namespace Resonance.Enemies
             // Set initial radii
             UpdateColliderRadii();
         }
+        
+        private void SetupPatrolWaypoints()
+        {
+            // Validate patrol waypoints
+            if (!HasValidPatrolWaypoints)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: {gameObject.name} has invalid patrol waypoints. Using default points.");
+                
+                // Set default waypoints if none are configured
+                if (!_useTransformPoints)
+                {
+                    _patrolWaypointA = Vector3.left * 3f;
+                    _patrolWaypointB = Vector3.right * 3f;
+                }
+            }
+            
+            // Pass waypoints and configuration to controller if it's initialized
+            if (_isInitialized && _enemyController != null)
+            {
+                _enemyController.SetPatrolWaypoints(PatrolWaypointA, PatrolWaypointB);
+                _enemyController.SetPatrolConfiguration(
+                    _patrolMode,
+                    _maxPatrolCycles,
+                    _patrolSpeed,
+                    _singleCycleDuration,
+                    _waitAtWaypointDuration,
+                    _arrivalThreshold
+                );
+            }
+            
+            Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
+        }
 
         private void UpdateColliderRadii()
         {
@@ -380,7 +519,7 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered revival state");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - checking mental health for state transition");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
         }
@@ -718,8 +857,66 @@ namespace Resonance.Enemies
                 float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.attackRange;
                 Gizmos.DrawWireSphere(transform.position, attackRadius);
             }
+            
+            // Draw patrol path
+            if (_showPatrolPath)
+            {
+                DrawPatrolPath();
+            }
+        }
+        
+        private void DrawPatrolPath()
+        {
+            Vector3 waypointA = PatrolWaypointA;
+            Vector3 waypointB = PatrolWaypointB;
+            
+            // Draw waypoints
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(waypointA, 0.3f);
+            Gizmos.DrawWireSphere(waypointB, 0.3f);
+            
+            // Draw path line
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(waypointA, waypointB);
+            
+            // Draw labels
+            Gizmos.color = Color.white;
+            Gizmos.DrawRay(waypointA, Vector3.up * 0.5f);
+            Gizmos.DrawRay(waypointB, Vector3.up * 0.5f);
+            
+            // Draw current target if patrolling
+            if (IsInitialized && _enemyController.IsPatrolling)
+            {
+                Vector3 currentTarget = _enemyController.CurrentPatrolTarget;
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(currentTarget, 0.2f);
+                Gizmos.DrawLine(transform.position, currentTarget);
+            }
         }
 
+        #endregion
+        
+        #region Editor Validation
+        
+        void OnValidate()
+        {
+            // Validate patrol configuration
+            if (_maxPatrolCycles < 1)
+                _maxPatrolCycles = 1;
+                
+            if (_patrolSpeed < 0.1f)
+                _patrolSpeed = 0.1f;
+                
+            if (_singleCycleDuration < 1f)
+                _singleCycleDuration = 1f;
+                
+            if (_waitAtWaypointDuration < 0f)
+                _waitAtWaypointDuration = 0f;
+                
+            if (_arrivalThreshold < 0.1f)
+                _arrivalThreshold = 0.1f;
+        }
+        
         #endregion
     }
 }

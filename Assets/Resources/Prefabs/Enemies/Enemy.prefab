@@ -243,8 +243,20 @@ MonoBehaviour:
   _baseStats: {fileID: 11400000, guid: 5fb68305d3d8aed4192352c8f046812e, type: 2}
   _visualTransform: {fileID: 3203894000571929562}
   _bodyRenderer: {fileID: 1294134832740095054}
-  _detectionCollider: {fileID: 0}
-  _attackCollider: {fileID: 0}
+  _detectionCollider: {fileID: 3598880275413671006}
+  _attackCollider: {fileID: 6860426549029046187}
+  _patrolPointA: {fileID: 0}
+  _patrolPointB: {fileID: 0}
+  _useTransformPoints: 0
+  _patrolWaypointA: {x: 0, y: 0, z: 0}
+  _patrolWaypointB: {x: 0, y: 0, z: 5}
+  _patrolMode: 0
+  _maxPatrolCycles: 3
+  _patrolSpeed: 2
+  _singleCycleDuration: 20
+  _waitAtWaypointDuration: 5
+  _arrivalThreshold: 0.5
+  _showPatrolPath: 1
   _showDebugInfo: 0
 --- !u!1 &8951957337958308496
 GameObject:

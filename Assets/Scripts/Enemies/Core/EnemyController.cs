@@ -4,6 +4,7 @@ using Resonance.Enemies.States;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces;
+using Resonance.Enemies;
 
 namespace Resonance.Enemies.Core
 {
@@ -17,6 +18,7 @@ namespace Resonance.Enemies.Core
         private EnemyRuntimeStats _stats;
         private EnemyStateMachine _stateMachine;
         private EnemyActionController _actionController;
+        private EnemyMovement _movement;
         
         // Combat State
         private float _lastAttackTime = 0f;
@@ -32,6 +34,21 @@ namespace Resonance.Enemies.Core
         private Vector3 _patrolCenter;
         private Vector3 _currentPatrolTarget;
         private bool _isPatrolling = false;
+        private Vector3 _patrolWaypointA;
+        private Vector3 _patrolWaypointB;
+        private bool _movingToWaypointB = true; // true = moving to B, false = moving to A
+        
+        // Patrol Configuration
+        private PatrolMode _patrolMode = PatrolMode.Infinite;
+        private int _maxPatrolCycles = 3;
+        private float _patrolSpeed = 2f;
+        private float _singleCycleDuration = 10f;
+        private float _waitAtWaypointDuration = 1f;
+        private float _arrivalThreshold = 0.5f;
+        
+        // Patrol Runtime State
+        private int _currentPatrolCycles = 0;
+        private float _currentCycleStartTime = 0f;
         
         // Statistics
         private int _timesHit = 0;
@@ -63,6 +80,7 @@ namespace Resonance.Enemies.Core
         public EnemyRuntimeStats Stats => _stats;
         public EnemyStateMachine StateMachine => _stateMachine;
         public EnemyActionController ActionController => _actionController;
+        public EnemyMovement Movement => _movement;
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public Transform PlayerTarget => _playerTarget;
         public bool HasPlayerTarget => _hasPlayerTarget && _playerTarget != null;
@@ -70,6 +88,17 @@ namespace Resonance.Enemies.Core
         public Vector3 PatrolCenter => _patrolCenter;
         public Vector3 CurrentPatrolTarget => _currentPatrolTarget;
         public bool IsPatrolling => _isPatrolling;
+        public Vector3 PatrolWaypointA => _patrolWaypointA;
+        public Vector3 PatrolWaypointB => _patrolWaypointB;
+        
+        // Patrol Configuration Properties
+        public PatrolMode EnemyPatrolMode => _patrolMode;
+        public int MaxPatrolCycles => _maxPatrolCycles;
+        public float PatrolSpeed => _patrolSpeed;
+        public float SingleCycleDuration => _singleCycleDuration;
+        public float WaitAtWaypointDuration => _waitAtWaypointDuration;
+        public float ArrivalThreshold => _arrivalThreshold;
+        public int CurrentPatrolCycles => _currentPatrolCycles;
         public float RevivalTimer => _revivalTimer;
         
         // Health Properties
@@ -85,16 +114,19 @@ namespace Resonance.Enemies.Core
         public bool CanAttack => IsMentallyAlive && HasPlayerTarget && 
                                 Time.time >= _lastAttackTime + _stats.attackCooldown;
 
-        public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition)
+        public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
-            Initialize(baseStats, spawnPosition);
+            Initialize(baseStats, spawnPosition, enemyTransform);
         }
 
-        private void Initialize(EnemyBaseStats baseStats, Vector3 spawnPosition)
+        private void Initialize(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
             _stats = baseStats.CreateRuntimeStats();
             _patrolCenter = spawnPosition;
             _currentPatrolTarget = spawnPosition;
+            
+            // Initialize movement system
+            _movement = new EnemyMovement(_stats, enemyTransform);
             
             // Initialize action controller
             _actionController = new EnemyActionController(this);
@@ -120,6 +152,7 @@ namespace Resonance.Enemies.Core
             UpdateRevivalTimer(deltaTime);
             UpdatePlayerDetection();
             _actionController?.Update(deltaTime);
+            _movement?.Update(deltaTime);
             _stateMachine?.Update();
         }
 
@@ -484,13 +517,111 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Generate random patrol point within patrol radius
+        /// Generate patrol point (uses waypoints if available, otherwise random)
         /// </summary>
         public Vector3 GeneratePatrolPoint()
         {
+            // Use waypoint-based patrolling if waypoints are set
+            if (HasPatrolWaypoints())
+            {
+                return GetNextPatrolWaypoint();
+            }
+            
+            // Fallback to random patrol within radius
             Vector2 randomCircle = Random.insideUnitCircle * _stats.patrolRadius;
             Vector3 patrolPoint = _patrolCenter + new Vector3(randomCircle.x, 0f, randomCircle.y);
             return patrolPoint;
+        }
+        
+        /// <summary>
+        /// Set patrol waypoints for linear patrolling
+        /// </summary>
+        public void SetPatrolWaypoints(Vector3 waypointA, Vector3 waypointB)
+        {
+            _patrolWaypointA = waypointA;
+            _patrolWaypointB = waypointB;
+            
+            // Set patrol center to midpoint between waypoints
+            _patrolCenter = (_patrolWaypointA + _patrolWaypointB) * 0.5f;
+            
+            Debug.Log($"EnemyController: Patrol waypoints set - A: {waypointA}, B: {waypointB}");
+        }
+        
+        /// <summary>
+        /// Check if patrol waypoints are configured
+        /// </summary>
+        public bool HasPatrolWaypoints()
+        {
+            return Vector3.Distance(_patrolWaypointA, _patrolWaypointB) > 0.1f;
+        }
+        
+        /// <summary>
+        /// Get the next patrol waypoint based on current direction
+        /// </summary>
+        public Vector3 GetNextPatrolWaypoint()
+        {
+            if (!HasPatrolWaypoints())
+            {
+                return _patrolCenter; // Fallback to center
+            }
+            
+            return _movingToWaypointB ? _patrolWaypointB : _patrolWaypointA;
+        }
+        
+        /// <summary>
+        /// Switch patrol direction (called when reaching a waypoint)
+        /// </summary>
+        public void SwitchPatrolDirection()
+        {
+            _movingToWaypointB = !_movingToWaypointB;
+            
+            // Count cycles when returning to A (completing a full cycle)
+            if (!_movingToWaypointB)
+            {
+                _currentPatrolCycles++;
+                Debug.Log($"EnemyController: Completed patrol cycle {_currentPatrolCycles}/{(_patrolMode == PatrolMode.Limited ? _maxPatrolCycles : "∞")}");
+            }
+            
+            Debug.Log($"EnemyController: Switched patrol direction, now moving to {(_movingToWaypointB ? "B" : "A")}");
+        }
+        
+        /// <summary>
+        /// Set patrol configuration
+        /// </summary>
+        public void SetPatrolConfiguration(
+            PatrolMode mode,
+            int maxCycles,
+            float speed,
+            float cycleDuration,
+            float waitDuration,
+            float arrivalThreshold)
+        {
+            _patrolMode = mode;
+            _maxPatrolCycles = maxCycles;
+            _patrolSpeed = speed;
+            _singleCycleDuration = cycleDuration;
+            _waitAtWaypointDuration = waitDuration;
+            _arrivalThreshold = arrivalThreshold;
+            
+            Debug.Log($"EnemyController: Patrol configuration set - Mode: {mode}, MaxCycles: {maxCycles}, Speed: {speed:F1}");
+        }
+        
+        /// <summary>
+        /// Check if patrol should stop (for Limited mode)
+        /// </summary>
+        public bool ShouldStopPatrol()
+        {
+            return _patrolMode == PatrolMode.Limited && _currentPatrolCycles >= _maxPatrolCycles;
+        }
+        
+        /// <summary>
+        /// Reset patrol cycle counter
+        /// </summary>
+        public void ResetPatrolCycles()
+        {
+            _currentPatrolCycles = 0;
+            _currentCycleStartTime = Time.time;
+            Debug.Log("EnemyController: Patrol cycles reset");
         }
 
         /// <summary>

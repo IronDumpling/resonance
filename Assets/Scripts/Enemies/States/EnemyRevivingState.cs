@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Enemies.Core;
+using Resonance.Enemies.Actions;
 
 namespace Resonance.Enemies.States
 {
@@ -29,6 +30,11 @@ namespace Resonance.Enemies.States
             // Continue to disable movement and AI
             _enemyController.StopPatrol();
             _enemyController.LosePlayer();
+            
+            // Start the revive action
+            var reviveAction = new EnemyReviveAction();
+            _enemyController.ActionController.RegisterAction(reviveAction);
+            _enemyController.ActionController.TryStartAction("Revive");
             
             // TODO: Visual effects for revival process
             // TODO: Play revival audio
@@ -62,6 +68,9 @@ namespace Resonance.Enemies.States
         public void Exit()
         {
             Debug.Log("EnemyState: Exited Reviving state");
+            
+            // Cleanup revive action
+            _enemyController.ActionController.UnregisterAction("Revive");
         }
 
         public bool CanTransitionTo(IState newState)
