@@ -354,10 +354,7 @@ namespace Resonance.Player
         private void HandleMoveInput(Vector2 input)
         {
             if (!IsInitialized) return;
-            
-            // Apply edge protection to movement input
-            Vector2 filteredInput = ApplyEdgeProtection(input);
-            _playerController.Movement.SetMovementInput(filteredInput);
+            _playerController.Movement.SetMovementInput(input);
         }
 
         private void HandleInteractInput()
@@ -534,27 +531,6 @@ namespace Resonance.Player
             bool hasGround = Physics.Raycast(checkPosition, Vector3.down, 2f, _edgeDetectionLayerMask);
 
             return hasGround;
-        }
-
-        private Vector2 ApplyEdgeProtection(Vector2 input)
-        {
-            // This method is kept for backward compatibility but now uses real-time checking
-            if (!_enableEdgeProtection) return input;
-
-            Vector2 filteredInput = input;
-            Vector3 currentPosition = transform.position;
-
-            // Check each direction in real-time
-            if (input.x > 0 && !IsPositionSafe(currentPosition, Vector3.right, 0.1f))
-                filteredInput.x = 0;
-            if (input.x < 0 && !IsPositionSafe(currentPosition, Vector3.left, 0.1f))
-                filteredInput.x = 0;
-            if (input.y > 0 && !IsPositionSafe(currentPosition, Vector3.forward, 0.1f))
-                filteredInput.y = 0;
-            if (input.y < 0 && !IsPositionSafe(currentPosition, Vector3.back, 0.1f))
-                filteredInput.y = 0;
-
-            return filteredInput;
         }
 
         // Update edge state for debug display (optional, called less frequently)
