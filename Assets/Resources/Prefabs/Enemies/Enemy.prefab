@@ -257,6 +257,11 @@ MonoBehaviour:
   _waitAtWaypointDuration: 5
   _arrivalThreshold: 0.5
   _showPatrolPath: 1
+  _targetUpdateInterval: 0.5
+  _chaseArrivalThreshold: 1
+  _attackDuration: 0.5
+  _attackDamage: 20
+  _attackCooldown: 3
   _showDebugInfo: 0
 --- !u!1 &8951957337958308496
 GameObject:
@@ -309,5 +314,5 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 2
+  m_Radius: 1.5
   m_Center: {x: 0, y: 0, z: 0}

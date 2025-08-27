@@ -14,10 +14,6 @@ namespace Resonance.Enemies.Actions
         private Vector3 _targetPosition;
         private float _updateTimer = 0f;
         
-        // Action configuration
-        private const float TARGET_UPDATE_INTERVAL = 0.2f; // Update target position every 0.2 seconds
-        private const float ARRIVAL_THRESHOLD = 0.5f; // How close to get to target before considering "arrived"
-        
         public string Name => "Chase";
         public int Priority => 70; // Medium-high priority
         public bool CanInterrupt => true;
@@ -59,7 +55,7 @@ namespace Resonance.Enemies.Actions
             _updateTimer += deltaTime;
             
             // Update target position periodically
-            if (_updateTimer >= TARGET_UPDATE_INTERVAL)
+            if (_updateTimer >= enemy.TargetUpdateInterval)
             {
                 _updateTimer = 0f;
                 UpdateTargetPosition(enemy);
@@ -149,7 +145,7 @@ namespace Resonance.Enemies.Actions
             var movement = enemy.Movement;
             float distanceToTarget = movement.GetDistanceToTarget();
             
-            if (distanceToTarget <= ARRIVAL_THRESHOLD)
+            if (distanceToTarget <= enemy.ChaseArrivalThreshold)
             {
                 Debug.Log("EnemyChaseAction: Arrived at target position");
                 // Don't finish immediately - keep chasing as target updates

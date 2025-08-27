@@ -50,6 +50,15 @@ namespace Resonance.Enemies.Core
         private int _currentPatrolCycles = 0;
         private float _currentCycleStartTime = 0f;
         
+        // Chase Configuration
+        private float _targetUpdateInterval = 0.5f;
+        private float _chaseArrivalThreshold = 1f;
+        
+        // Attack Configuration
+        private float _attackDuration = 1f;
+        private float _attackDamage = 25f;
+        private float _attackCooldown = 2f;
+        
         // Statistics
         private int _timesHit = 0;
         private float _totalDamageTaken = 0f;
@@ -98,6 +107,15 @@ namespace Resonance.Enemies.Core
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
         public float ArrivalThreshold => _arrivalThreshold;
+        
+        // Chase Configuration Properties
+        public float TargetUpdateInterval => _targetUpdateInterval;
+        public float ChaseArrivalThreshold => _chaseArrivalThreshold;
+        
+        // Attack Configuration Properties
+        public float AttackDuration => _attackDuration;
+        public float AttackDamage => _attackDamage;
+        public float AttackCooldown => _attackCooldown;
         public int CurrentPatrolCycles => _currentPatrolCycles;
         public float RevivalTimer => _revivalTimer;
         
@@ -112,7 +130,7 @@ namespace Resonance.Enemies.Core
         
         // Combat Properties
         public bool CanAttack => IsMentallyAlive && HasPlayerTarget && 
-                                Time.time >= _lastAttackTime + _stats.attackCooldown;
+                                Time.time >= _lastAttackTime + _attackCooldown;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -367,7 +385,7 @@ namespace Resonance.Enemies.Core
             _attacksLaunched++;
             
             // Apply mental health tier damage modifier to attack
-            float modifiedDamage = _stats.attackDamage * _stats.GetPhysicalDamageMultiplier();
+            float modifiedDamage = _attackDamage * _stats.GetPhysicalDamageMultiplier();
             
             // Actually find and damage the player
             bool damageDealt = DealDamageToPlayer(modifiedDamage);
@@ -376,7 +394,7 @@ namespace Resonance.Enemies.Core
             {
                 _totalDamageDealt += modifiedDamage;
                 OnAttackLaunched?.Invoke(modifiedDamage);
-                Debug.Log($"EnemyController: Successfully attacked player for {modifiedDamage:F1} damage (base: {_stats.attackDamage:F1}, multiplier: {_stats.GetPhysicalDamageMultiplier():F1})");
+                Debug.Log($"EnemyController: Successfully attacked player for {modifiedDamage:F1} damage (base: {_attackDamage:F1}, multiplier: {_stats.GetPhysicalDamageMultiplier():F1})");
             }
             else
             {
@@ -602,6 +620,34 @@ namespace Resonance.Enemies.Core
             _arrivalThreshold = arrivalThreshold;
             
             Debug.Log($"EnemyController: Patrol configuration set - Mode: {mode}, MaxCycles: {maxCycles}, Speed: {speed:F1}");
+        }
+        
+        /// <summary>
+        /// Set chase configuration
+        /// </summary>
+        public void SetChaseConfiguration(
+            float targetUpdateInterval,
+            float arrivalThreshold)
+        {
+            _targetUpdateInterval = targetUpdateInterval;
+            _chaseArrivalThreshold = arrivalThreshold;
+            
+            Debug.Log($"EnemyController: Chase configuration set - UpdateInterval: {targetUpdateInterval:F2}s, ArrivalThreshold: {arrivalThreshold:F1}");
+        }
+        
+        /// <summary>
+        /// Set attack configuration
+        /// </summary>
+        public void SetAttackConfiguration(
+            float attackDuration,
+            float attackDamage,
+            float attackCooldown)
+        {
+            _attackDuration = attackDuration;
+            _attackDamage = attackDamage;
+            _attackCooldown = attackCooldown;
+            
+            Debug.Log($"EnemyController: Attack configuration set - Duration: {attackDuration:F1}s, Damage: {attackDamage:F1}, Cooldown: {attackCooldown:F1}s");
         }
         
         /// <summary>

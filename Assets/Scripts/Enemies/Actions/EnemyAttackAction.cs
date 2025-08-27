@@ -14,9 +14,6 @@ namespace Resonance.Enemies.Actions
         private bool _isFinished = false;
         private bool _hasAttacked = false;
         
-        // Action configuration
-        private const float ATTACK_DURATION = 0.5f; // Time action stays active after attack
-        
         public string Name => "Attack";
         public int Priority => 90; // High priority - interrupts most other actions
         public bool CanInterrupt => true; // Can be interrupted by damage or state changes
@@ -54,7 +51,7 @@ namespace Resonance.Enemies.Actions
             }
             
             // Check if action should finish
-            if (_actionTimer >= ATTACK_DURATION)
+            if (_actionTimer >= enemy.AttackDuration)
             {
                 _isFinished = true;
             }

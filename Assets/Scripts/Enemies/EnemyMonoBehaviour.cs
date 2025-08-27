@@ -66,6 +66,23 @@ namespace Resonance.Enemies
         [SerializeField] private bool _showPatrolPath = true;
         [Tooltip("Show patrol path in Scene view when enemy is selected.")]
 
+        [Header("Chase System")]
+        [SerializeField] private float _targetUpdateInterval = 0.5f;
+        [Tooltip("How often to update the chase target position (seconds).")]
+        
+        [SerializeField] private float _chaseArrivalThreshold = 1f;
+        [Tooltip("How close to get to target before considering 'arrived' (meters).")]
+
+        [Header("Attack System")]
+        [SerializeField] private float _attackDuration = 0.5f;
+        [Tooltip("How long the attack action stays active after performing the attack (seconds).")]
+        
+        [SerializeField] private float _attackDamage = 20f;
+        [Tooltip("Base damage amount for enemy attacks.")]
+        
+        [SerializeField] private float _attackCooldown = 3f;
+        [Tooltip("Cooldown time between attacks (seconds).")]
+
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
 
@@ -227,6 +244,19 @@ namespace Resonance.Enemies
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
         public float ArrivalThreshold => _arrivalThreshold;
+        
+        /// <summary>
+        /// Chase configuration properties
+        /// </summary>
+        public float TargetUpdateInterval => _targetUpdateInterval;
+        public float ChaseArrivalThreshold => _chaseArrivalThreshold;
+        
+        /// <summary>
+        /// Attack configuration properties
+        /// </summary>
+        public float AttackDuration => _attackDuration;
+        public float AttackDamage => _attackDamage;
+        public float AttackCooldown => _attackCooldown;
         
         #endregion
 
@@ -456,6 +486,18 @@ namespace Resonance.Enemies
                     _singleCycleDuration,
                     _waitAtWaypointDuration,
                     _arrivalThreshold
+                );
+                
+                // Set chase and attack configuration
+                _enemyController.SetChaseConfiguration(
+                    _targetUpdateInterval,
+                    _chaseArrivalThreshold
+                );
+                
+                _enemyController.SetAttackConfiguration(
+                    _attackDuration,
+                    _attackDamage,
+                    _attackCooldown
                 );
             }
             
@@ -975,6 +1017,23 @@ namespace Resonance.Enemies
                 
             if (_arrivalThreshold < 0.1f)
                 _arrivalThreshold = 0.1f;
+            
+            // Validate chase configuration
+            if (_targetUpdateInterval < 0.1f)
+                _targetUpdateInterval = 0.1f;
+                
+            if (_chaseArrivalThreshold < 0.1f)
+                _chaseArrivalThreshold = 0.1f;
+            
+            // Validate attack configuration
+            if (_attackDuration < 0.1f)
+                _attackDuration = 0.1f;
+                
+            if (_attackDamage < 0f)
+                _attackDamage = 0f;
+                
+            if (_attackCooldown < 0f)
+                _attackCooldown = 0f;
         }
         
         #endregion
