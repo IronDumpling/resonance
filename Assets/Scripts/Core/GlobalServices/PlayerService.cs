@@ -213,24 +213,6 @@ namespace Resonance.Core.GlobalServices
             return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsMentallyAlive;
         }
 
-        public float GetPlayerHealth()
-        {
-            if (_currentPlayer?.IsInitialized == true)
-            {
-                return _currentPlayer.Controller.Stats.currentHealth;
-            }
-            return 0f;
-        }
-
-        public int GetPlayerLevel()
-        {
-            if (_currentPlayer?.IsInitialized == true)
-            {
-                return _currentPlayer.Controller.Level;
-            }
-            return 1;
-        }
-
         #endregion
 
         #region Helper Classes

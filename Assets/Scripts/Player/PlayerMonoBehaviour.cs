@@ -3,6 +3,8 @@ using UnityEngine.InputSystem;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
+using Resonance.Enemies;
+using Resonance.Items;
 using Resonance.Utilities;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -47,6 +49,8 @@ namespace Resonance.Player
         private PlayerController _playerController;
         private IInputService _inputService;
         private IInteractionService _interactionService;
+        private MentalAttackTrigger _mentalAttackTrigger;
+        private PlayerInteractTrigger _playerInteractTrigger;
 
         // Physics
         private bool _isGrounded;
@@ -117,6 +121,12 @@ namespace Resonance.Player
             var playerService = ServiceRegistry.Get<IPlayerService>();
             playerService?.RegisterPlayer(this);
 
+            // Initialize MentalAttackTrigger
+            InitializeMentalAttackTrigger();
+
+            // Initialize PlayerInteractTrigger
+            InitializePlayerInteractTrigger();
+
             Debug.Log("PlayerMonoBehaviour: Initialized and registered");
         }
 
@@ -128,6 +138,7 @@ namespace Resonance.Player
             UpdatePlayerVisualRotation();
             UpdateRightArmAnimation();
             UpdateAimingLine();
+            
             _playerController.Update(Time.deltaTime);
 
             // Update debug info less frequently to avoid performance issues
@@ -141,6 +152,14 @@ namespace Resonance.Player
         void OnDestroy()
         {
             UnsubscribeFromInput();
+            
+            // Cleanup MentalAttackTrigger events
+            if (_mentalAttackTrigger != null)
+            {
+                _mentalAttackTrigger.OnDeadEnemyEntered -= OnDeadEnemyEnteredRange;
+                _mentalAttackTrigger.OnDeadEnemyExited -= OnDeadEnemyExitedRange;
+                _mentalAttackTrigger.OnDeadEnemiesChanged -= OnDeadEnemiesChangedInRange;
+            }
             
             // Unregister from PlayerService
             var playerService = ServiceRegistry.Get<IPlayerService>();
@@ -222,6 +241,86 @@ namespace Resonance.Player
             Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
         }
 
+        /// <summary>
+        /// Initialize the MentalAttackTrigger component
+        /// </summary>
+        private void InitializeMentalAttackTrigger()
+        {
+            if (_playerController == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: Cannot initialize MentalAttackTrigger - PlayerController is null");
+                return;
+            }
+
+            // Find the MentalAttackRange GameObject
+            Transform mentalAttackRangeTransform = transform.Find("MentalAttackRange");
+            if (mentalAttackRangeTransform == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: MentalAttackRange GameObject not found as child of Player");
+                return;
+            }
+
+            // Get or add the MentalAttackTrigger component
+            _mentalAttackTrigger = mentalAttackRangeTransform.GetComponent<MentalAttackTrigger>();
+            if (_mentalAttackTrigger == null)
+            {
+                _mentalAttackTrigger = mentalAttackRangeTransform.gameObject.AddComponent<MentalAttackTrigger>();
+                Debug.Log("PlayerMonoBehaviour: Added MentalAttackTrigger component to MentalAttackRange GameObject");
+            }
+
+            // Initialize with player controller and range from base stats
+            float mentalAttackRange = _baseStats?.MentalAttackRange ?? 1.5f;
+            _mentalAttackTrigger.Initialize(_playerController, mentalAttackRange);
+
+            // Subscribe to events for debugging
+            _mentalAttackTrigger.OnDeadEnemyEntered += OnDeadEnemyEnteredRange;
+            _mentalAttackTrigger.OnDeadEnemyExited += OnDeadEnemyExitedRange;
+            _mentalAttackTrigger.OnDeadEnemiesChanged += OnDeadEnemiesChangedInRange;
+
+            Debug.Log($"PlayerMonoBehaviour: MentalAttackTrigger initialized with range {mentalAttackRange}");
+        }
+
+        /// <summary>
+        /// Initialize the PlayerInteractTrigger component
+        /// </summary>
+        private void InitializePlayerInteractTrigger()
+        {
+            // Find the InteractRange GameObject
+            Transform interactRangeTransform = transform.Find("InteractRange");
+            if (interactRangeTransform == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: InteractRange GameObject not found as child of Player");
+                return;
+            }
+
+            // Get or add the PlayerInteractTrigger component
+            _playerInteractTrigger = interactRangeTransform.GetComponent<PlayerInteractTrigger>();
+            if (_playerInteractTrigger == null)
+            {
+                _playerInteractTrigger = interactRangeTransform.gameObject.AddComponent<PlayerInteractTrigger>();
+                Debug.Log("PlayerMonoBehaviour: Added PlayerInteractTrigger component to InteractRange GameObject");
+            }
+
+            // Initialize with player reference
+            _playerInteractTrigger.Initialize(this);
+
+            // Set the collider radius and layer mask from base stats
+            float interactionRange = _baseStats?.InteractionRange ?? 1.5f;
+            LayerMask interactionLayerMask = _baseStats?.InteractionLayerMask ?? (1 << 7);
+            
+            var sphereCollider = interactRangeTransform.GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                sphereCollider.radius = interactionRange;
+                Debug.Log($"PlayerMonoBehaviour: Set InteractRange radius to {interactionRange}");
+            }
+
+            // Set the interaction layer mask
+            _playerInteractTrigger.SetInteractionLayerMask(interactionLayerMask);
+
+
+        }
+
         #endregion
 
         #region Input Handling
@@ -232,6 +331,8 @@ namespace Resonance.Player
 
             _inputService.OnMove += HandleMoveInput;
             _inputService.OnInteract += HandleInteractInput;
+            _inputService.OnResonance += HandleResonanceInput; // F key short press (Resonance)
+            _inputService.OnRecover += HandleRecoverInput; // F key press/release (Recover)
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
@@ -240,9 +341,11 @@ namespace Resonance.Player
         private void UnsubscribeFromInput()
         {
             if (_inputService == null) return;
-
+ 
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
+            _inputService.OnResonance -= HandleResonanceInput;
+            _inputService.OnRecover -= HandleRecoverInput;
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
             _inputService.OnShoot -= HandleShootInput;
@@ -251,38 +354,94 @@ namespace Resonance.Player
         private void HandleMoveInput(Vector2 input)
         {
             if (!IsInitialized) return;
-            
-            // Apply edge protection to movement input
-            Vector2 filteredInput = ApplyEdgeProtection(input);
-            _playerController.Movement.SetMovementInput(filteredInput);
+            _playerController.Movement.SetMovementInput(input);
         }
 
         private void HandleInteractInput()
         {
-            if (!IsInitialized || _interactionService == null) return;
-            
-            // Only allow interaction in Normal state
-            if (_playerController.StateMachine.CanInteract())
+            if (!IsInitialized) return;
+
+            bool interactStarted = _playerController.TryStartAction("Interact");
+            if (interactStarted)
             {
-                // 执行交互
-                bool interactionSuccess = _interactionService.PerformInteraction(transform);
-                
-                if (interactionSuccess)
+                Debug.Log("PlayerMonoBehaviour: Started InteractAction via E key");
+            }
+            else
+            {
+                Debug.Log("PlayerMonoBehaviour: InteractAction conditions not met");
+            }
+        }
+
+        /// <summary>
+        /// Handle Resonance press input (F key short press) - Resonance or Interaction based on priority
+        /// </summary>
+        private void HandleResonanceInput()
+        {
+            if (!IsInitialized) return;
+
+            // Priority logic: 
+            // 1. If dead enemies in mental attack range -> ResonanceAction
+            // 2. Otherwise -> InteractAction (E key functionality)
+            
+            bool hasDeadEnemiesInRange = HasDeadEnemiesInMentalAttackRange();
+            
+            if (hasDeadEnemiesInRange)
+            {
+                // Try to start ResonanceAction
+                bool resonanceStarted = _playerController.TryStartAction("Resonance");
+                if (resonanceStarted)
                 {
-                    Debug.Log("PlayerMonoBehaviour: Interaction successful");
-                }
-                else if (_interactionService.HasInteractable)
-                {
-                    Debug.LogWarning("PlayerMonoBehaviour: Interaction failed");
+                    Debug.Log("PlayerMonoBehaviour: Started ResonanceAction via short press F");
                 }
                 else
                 {
-                    Debug.Log("PlayerMonoBehaviour: No interactable object nearby");
+                    Debug.Log("PlayerMonoBehaviour: ResonanceAction conditions not met");
                 }
             }
             else
             {
-                Debug.Log("PlayerMonoBehaviour: Cannot interact in current state");
+                // Try to start InteractAction (same as E key)
+                bool interactStarted = _playerController.TryStartAction("Interact");
+                if (interactStarted)
+                {
+                    Debug.Log("PlayerMonoBehaviour: Started InteractAction via short press F");
+                }
+                else
+                {
+                    Debug.Log("PlayerMonoBehaviour: InteractAction conditions not met");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handle Recover input (F key press/release) - RecoverAction
+        /// </summary>
+        /// <param name="isPressed">True when F key is pressed, false when released</param>
+        private void HandleRecoverInput(bool isPressed)
+        {
+            if (!IsInitialized) return;
+
+            if (isPressed)
+            {
+                // F key pressed - try to start RecoverAction
+                bool recoverStarted = _playerController.TryStartAction("Recover");
+                if (recoverStarted)
+                {
+                    Debug.Log("PlayerMonoBehaviour: Started RecoverAction via F key press");
+                }
+                else
+                {
+                    Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
+                }
+            }
+            else
+            {
+                // F key released - stop RecoverAction if it's running
+                if (_playerController.GetCurrentActionName() == "Recover")
+                {
+                    _playerController.CancelCurrentAction();
+                    Debug.Log("PlayerMonoBehaviour: Stopped RecoverAction via F key release");
+                }
             }
         }
 
@@ -340,13 +499,6 @@ namespace Resonance.Player
             _characterController.Move(movement);
         }
 
-        private void CheckGrounded()
-        {
-            // For 2D games, always consider grounded (no jumping/falling)
-            _isGrounded = true;
-            _playerController.Movement.SetGrounded(_isGrounded);
-        }
-
         #endregion
 
         #region Edge Protection
@@ -392,27 +544,6 @@ namespace Resonance.Player
             bool hasGround = Physics.Raycast(checkPosition, Vector3.down, 2f, _edgeDetectionLayerMask);
 
             return hasGround;
-        }
-
-        private Vector2 ApplyEdgeProtection(Vector2 input)
-        {
-            // This method is kept for backward compatibility but now uses real-time checking
-            if (!_enableEdgeProtection) return input;
-
-            Vector2 filteredInput = input;
-            Vector3 currentPosition = transform.position;
-
-            // Check each direction in real-time
-            if (input.x > 0 && !IsPositionSafe(currentPosition, Vector3.right, 0.1f))
-                filteredInput.x = 0;
-            if (input.x < 0 && !IsPositionSafe(currentPosition, Vector3.left, 0.1f))
-                filteredInput.x = 0;
-            if (input.y > 0 && !IsPositionSafe(currentPosition, Vector3.forward, 0.1f))
-                filteredInput.y = 0;
-            if (input.y < 0 && !IsPositionSafe(currentPosition, Vector3.back, 0.1f))
-                filteredInput.y = 0;
-
-            return filteredInput;
         }
 
         // Update edge state for debug display (optional, called less frequently)
@@ -794,11 +925,16 @@ namespace Resonance.Player
                 $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
                 "Edge Protection: OFF";
                 
+            // MentalAttackTrigger debug info
+            string mentalAttackInfo = GetMentalAttackRangeDebugInfo();
+            
             Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
                      $"Mental Health: {stats.currentMentalHealth}/{stats.maxMentalHealth}, " +
-                     $"State: {_playerController.CurrentState}, " +
+                     $"Mental Tier: {_playerController.MentalTier}, Physical Tier: {_playerController.PhysicalTier}, " +
+                     $"Slots: {_playerController.MentalHealthInSlots:F1}/{stats.mentalHealthSlots}, " +
+                     $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
-                     $"{edgeInfo}");
+                     $"{edgeInfo}, {mentalAttackInfo}");
         }
 
         void OnDrawGizmosSelected()
@@ -857,12 +993,6 @@ namespace Resonance.Player
                     float mentalDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
                     _playerController.TakePhysicalDamage(physicalDamage);
                     _playerController.TakeMentalDamage(mentalDamage);
-                    break;
-                    
-                case DamageType.True:
-                    // True damage bypasses dual health system - affects legacy health directly
-                    Debug.LogWarning("PlayerMonoBehaviour: True damage not fully implemented yet");
-                    _playerController.TakePhysicalDamage(damageInfo.amount);
                     break;
             }
             
@@ -929,6 +1059,71 @@ namespace Resonance.Player
         /// Max mental health
         /// </summary>
         public float MaxMentalHealth => IsInitialized ? _playerController.Stats.maxMentalHealth : 0f;
+
+        #endregion
+
+        #region MentalAttackTrigger Events
+
+        /// <summary>
+        /// Called when a dead enemy enters mental attack range
+        /// </summary>
+        /// <param name="enemy">The enemy that entered range</param>
+        private void OnDeadEnemyEnteredRange(EnemyMonoBehaviour enemy)
+        {
+            if (enemy != null)
+            {
+                Debug.Log($"PlayerMonoBehaviour: Dead enemy {enemy.name} entered mental attack range");
+            }
+        }
+
+        /// <summary>
+        /// Called when a dead enemy exits mental attack range
+        /// </summary>
+        /// <param name="enemy">The enemy that exited range</param>
+        private void OnDeadEnemyExitedRange(EnemyMonoBehaviour enemy)
+        {
+            if (enemy != null)
+            {
+                Debug.Log($"PlayerMonoBehaviour: Dead enemy {enemy.name} exited mental attack range");
+            }
+        }
+
+        /// <summary>
+        /// Called when the list of dead enemies in range changes
+        /// </summary>
+        private void OnDeadEnemiesChangedInRange()
+        {
+            int deadEnemyCount = _mentalAttackTrigger?.DeadEnemyCount ?? 0;
+            Debug.Log($"PlayerMonoBehaviour: Dead enemies in mental attack range: {deadEnemyCount}");
+        }
+
+        /// <summary>
+        /// Public method to check if there are dead enemies in mental attack range
+        /// Used by ActionController for priority logic
+        /// </summary>
+        /// <returns>True if there are dead enemies in range</returns>
+        public bool HasDeadEnemiesInMentalAttackRange()
+        {
+            return _mentalAttackTrigger?.HasDeadEnemiesInRange ?? false;
+        }
+
+        /// <summary>
+        /// Get the number of dead enemies in mental attack range
+        /// </summary>
+        /// <returns>Number of dead enemies in range</returns>
+        public int GetDeadEnemyCount()
+        {
+            return _mentalAttackTrigger?.DeadEnemyCount ?? 0;
+        }
+
+        /// <summary>
+        /// Get debug information about mental attack range detection
+        /// </summary>
+        /// <returns>Debug info string</returns>
+        public string GetMentalAttackRangeDebugInfo()
+        {
+            return _mentalAttackTrigger?.GetDebugInfo() ?? "MentalAttackTrigger not initialized";
+        }
 
         #endregion
     }

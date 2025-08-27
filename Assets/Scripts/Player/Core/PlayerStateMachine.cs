@@ -50,7 +50,6 @@ namespace Resonance.Player.Core
             // Add player states
             _stateMachine.AddState(new PlayerNormalState(_playerController));
             _stateMachine.AddState(new PlayerAimingState(_playerController));
-            _stateMachine.AddState(new PlayerInteractingState(_playerController));
             _stateMachine.AddState(new PlayerPhysicalDeathState(_playerController));
             _stateMachine.AddState(new PlayerTrueDeathState(_playerController));
             _stateMachine.AddState(new PlayerCoreState());
@@ -142,24 +141,6 @@ namespace Resonance.Player.Core
             return false;
         }
 
-        public bool StartInteracting()
-        {
-            if (IsInState("Normal"))
-            {
-                return ChangeState("Interacting");
-            }
-            return false;
-        }
-
-        public bool StopInteracting()
-        {
-            if (IsInState("Interacting"))
-            {
-                return ChangeState("Normal");
-            }
-            return false;
-        }
-
         public bool EnterPhysicalDeath()
         {
             // Can enter physical death from any state except already in death states
@@ -200,11 +181,6 @@ namespace Resonance.Player.Core
         }
 
         public bool CanRun()
-        {
-            return IsInState("Normal");
-        }
-
-        public bool CanInteract()
         {
             return IsInState("Normal");
         }

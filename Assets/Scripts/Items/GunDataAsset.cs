@@ -173,7 +173,6 @@ namespace Resonance.Items
                 DamageType.Physical => "物理伤害 - 影响物理血量",
                 DamageType.Mental => "精神伤害 - 影响精神血量",
                 DamageType.Mixed => $"混合伤害 - 物理{physicalDamageRatio:P0}/精神{(1-physicalDamageRatio):P0}",
-                DamageType.True => "真实伤害 - 直接影响核心生命",
                 _ => "未知伤害类型"
             };
         }

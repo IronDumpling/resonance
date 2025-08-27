@@ -34,7 +34,5 @@ namespace Resonance.Interfaces.Services
         // Player State Queries
         bool IsPlayerPhysicallyAlive();
         bool IsPlayerMentallyAlive();
-        float GetPlayerHealth();
-        int GetPlayerLevel();
     }
 }

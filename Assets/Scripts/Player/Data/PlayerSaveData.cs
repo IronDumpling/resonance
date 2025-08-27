@@ -25,10 +25,7 @@ namespace Resonance.Player.Data
         public List<int> equippedItemIDs; // IDs of currently equipped items
 
         [Header("Progression")]
-        public int playerLevel;
-        public float experience;
         public List<string> unlockedAbilities;
-        public Dictionary<string, bool> levelFlags; // Story/progression flags
         public Dictionary<string, float> gameVariables; // Numeric game variables
 
         [Header("Scene-specific Data")]
@@ -40,7 +37,6 @@ namespace Resonance.Player.Data
             inventory = new List<ItemSaveData>();
             equippedItemIDs = new List<int>();
             unlockedAbilities = new List<string>();
-            levelFlags = new Dictionary<string, bool>();
             gameVariables = new Dictionary<string, float>();
             collectedItems = new Dictionary<string, bool>();
             completedEvents = new Dictionary<string, bool>();

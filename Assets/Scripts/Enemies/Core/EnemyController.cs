@@ -109,15 +109,12 @@ namespace Resonance.Enemies.Core
 
         private void UpdateHealthRegeneration(float deltaTime)
         {
-            bool healthChanged = false;
-            
             // Physical health regeneration (only when physically alive)
             if (_stats.physicalHealthRegenRate > 0f && _stats.currentPhysicalHealth < _stats.maxPhysicalHealth && IsPhysicallyAlive)
             {
                 _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, 
                     _stats.currentPhysicalHealth + _stats.physicalHealthRegenRate * deltaTime);
                 OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
-                healthChanged = true;
             }
             
             // Mental health regeneration (only in normal state)
@@ -127,7 +124,6 @@ namespace Resonance.Enemies.Core
                 _stats.currentMentalHealth = Mathf.Min(_stats.maxMentalHealth, 
                     _stats.currentMentalHealth + _stats.mentalHealthRegenRate * deltaTime);
                 OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
-                healthChanged = true;
             }
         }
 

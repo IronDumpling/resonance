@@ -129,9 +129,9 @@ MonoBehaviour:
   _physicalHealthValue: {fileID: 6094282942158831873}
   _mentalHealthBar: {fileID: 9187191661357853098}
   _mentalHealthValue: {fileID: 6535690466744875557}
-  _normalHealthSprite: {fileID: 0}
-  _medianHealthSprite: {fileID: 0}
-  _badHealthSprite: {fileID: 0}
+  _healthyHealthSprite: {fileID: 21300000, guid: bc15ff32cb0f2294f9225a2633d64d0b, type: 3}
+  _woundedHealthSprite: {fileID: 21300000, guid: efbbc2ba8d8ce27458d47eefad8697c2, type: 3}
+  _criticalHealthSprite: {fileID: 21300000, guid: d9ceea5be6a6f7c478539f513b19364f, type: 3}
 --- !u!1 &1081127886642580656
 GameObject:
   m_ObjectHideFlags: 0

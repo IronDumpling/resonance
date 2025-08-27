@@ -34,6 +34,8 @@ namespace Resonance.Core.GlobalServices
         // Input events
         public event Action<Vector2> OnMove;
         public event Action OnInteract;
+        public event Action OnResonance; // Short press F (ResonanceAction)
+        public event Action<bool> OnRecover; // F key press/release (RecoverAction) - true for press, false for release
         public event Action<bool> OnRun; // true when starting to run, false when stopping
         public event Action<bool> OnAim; // true when starting to aim, false when stopping
         public event Action OnShoot;
@@ -76,6 +78,10 @@ namespace Resonance.Core.GlobalServices
             
             _playerMap["Interact"].performed += OnInteractPerformed;
             
+            _playerMap["Resonance"].performed += OnResonancePerformed;
+            _playerMap["Recover"].started += OnRecoverStarted;
+            _playerMap["Recover"].canceled += OnRecoverCanceled;
+            
             _playerMap["Run"].started += OnRunStarted;
             _playerMap["Run"].canceled += OnRunCanceled;
             
@@ -101,6 +107,24 @@ namespace Resonance.Core.GlobalServices
         private void OnInteractPerformed(InputAction.CallbackContext context)
         {
             OnInteract?.Invoke();
+        }
+
+        private void OnResonancePerformed(InputAction.CallbackContext context)
+        {
+            OnResonance?.Invoke();
+            Debug.Log("InputService: Resonance press performed");
+        }
+
+        private void OnRecoverStarted(InputAction.CallbackContext context)
+        {
+            OnRecover?.Invoke(true);
+            Debug.Log("InputService: Recover key pressed (started)");
+        }
+
+        private void OnRecoverCanceled(InputAction.CallbackContext context)
+        {
+            OnRecover?.Invoke(false);
+            Debug.Log("InputService: Recover key released (canceled)");
         }
 
         private void OnRunStarted(InputAction.CallbackContext context)
@@ -186,6 +210,8 @@ namespace Resonance.Core.GlobalServices
             // Clear all event listeners
             OnMove = null;
             OnInteract = null;
+            OnResonance = null;
+            OnRecover = null;
             OnRun = null;
             OnAim = null;
             OnShoot = null;
