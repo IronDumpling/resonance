@@ -46,6 +46,18 @@ namespace Resonance.Enemies.Data
         [Tooltip("Patrol radius")]
         public float patrolRadius = 5f;
         
+        [Header("Health Tiers")]
+        [Tooltip("Physical health threshold for wounded state (0-1)")]
+        public float physicalWoundedThreshold = 0.4f;
+        [Tooltip("Mental health threshold for critical state (0-1)")]
+        public float mentalCriticalThreshold = 0.4f;
+        [Tooltip("Movement speed multiplier when wounded (physical health low)")]
+        public float woundedSpeedMultiplier = 0.7f;
+        [Tooltip("Physical damage multiplier when mental health is critical")]
+        public float criticalPhysicalDamageMultiplier = 1.5f;
+        [Tooltip("Physical damage multiplier when mental health is dead")]
+        public float deadPhysicalDamageMultiplier = 2.0f;
+        
         [Header("Revival System")]
         [Tooltip("Time to wait before starting revival")]
         public float revivalDelay = 2f;
@@ -72,7 +84,7 @@ namespace Resonance.Enemies.Data
         /// <returns>运行时属性</returns>
         public EnemyRuntimeStats CreateRuntimeStats()
         {
-            return new EnemyRuntimeStats
+            var stats = new EnemyRuntimeStats
             {
                 // Physical Health
                 maxPhysicalHealth = this.maxPhysicalHealth,
@@ -98,6 +110,13 @@ namespace Resonance.Enemies.Data
                 alertMoveSpeed = this.alertMoveSpeed,
                 patrolRadius = this.patrolRadius,
                 
+                // Health Tiers
+                physicalWoundedThreshold = this.physicalWoundedThreshold,
+                mentalCriticalThreshold = this.mentalCriticalThreshold,
+                woundedSpeedMultiplier = this.woundedSpeedMultiplier,
+                criticalPhysicalDamageMultiplier = this.criticalPhysicalDamageMultiplier,
+                deadPhysicalDamageMultiplier = this.deadPhysicalDamageMultiplier,
+                
                 // Revival
                 revivalDelay = this.revivalDelay,
                 revivalDuration = this.revivalDuration,
@@ -116,6 +135,10 @@ namespace Resonance.Enemies.Data
                 showDetectionRange = this.showDetectionRange,
                 showAttackRange = this.showAttackRange
             };
+            
+            // Initialize health tiers
+            stats.UpdateHealthTiers();
+            return stats;
         }
 
         /// <summary>
@@ -174,6 +197,14 @@ namespace Resonance.Enemies.Data
             moveSpeed = Mathf.Max(0.1f, moveSpeed);
             alertMoveSpeed = Mathf.Max(0.1f, alertMoveSpeed);
             patrolRadius = Mathf.Max(0f, patrolRadius);
+            
+            // Validate health tier thresholds
+            physicalWoundedThreshold = Mathf.Clamp01(physicalWoundedThreshold);
+            mentalCriticalThreshold = Mathf.Clamp01(mentalCriticalThreshold);
+            woundedSpeedMultiplier = Mathf.Max(0.1f, woundedSpeedMultiplier);
+            criticalPhysicalDamageMultiplier = Mathf.Max(1f, criticalPhysicalDamageMultiplier);
+            deadPhysicalDamageMultiplier = Mathf.Max(1f, deadPhysicalDamageMultiplier);
+            
             revivalDelay = Mathf.Max(0f, revivalDelay);
             revivalDuration = Mathf.Max(0.1f, revivalDuration);
             damageFlashDuration = Mathf.Max(0.1f, damageFlashDuration);
@@ -213,6 +244,13 @@ namespace Resonance.Enemies.Data
         public float alertMoveSpeed;
         public float patrolRadius;
         
+        [Header("Health Tiers")]
+        public float physicalWoundedThreshold;
+        public float mentalCriticalThreshold;
+        public float woundedSpeedMultiplier;
+        public float criticalPhysicalDamageMultiplier;
+        public float deadPhysicalDamageMultiplier;
+        
         [Header("Revival")]
         public float revivalDelay;
         public float revivalDuration;
@@ -231,6 +269,10 @@ namespace Resonance.Enemies.Data
         public bool showDetectionRange;
         public bool showAttackRange;
 
+        [Header("Health Tiers")]
+        public EnemyPhysicalHealthTier physicalTier;
+        public EnemyMentalHealthTier mentalTier;
+        
         // Health Properties
         public bool IsPhysicallyAlive => currentPhysicalHealth > 0f;
         public bool IsMentallyAlive => currentMentalHealth > 0f;
@@ -247,6 +289,7 @@ namespace Resonance.Enemies.Data
         {
             currentPhysicalHealth = maxPhysicalHealth;
             currentMentalHealth = maxMentalHealth;
+            UpdateHealthTiers();
         }
 
         /// <summary>
@@ -255,6 +298,7 @@ namespace Resonance.Enemies.Data
         public void RestorePhysicalHealth()
         {
             currentPhysicalHealth = maxPhysicalHealth;
+            UpdateHealthTiers();
         }
 
         /// <summary>
@@ -263,6 +307,71 @@ namespace Resonance.Enemies.Data
         public void RestoreMentalHealth()
         {
             currentMentalHealth = maxMentalHealth;
+            UpdateHealthTiers();
+        }
+        
+        /// <summary>
+        /// Update health tiers based on current health values
+        /// </summary>
+        public void UpdateHealthTiers()
+        {
+            // Physical Tier calculation
+            if (currentPhysicalHealth <= 0f)
+                physicalTier = EnemyPhysicalHealthTier.Dead;
+            else if (PhysicalHealthPercentage <= physicalWoundedThreshold)
+                physicalTier = EnemyPhysicalHealthTier.Wounded;
+            else
+                physicalTier = EnemyPhysicalHealthTier.Healthy;
+                
+            // Mental Tier calculation  
+            if (currentMentalHealth <= 0f)
+                mentalTier = EnemyMentalHealthTier.Dead;
+            else if (MentalHealthPercentage <= mentalCriticalThreshold)
+                mentalTier = EnemyMentalHealthTier.Critical;
+            else
+                mentalTier = EnemyMentalHealthTier.Healthy;
+        }
+        
+        /// <summary>
+        /// Get current movement speed with health tier modifiers
+        /// </summary>
+        public float GetModifiedMoveSpeed()
+        {
+            if (physicalTier == EnemyPhysicalHealthTier.Dead)
+                return 0f; // Cannot move when physically dead
+            else if (physicalTier == EnemyPhysicalHealthTier.Wounded)
+                return moveSpeed * woundedSpeedMultiplier;
+            else
+                return moveSpeed;
+        }
+        
+        /// <summary>
+        /// Get current alert move speed with health tier modifiers
+        /// </summary>
+        public float GetModifiedAlertMoveSpeed()
+        {
+            if (physicalTier == EnemyPhysicalHealthTier.Dead)
+                return 0f; // Cannot move when physically dead
+            else if (physicalTier == EnemyPhysicalHealthTier.Wounded)
+                return alertMoveSpeed * woundedSpeedMultiplier;
+            else
+                return alertMoveSpeed;
+        }
+        
+        /// <summary>
+        /// Get physical damage multiplier based on mental health tier
+        /// </summary>
+        public float GetPhysicalDamageMultiplier()
+        {
+            switch (mentalTier)
+            {
+                case EnemyMentalHealthTier.Dead:
+                    return deadPhysicalDamageMultiplier;
+                case EnemyMentalHealthTier.Critical:
+                    return criticalPhysicalDamageMultiplier;
+                default:
+                    return 1f;
+            }
         }
     }
 }

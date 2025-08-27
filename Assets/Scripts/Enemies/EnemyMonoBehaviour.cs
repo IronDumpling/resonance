@@ -8,6 +8,13 @@ using System.Collections;
 
 namespace Resonance.Enemies
 {
+    // Patrol mode enumeration
+    public enum PatrolMode
+    {
+        Infinite,
+        Limited    
+    }
+
     /// <summary>
     /// MonoBehaviour component that handles Unity-specific enemy functionality.
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.
@@ -25,6 +32,56 @@ namespace Resonance.Enemies
         [Header("Detection System")]
         [SerializeField] private SphereCollider _detectionCollider;
         [SerializeField] private SphereCollider _attackCollider;
+        
+        [Header("Patrol System - Waypoints")]
+        [SerializeField] private Transform _patrolPointA;
+        [SerializeField] private Transform _patrolPointB;
+        [SerializeField] private bool _useTransformPoints = false;
+        [Tooltip("If true, use Transform references. If false, use Vector3 waypoints relative to enemy position.")]
+        
+        [SerializeField] private Vector3 _patrolWaypointA = Vector3.zero;
+        [SerializeField] private Vector3 _patrolWaypointB = Vector3.forward * 5f;
+        
+        [Header("Patrol System - Behavior")]
+        [SerializeField] private PatrolMode _patrolMode = PatrolMode.Infinite;
+        [Tooltip("Infinite: Never stops patrolling. Limited: Stops after specified cycles.")]
+        
+        [SerializeField] private int _maxPatrolCycles = 3;
+        [Tooltip("How many complete A→B→A cycles before stopping (only used in Limited mode).")]
+        
+        [SerializeField] private float _patrolSpeed = 2f;
+        [Tooltip("Movement speed while patrolling (units per second).")]
+        
+        [Header("Patrol System - Timing")]
+        [SerializeField] private float _singleCycleDuration = 10f;
+        [Tooltip("How long one complete patrol cycle (A→B→A) should take in seconds.")]
+        
+        [SerializeField] private float _waitAtWaypointDuration = 1f;
+        [Tooltip("How long to wait at each waypoint before moving to the next.")]
+        
+        [SerializeField] private float _arrivalThreshold = 0.5f;
+        [Tooltip("How close to waypoint before considering 'arrived' (meters).")]
+        
+        [Header("Patrol System - Visual")]
+        [SerializeField] private bool _showPatrolPath = true;
+        [Tooltip("Show patrol path in Scene view when enemy is selected.")]
+
+        [Header("Chase System")]
+        [SerializeField] private float _targetUpdateInterval = 0.5f;
+        [Tooltip("How often to update the chase target position (seconds).")]
+        
+        [SerializeField] private float _chaseArrivalThreshold = 1f;
+        [Tooltip("How close to get to target before considering 'arrived' (meters).")]
+
+        [Header("Attack System")]
+        [SerializeField] private float _attackDuration = 0.5f;
+        [Tooltip("How long the attack action stays active after performing the attack (seconds).")]
+        
+        [SerializeField] private float _attackDamage = 20f;
+        [Tooltip("Base damage amount for enemy attacks.")]
+        
+        [SerializeField] private float _attackCooldown = 3f;
+        [Tooltip("Cooldown time between attacks (seconds).")]
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -89,6 +146,12 @@ namespace Resonance.Enemies
 
             // Update collider radii in case stats changed
             UpdateColliderRadii();
+            
+            // Verify and fix detection system (in case components were missing)
+            VerifyDetectionSystem();
+            
+            // Setup patrol waypoints
+            SetupPatrolWaypoints();
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started successfully");
         }
@@ -122,6 +185,79 @@ namespace Resonance.Enemies
             }
         }
 
+        #endregion
+        
+        #region Patrol System Properties
+        
+        /// <summary>
+        /// Get patrol waypoint A in world coordinates
+        /// </summary>
+        public Vector3 PatrolWaypointA
+        {
+            get
+            {
+                if (_useTransformPoints && _patrolPointA != null)
+                    return _patrolPointA.position;
+                else
+                    return transform.position + _patrolWaypointA;
+            }
+        }
+        
+        /// <summary>
+        /// Get patrol waypoint B in world coordinates
+        /// </summary>
+        public Vector3 PatrolWaypointB
+        {
+            get
+            {
+                if (_useTransformPoints && _patrolPointB != null)
+                    return _patrolPointB.position;
+                else
+                    return transform.position + _patrolWaypointB;
+            }
+        }
+        
+        /// <summary>
+        /// Check if patrol waypoints are properly configured
+        /// </summary>
+        public bool HasValidPatrolWaypoints
+        {
+            get
+            {
+                if (_useTransformPoints)
+                {
+                    return _patrolPointA != null && _patrolPointB != null;
+                }
+                else
+                {
+                    return Vector3.Distance(_patrolWaypointA, _patrolWaypointB) > 0.1f;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Patrol configuration properties
+        /// </summary>
+        public PatrolMode EnemyPatrolMode => _patrolMode;
+        public int MaxPatrolCycles => _maxPatrolCycles;
+        public float PatrolSpeed => _patrolSpeed;
+        public float SingleCycleDuration => _singleCycleDuration;
+        public float WaitAtWaypointDuration => _waitAtWaypointDuration;
+        public float ArrivalThreshold => _arrivalThreshold;
+        
+        /// <summary>
+        /// Chase configuration properties
+        /// </summary>
+        public float TargetUpdateInterval => _targetUpdateInterval;
+        public float ChaseArrivalThreshold => _chaseArrivalThreshold;
+        
+        /// <summary>
+        /// Attack configuration properties
+        /// </summary>
+        public float AttackDuration => _attackDuration;
+        public float AttackDamage => _attackDamage;
+        public float AttackCooldown => _attackCooldown;
+        
         #endregion
 
         #region Initialization
@@ -170,7 +306,7 @@ namespace Resonance.Enemies
 
         private void InitializeEnemy()
         {
-            _enemyController = new EnemyController(_baseStats, transform.position);
+            _enemyController = new EnemyController(_baseStats, transform.position, transform);
 
             // Subscribe to enemy events
             _enemyController.OnPhysicalHealthChanged += HandlePhysicalHealthChanged;
@@ -183,6 +319,10 @@ namespace Resonance.Enemies
             _enemyController.OnStateChanged += HandleStateChanged;
 
             _isInitialized = true;
+            
+            // Setup patrol waypoints after controller is initialized
+            SetupPatrolWaypoints();
+            
             OnEnemyInitialized?.Invoke(_enemyController);
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
@@ -227,61 +367,141 @@ namespace Resonance.Enemies
         private void SetupDetectionSystem()
         {
             // Setup detection collider
-            if (_detectionCollider == null)
-            {
-                // Try to find existing detection collider
-                Transform detectionChild = transform.Find("DetectionRange");
-                if (detectionChild != null)
-                {
-                    _detectionCollider = detectionChild.GetComponent<SphereCollider>();
-                    detectionChild.gameObject.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Detection);
-                }
-
-                // Create detection collider if not found
-                if (_detectionCollider == null)
-                {
-                    GameObject detectionGO = new GameObject("DetectionRange");
-                    detectionGO.transform.SetParent(transform);
-                    detectionGO.transform.localPosition = Vector3.zero;
-                    detectionGO.layer = gameObject.layer; // Use same layer as parent
-                    
-                    _detectionCollider = detectionGO.AddComponent<SphereCollider>();
-                    _detectionCollider.isTrigger = true;
-                    
-                    // Add a component to identify this collider
-                    detectionGO.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Detection);
-                }
-            }
-
+            SetupDetectionCollider();
+            
             // Setup attack collider
-            if (_attackCollider == null)
-            {
-                // Try to find existing attack collider
-                Transform attackChild = transform.Find("AttackRange");
-                if (attackChild != null)
-                {
-                    _attackCollider = attackChild.GetComponent<SphereCollider>();
-                    attackChild.gameObject.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Attack);
-                }
-
-                // Create attack collider if not found
-                if (_attackCollider == null)
-                {
-                    GameObject attackGO = new GameObject("AttackRange");
-                    attackGO.transform.SetParent(transform);
-                    attackGO.transform.localPosition = Vector3.zero;
-                    attackGO.layer = gameObject.layer; // Use same layer as parent
-                    
-                    _attackCollider = attackGO.AddComponent<SphereCollider>();
-                    _attackCollider.isTrigger = true;
-                    
-                    // Add a component to identify this collider
-                    attackGO.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Attack);
-                }
-            }
+            SetupAttackCollider();
 
             // Set initial radii
             UpdateColliderRadii();
+        }
+        
+        private void SetupDetectionCollider()
+        {
+            // Try to find existing detection collider
+            Transform detectionChild = transform.Find("DetectionRange");
+            
+            if (detectionChild != null)
+            {
+                _detectionCollider = detectionChild.GetComponent<SphereCollider>();
+                
+                // Ensure it has a SphereCollider
+                if (_detectionCollider == null)
+                {
+                    _detectionCollider = detectionChild.gameObject.AddComponent<SphereCollider>();
+                    _detectionCollider.isTrigger = true;
+                }
+                
+                // Check and add EnemyDetectionTrigger if needed
+                SetupDetectionTriggerComponent(detectionChild.gameObject, TriggerType.Detection);
+            }
+            else
+            {
+                GameObject detectionGO = new GameObject("DetectionRange");
+                detectionGO.transform.SetParent(transform);
+                detectionGO.transform.localPosition = Vector3.zero;
+                detectionGO.layer = gameObject.layer;
+                
+                _detectionCollider = detectionGO.AddComponent<SphereCollider>();
+                _detectionCollider.isTrigger = true;
+                
+                // Add trigger component
+                SetupDetectionTriggerComponent(detectionGO, TriggerType.Detection);
+            }
+        }
+        
+        private void SetupAttackCollider()
+        {
+            // Try to find existing attack collider
+            Transform attackChild = transform.Find("AttackRange");
+            
+            if (attackChild != null)
+            {
+                _attackCollider = attackChild.GetComponent<SphereCollider>();
+                
+                // Ensure it has a SphereCollider
+                if (_attackCollider == null)
+                {
+                    _attackCollider = attackChild.gameObject.AddComponent<SphereCollider>();
+                    _attackCollider.isTrigger = true;
+                }
+                
+                // Check and add EnemyDetectionTrigger if needed
+                SetupDetectionTriggerComponent(attackChild.gameObject, TriggerType.Attack);
+            }
+            else
+            {
+                GameObject attackGO = new GameObject("AttackRange");
+                attackGO.transform.SetParent(transform);
+                attackGO.transform.localPosition = Vector3.zero;
+                attackGO.layer = gameObject.layer;
+                
+                _attackCollider = attackGO.AddComponent<SphereCollider>();
+                _attackCollider.isTrigger = true;
+                
+                // Add trigger component
+                SetupDetectionTriggerComponent(attackGO, TriggerType.Attack);
+            }
+        }
+        
+        private void SetupDetectionTriggerComponent(GameObject triggerObject, TriggerType triggerType)
+        {
+            // Check if EnemyDetectionTrigger already exists
+            EnemyDetectionTrigger existingTrigger = triggerObject.GetComponent<EnemyDetectionTrigger>();
+            
+            if (existingTrigger != null)
+            {
+                existingTrigger.Initialize(this, triggerType);
+            }
+            else
+            {
+                EnemyDetectionTrigger newTrigger = triggerObject.AddComponent<EnemyDetectionTrigger>();
+                newTrigger.Initialize(this, triggerType);
+            }
+        }
+        
+        private void SetupPatrolWaypoints()
+        {
+            // Validate patrol waypoints
+            if (!HasValidPatrolWaypoints)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: {gameObject.name} has invalid patrol waypoints. Using default points.");
+                
+                // Set default waypoints if none are configured
+                if (!_useTransformPoints)
+                {
+                    _patrolWaypointA = Vector3.left * 3f;
+                    _patrolWaypointB = Vector3.right * 3f;
+                }
+            }
+            
+            // Pass waypoints and configuration to controller if it's initialized
+            if (_isInitialized && _enemyController != null)
+            {
+                _enemyController.SetPatrolWaypoints(PatrolWaypointA, PatrolWaypointB);
+                _enemyController.SetPatrolConfiguration(
+                    _patrolMode,
+                    _maxPatrolCycles,
+                    _patrolSpeed,
+                    _singleCycleDuration,
+                    _waitAtWaypointDuration,
+                    _arrivalThreshold
+                );
+                
+                // Set chase and attack configuration
+                _enemyController.SetChaseConfiguration(
+                    _targetUpdateInterval,
+                    _chaseArrivalThreshold
+                );
+                
+                _enemyController.SetAttackConfiguration(
+                    _attackDuration,
+                    _attackDamage,
+                    _attackCooldown
+                );
+            }
+            
+            Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
         }
 
         private void UpdateColliderRadii()
@@ -296,6 +516,29 @@ namespace Resonance.Enemies
             if (_attackCollider != null)
             {
                 _attackCollider.radius = _baseStats.attackRange;
+            }
+        }
+        
+        private void VerifyDetectionSystem()
+        {            
+            // Check detection collider and trigger component
+            if (_detectionCollider != null)
+            {
+                EnemyDetectionTrigger detectionTrigger = _detectionCollider.GetComponent<EnemyDetectionTrigger>();
+                if (detectionTrigger == null)
+                {
+                    SetupDetectionTriggerComponent(_detectionCollider.gameObject, TriggerType.Detection);
+                }
+            }
+            
+            // Check attack collider and trigger component
+            if (_attackCollider != null)
+            {
+                EnemyDetectionTrigger attackTrigger = _attackCollider.GetComponent<EnemyDetectionTrigger>();
+                if (attackTrigger == null)
+                {
+                    SetupDetectionTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
+                }
             }
         }
 
@@ -380,7 +623,7 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered physical death state");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - checking mental health for state transition");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
         }
@@ -580,20 +823,19 @@ namespace Resonance.Enemies
         {
             if (!IsInitialized) return;
 
+            // 只检测玩家
+            if (!other.CompareTag("Player")) return;
+
             Transform playerTransform = other.transform;
 
             switch (triggerType)
             {
                 case TriggerType.Detection:
-                    // 玩家进入检测范围
                     _enemyController.SetPlayerTarget(playerTransform);
-                    Debug.Log($"EnemyMonoBehaviour: Player entered detection range");
                     break;
 
                 case TriggerType.Attack:
-                    // 玩家进入攻击范围
                     _enemyController.SetPlayerInAttackRange(true);
-                    Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
                     break;
             }
         }
@@ -604,19 +846,18 @@ namespace Resonance.Enemies
         public void HandleTriggerExit(TriggerType triggerType, Collider other)
         {
             if (!IsInitialized) return;
-
+            
+            // 只检测玩家
+            if (!other.CompareTag("Player")) return;
+            
             switch (triggerType)
             {
                 case TriggerType.Detection:
-                    // 玩家离开检测范围
                     _enemyController.LosePlayer();
-                    Debug.Log($"EnemyMonoBehaviour: Player exited detection range");
                     break;
 
                 case TriggerType.Attack:
-                    // 玩家离开攻击范围
                     _enemyController.SetPlayerInAttackRange(false);
-                    Debug.Log($"EnemyMonoBehaviour: Player exited attack range");
                     break;
             }
         }
@@ -718,8 +959,83 @@ namespace Resonance.Enemies
                 float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.attackRange;
                 Gizmos.DrawWireSphere(transform.position, attackRadius);
             }
+            
+            // Draw patrol path
+            if (_showPatrolPath)
+            {
+                DrawPatrolPath();
+            }
+        }
+        
+        private void DrawPatrolPath()
+        {
+            Vector3 waypointA = PatrolWaypointA;
+            Vector3 waypointB = PatrolWaypointB;
+            
+            // Draw waypoints
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(waypointA, 0.3f);
+            Gizmos.DrawWireSphere(waypointB, 0.3f);
+            
+            // Draw path line
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(waypointA, waypointB);
+            
+            // Draw labels
+            Gizmos.color = Color.white;
+            Gizmos.DrawRay(waypointA, Vector3.up * 0.5f);
+            Gizmos.DrawRay(waypointB, Vector3.up * 0.5f);
+            
+            // Draw current target if patrolling
+            if (IsInitialized && _enemyController.IsPatrolling)
+            {
+                Vector3 currentTarget = _enemyController.CurrentPatrolTarget;
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(currentTarget, 0.2f);
+                Gizmos.DrawLine(transform.position, currentTarget);
+            }
         }
 
+        #endregion
+        
+        #region Editor Validation
+        
+        void OnValidate()
+        {
+            // Validate patrol configuration
+            if (_maxPatrolCycles < 1)
+                _maxPatrolCycles = 1;
+                
+            if (_patrolSpeed < 0.1f)
+                _patrolSpeed = 0.1f;
+                
+            if (_singleCycleDuration < 1f)
+                _singleCycleDuration = 1f;
+                
+            if (_waitAtWaypointDuration < 0f)
+                _waitAtWaypointDuration = 0f;
+                
+            if (_arrivalThreshold < 0.1f)
+                _arrivalThreshold = 0.1f;
+            
+            // Validate chase configuration
+            if (_targetUpdateInterval < 0.1f)
+                _targetUpdateInterval = 0.1f;
+                
+            if (_chaseArrivalThreshold < 0.1f)
+                _chaseArrivalThreshold = 0.1f;
+            
+            // Validate attack configuration
+            if (_attackDuration < 0.1f)
+                _attackDuration = 0.1f;
+                
+            if (_attackDamage < 0f)
+                _attackDamage = 0f;
+                
+            if (_attackCooldown < 0f)
+                _attackCooldown = 0f;
+        }
+        
         #endregion
     }
 }

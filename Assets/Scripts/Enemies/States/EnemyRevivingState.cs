@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Enemies.Core;
+using Resonance.Enemies.Actions;
 
 namespace Resonance.Enemies.States
 {
@@ -30,6 +31,11 @@ namespace Resonance.Enemies.States
             _enemyController.StopPatrol();
             _enemyController.LosePlayer();
             
+            // Start the revive action
+            var reviveAction = new EnemyReviveAction();
+            _enemyController.ActionController.RegisterAction(reviveAction);
+            _enemyController.ActionController.TryStartAction("Revive");
+            
             // TODO: Visual effects for revival process
             // TODO: Play revival audio
             
@@ -39,6 +45,14 @@ namespace Resonance.Enemies.States
         public void Update()
         {
             _revivalTimer += Time.deltaTime;
+            
+            // Check for revival interruption - if mental health reaches 0 during revival
+            if (!_enemyController.IsMentallyAlive)
+            {
+                Debug.Log("EnemyRevivingState: Revival interrupted - mental health reached 0");
+                // This will trigger true death transition handled by EnemyController
+                return;
+            }
             
             // Revival progress is handled in EnemyController.UpdateRevivalTimer()
             // The controller will call CompleteRevival() when physical health is full
@@ -54,12 +68,15 @@ namespace Resonance.Enemies.States
         public void Exit()
         {
             Debug.Log("EnemyState: Exited Reviving state");
+            
+            // Cleanup revive action
+            _enemyController.ActionController.UnregisterAction("Revive");
         }
 
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to:
-            // - Normal (when physical health is restored)
+            // - Normal (when physical health is restored and mental health > 0)
             // - TrueDeath (when mental health reaches 0)
             return newState.Name == "Normal" || newState.Name == "TrueDeath";
         }
