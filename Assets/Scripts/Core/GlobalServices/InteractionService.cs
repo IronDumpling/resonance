@@ -32,7 +32,6 @@ namespace Resonance.Core.GlobalServices
 
         // Events
         public event System.Action<GameObject, string> OnInteractableChanged;
-        public event System.Action<GameObject, Transform> OnInteractionPerformed;
 
         #region IGameService Implementation
 
@@ -63,7 +62,6 @@ namespace Resonance.Core.GlobalServices
             _currentInteractionText = "";
             
             OnInteractableChanged = null;
-            OnInteractionPerformed = null;
 
             State = SystemState.Shutdown;
         }

@@ -69,6 +69,5 @@ namespace Resonance.Interfaces.Services
         
         // Events
         event System.Action<GameObject, string> OnInteractableChanged; // 可交互对象, 提示文本
-        event System.Action<GameObject, Transform> OnInteractionPerformed; // 交互对象, 玩家
     }
 }
