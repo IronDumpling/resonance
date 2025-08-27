@@ -80,8 +80,8 @@ namespace Resonance.Enemies.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition to death states from Normal
-            return newState.Name == "PhysicalDeath" || newState.Name == "TrueDeath";
+            // Can transition to revival and true death states from Normal
+            return newState.Name == "Reviving" || newState.Name == "TrueDeath";
         }
 
         #region Sub-State Updates

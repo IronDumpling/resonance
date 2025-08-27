@@ -380,7 +380,7 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered physical death state");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered revival state");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
         }
