@@ -489,13 +489,6 @@ namespace Resonance.Player
             _characterController.Move(movement);
         }
 
-        private void CheckGrounded()
-        {
-            // For 2D games, always consider grounded (no jumping/falling)
-            _isGrounded = true;
-            _playerController.Movement.SetGrounded(_isGrounded);
-        }
-
         #endregion
 
         #region Edge Protection

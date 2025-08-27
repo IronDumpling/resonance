@@ -83,7 +83,7 @@ namespace Resonance.Player.Data
     /// <summary>
     /// Runtime player stats that can be modified during gameplay.
     /// These are the actual values used during play and can be affected by
-    /// items, buffs, level progression, etc.
+    /// items, buffs, progression, etc.
     /// </summary>
     [System.Serializable]
     public class PlayerRuntimeStats
@@ -98,17 +98,10 @@ namespace Resonance.Player.Data
         public float maxMentalHealth;
         public float mentalHealthDecayRate;
         public float mentalHealthRegenRate;
-        
-        [Header("Legacy Health (Backwards Compatibility)")]
-        public float currentHealth;
-        public float maxHealth;
-        public float healthRegenRate;
 
         [Header("Current Movement")]
         public float moveSpeed;
         public float runSpeedMultiplier;
-        public float jumpForce;
-        public int maxJumps;
 
         [Header("Current Combat")]
         public float attackDamage;

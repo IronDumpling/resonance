@@ -48,7 +48,6 @@ namespace Resonance.Interfaces.Services
         public string saveID;
         public string sceneName;
         public DateTime saveTime;
-        public int playerLevel;
         public float playTime;
         public long fileSize;
 
@@ -57,7 +56,6 @@ namespace Resonance.Interfaces.Services
             saveID = saveData.saveID;
             sceneName = saveData.sceneName;
             saveTime = DateTime.FromBinary((long)saveData.saveTimestamp);
-            playerLevel = saveData.playerLevel;
             fileSize = size;
         }
     }

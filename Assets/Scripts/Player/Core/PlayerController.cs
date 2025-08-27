@@ -33,10 +33,7 @@ namespace Resonance.Player.Core
         private GameObject _playerGameObject; // For 3D audio positioning
 
         // Progression
-        private int _level = 1;
-        private float _experience = 0f;
         private List<string> _unlockedAbilities;
-        private Dictionary<string, bool> _levelFlags;
         private Dictionary<string, float> _gameVariables;
 
         // Combat State
@@ -55,8 +52,6 @@ namespace Resonance.Player.Core
         public System.Action<PhysicalHealthTier> OnPhysicalTierChanged;
         
         // Other Events
-        public System.Action<int> OnLevelChanged;
-        public System.Action<float> OnExperienceChanged;
         public System.Action<string> OnStateChanged; // Changed to string for state name
         public System.Action OnShoot;
 
@@ -66,10 +61,7 @@ namespace Resonance.Player.Core
         public PlayerMovement Movement => _movement;
         public WeaponManager WeaponManager => _weaponManager;
         public ShootingSystem ShootingSystem => _shootingSystem;
-        public int Level => _level;
-        public float Experience => _experience;
         public List<string> UnlockedAbilities => _unlockedAbilities;
-        public Dictionary<string, bool> LevelFlags => _levelFlags;
         public Dictionary<string, float> GameVariables => _gameVariables;
         public bool IsInvulnerable => _isInvulnerable;
         
@@ -129,7 +121,6 @@ namespace Resonance.Player.Core
             _weaponManager = new WeaponManager();
 
             _unlockedAbilities = new List<string>();
-            _levelFlags = new Dictionary<string, bool>();
             _gameVariables = new Dictionary<string, float>();
 
             // Initialize state machine
@@ -429,18 +420,6 @@ namespace Resonance.Player.Core
             _stateMachine?.StopAiming();
         }
 
-        public void StartInteracting()
-        {
-            _stateMachine?.StartInteracting();
-        }
-
-        public void StopInteracting()
-        {
-            _stateMachine?.StopInteracting();
-        }
-
-
-
         #endregion
 
         #region Combat System
@@ -511,10 +490,7 @@ namespace Resonance.Player.Core
             _stats = saveData.stats;
 
             // Load progression
-            _level = saveData.playerLevel;
-            _experience = saveData.experience;
             _unlockedAbilities = new List<string>(saveData.unlockedAbilities);
-            _levelFlags = new Dictionary<string, bool>(saveData.levelFlags);
             _gameVariables = new Dictionary<string, float>(saveData.gameVariables);
 
             // Load inventory
@@ -525,10 +501,6 @@ namespace Resonance.Player.Core
             // Notify UI of dual health changes
             OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
             OnMentalHealthChanged?.Invoke(_stats.currentMentalHealth, _stats.maxMentalHealth);
-            
-            // Notify UI of other changes
-            OnLevelChanged?.Invoke(_level);
-            OnExperienceChanged?.Invoke(_experience);
         }
 
         public PlayerSaveData CreateSaveData(string savePointID, Vector3 position, Vector3 rotation)
@@ -540,10 +512,7 @@ namespace Resonance.Player.Core
                 savePosition = position,
                 saveRotation = rotation,
                 stats = _stats,
-                playerLevel = _level,
-                experience = _experience,
                 unlockedAbilities = new List<string>(_unlockedAbilities),
-                levelFlags = new Dictionary<string, bool>(_levelFlags),
                 gameVariables = new Dictionary<string, float>(_gameVariables)
             };
 
@@ -556,17 +525,7 @@ namespace Resonance.Player.Core
 
         #endregion
 
-        #region Flags and Variables
-
-        public void SetLevelFlag(string flagName, bool value)
-        {
-            _levelFlags[flagName] = value;
-        }
-
-        public bool GetLevelFlag(string flagName)
-        {
-            return _levelFlags.TryGetValue(flagName, out bool value) && value;
-        }
+        #region Variables
 
         public void SetGameVariable(string varName, float value)
         {
@@ -706,8 +665,6 @@ namespace Resonance.Player.Core
             OnTrueDeath = null;
             OnMentalTierChanged = null;
             OnPhysicalTierChanged = null;
-            OnLevelChanged = null;
-            OnExperienceChanged = null;
             OnStateChanged = null;
             OnShoot = null;
 
