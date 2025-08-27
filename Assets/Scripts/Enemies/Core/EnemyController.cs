@@ -480,7 +480,6 @@ namespace Resonance.Enemies.Core
             _hasPlayerTarget = true;
             _lastKnownPlayerPosition = player.position;
             OnPlayerDetected?.Invoke(player);
-            // Debug.Log($"EnemyController: Player detected at {player.position}");
         }
 
         /// <summary>
@@ -492,7 +491,6 @@ namespace Resonance.Enemies.Core
             _hasPlayerTarget = false;
             _isPlayerInAttackRange = false; // Also reset attack range
             OnPlayerLost?.Invoke();
-            // Debug.Log("EnemyController: Player lost");
         }
 
         /// <summary>

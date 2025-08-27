@@ -130,6 +130,9 @@ namespace Resonance.Enemies
             // Update collider radii in case stats changed
             UpdateColliderRadii();
             
+            // Verify and fix detection system (in case components were missing)
+            VerifyDetectionSystem();
+            
             // Setup patrol waypoints
             SetupPatrolWaypoints();
 
@@ -334,61 +337,97 @@ namespace Resonance.Enemies
         private void SetupDetectionSystem()
         {
             // Setup detection collider
-            if (_detectionCollider == null)
-            {
-                // Try to find existing detection collider
-                Transform detectionChild = transform.Find("DetectionRange");
-                if (detectionChild != null)
-                {
-                    _detectionCollider = detectionChild.GetComponent<SphereCollider>();
-                    detectionChild.gameObject.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Detection);
-                }
-
-                // Create detection collider if not found
-                if (_detectionCollider == null)
-                {
-                    GameObject detectionGO = new GameObject("DetectionRange");
-                    detectionGO.transform.SetParent(transform);
-                    detectionGO.transform.localPosition = Vector3.zero;
-                    detectionGO.layer = gameObject.layer; // Use same layer as parent
-                    
-                    _detectionCollider = detectionGO.AddComponent<SphereCollider>();
-                    _detectionCollider.isTrigger = true;
-                    
-                    // Add a component to identify this collider
-                    detectionGO.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Detection);
-                }
-            }
-
+            SetupDetectionCollider();
+            
             // Setup attack collider
-            if (_attackCollider == null)
-            {
-                // Try to find existing attack collider
-                Transform attackChild = transform.Find("AttackRange");
-                if (attackChild != null)
-                {
-                    _attackCollider = attackChild.GetComponent<SphereCollider>();
-                    attackChild.gameObject.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Attack);
-                }
-
-                // Create attack collider if not found
-                if (_attackCollider == null)
-                {
-                    GameObject attackGO = new GameObject("AttackRange");
-                    attackGO.transform.SetParent(transform);
-                    attackGO.transform.localPosition = Vector3.zero;
-                    attackGO.layer = gameObject.layer; // Use same layer as parent
-                    
-                    _attackCollider = attackGO.AddComponent<SphereCollider>();
-                    _attackCollider.isTrigger = true;
-                    
-                    // Add a component to identify this collider
-                    attackGO.AddComponent<EnemyDetectionTrigger>().Initialize(this, TriggerType.Attack);
-                }
-            }
+            SetupAttackCollider();
 
             // Set initial radii
             UpdateColliderRadii();
+        }
+        
+        private void SetupDetectionCollider()
+        {
+            // Try to find existing detection collider
+            Transform detectionChild = transform.Find("DetectionRange");
+            
+            if (detectionChild != null)
+            {
+                _detectionCollider = detectionChild.GetComponent<SphereCollider>();
+                
+                // Ensure it has a SphereCollider
+                if (_detectionCollider == null)
+                {
+                    _detectionCollider = detectionChild.gameObject.AddComponent<SphereCollider>();
+                    _detectionCollider.isTrigger = true;
+                }
+                
+                // Check and add EnemyDetectionTrigger if needed
+                SetupDetectionTriggerComponent(detectionChild.gameObject, TriggerType.Detection);
+            }
+            else
+            {
+                GameObject detectionGO = new GameObject("DetectionRange");
+                detectionGO.transform.SetParent(transform);
+                detectionGO.transform.localPosition = Vector3.zero;
+                detectionGO.layer = gameObject.layer;
+                
+                _detectionCollider = detectionGO.AddComponent<SphereCollider>();
+                _detectionCollider.isTrigger = true;
+                
+                // Add trigger component
+                SetupDetectionTriggerComponent(detectionGO, TriggerType.Detection);
+            }
+        }
+        
+        private void SetupAttackCollider()
+        {
+            // Try to find existing attack collider
+            Transform attackChild = transform.Find("AttackRange");
+            
+            if (attackChild != null)
+            {
+                _attackCollider = attackChild.GetComponent<SphereCollider>();
+                
+                // Ensure it has a SphereCollider
+                if (_attackCollider == null)
+                {
+                    _attackCollider = attackChild.gameObject.AddComponent<SphereCollider>();
+                    _attackCollider.isTrigger = true;
+                }
+                
+                // Check and add EnemyDetectionTrigger if needed
+                SetupDetectionTriggerComponent(attackChild.gameObject, TriggerType.Attack);
+            }
+            else
+            {
+                GameObject attackGO = new GameObject("AttackRange");
+                attackGO.transform.SetParent(transform);
+                attackGO.transform.localPosition = Vector3.zero;
+                attackGO.layer = gameObject.layer;
+                
+                _attackCollider = attackGO.AddComponent<SphereCollider>();
+                _attackCollider.isTrigger = true;
+                
+                // Add trigger component
+                SetupDetectionTriggerComponent(attackGO, TriggerType.Attack);
+            }
+        }
+        
+        private void SetupDetectionTriggerComponent(GameObject triggerObject, TriggerType triggerType)
+        {
+            // Check if EnemyDetectionTrigger already exists
+            EnemyDetectionTrigger existingTrigger = triggerObject.GetComponent<EnemyDetectionTrigger>();
+            
+            if (existingTrigger != null)
+            {
+                existingTrigger.Initialize(this, triggerType);
+            }
+            else
+            {
+                EnemyDetectionTrigger newTrigger = triggerObject.AddComponent<EnemyDetectionTrigger>();
+                newTrigger.Initialize(this, triggerType);
+            }
         }
         
         private void SetupPatrolWaypoints()
@@ -435,6 +474,29 @@ namespace Resonance.Enemies
             if (_attackCollider != null)
             {
                 _attackCollider.radius = _baseStats.attackRange;
+            }
+        }
+        
+        private void VerifyDetectionSystem()
+        {            
+            // Check detection collider and trigger component
+            if (_detectionCollider != null)
+            {
+                EnemyDetectionTrigger detectionTrigger = _detectionCollider.GetComponent<EnemyDetectionTrigger>();
+                if (detectionTrigger == null)
+                {
+                    SetupDetectionTriggerComponent(_detectionCollider.gameObject, TriggerType.Detection);
+                }
+            }
+            
+            // Check attack collider and trigger component
+            if (_attackCollider != null)
+            {
+                EnemyDetectionTrigger attackTrigger = _attackCollider.GetComponent<EnemyDetectionTrigger>();
+                if (attackTrigger == null)
+                {
+                    SetupDetectionTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
+                }
             }
         }
 
@@ -719,20 +781,19 @@ namespace Resonance.Enemies
         {
             if (!IsInitialized) return;
 
+            // 只检测玩家
+            if (!other.CompareTag("Player")) return;
+
             Transform playerTransform = other.transform;
 
             switch (triggerType)
             {
                 case TriggerType.Detection:
-                    // 玩家进入检测范围
                     _enemyController.SetPlayerTarget(playerTransform);
-                    Debug.Log($"EnemyMonoBehaviour: Player entered detection range");
                     break;
 
                 case TriggerType.Attack:
-                    // 玩家进入攻击范围
                     _enemyController.SetPlayerInAttackRange(true);
-                    Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
                     break;
             }
         }
@@ -743,19 +804,18 @@ namespace Resonance.Enemies
         public void HandleTriggerExit(TriggerType triggerType, Collider other)
         {
             if (!IsInitialized) return;
-
+            
+            // 只检测玩家
+            if (!other.CompareTag("Player")) return;
+            
             switch (triggerType)
             {
                 case TriggerType.Detection:
-                    // 玩家离开检测范围
                     _enemyController.LosePlayer();
-                    Debug.Log($"EnemyMonoBehaviour: Player exited detection range");
                     break;
 
                 case TriggerType.Attack:
-                    // 玩家离开攻击范围
                     _enemyController.SetPlayerInAttackRange(false);
-                    Debug.Log($"EnemyMonoBehaviour: Player exited attack range");
                     break;
             }
         }
