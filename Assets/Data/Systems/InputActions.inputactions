@@ -16,6 +16,15 @@
                     "initialStateCheck": true
                 },
                 {
+                    "name": "Run",
+                    "type": "Button",
+                    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Aim",
                     "type": "Button",
                     "id": "c5c0d2e1-f3d4-4d8e-9c7e-8f2a3b4c5d6e",
@@ -25,10 +34,28 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Run",
+                    "name": "Look",
+                    "type": "Value",
+                    "id": "3c4d5e6f-7890-1234-cdef-456789012345",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Shoot",
                     "type": "Button",
-                    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                    "expectedControlType": "Button",
+                    "id": "2b3c4d5e-6f78-9012-bcde-f23456789012",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Reload",
+                    "type": "Button",
+                    "id": "a04aec53-1f82-4f71-9625-00ea15794498",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -48,7 +75,7 @@
                     "id": "8e9f0a1b-2c3d-4e5f-6789-012345678901",
                     "expectedControlType": "",
                     "processors": "",
-                    "interactions": "Hold(duration=0.5)",
+                    "interactions": "",
                     "initialStateCheck": false
                 },
                 {
@@ -59,24 +86,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "Shoot",
-                    "type": "Button",
-                    "id": "2b3c4d5e-6f78-9012-bcde-f23456789012",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Look",
-                    "type": "Value",
-                    "id": "3c4d5e6f-7890-1234-cdef-456789012345",
-                    "expectedControlType": "Vector2",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -209,6 +218,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Look",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ee71c81f-5077-4976-8a76-6d22eb3fbed5",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Reload",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

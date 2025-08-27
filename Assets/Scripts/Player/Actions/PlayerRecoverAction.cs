@@ -9,10 +9,10 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Recover Action - triggered by long press F when no dead enemies are in mental attack range
+    /// Player Recover Action - triggered by holding F key when no dead enemies are in mental attack range
     /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, NO EnemyPhysicalDeathState enemy in MentalAttackRange
-    /// Behavior: Player cannot move, consumes 1 MentalHealth slot, restores a certain amount of PhysicalHealth
-    /// End condition: Release F key, or interrupted by damage
+    /// Behavior: Player cannot move, consumes 1 MentalHealth slot every 1s, restores PhysicalHealth
+    /// End condition: Release F key, or interrupted by damage, or reach full health, or no more mental health
     /// </summary>
     public class PlayerRecoverAction : IPlayerAction
     {
@@ -25,16 +25,12 @@ namespace Resonance.Player.Actions
         // Runtime state
         private bool _isActive = false;
         private bool _isFinished = false;
-        private bool _slotConsumed = false;
         private float _actionStartTime = 0f;
-        private float _lastHealTime = 0f;
+        private float _lastSlotConsumedTime = 0f;
 
         // Configuration
-        private const float HEAL_INTERVAL = 0.5f; // Heal every 0.5 seconds
-        private const float HEAL_AMOUNT_PER_TICK = 5f; // Amount to heal per tick
-        private const float MIN_ACTION_DURATION = 0.3f; // Minimum duration before slot consumption
-        private const float MAX_ACTION_DURATION = 10f; // Maximum action duration
-        private const float SLOT_CONSUMPTION_DELAY = 0.5f; // Delay before consuming slot
+        private const float SLOT_CONSUMPTION_INTERVAL = 2f; // Consume slot every 2 seconds
+        private const float HEAL_AMOUNT_PER_CONSUMPTION = 25f; // Amount to heal per slot consumption
 
         public bool IsFinished => _isFinished;
 
@@ -90,9 +86,8 @@ namespace Resonance.Player.Actions
             // Initialize action state
             _isActive = true;
             _isFinished = false;
-            _slotConsumed = false;
             _actionStartTime = Time.time;
-            _lastHealTime = Time.time;
+            _lastSlotConsumedTime = Time.time;
 
             // Play recover start effects
             PlayRecoverStartEffects(player);
@@ -110,37 +105,31 @@ namespace Resonance.Player.Actions
             if (!_isActive || _isFinished) return;
 
             float currentTime = Time.time;
-            float actionDuration = currentTime - _actionStartTime;
+            float timeSinceLastConsumption = currentTime - _lastSlotConsumedTime;
 
-            // Safety timeout
-            if (actionDuration > MAX_ACTION_DURATION)
+            // Check if it's time to consume another slot and heal
+            if (timeSinceLastConsumption >= SLOT_CONSUMPTION_INTERVAL)
             {
-                Debug.LogWarning("PlayerRecoverAction: Timed out after maximum duration");
-                _isFinished = true;
-                return;
-            }
+                // Check if player can still consume slots
+                if (!player.CanConsumeSlot)
+                {
+                    Debug.Log("PlayerRecoverAction: No more mental health slots available, ending action");
+                    _isFinished = true;
+                    return;
+                }
 
-            // Consume slot after delay (to allow for early cancellation)
-            if (!_slotConsumed && actionDuration >= SLOT_CONSUMPTION_DELAY)
-            {
-                if (!player.ConsumeSlot())
+                // Consume slot and heal
+                if (player.ConsumeSlot())
+                {
+                    PerformHeal(player);
+                    _lastSlotConsumedTime = currentTime;
+                    Debug.Log("PlayerRecoverAction: Consumed mental health slot and healed");
+                }
+                else
                 {
                     Debug.LogWarning("PlayerRecoverAction: Failed to consume mental health slot");
                     _isFinished = true;
                     return;
-                }
-                _slotConsumed = true;
-                Debug.Log("PlayerRecoverAction: Mental health slot consumed");
-            }
-
-            // Only start healing after slot is consumed
-            if (_slotConsumed)
-            {
-                // Periodic healing
-                if (currentTime - _lastHealTime >= HEAL_INTERVAL)
-                {
-                    PerformHeal(player);
-                    _lastHealTime = currentTime;
                 }
             }
 
@@ -152,8 +141,12 @@ namespace Resonance.Player.Actions
                 return;
             }
 
-            // Check for input release (this will be handled by ActionController input system)
-            // For now, we rely on external cancellation
+            // Check if dead enemies entered range (ResonanceAction gets priority)
+            if (ShouldCancel(player))
+            {
+                _isFinished = true;
+                return;
+            }
 
             // Update visual effects
             UpdateRecoverEffects(player, deltaTime);
@@ -194,27 +187,27 @@ namespace Resonance.Player.Actions
             if (player == null) return;
 
             // Calculate heal amount (could be modified by tiers, equipment, etc.)
-            float healAmount = HEAL_AMOUNT_PER_TICK;
+            float healAmount = HEAL_AMOUNT_PER_CONSUMPTION;
 
-            // Apply tier modifiers
-            switch (player.MentalTier)
-            {
-                case MentalHealthTier.High:
-                    healAmount *= 1.2f; // 20% bonus when mental health is high
-                    break;
-                case MentalHealthTier.Low:
-                    healAmount *= 0.8f; // 20% penalty when mental health is low
-                    break;
-                case MentalHealthTier.Empty:
-                    healAmount *= 0.5f; // 50% penalty when mental health is empty
-                    break;
-            }
+            // Apply tier modifiers based on current mental health tier
+            // switch (player.MentalTier)
+            // {
+            //     case MentalHealthTier.High:
+            //         healAmount *= 1.2f; // 20% bonus when mental health is high
+            //         break;
+            //     case MentalHealthTier.Low:
+            //         healAmount *= 0.8f; // 20% penalty when mental health is low
+            //         break;
+            //     case MentalHealthTier.Empty:
+            //         healAmount *= 0.5f; // 50% penalty when mental health is empty
+            //         break;
+            // }
 
             // Heal the player
             player.HealPhysical(healAmount);
 
             // Play heal effect
-            PlayHealTickEffect(player);
+            PlayHealEffect(player);
 
             Debug.Log($"PlayerRecoverAction: Healed {healAmount:F1} physical health");
         }
@@ -238,15 +231,15 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Play heal tick effect
+        /// Play heal effect
         /// </summary>
         /// <param name="player">Player controller reference</param>
-        private void PlayHealTickEffect(PlayerController player)
+        private void PlayHealEffect(PlayerController player)
         {
-            // TODO: Play healing tick audio
+            // TODO: Play healing audio
             // TODO: Show healing numbers/effect
 
-            Debug.Log("PlayerRecoverAction: Playing heal tick effect (placeholder)");
+            Debug.Log("PlayerRecoverAction: Playing heal effect (placeholder)");
         }
 
         /// <summary>
@@ -259,14 +252,6 @@ namespace Resonance.Player.Actions
             // TODO: Update visual effects intensity based on mental tier
             // TODO: Update UI feedback showing recovery progress
             // TODO: Update audio effects
-
-            // Placeholder implementation
-            float actionDuration = Time.time - _actionStartTime;
-            if (actionDuration > 0.1f && Mathf.FloorToInt(actionDuration * 2) % 4 == 0)
-            {
-                // Simple feedback every 0.5 seconds
-                // Debug.Log($"PlayerRecoverAction: Recovery active for {actionDuration:F1}s");
-            }
         }
 
         /// <summary>
@@ -298,18 +283,11 @@ namespace Resonance.Player.Actions
 
         /// <summary>
         /// Check if the action should be cancelled due to external conditions
-        /// Called by ActionController for input-based cancellation
         /// </summary>
         /// <param name="player">Player controller reference</param>
         /// <returns>True if action should be cancelled</returns>
         public bool ShouldCancel(PlayerController player)
         {
-            // This action continues until:
-            // 1. Player releases F key (handled by input system)
-            // 2. Player takes damage (handled by OnDamageTaken)
-            // 3. Player reaches full health (handled in Update)
-            // 4. Dead enemies enter range (priority check)
-
             // Check if dead enemies entered range (ResonanceAction gets priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer?.HasDeadEnemiesInMentalAttackRange() == true)

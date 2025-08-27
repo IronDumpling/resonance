@@ -332,7 +332,7 @@ namespace Resonance.Player
             _inputService.OnMove += HandleMoveInput;
             _inputService.OnInteract += HandleInteractInput;
             _inputService.OnResonance += HandleResonanceInput; // F key short press (Resonance)
-            _inputService.OnRecover += HandleRecoverInput; // F key long press (Recover)
+            _inputService.OnRecover += HandleRecoverInput; // F key press/release (Recover)
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
@@ -414,21 +414,34 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle Recover press input (F key long press) - RecoverAction
+        /// Handle Recover input (F key press/release) - RecoverAction
         /// </summary>
-        private void HandleRecoverInput()
+        /// <param name="isPressed">True when F key is pressed, false when released</param>
+        private void HandleRecoverInput(bool isPressed)
         {
             if (!IsInitialized) return;
 
-            // Try to start RecoverAction
-            bool recoverStarted = _playerController.TryStartAction("Recover");
-            if (recoverStarted)
+            if (isPressed)
             {
-                Debug.Log("PlayerMonoBehaviour: Started RecoverAction via long press F");
+                // F key pressed - try to start RecoverAction
+                bool recoverStarted = _playerController.TryStartAction("Recover");
+                if (recoverStarted)
+                {
+                    Debug.Log("PlayerMonoBehaviour: Started RecoverAction via F key press");
+                }
+                else
+                {
+                    Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
+                }
             }
             else
             {
-                Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
+                // F key released - stop RecoverAction if it's running
+                if (_playerController.GetCurrentActionName() == "Recover")
+                {
+                    _playerController.CancelCurrentAction();
+                    Debug.Log("PlayerMonoBehaviour: Stopped RecoverAction via F key release");
+                }
             }
         }
 
