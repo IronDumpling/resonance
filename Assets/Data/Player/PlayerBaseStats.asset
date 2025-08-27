@@ -12,14 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03b1cec4092914a448c5011b1623227f, type: 3}
   m_Name: PlayerBaseStats
   m_EditorClassIdentifier: 
-  _maxHealth: 100
-  _healthRegenRate: 0
+  _maxPhysicalHealth: 100
+  _physicalHealthRegenRate: 0
+  _maxMentalHealth: 50
+  _mentalHealthDecayRate: 1
+  _mentalHealthRegenRate: 0
   _moveSpeed: 5
   _runSpeedMultiplier: 1.5
-  _jumpForce: 10
-  _maxJumps: 1
   _attackDamage: 25
   _attackCooldown: 0.5
   _invulnerabilityTime: 1
   _maxInventorySlots: 20
   _maxCarryWeight: 100
+  _mentalHealthSlots: 3
+  _mentalAttackRange: 1.5
+  _interactionRange: 2
+  _interactionLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  _healthyThreshold: 0.7
+  _woundedThreshold: 0.3

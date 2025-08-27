@@ -174,15 +174,15 @@ namespace Resonance.Items
             else
             {
                 Debug.Log($"GunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
-                // 设置初始文本内容
                 _interactTextComponent.text = _interactionText;
             }
             
-            // 初始状态：隐藏UI
             if (_interactUI != null)
             {
                 _interactUI.SetActive(false);
             }
+
+            Debug.Log($"GunMonoBehaviour: Interaction UI setup complete");
         }
 
         /// <summary>

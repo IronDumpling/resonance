@@ -36,6 +36,8 @@ namespace Resonance.Player.Core
                 Debug.LogError("PlayerInteractTrigger: InteractionService not found");
                 return;
             }
+            
+            Debug.Log($"PlayerInteractTrigger: Initialized successfully on {gameObject.name}");
         }
 
         void OnTriggerEnter(Collider other)
@@ -45,14 +47,15 @@ namespace Resonance.Player.Core
             // 检查层级过滤
             if ((_interactionLayerMask.value & (1 << other.gameObject.layer)) == 0)
             {
+                Debug.Log($"PlayerInteractTrigger: Layer filter check failed for {other.name}");
                 return;
             }
 
             // 忽略Player自己的colliders
-            if (other.transform.IsChildOf(_playerMono.transform) || other.transform == _playerMono.transform)
-            {
-                return;
-            }
+            // if (other.transform.IsChildOf(_playerMono.transform) || other.transform == _playerMono.transform)
+            // {
+            //     return;
+            // }
 
             // 检查是否是可交互对象
             IInteractable interactable = other.GetComponent<IInteractable>();
@@ -75,6 +78,7 @@ namespace Resonance.Player.Core
                 if (interactableGameObject != null)
                 {
                     HandleInteractableEnter(interactable, interactableGameObject);
+                    Debug.Log($"PlayerInteractTrigger: HandleInteractableEnter called for {interactable.GetInteractableName()}");
                 }
             }
         }
@@ -86,14 +90,15 @@ namespace Resonance.Player.Core
             // 检查层级过滤
             if ((_interactionLayerMask.value & (1 << other.gameObject.layer)) == 0)
             {
+                Debug.Log($"PlayerInteractTrigger: Layer filter check failed for {other.name}");
                 return;
             }
 
             // 忽略Player自己的colliders
-            if (other.transform.IsChildOf(_playerMono.transform) || other.transform == _playerMono.transform)
-            {
-                return;
-            }
+            // if (other.transform.IsChildOf(_playerMono.transform) || other.transform == _playerMono.transform)
+            // {
+            //     return;
+            // }
 
             // 检查是否是可交互对象
             IInteractable interactable = other.GetComponent<IInteractable>();
@@ -101,11 +106,13 @@ namespace Resonance.Player.Core
             if (interactable == null && other.transform.parent != null)
             {
                 interactable = other.transform.parent.GetComponent<IInteractable>();
+                Debug.Log($"PlayerInteractTrigger: HandleInteractableExit called for {interactable.GetInteractableName()}");
             }
             
             if (interactable == null)
             {
                 interactable = other.transform.root.GetComponent<IInteractable>();
+                Debug.Log($"PlayerInteractTrigger: HandleInteractableExit called for {interactable.GetInteractableName()}");
             }
 
             if (interactable != null)
@@ -114,6 +121,7 @@ namespace Resonance.Player.Core
                 if (interactableGameObject != null)
                 {
                     HandleInteractableExit(interactable, interactableGameObject);
+                    Debug.Log($"PlayerInteractTrigger: HandleInteractableExit called for {interactable.GetInteractableName()}");
                 }
             }
         }
@@ -136,6 +144,7 @@ namespace Resonance.Player.Core
             {
                 _currentInteractable = interactable;
                 ShowInteractionUI(interactable);
+                Debug.Log($"PlayerInteractTrigger: ShowInteractionUI called for {interactable.GetInteractableName()}");
             }
         }
 
@@ -164,6 +173,7 @@ namespace Resonance.Player.Core
                 {
                     _currentInteractable = nextInteractable;
                     ShowInteractionUI(nextInteractable);
+                    Debug.Log($"PlayerInteractTrigger: ShowInteractionUI called for {nextInteractable.GetInteractableName()}");
                 }
             }
         }
@@ -181,6 +191,7 @@ namespace Resonance.Player.Core
             if (gunMono != null)
             {
                 gunMono.ShowInteractionUI();
+                Debug.Log($"PlayerInteractTrigger: ShowInteractionUI called for {interactable.GetInteractableName()}");
             }
 
 
@@ -201,7 +212,7 @@ namespace Resonance.Player.Core
                 gunMono.HideInteractionUI();
             }
 
-
+            Debug.Log($"PlayerInteractTrigger: HideInteractionUI called for {interactable.GetInteractableName()}");
         }
 
         /// <summary>
@@ -223,6 +234,8 @@ namespace Resonance.Player.Core
                 HideInteractionUI(_currentInteractable);
                 _currentInteractable = null;
             }
+
+            Debug.Log($"PlayerInteractTrigger: ClearCurrentInteractable called");
         }
 
         /// <summary>
@@ -232,6 +245,7 @@ namespace Resonance.Player.Core
         public void SetInteractionLayerMask(LayerMask layerMask)
         {
             _interactionLayerMask = layerMask;
+            Debug.Log($"PlayerInteractTrigger: SetInteractionLayerMask called with {layerMask.value}");
         }
     }
 }

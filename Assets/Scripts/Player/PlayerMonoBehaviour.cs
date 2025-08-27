@@ -4,6 +4,7 @@ using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
 using Resonance.Enemies;
+using Resonance.Items;
 using Resonance.Utilities;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -316,7 +317,7 @@ namespace Resonance.Player
             // Set the interaction layer mask
             _playerInteractTrigger.SetInteractionLayerMask(interactionLayerMask);
 
-            Debug.Log($"PlayerMonoBehaviour: PlayerInteractTrigger initialized with range {interactionRange}");
+
         }
 
         #endregion
