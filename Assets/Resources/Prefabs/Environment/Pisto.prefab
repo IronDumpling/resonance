@@ -134,7 +134,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -253,7 +253,7 @@ GameObject:
   - component: {fileID: 4048396451169992661}
   - component: {fileID: 5901040040052734863}
   m_Layer: 7
-  m_Name: Gun
+  m_Name: Pisto
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -290,7 +290,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _gunDataAsset: {fileID: 11400000, guid: e7b2879db7522a44b9a005d420cb92d4, type: 2}
   _interactionText: Press E
-  _interactionDuration: 1
+  _interactionDuration: 0.2
   _pickupVisual: {fileID: 1012015472892952182}
   _rotateWhenIdle: 1
   _rotationSpeed: 30

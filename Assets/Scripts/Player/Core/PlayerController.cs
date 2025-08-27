@@ -156,7 +156,7 @@ namespace Resonance.Player.Core
             UpdateHealthRegeneration(deltaTime);
             _movement.Update(deltaTime);
             _stateMachine?.Update();
-            _actionController?.Update(deltaTime);
+            _actionController.Update(deltaTime);
         }
 
         #region Health System

@@ -138,6 +138,7 @@ namespace Resonance.Player
             UpdatePlayerVisualRotation();
             UpdateRightArmAnimation();
             UpdateAimingLine();
+            
             _playerController.Update(Time.deltaTime);
 
             // Update debug info less frequently to avoid performance issues

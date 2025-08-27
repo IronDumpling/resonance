@@ -98,11 +98,13 @@ namespace Resonance.Player.Core
             // Update current action
             if (_currentAction != null)
             {
+                Debug.Log($"ActionController: Updating action {_currentAction.Name}");
                 _currentAction.Update(_playerController, deltaTime);
 
                 // Check if action finished
                 if (_currentAction.IsFinished)
                 {
+                    Debug.Log($"ActionController: Action {_currentAction.Name} finished, calling FinishCurrentAction");
                     FinishCurrentAction();
                 }
             }

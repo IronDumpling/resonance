@@ -118,10 +118,17 @@ namespace Resonance.Player.Actions
         /// <param name="deltaTime">Time since last frame</param>
         public void Update(PlayerController player, float deltaTime)
         {
-            if (!_isActive || _isFinished) return;
+            if (!_isActive || _isFinished) 
+            {
+                if (!_isActive) Debug.Log("PlayerInteractAction: Update skipped - not active");
+                if (_isFinished) Debug.Log("PlayerInteractAction: Update skipped - finished");
+                return;
+            }
 
             float currentTime = Time.time;
             float actionDuration = currentTime - _actionStartTime;
+            
+            Debug.Log($"PlayerInteractAction: Update - duration: {actionDuration:F2}s / {_interactionDuration:F2}s");
 
             // Safety timeout
             if (actionDuration > MAX_INTERACTION_DURATION)
@@ -134,6 +141,7 @@ namespace Resonance.Player.Actions
             // Check if interaction duration has been reached
             if (actionDuration >= _interactionDuration)
             {
+                Debug.Log($"PlayerInteractAction: Duration reached! Completing interaction...");
                 // Complete the interaction
                 CompleteInteraction(player);
                 _isFinished = true;

@@ -23,7 +23,7 @@ namespace Resonance.Items
         
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "Press E";
-        [SerializeField] private float _interactionDuration = 1.0f; // Duration to pick up the weapon
+        [SerializeField] private float _interactionDuration = 0.2f; 
         
         [Header("Pickup Visual")]
         [SerializeField] private GameObject _pickupVisual;
@@ -222,7 +222,8 @@ namespace Resonance.Items
         /// <returns>True if interaction is possible</returns>
         public bool CanInteract()
         {
-            return !_isPickedUp && !_isInteracting;
+            // Can interact if not picked up (including during interaction)
+            return !_isPickedUp;
         }
 
         /// <summary>
@@ -301,8 +302,11 @@ namespace Resonance.Items
                     var weaponManager = playerMono.Controller.WeaponManager;
                     if (weaponManager != null)
                     {
-                        bool hasEquippedWeapon = weaponManager.HasEquippedWeapon;
-                        if (hasEquippedWeapon)
+                        // 实际装备武器
+                        weaponManager.EquipWeapon(gunCopy);
+                        
+                        // 验证装备是否成功
+                        if (weaponManager.HasEquippedWeapon)
                         {
                             Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} to player");
                         }
@@ -329,6 +333,8 @@ namespace Resonance.Items
             {
                 _interactUI.SetActive(false);
             }
+
+            Debug.Log($"GunMonoBehaviour: CompleteInteraction complete");
         }
 
         /// <summary>
@@ -419,6 +425,16 @@ namespace Resonance.Items
             // 停止所有动画
             StopAllCoroutines();
             
+            // 从交互服务中移除
+            if (_interactionService != null)
+            {
+                _interactionService.UnregisterInteractable(gameObject);
+                if (_interactionService.CurrentInteractable == gameObject)
+                {
+                    _interactionService.ClearCurrentInteractable();
+                }
+            }
+            
             // 隐藏拾取视觉对象
             if (_pickupVisual != null)
             {
@@ -428,6 +444,8 @@ namespace Resonance.Items
             {
                 gameObject.SetActive(false);
             }
+
+            Debug.Log($"GunMonoBehaviour: PerformPickup complete");
             
             return gunCopy;
         }
