@@ -127,8 +127,6 @@ namespace Resonance.Player.Actions
 
             float currentTime = Time.time;
             float actionDuration = currentTime - _actionStartTime;
-            
-            Debug.Log($"PlayerInteractAction: Update - duration: {actionDuration:F2}s / {_interactionDuration:F2}s");
 
             // Safety timeout
             if (actionDuration > MAX_INTERACTION_DURATION)

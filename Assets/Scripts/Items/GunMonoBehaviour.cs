@@ -222,7 +222,7 @@ namespace Resonance.Items
         /// <returns>True if interaction is possible</returns>
         public bool CanInteract()
         {
-            // Can interact if not picked up (including during interaction)
+            // Can interact if not picked up 
             return !_isPickedUp;
         }
 
