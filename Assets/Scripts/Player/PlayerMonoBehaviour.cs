@@ -49,6 +49,7 @@ namespace Resonance.Player
         private IInputService _inputService;
         private IInteractionService _interactionService;
         private MentalAttackTrigger _mentalAttackTrigger;
+        private PlayerInteractTrigger _playerInteractTrigger;
 
         // Physics
         private bool _isGrounded;
@@ -121,6 +122,9 @@ namespace Resonance.Player
 
             // Initialize MentalAttackTrigger
             InitializeMentalAttackTrigger();
+
+            // Initialize PlayerInteractTrigger
+            InitializePlayerInteractTrigger();
 
             Debug.Log("PlayerMonoBehaviour: Initialized and registered");
         }
@@ -274,6 +278,47 @@ namespace Resonance.Player
             Debug.Log($"PlayerMonoBehaviour: MentalAttackTrigger initialized with range {mentalAttackRange}");
         }
 
+        /// <summary>
+        /// Initialize the PlayerInteractTrigger component
+        /// </summary>
+        private void InitializePlayerInteractTrigger()
+        {
+            // Find the InteractRange GameObject
+            Transform interactRangeTransform = transform.Find("InteractRange");
+            if (interactRangeTransform == null)
+            {
+                Debug.LogError("PlayerMonoBehaviour: InteractRange GameObject not found as child of Player");
+                return;
+            }
+
+            // Get or add the PlayerInteractTrigger component
+            _playerInteractTrigger = interactRangeTransform.GetComponent<PlayerInteractTrigger>();
+            if (_playerInteractTrigger == null)
+            {
+                _playerInteractTrigger = interactRangeTransform.gameObject.AddComponent<PlayerInteractTrigger>();
+                Debug.Log("PlayerMonoBehaviour: Added PlayerInteractTrigger component to InteractRange GameObject");
+            }
+
+            // Initialize with player reference
+            _playerInteractTrigger.Initialize(this);
+
+            // Set the collider radius and layer mask from base stats
+            float interactionRange = _baseStats?.InteractionRange ?? 1.5f;
+            LayerMask interactionLayerMask = _baseStats?.InteractionLayerMask ?? (1 << 7);
+            
+            var sphereCollider = interactRangeTransform.GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                sphereCollider.radius = interactionRange;
+                Debug.Log($"PlayerMonoBehaviour: Set InteractRange radius to {interactionRange}");
+            }
+
+            // Set the interaction layer mask
+            _playerInteractTrigger.SetInteractionLayerMask(interactionLayerMask);
+
+            Debug.Log($"PlayerMonoBehaviour: PlayerInteractTrigger initialized with range {interactionRange}");
+        }
+
         #endregion
 
         #region Input Handling
@@ -317,7 +362,6 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
 
-            // Use new InteractAction system instead of legacy interaction service
             bool interactStarted = _playerController.TryStartAction("Interact");
             if (interactStarted)
             {
@@ -965,12 +1009,6 @@ namespace Resonance.Player
                     float mentalDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
                     _playerController.TakePhysicalDamage(physicalDamage);
                     _playerController.TakeMentalDamage(mentalDamage);
-                    break;
-                    
-                case DamageType.True:
-                    // True damage bypasses dual health system - affects legacy health directly
-                    Debug.LogWarning("PlayerMonoBehaviour: True damage not fully implemented yet");
-                    _playerController.TakePhysicalDamage(damageInfo.amount);
                     break;
             }
             

@@ -219,9 +219,7 @@ namespace Resonance.Player.Actions
             var interactionService = ServiceRegistry.Get<IInteractionService>();
             if (interactionService == null) return null;
 
-            // TODO Get nearest interactable
-            // return interactionService.GetNearestInteractable();
-            return null;
+            return interactionService.GetNearestInteractable();
         }
 
         /// <summary>

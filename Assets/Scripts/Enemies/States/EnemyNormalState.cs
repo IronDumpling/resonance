@@ -206,7 +206,7 @@ namespace Resonance.Enemies.States
         {
             Vector3 patrolPoint = _enemyController.GeneratePatrolPoint();
             _enemyController.SetPatrolTarget(patrolPoint);
-            Debug.Log($"EnemyNormalState: Started patrol to {patrolPoint}");
+            // Debug.Log($"EnemyNormalState: Started patrol to {patrolPoint}");
         }
 
         #endregion

@@ -323,12 +323,6 @@ namespace Resonance.Enemies
                     _enemyController.TakePhysicalDamage(physicalDamage);
                     _enemyController.TakeMentalDamage(mentalDamage);
                     break;
-                    
-                case DamageType.True:
-                    // True damage affects both health types equally
-                    _enemyController.TakePhysicalDamage(damageInfo.amount * 0.5f);
-                    _enemyController.TakeMentalDamage(damageInfo.amount * 0.5f);
-                    break;
             }
 
             // Visual and audio feedback

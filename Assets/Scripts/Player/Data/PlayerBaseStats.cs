@@ -35,6 +35,10 @@ namespace Resonance.Player.Data
         [SerializeField] private int _mentalHealthSlots = 3;  // Fixed to 3 slots
         [SerializeField] private float _mentalAttackRange = 1.5f;
 
+        [Header("Interaction")]
+        [SerializeField] private float _interactionRange = 1.5f;
+        [SerializeField] private LayerMask _interactionLayerMask = 1 << 7; // Layer 7 (Interactable)
+
         [Header("Physical Health Tiers")]
         [SerializeField] private float _healthyThreshold = 0.7f;   // 70%
         [SerializeField] private float _woundedThreshold = 0.3f;   // 30%
@@ -58,6 +62,10 @@ namespace Resonance.Player.Data
         // Mental Health Slots Properties
         public int MentalHealthSlots => _mentalHealthSlots;
         public float MentalAttackRange => _mentalAttackRange;
+
+        // Interaction Properties
+        public float InteractionRange => _interactionRange;
+        public LayerMask InteractionLayerMask => _interactionLayerMask;
 
         // Physical Health Tier Properties
         public float HealthyThreshold => _healthyThreshold;

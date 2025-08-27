@@ -46,13 +46,26 @@ namespace Resonance.Interfaces.Services
         /// 清除当前可交互对象
         /// </summary>
         void ClearCurrentInteractable();
-        
+
         /// <summary>
-        /// 执行交互
+        /// 获取最近的可交互对象
         /// </summary>
-        /// <param name="playerTransform">玩家Transform</param>
-        /// <returns>是否成功交互</returns>
-        bool PerformInteraction(Transform playerTransform);
+        /// <returns>最近的可交互对象，如果没有则为null</returns>
+        Interfaces.Objects.IInteractable GetNearestInteractable();
+
+        /// <summary>
+        /// 处理可交互对象进入范围
+        /// </summary>
+        /// <param name="gameObject">游戏对象</param>
+        /// <param name="interactable">可交互对象</param>
+        void OnInteractableEnteredRange(GameObject gameObject, Interfaces.Objects.IInteractable interactable);
+
+        /// <summary>
+        /// 处理可交互对象离开范围
+        /// </summary>
+        /// <param name="gameObject">游戏对象</param>
+        /// <param name="interactable">可交互对象</param>
+        void OnInteractableExitedRange(GameObject gameObject, Interfaces.Objects.IInteractable interactable);
         
         // Events
         event System.Action<GameObject, string> OnInteractableChanged; // 可交互对象, 提示文本

@@ -76,13 +76,8 @@ namespace Resonance.Core.GlobalServices
             _playerMap["Move"].performed += OnMovePerformed;
             _playerMap["Move"].canceled += OnMoveCanceled;
             
-            // Legacy interact for backward compatibility
-            if (_playerMap.FindAction("Interact") != null)
-            {
-                _playerMap["Interact"].performed += OnInteractPerformed;
-            }
+            _playerMap["Interact"].performed += OnInteractPerformed;
             
-            // New action inputs (short and long press F)
             _playerMap["Resonance"].performed += OnResonancePerformed;
             _playerMap["Recover"].performed += OnRecoverPerformed;
             

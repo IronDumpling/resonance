@@ -1,7 +1,10 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Objects;
 using Resonance.Items;
+using Resonance.Utilities;
 
 namespace Resonance.Core.GlobalServices
 {
@@ -14,6 +17,9 @@ namespace Resonance.Core.GlobalServices
         private GameObject _currentInteractable;
         private string _currentInteractionText = "";
         private HashSet<GameObject> _registeredInteractables = new HashSet<GameObject>();
+        
+        // 新系统：跟踪范围内的可交互对象
+        private Dictionary<GameObject, IInteractable> _interactablesInRange = new Dictionary<GameObject, IInteractable>();
 
         // IGameService Properties
         public int Priority => 30; // After PlayerService (20) since we need the player to be available
@@ -52,6 +58,7 @@ namespace Resonance.Core.GlobalServices
             Debug.Log("InteractionService: Shutting down");
 
             _registeredInteractables.Clear();
+            _interactablesInRange.Clear();
             _currentInteractable = null;
             _currentInteractionText = "";
             
@@ -118,90 +125,68 @@ namespace Resonance.Core.GlobalServices
             OnInteractableChanged?.Invoke(null, "");
         }
 
-        public bool PerformInteraction(Transform playerTransform)
-        {
-            if (!HasInteractable || playerTransform == null)
-            {
-                Debug.LogWarning("InteractionService: No interactable or player transform is null");
-                return false;
-            }
-
-            GameObject interactable = _currentInteractable;
-            bool interactionSuccess = false;
-
-            // 尝试与Gun交互
-            GunMonoBehaviour gun = interactable.GetComponent<GunMonoBehaviour>();
-            if (gun != null && gun.CanInteract())
-            {
-                interactionSuccess = HandleGunInteraction(gun, playerTransform);
-            }
-            
-            // 这里可以添加其他类型的交互逻辑
-            // 例如：门、开关、NPC等
-
-            if (interactionSuccess)
-            {
-                OnInteractionPerformed?.Invoke(interactable, playerTransform);
-                Debug.Log($"InteractionService: Successfully interacted with {interactable.name}");
-            }
-            else
-            {
-                Debug.LogWarning($"InteractionService: Failed to interact with {interactable.name}");
-            }
-
-            return interactionSuccess;
-        }
-
         #endregion
 
         #region Private Methods
 
         /// <summary>
-        /// 处理Gun交互
+        /// 获取最近的可交互对象
         /// </summary>
-        /// <param name="gun">Gun组件</param>
-        /// <param name="playerTransform">玩家Transform</param>
-        /// <returns>是否成功交互</returns>
-        private bool HandleGunInteraction(GunMonoBehaviour gun, Transform playerTransform)
+        /// <returns>最近的可交互对象，如果没有则为null</returns>
+        public IInteractable GetNearestInteractable()
         {
-            // 获取玩家控制器
-            var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
-            if (playerMono == null || !playerMono.IsInitialized)
+            if (_interactablesInRange.Count == 0) return null;
+
+            // 获取玩家位置
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService?.CurrentPlayer == null) return null;
+
+            Vector3 playerPosition = playerService.CurrentPlayer.transform.position;
+            
+            // 找到最近的可交互对象
+            IInteractable nearest = null;
+            float nearestDistance = float.MaxValue;
+
+            foreach (var kvp in _interactablesInRange)
             {
-                Debug.LogError("InteractionService: Player not found or not initialized");
-                return false;
+                if (kvp.Value != null && kvp.Value.CanInteract())
+                {
+                    float distance = Vector3.Distance(playerPosition, kvp.Value.GetPosition());
+                    if (distance < nearestDistance)
+                    {
+                        nearestDistance = distance;
+                        nearest = kvp.Value;
+                    }
+                }
             }
 
-            var playerController = playerMono.Controller;
-            if (playerController?.WeaponManager == null)
-            {
-                Debug.LogError("InteractionService: Player weapon manager not found");
-                return false;
-            }
+            return nearest;
+        }
 
-            // 检查玩家是否已有武器
-            if (playerController.HasEquippedWeapon)
-            {
-                Debug.LogWarning("InteractionService: Player already has a weapon");
-                // 这里可以实现武器替换逻辑
-                return false;
-            }
+        /// <summary>
+        /// 处理可交互对象进入范围
+        /// </summary>
+        /// <param name="gameObject">游戏对象</param>
+        /// <param name="interactable">可交互对象</param>
+        public void OnInteractableEnteredRange(GameObject gameObject, IInteractable interactable)
+        {
+            if (gameObject == null || interactable == null) return;
 
-            // 拾取武器
-            var gunData = gun.PickupWeapon(playerTransform);
-            if (gunData != null)
-            {
-                // 装备武器到玩家
-                playerController.WeaponManager.EquipWeapon(gunData);
-                
-                // 清除当前交互对象
-                ClearCurrentInteractable();
-                
-                Debug.Log($"InteractionService: Player picked up {gunData.weaponName}");
-                return true;
-            }
+            // 添加到范围内对象列表
+            _interactablesInRange[gameObject] = interactable;
+        }
 
-            return false;
+        /// <summary>
+        /// 处理可交互对象离开范围
+        /// </summary>
+        /// <param name="gameObject">游戏对象</param>
+        /// <param name="interactable">可交互对象</param>
+        public void OnInteractableExitedRange(GameObject gameObject, IInteractable interactable)
+        {
+            if (gameObject == null) return;
+
+            // 从范围内对象列表移除
+            _interactablesInRange.Remove(gameObject);
         }
 
         #endregion

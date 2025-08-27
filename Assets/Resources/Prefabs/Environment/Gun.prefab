@@ -95,7 +95,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 310296798700259598}
-  - component: {fileID: 5942093265878939473}
+  - component: {fileID: 7497778740250112117}
   m_Layer: 7
   m_Name: VIsual
   m_TagString: Untagged
@@ -119,8 +119,8 @@ Transform:
   - {fileID: 5919392856430799619}
   m_Father: {fileID: 4048396451169992661}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &5942093265878939473
-SphereCollider:
+--- !u!65 &7497778740250112117
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -134,11 +134,11 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1
+  m_Size: {x: 1, y: 0.5, z: 0.1}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4479108828786034121
 GameObject:
@@ -290,12 +290,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _gunDataAsset: {fileID: 11400000, guid: e7b2879db7522a44b9a005d420cb92d4, type: 2}
   _interactionText: Press E
+  _interactionDuration: 1
   _pickupVisual: {fileID: 1012015472892952182}
   _rotateWhenIdle: 1
   _rotationSpeed: 30
   _bobUpAndDown: 1
   _bobSpeed: 2
   _bobHeight: 0.2
+  _interactUI: {fileID: 4479108828786034121}
+  _interactTextComponent: {fileID: 4871491158212609418}
 --- !u!1 &6857473602578187026
 GameObject:
   m_ObjectHideFlags: 0

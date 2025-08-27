@@ -46,15 +46,10 @@ namespace Resonance.Items
         // 动画相关
         private Vector3 _originalPosition;
         private float _bobTimer = 0f;
-        
-        // 交互检测 (由InteractionService管理)
-        
+                
         // Services
         private IInteractionService _interactionService;
         private IAudioService _audioService;
-
-        // Events
-        public System.Action<GunMonoBehaviour, Transform> OnPickedUp;
 
         // Properties
         public GunDataAsset GunData => _gunDataAsset;
@@ -69,8 +64,6 @@ namespace Resonance.Items
                 Debug.LogError($"GunMonoBehaviour: No GunDataAsset assigned to {gameObject.name}!");
                 return;
             }
-
-            Debug.Log($"GunMonoBehaviour: Using gun data asset: {_gunDataAsset.weaponName}");
 
             // 记录原始位置用于动画
             _originalPosition = transform.position;
@@ -92,14 +85,11 @@ namespace Resonance.Items
             if (_interactionService != null)
             {
                 _interactionService.RegisterInteractable(gameObject);
-                Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} registered with InteractionService");
             }
             else
             {
                 Debug.LogWarning("GunMonoBehaviour: InteractionService not found");
             }
-
-            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} ready for pickup via new InteractAction system");
         }
 
         void OnDestroy()
@@ -300,7 +290,7 @@ namespace Resonance.Items
             }
 
             // Perform the actual pickup
-            var gunCopy = PickupWeapon(playerTransform);
+            var gunCopy = PerformPickup();
             
             if (gunCopy != null && playerTransform != null)
             {
@@ -372,31 +362,59 @@ namespace Resonance.Items
 
         #endregion
 
-        #region Legacy Interaction Methods
+        #region Public Methods
 
         /// <summary>
-        /// 拾取武器
+        /// Show the interaction UI (called by PlayerInteractTrigger when player enters range)
         /// </summary>
-        /// <param name="player">拾取的玩家Transform</param>
-        /// <returns>武器数据的副本</returns>
-        public GunDataAsset PickupWeapon(Transform player = null)
+        public void ShowInteractionUI()
         {
-            if (_isPickedUp)
+            if (_interactUI != null)
             {
-                Debug.LogWarning("GunMonoBehaviour: Weapon already picked up");
-                return null;
+                _interactUI.SetActive(true);
             }
+        }
+
+        /// <summary>
+        /// Hide the interaction UI (called by PlayerInteractTrigger when player leaves range)
+        /// </summary>
+        public void HideInteractionUI()
+        {
+            if (_interactUI != null)
+            {
+                _interactUI.SetActive(false);
+            }
+        }
+
+        /// <summary>
+        /// 重置武器状态（用于重新生成或测试）
+        /// </summary>
+        public void ResetWeapon()
+        {
+            _isPickedUp = false;
+            _isInteracting = false;
+            gameObject.SetActive(true);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// 拾取武器（新系统内部使用）
+        /// </summary>
+        /// <returns>武器数据的副本</returns>
+        private GunDataAsset PerformPickup()
+        {
+            if (_isPickedUp) return null;
 
             _isPickedUp = true;
             _isInteracting = false;
 
-            PlayPickuoAudio(transform.position);
+            PlayPickupAudio(transform.position);
             
             // 创建运行时副本
             GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
-            
-            // 触发拾取事件
-            OnPickedUp?.Invoke(this, player);
             
             // 停止所有动画
             StopAllCoroutines();
@@ -411,8 +429,6 @@ namespace Resonance.Items
                 gameObject.SetActive(false);
             }
             
-            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} picked up by {(player ? player.name : "unknown player")}");
-            
             return gunCopy;
         }
 
@@ -420,63 +436,12 @@ namespace Resonance.Items
         /// 播放拾取音频
         /// </summary>
         /// <param name="pickupPosition">拾取位置</param>
-        private void PlayPickuoAudio(Vector3 pickupPosition)
+        private void PlayPickupAudio(Vector3 pickupPosition)
         {
             if (_audioService == null) return;
 
             AudioClipType audioClipType = AudioClipType.ItemPickup;
             _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.8f, 1f);
-
-            Debug.Log($"GunMonoBehaviour: Played pickup audio {audioClipType} at {pickupPosition}");
-        }
-
-        /// <summary>
-        /// 重置武器状态（用于重新生成或测试）
-        /// </summary>
-        public void ResetWeapon()
-        {
-            _isPickedUp = false;
-            _isInteracting = false;
-            gameObject.SetActive(true);
-            Debug.Log($"GunMonoBehaviour: {_gunDataAsset.weaponName} reset");
-        }
-
-        /// <summary>
-        /// 设置交互文本内容（运行时更改）
-        /// </summary>
-        /// <param name="newText">新的交互文本</param>
-        public void SetInteractionText(string newText)
-        {
-            _interactionText = newText;
-            if (_interactTextComponent != null)
-            {
-                _interactTextComponent.text = _interactionText;
-            }
-            Debug.Log($"GunMonoBehaviour: Updated interaction text to '{newText}'");
-        }
-
-        /// <summary>
-        /// Show the interaction UI (called by InteractionService when player enters range)
-        /// </summary>
-        public void ShowInteractionUI()
-        {
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(true);
-                Debug.Log($"GunMonoBehaviour: Showed interaction UI for {_gunDataAsset.weaponName}");
-            }
-        }
-
-        /// <summary>
-        /// Hide the interaction UI (called by InteractionService when player leaves range)
-        /// </summary>
-        public void HideInteractionUI()
-        {
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(false);
-                Debug.Log($"GunMonoBehaviour: Hid interaction UI for {_gunDataAsset.weaponName}");
-            }
         }
 
         #endregion
