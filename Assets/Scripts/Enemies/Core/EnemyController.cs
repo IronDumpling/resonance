@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.States;
 using Resonance.Core;
@@ -23,6 +24,8 @@ namespace Resonance.Enemies.Core
         // Combat State
         private float _lastAttackTime = 0f;
         private float _revivalTimer = 0f;
+        private bool _hitboxEnabled = false;
+        private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
         
         // Target Tracking
         private Transform _playerTarget;
@@ -131,6 +134,12 @@ namespace Resonance.Enemies.Core
         // Combat Properties
         public bool CanAttack => IsMentallyAlive && HasPlayerTarget && 
                                 Time.time >= _lastAttackTime + _attackCooldown;
+        
+        // Animation-driven combat properties (read-only for animation bridge)
+        public float AttackDamageValue => _attackDamage;
+        public float AttackCooldownValue => _attackCooldown;
+        public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
+        public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -375,7 +384,8 @@ namespace Resonance.Enemies.Core
         #region Combat System
 
         /// <summary>
-        /// Launch attack on player with mental health tier damage modifiers
+        /// Start attack process (animation-driven) - sets cooldown and triggers events
+        /// Actual damage is dealt through hitbox during animation window
         /// </summary>
         public bool LaunchAttack()
         {
@@ -384,24 +394,11 @@ namespace Resonance.Enemies.Core
             _lastAttackTime = Time.time;
             _attacksLaunched++;
             
-            // Apply mental health tier damage modifier to attack
-            float modifiedDamage = _attackDamage * _stats.GetPhysicalDamageMultiplier();
+            // Trigger attack started event (for animation system)
+            OnAttackLaunched?.Invoke(_attackDamage);
+            Debug.Log($"EnemyController: Attack process started - damage will be dealt through hitbox");
             
-            // Actually find and damage the player
-            bool damageDealt = DealDamageToPlayer(modifiedDamage);
-            
-            if (damageDealt)
-            {
-                _totalDamageDealt += modifiedDamage;
-                OnAttackLaunched?.Invoke(modifiedDamage);
-                Debug.Log($"EnemyController: Successfully attacked player for {modifiedDamage:F1} damage (base: {_attackDamage:F1}, multiplier: {_stats.GetPhysicalDamageMultiplier():F1})");
-            }
-            else
-            {
-                Debug.LogWarning($"EnemyController: Attack launched but no damage dealt to player");
-            }
-            
-            return damageDealt;
+            return true;
         }
 
         /// <summary>
@@ -448,6 +445,88 @@ namespace Resonance.Enemies.Core
                 return false;
             }
         }
+
+        /// <summary>
+        /// Enable hitbox for damage dealing (called by animation events)
+        /// </summary>
+        public void EnableHitbox()
+        {
+            _hitboxEnabled = true;
+            _currentAttackHits.Clear(); // Reset hit tracking for new attack
+            Debug.Log("EnemyController: Hitbox enabled - damage window opened");
+        }
+
+        /// <summary>
+        /// Disable hitbox for damage dealing (called by animation events)
+        /// </summary>
+        public void DisableHitbox()
+        {
+            _hitboxEnabled = false;
+            _currentAttackHits.Clear(); // Clear hit tracking
+            Debug.Log("EnemyController: Hitbox disabled - damage window closed");
+        }
+
+        /// <summary>
+        /// Try to apply damage to a target through the hitbox system
+        /// Only works when hitbox is enabled and target hasn't been hit in current attack
+        /// </summary>
+        public bool TryApplyDamage(IDamageable target, DamageInfo damageInfo)
+        {
+            if (!_hitboxEnabled)
+            {
+                Debug.LogWarning("EnemyController: Attempted to apply damage but hitbox is disabled");
+                return false;
+            }
+
+            if (!IsMentallyAlive)
+            {
+                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is not mentally alive");
+                return false;
+            }
+
+            if (target == null)
+            {
+                Debug.LogWarning("EnemyController: Attempted to apply damage to null target");
+                return false;
+            }
+
+            // Check if we've already hit this target in the current attack
+            if (_currentAttackHits.Contains(target))
+            {
+                Debug.Log("EnemyController: Target already hit in current attack, skipping");
+                return false;
+            }
+
+            // Apply mental health tier damage modifier
+            float modifiedDamage = damageInfo.amount * _stats.GetPhysicalDamageMultiplier();
+            
+            // Create modified damage info
+            DamageInfo modifiedDamageInfo = new DamageInfo(
+                amount: modifiedDamage,
+                type: damageInfo.type,
+                sourcePosition: damageInfo.sourcePosition,
+                sourceObject: damageInfo.sourceObject,
+                description: damageInfo.description,
+                physicalRatio: damageInfo.physicalRatio
+            );
+
+            // Apply damage
+            target.TakeDamage(modifiedDamageInfo);
+            
+            // Track this hit
+            _currentAttackHits.Add(target);
+            
+            // Update statistics
+            _totalDamageDealt += modifiedDamage;
+            
+            Debug.Log($"EnemyController: Applied {modifiedDamage:F1} damage to target (base: {damageInfo.amount:F1}, multiplier: {_stats.GetPhysicalDamageMultiplier():F1})");
+            return true;
+        }
+
+        /// <summary>
+        /// Check if hitbox is currently enabled
+        /// </summary>
+        public bool IsHitboxEnabled => _hitboxEnabled;
 
         /// <summary>
         /// Check if player is in attack range (now handled by trigger system)

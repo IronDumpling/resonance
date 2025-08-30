@@ -5,14 +5,15 @@ using Resonance.Enemies.Core;
 namespace Resonance.Enemies.Actions
 {
     /// <summary>
-    /// Enemy attack action - handles attacking the player when in range
+    /// Enemy attack action - triggers attack animation and manages attack flow
     /// Only executed in Normal state's Attack sub-state
+    /// Damage is dealt through hitbox during animation window
     /// </summary>
     public class EnemyAttackAction : IEnemyAction
     {
         private float _actionTimer = 0f;
         private bool _isFinished = false;
-        private bool _hasAttacked = false;
+        private bool _hasTriggeredAnimation = false;
         
         public string Name => "Attack";
         public int Priority => 90; // High priority - interrupts most other actions
@@ -34,23 +35,23 @@ namespace Resonance.Enemies.Actions
         {
             _actionTimer = 0f;
             _isFinished = false;
-            _hasAttacked = false;
+            _hasTriggeredAnimation = false;
             
-            Debug.Log("EnemyAttackAction: Started attack action");
+            Debug.Log("EnemyAttackAction: Started attack action - will trigger animation");
         }
 
         public void Update(EnemyController enemy, float deltaTime)
         {
             _actionTimer += deltaTime;
             
-            // Perform attack immediately on start
-            if (!_hasAttacked)
+            // Trigger animation and start attack process on first frame
+            if (!_hasTriggeredAnimation)
             {
-                PerformAttack(enemy);
-                _hasAttacked = true;
+                TriggerAttackAnimation(enemy);
+                _hasTriggeredAnimation = true;
             }
             
-            // Check if action should finish
+            // Check if action should finish based on attack duration
             if (_actionTimer >= enemy.AttackDuration)
             {
                 _isFinished = true;
@@ -76,19 +77,24 @@ namespace Resonance.Enemies.Actions
         }
 
         /// <summary>
-        /// Perform the actual attack
+        /// Trigger attack animation and start attack process
+        /// Actual damage will be dealt through hitbox during animation window
         /// </summary>
-        private void PerformAttack(EnemyController enemy)
+        private void TriggerAttackAnimation(EnemyController enemy)
         {
-            bool attackSuccessful = enemy.LaunchAttack();
+            // Start the attack process (sets cooldown, triggers events)
+            bool attackStarted = enemy.LaunchAttack();
             
-            if (attackSuccessful)
+            if (attackStarted)
             {
-                Debug.Log("EnemyAttackAction: Attack launched successfully");
+                Debug.Log("EnemyAttackAction: Attack process started - animation should be triggered");
+                // The animation trigger will be handled by the MonoBehaviour bridge
+                // through the OnAttackLaunched event
             }
             else
             {
-                Debug.LogWarning("EnemyAttackAction: Attack failed to launch");
+                Debug.LogWarning("EnemyAttackAction: Attack failed to start");
+                _isFinished = true; // End action if attack couldn't start
             }
         }
     }

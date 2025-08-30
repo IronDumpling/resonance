@@ -371,6 +371,9 @@ namespace Resonance.Enemies
             
             // Setup attack collider
             SetupAttackCollider();
+            
+            // Setup damage hitbox
+            SetupDamageHitbox();
 
             // Set initial radii
             UpdateColliderRadii();
@@ -441,6 +444,53 @@ namespace Resonance.Enemies
                 
                 // Add trigger component
                 SetupDetectionTriggerComponent(attackGO, TriggerType.Attack);
+            }
+        }
+        
+        private void SetupDamageHitbox()
+        {
+            // Try to find existing damage hitbox
+            Transform damageHitboxChild = transform.Find("DamageHitbox");
+            
+            if (damageHitboxChild != null)
+            {
+                // Check and add EnemyDamageHitbox if needed
+                SetupDamageHitboxComponent(damageHitboxChild.gameObject);
+            }
+            else
+            {
+                // Create DamageHitbox GameObject if it doesn't exist
+                GameObject damageHitboxGO = new GameObject("DamageHitbox");
+                damageHitboxGO.transform.SetParent(transform);
+                damageHitboxGO.transform.localPosition = Vector3.zero;
+                damageHitboxGO.layer = gameObject.layer;
+                
+                // Add a default collider (can be customized in inspector)
+                SphereCollider hitboxCollider = damageHitboxGO.AddComponent<SphereCollider>();
+                hitboxCollider.isTrigger = true;
+                hitboxCollider.radius = 1.5f; // Default attack hitbox radius
+                
+                // Add damage hitbox component
+                SetupDamageHitboxComponent(damageHitboxGO);
+                
+                // Start disabled - will be enabled by animation events
+                damageHitboxGO.SetActive(false);
+            }
+        }
+        
+        private void SetupDamageHitboxComponent(GameObject hitboxObject)
+        {
+            // Check if EnemyDamageHitbox already exists
+            EnemyDamageHitbox existingHitbox = hitboxObject.GetComponent<EnemyDamageHitbox>();
+            
+            if (existingHitbox != null)
+            {
+                existingHitbox.Initialize(this);
+            }
+            else
+            {
+                EnemyDamageHitbox newHitbox = hitboxObject.AddComponent<EnemyDamageHitbox>();
+                newHitbox.Initialize(this);
             }
         }
         
@@ -538,6 +588,17 @@ namespace Resonance.Enemies
                 if (attackTrigger == null)
                 {
                     SetupDetectionTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
+                }
+            }
+            
+            // Check damage hitbox component
+            Transform damageHitboxChild = transform.Find("DamageHitbox");
+            if (damageHitboxChild != null)
+            {
+                EnemyDamageHitbox damageHitbox = damageHitboxChild.GetComponent<EnemyDamageHitbox>();
+                if (damageHitbox == null)
+                {
+                    SetupDamageHitboxComponent(damageHitboxChild.gameObject);
                 }
             }
         }
