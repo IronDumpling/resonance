@@ -23,8 +23,8 @@ MonoBehaviour:
   attackCooldown: 2
   attackRange: 1.5
   detectionRange: 4
-  moveSpeed: 3
-  alertMoveSpeed: 5
+  moveSpeed: 1
+  alertMoveSpeed: 2
   patrolRadius: 2
   physicalWoundedThreshold: 0.4
   mentalCriticalThreshold: 0.4

@@ -40,9 +40,9 @@ namespace Resonance.Enemies.Data
         
         [Header("Movement")]
         [Tooltip("Normal movement speed")]
-        public float moveSpeed = 3f;
+        public float moveSpeed = 1f;
         [Tooltip("Alert movement speed")]
-        public float alertMoveSpeed = 5f;
+        public float alertMoveSpeed = 2f;
         [Tooltip("Patrol radius")]
         public float patrolRadius = 5f;
         
