@@ -85,18 +85,18 @@ namespace Resonance.Enemies.Actions
 
         /// <summary>
         /// Move the enemy towards the patrol target
+        /// Speed is now managed centrally by EnemyMovement based on current state
         /// </summary>
         private void MoveTowardsPatrolTarget(EnemyController enemy, float deltaTime)
         {
             // Use the movement system to move towards patrol target
+            // Speed will be automatically determined by EnemyMovement based on current substate
             var movement = enemy.Movement;
-            float moveSpeed = enemy.PatrolSpeed; // Use configured patrol speed
             
-            // Set movement target and move
+            // Set movement target - speed will be handled automatically
             movement.SetTarget(_currentPatrolTarget);
-            movement.MoveToTarget(moveSpeed, deltaTime);
             
-            // Debug.Log($"EnemyPatrolAction: Patrolling towards {_currentPatrolTarget} at speed {moveSpeed:F1}");
+            // Debug.Log($"EnemyPatrolAction: Patrolling towards {_currentPatrolTarget}");
         }
 
         /// <summary>

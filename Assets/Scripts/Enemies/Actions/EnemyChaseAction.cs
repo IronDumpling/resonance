@@ -5,8 +5,8 @@ using Resonance.Enemies.Core;
 namespace Resonance.Enemies.Actions
 {
     /// <summary>
-    /// Enemy chase action - moves towards the player at alert move speed
-    /// Only executed in Normal state's Alert sub-state when player is detected
+    /// Enemy chase action - moves towards the player at chase move speed
+    /// Only executed in Normal state's Chase sub-state when player is detected
     /// </summary>
     public class EnemyChaseAction : IEnemyAction
     {
@@ -29,7 +29,7 @@ namespace Resonance.Enemies.Actions
                    enemy.HasPlayerTarget && 
                    enemy.IsPlayerInDetectionRange() &&
                    !enemy.IsPlayerInAttackRange() &&
-                   enemy.Stats.GetModifiedAlertMoveSpeed() > 0f;
+                   enemy.Stats.GetModifiedChaseMoveSpeed() > 0f;
         }
 
         public void Start(EnemyController enemy)
@@ -98,18 +98,18 @@ namespace Resonance.Enemies.Actions
 
         /// <summary>
         /// Move the enemy towards the target position
+        /// Speed is now managed centrally by EnemyMovement based on current state
         /// </summary>
         private void MoveTowardsTarget(EnemyController enemy, float deltaTime)
         {
             // Use the movement system to chase the player
+            // Speed will be automatically determined by EnemyMovement based on current substate
             var movement = enemy.Movement;
-            float moveSpeed = enemy.Stats.GetModifiedAlertMoveSpeed();
             
-            // Set movement target and move towards player
+            // Set movement target - speed will be handled automatically
             movement.SetTarget(_targetPosition);
-            movement.MoveToTarget(moveSpeed, deltaTime);
             
-            // Debug.Log($"EnemyChaseAction: Chasing player at {_targetPosition}, speed: {moveSpeed:F1}");
+            // Debug.Log($"EnemyChaseAction: Chasing player at {_targetPosition}");
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace Resonance.Enemies.Actions
             }
             
             // Finish if enemy can no longer move (wounded/dead)
-            if (enemy.Stats.GetModifiedAlertMoveSpeed() <= 0f)
+            if (enemy.Stats.GetModifiedChaseMoveSpeed() <= 0f)
             {
                 Debug.Log("EnemyChaseAction: Cannot move, finishing chase");
                 _isFinished = true;

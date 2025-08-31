@@ -237,14 +237,14 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Check if enemy is alert
+        /// Check if enemy is chase
         /// </summary>
-        public bool IsAlert()
+        public bool IsChasing()
         {
             if (IsInState("Normal"))
             {
                 var normalState = GetState<EnemyNormalState>("Normal");
-                return normalState?.IsAlert() ?? false;
+                return normalState?.IsChasing() ?? false;
             }
             return false;
         }

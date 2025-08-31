@@ -41,8 +41,8 @@ namespace Resonance.Enemies.Data
         [Header("Movement")]
         [Tooltip("Normal movement speed")]
         public float moveSpeed = 1f;
-        [Tooltip("Alert movement speed")]
-        public float alertMoveSpeed = 2f;
+        [Tooltip("Chase movement speed")]
+        public float chaseMoveSpeed = 2f;
         [Tooltip("Patrol radius")]
         public float patrolRadius = 5f;
         
@@ -107,7 +107,7 @@ namespace Resonance.Enemies.Data
                 
                 // Movement
                 moveSpeed = this.moveSpeed,
-                alertMoveSpeed = this.alertMoveSpeed,
+                chaseMoveSpeed = this.chaseMoveSpeed,
                 patrolRadius = this.patrolRadius,
                 
                 // Health Tiers
@@ -195,7 +195,7 @@ namespace Resonance.Enemies.Data
             attackRange = Mathf.Max(0.1f, attackRange);
             detectionRange = Mathf.Max(0.1f, detectionRange);
             moveSpeed = Mathf.Max(0.1f, moveSpeed);
-            alertMoveSpeed = Mathf.Max(0.1f, alertMoveSpeed);
+            chaseMoveSpeed = Mathf.Max(0.1f, chaseMoveSpeed);
             patrolRadius = Mathf.Max(0f, patrolRadius);
             
             // Validate health tier thresholds
@@ -241,7 +241,7 @@ namespace Resonance.Enemies.Data
         
         [Header("Movement")]
         public float moveSpeed;
-        public float alertMoveSpeed;
+        public float chaseMoveSpeed;
         public float patrolRadius;
         
         [Header("Health Tiers")]
@@ -346,16 +346,16 @@ namespace Resonance.Enemies.Data
         }
         
         /// <summary>
-        /// Get current alert move speed with health tier modifiers
+        /// Get current chase move speed with health tier modifiers
         /// </summary>
-        public float GetModifiedAlertMoveSpeed()
+        public float GetModifiedChaseMoveSpeed()
         {
             if (physicalTier == EnemyPhysicalHealthTier.Dead)
                 return 0f; // Cannot move when physically dead
             else if (physicalTier == EnemyPhysicalHealthTier.Wounded)
-                return alertMoveSpeed * woundedSpeedMultiplier;
+                return chaseMoveSpeed * woundedSpeedMultiplier;
             else
-                return alertMoveSpeed;
+                return chaseMoveSpeed;
         }
         
         /// <summary>

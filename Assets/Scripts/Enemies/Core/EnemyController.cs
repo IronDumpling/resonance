@@ -140,6 +140,7 @@ namespace Resonance.Enemies.Core
         public float AttackCooldownValue => _attackCooldown;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
         public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
+        public float LastAttackTime => _lastAttackTime;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -152,8 +153,8 @@ namespace Resonance.Enemies.Core
             _patrolCenter = spawnPosition;
             _currentPatrolTarget = spawnPosition;
             
-            // Initialize movement system
-            _movement = new EnemyMovement(_stats, enemyTransform);
+            // Initialize movement system with reference to this controller
+            _movement = new EnemyMovement(_stats, enemyTransform, this);
             
             // Initialize action controller
             _actionController = new EnemyActionController(this);
@@ -527,6 +528,15 @@ namespace Resonance.Enemies.Core
         /// Check if hitbox is currently enabled
         /// </summary>
         public bool IsHitboxEnabled => _hitboxEnabled;
+
+        /// <summary>
+        /// Reset attack cooldown (for testing purposes)
+        /// </summary>
+        public void ResetAttackCooldown()
+        {
+            _lastAttackTime = 0f;
+            Debug.Log("EnemyController: Attack cooldown reset");
+        }
 
         /// <summary>
         /// Check if player is in attack range (now handled by trigger system)

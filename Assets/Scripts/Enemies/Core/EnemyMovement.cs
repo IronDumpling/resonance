@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Enemies.Data;
+using Resonance.Enemies.States;
 
 namespace Resonance.Enemies.Core
 {
@@ -11,6 +12,7 @@ namespace Resonance.Enemies.Core
     {
         private EnemyRuntimeStats _stats;
         private Transform _transform;
+        private EnemyController _enemyController; // Reference to get current state info
         
         // Movement state
         private Vector3 _targetPosition;
@@ -36,10 +38,19 @@ namespace Resonance.Enemies.Core
             set => _movementSpeedModifier = Mathf.Clamp01(value); 
         }
 
-        public EnemyMovement(EnemyRuntimeStats stats, Transform transform)
+        public EnemyMovement(EnemyRuntimeStats stats, Transform transform, EnemyController enemyController = null)
         {
             _stats = stats;
             _transform = transform;
+            _enemyController = enemyController;
+        }
+        
+        /// <summary>
+        /// Set the enemy controller reference (can be called after construction if needed)
+        /// </summary>
+        public void SetEnemyController(EnemyController enemyController)
+        {
+            _enemyController = enemyController;
         }
 
         public void Update(float deltaTime)
@@ -108,9 +119,43 @@ namespace Resonance.Enemies.Core
         {
             if (!IsMoving) return;
             
-            // Use default move speed - specific actions will call MoveToTarget with their own speed
-            float moveSpeed = _stats.GetModifiedMoveSpeed();
+            // Determine move speed based on current enemy state and substate
+            float moveSpeed = GetCurrentMoveSpeed();
             MoveToTarget(moveSpeed, deltaTime);
+        }
+        
+        /// <summary>
+        /// Get the appropriate movement speed based on current enemy state and substate
+        /// </summary>
+        private float GetCurrentMoveSpeed()
+        {
+            // If no enemy controller reference, fall back to basic move speed
+            if (_enemyController == null)
+            {
+                return _stats.GetModifiedMoveSpeed();
+            }
+            
+            // Check if enemy is in Normal state and get substate
+            if (_enemyController.StateMachine.IsInState("Normal"))
+            {
+                var normalState = _enemyController.StateMachine.CurrentState as EnemyNormalState;
+                if (normalState != null)
+                {
+                    // Use chase speed for Chase and Combat substates
+                    if (normalState.IsChasing() || normalState.IsAttacking())
+                    {
+                        return _stats.GetModifiedChaseMoveSpeed();
+                    }
+                    // Use normal speed for Patrol substate
+                    else if (normalState.IsPatrolling())
+                    {
+                        return _stats.GetModifiedMoveSpeed();
+                    }
+                }
+            }
+            
+            // Default fallback to normal move speed for other states (Reviving, TrueDeath, etc.)
+            return _stats.GetModifiedMoveSpeed();
         }
         
         private void UpdateRotation(float deltaTime)

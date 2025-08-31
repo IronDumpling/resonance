@@ -80,7 +80,7 @@ namespace Resonance.Enemies
         [SerializeField] private float _attackDamage = 20f;
         [Tooltip("Base damage amount for enemy attacks.")]
         
-        [SerializeField] private float _attackCooldown = 3f;
+        [SerializeField] private float _attackCooldown = 1f;
         [Tooltip("Cooldown time between attacks (seconds).")]
 
         [Header("Debug")]
@@ -89,6 +89,7 @@ namespace Resonance.Enemies
         // Core Components
         private EnemyController _enemyController;
         private IAudioService _audioService;
+        private Animator _animator;
 
         // Visual Materials
         private Material _normalMaterial;
@@ -121,6 +122,17 @@ namespace Resonance.Enemies
             {
                 Debug.LogError("EnemyMonoBehaviour: BaseStats validation failed!");
                 return;
+            }
+
+            // Get Animator component (should be on Visual child)
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                Debug.LogError($"EnemyMonoBehaviour: No Animator found on {gameObject.name} or its children!");
+            }
+            else
+            {
+                Debug.Log($"EnemyMonoBehaviour: Found Animator on {_animator.gameObject.name}");
             }
 
             // Setup visual components
@@ -161,6 +173,9 @@ namespace Resonance.Enemies
             if (!IsInitialized) return;
 
             _enemyController.Update(Time.deltaTime);
+
+            // Update animator parameters
+            UpdateAnimatorParameters();
 
             // Check for destruction
             if (_enemyController.StateMachine.IsReadyForDestruction())
@@ -317,11 +332,19 @@ namespace Resonance.Enemies
             _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
             _enemyController.OnAttackLaunched += HandleAttackLaunched;
             _enemyController.OnStateChanged += HandleStateChanged;
+            _enemyController.OnPlayerDetected += HandlePlayerDetected;
+            _enemyController.OnPlayerLost += HandlePlayerLost;
 
             _isInitialized = true;
             
             // Setup patrol waypoints after controller is initialized
             SetupPatrolWaypoints();
+            
+            // Reset attack cooldown so enemy can attack immediately when needed
+            _enemyController.ResetAttackCooldown();
+            
+            // Setup animation relay after controller is initialized
+            SetupAnimationRelay();
             
             OnEnemyInitialized?.Invoke(_enemyController);
 
@@ -491,6 +514,56 @@ namespace Resonance.Enemies
             {
                 EnemyDamageHitbox newHitbox = hitboxObject.AddComponent<EnemyDamageHitbox>();
                 newHitbox.Initialize(this);
+            }
+        }
+        
+        private void SetupAnimationRelay()
+        {
+            if (!IsInitialized || _enemyController == null)
+            {
+                Debug.LogWarning("EnemyMonoBehaviour: SetupAnimationRelay called before enemy controller initialization");
+                return;
+            }
+
+            // Find the Visual child GameObject (where Animator should be)
+            GameObject visualObject = null;
+            if (_animator != null)
+            {
+                visualObject = _animator.gameObject;
+            }
+            else
+            {
+                // Fallback: try to find Visual child by name
+                Transform visualTransform = transform.Find("Visual");
+                if (visualTransform != null)
+                {
+                    visualObject = visualTransform.gameObject;
+                }
+            }
+
+            if (visualObject == null)
+            {
+                Debug.LogError("EnemyMonoBehaviour: Cannot find Visual GameObject for EnemyAnimRelay setup");
+                return;
+            }
+
+            // Check if EnemyAnimRelay already exists on Visual GameObject
+            EnemyAnimRelay existingRelay = visualObject.GetComponent<EnemyAnimRelay>();
+            
+            if (existingRelay != null)
+            {
+                // Initialize existing relay
+                EnemyDamageHitbox damageHitbox = GetComponentInChildren<EnemyDamageHitbox>();
+                existingRelay.Initialize(this, damageHitbox);
+                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyAnimRelay on {visualObject.name}");
+            }
+            else
+            {
+                // Add new animation relay component to Visual GameObject
+                EnemyAnimRelay newRelay = visualObject.AddComponent<EnemyAnimRelay>();
+                EnemyDamageHitbox damageHitbox = GetComponentInChildren<EnemyDamageHitbox>();
+                newRelay.Initialize(this, damageHitbox);
+                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyAnimRelay on {visualObject.name}");
             }
         }
         
@@ -670,6 +743,51 @@ namespace Resonance.Enemies
 
         #endregion
 
+        #region Animation Bridge
+
+        /// <summary>
+        /// Update animator parameters based on enemy state
+        /// </summary>
+        private void UpdateAnimatorParameters()
+        {
+            if (_animator == null || !_animator.isActiveAndEnabled) return;
+
+            // Update Speed parameter for locomotion blend tree
+            float speed = _enemyController.Movement?.Velocity.magnitude ?? 0f;
+            _animator.SetFloat("Speed", speed);
+
+            // Update boolean parameters
+            _animator.SetBool("HasTarget", _enemyController.HasPlayerTargetValue);
+            _animator.SetBool("InAttackRange", _enemyController.IsPlayerInAttackRangeValue);
+            _animator.SetBool("IsReviving", _enemyController.StateMachine.IsReviving());
+        }
+
+        /// <summary>
+        /// Handle player detected event - set HasTarget parameter
+        /// </summary>
+        private void HandlePlayerDetected(Transform player)
+        {
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetBool("HasTarget", true);
+                Debug.Log("EnemyMonoBehaviour: Player detected - set HasTarget = true");
+            }
+        }
+
+        /// <summary>
+        /// Handle player lost event - set HasTarget parameter
+        /// </summary>
+        private void HandlePlayerLost()
+        {
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetBool("HasTarget", false);
+                Debug.Log("EnemyMonoBehaviour: Player lost - set HasTarget = false");
+            }
+        }
+
+        #endregion
+
         #region Event Handlers
 
         private void HandlePhysicalHealthChanged(float current, float max)
@@ -687,6 +805,12 @@ namespace Resonance.Enemies
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - checking mental health for state transition");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
+            
+            // Trigger physical death animation
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetTrigger("PhysicalDeath");
+            }
         }
 
         private void HandleTrueDeath()
@@ -694,6 +818,12 @@ namespace Resonance.Enemies
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
+            
+            // Trigger true death animation
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetTrigger("TrueDeath");
+            }
             
             // Start destruction countdown
             Destroy(gameObject, 3f);
@@ -703,18 +833,36 @@ namespace Resonance.Enemies
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started revival");
             SetMaterial(_revivalMaterial);
+            
+            // Set revival state in animator
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetBool("IsReviving", true);
+            }
         }
 
         private void HandleRevivalCompleted()
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} completed revival");
             SetMaterial(_normalMaterial);
+            
+            // Complete revival in animator
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetBool("IsReviving", false);
+                _animator.SetTrigger("ReviveComplete");
+            }
         }
 
         private void HandleAttackLaunched(float damage)
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} launched attack for {damage} damage");
-            // Attack effects would go here
+            
+            // Trigger attack animation
+            if (_animator != null && _animator.isActiveAndEnabled)
+            {
+                _animator.SetTrigger("AttackStart");
+            }
         }
 
         private void HandleStateChanged(string stateName)
@@ -897,6 +1045,7 @@ namespace Resonance.Enemies
 
                 case TriggerType.Attack:
                     _enemyController.SetPlayerInAttackRange(true);
+                    Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
                     break;
             }
         }
@@ -919,6 +1068,7 @@ namespace Resonance.Enemies
 
                 case TriggerType.Attack:
                     _enemyController.SetPlayerInAttackRange(false);
+                    Debug.Log($"EnemyMonoBehaviour: Player left attack range");
                     break;
             }
         }
