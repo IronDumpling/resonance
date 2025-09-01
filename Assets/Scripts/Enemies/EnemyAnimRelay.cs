@@ -107,6 +107,21 @@ namespace Resonance.Enemies
         }
 
         /// <summary>
+        /// Called by animation event when attack sequence finishes
+        /// Usually placed on the frame where the attack sequence should finish
+        /// </summary>
+        public void OnAttackSequenceFinished()
+        {
+            if (!_isInitialized)
+            {
+                Debug.LogError("EnemyAnimRelay: OnAttackSequenceFinished called but not initialized!");
+                return;
+            }
+
+            _enemyController?.AttackSequenceFinished();
+        }
+
+        /// <summary>
         /// Called by animation event when fall down animation finishes
         /// Used to transition from physical death to revival state
         /// </summary>
@@ -122,9 +137,6 @@ namespace Resonance.Enemies
             {
                 Debug.Log("EnemyAnimRelay: OnFallDownFinished - fall down animation complete");
             }
-
-            // This event can be used to trigger additional effects or state changes
-            // The actual revival logic is handled by the EnemyController based on mental health
         }
 
         /// <summary>

@@ -15,7 +15,10 @@ namespace Resonance.Enemies.Actions
         private bool _isFinished = false;
         private bool _hasTriggeredAnimation = false;
         private bool _hasActivatedHitbox = false;
-        
+        private bool _windowOpened = false;
+
+        private EnemyController _enemy;
+
         public string Name => "Attack";
         public int Priority => 90; // High priority - interrupts most other actions
         public bool CanInterrupt => true; // Can be interrupted by damage or state changes
@@ -32,30 +35,48 @@ namespace Resonance.Enemies.Actions
             bool inRange = enemy.IsPlayerInAttackRange();
             
             // Break down CanAttack for detailed debugging
-            bool isMentallyAlive = enemy.IsMentallyAlive;
-            bool hasPlayerTargetForAttack = enemy.HasPlayerTarget;
-            float currentTime = Time.time;
-            float lastAttackTime = enemy.LastAttackTime;
-            float attackCooldown = enemy.AttackCooldownValue;
-            bool cooldownPassed = currentTime >= (lastAttackTime + attackCooldown);
+            // bool isMentallyAlive = enemy.IsMentallyAlive;
+            // bool hasPlayerTargetForAttack = enemy.HasPlayerTarget;
+            // float currentTime = Time.time;
+            // float lastAttackTime = enemy.LastAttackTime;
+            // float attackCooldown = enemy.AttackCooldownValue;
+            // bool cooldownPassed = currentTime >= (lastAttackTime + attackCooldown);
             
             bool result = canAttack && hasTarget && inRange;
             
             // Optional: Keep minimal logging for important events
-            if (!result && !cooldownPassed)
-            {
+            // if (!result && !cooldownPassed)
+            // {
                 // Debug.Log($"EnemyAttackAction: Attack on cooldown - {(lastAttackTime + attackCooldown - currentTime):F1}s remaining");
-            }
+            // }
             
             return result;
         }
 
         public void Start(EnemyController enemy)
         {
+            _enemy = enemy;
             _actionTimer = 0f;
             _isFinished = false;
+            _windowOpened = false;
             _hasTriggeredAnimation = false;
             _hasActivatedHitbox = false;
+
+            _enemy.OnAttackSequenceFinished += () => HandleSequenceFinished();
+            _enemy.OnAttackWindowOpened += () => HandleWindowOpened();
+            _enemy.OnAttackWindowClosed += () => HandleWindowClosed();
+
+            if(!_hasTriggeredAnimation)
+            {
+                if(_enemy.LaunchAttack())
+                {
+                    _hasTriggeredAnimation = true;
+                }
+                else
+                {
+                    Finish();
+                }
+            }
             
             Debug.Log("EnemyAttackAction: Started attack action - will trigger animation");
         }
@@ -63,54 +84,10 @@ namespace Resonance.Enemies.Actions
         public void Update(EnemyController enemy, float deltaTime)
         {
             _actionTimer += deltaTime;
-            
-            // Trigger animation and start attack process on first frame
-            if (!_hasTriggeredAnimation)
+
+            if(!_windowOpened && (!enemy.HasPlayerTarget || !enemy.IsPlayerInAttackRange()))
             {
-                TriggerAttackAnimation(enemy);
-                _hasTriggeredAnimation = true;
-            }
-            
-            // NOTE: Hitbox activation is now handled by EnemyController.EnableHitbox()
-            // which properly activates the DamageHitbox GameObject
-            // For now, we'll keep the programmatic activation as a fallback
-            // until animation events are properly configured
-            float hitboxActivationTime = 0.2f; // Activate hitbox 0.2s into attack
-            float hitboxDeactivationTime = 0.4f; // Deactivate hitbox 0.4s into attack
-            
-            if (!_hasActivatedHitbox && _actionTimer >= hitboxActivationTime)
-            {
-                enemy.EnableHitbox();
-                _hasActivatedHitbox = true;
-                Debug.Log("EnemyAttackAction: Programmatically enabled hitbox (fallback method)");
-            }
-            
-            if (_hasActivatedHitbox && _actionTimer >= hitboxDeactivationTime)
-            {
-                enemy.DisableHitbox();
-                Debug.Log("EnemyAttackAction: Programmatically disabled hitbox");
-            }
-            
-            // Check if action should finish based on attack duration
-            if (_actionTimer >= enemy.AttackDuration)
-            {
-                // Ensure hitbox is disabled when action finishes
-                if (_hasActivatedHitbox)
-                {
-                    enemy.DisableHitbox();
-                }
-                _isFinished = true;
-            }
-            
-            // Also finish if player is no longer in range or enemy can't attack
-            if (!enemy.HasPlayerTarget || !enemy.IsPlayerInAttackRange())
-            {
-                // Ensure hitbox is disabled when action finishes
-                if (_hasActivatedHitbox)
-                {
-                    enemy.DisableHitbox();
-                }
-                _isFinished = true;
+                Finish();
             }
         }
 
@@ -133,23 +110,33 @@ namespace Resonance.Enemies.Actions
             // Could add flinch behavior here if needed
         }
 
-        /// <summary>
-        /// Trigger attack animation and start attack process
-        /// Actual damage will be dealt through hitbox during animation window
-        /// </summary>
-        private void TriggerAttackAnimation(EnemyController enemy)
+        private void HandleWindowOpened()
         {
-            // Start the attack process (sets cooldown, triggers events)
-            bool attackStarted = enemy.LaunchAttack();
-            
-            if (attackStarted)
+            Debug.Log("EnemyAttackAction: Attack window opened");
+            _windowOpened = true;
+        }
+
+        private void HandleWindowClosed()
+        {
+            Debug.Log("EnemyAttackAction: Attack window closed");
+            _windowOpened = false;
+        }
+
+        private void HandleSequenceFinished()
+        {
+            Debug.Log("EnemyAttackAction: Attack sequence finished");
+            Finish();
+        }
+
+        private void Finish()
+        {
+            if (_isFinished) return;
+            _isFinished = true;
+            if(_enemy != null)
             {
-                Debug.Log("EnemyAttackAction: Attack process started - animation should be triggered");
-            }
-            else
-            {
-                Debug.LogWarning("EnemyAttackAction: Attack failed to start");
-                _isFinished = true; // End action if attack couldn't start
+                _enemy.OnAttackSequenceFinished -= () => HandleSequenceFinished();
+                _enemy.OnAttackWindowOpened -= () => HandleWindowOpened();
+                _enemy.OnAttackWindowClosed -= () => HandleWindowClosed();
             }
         }
     }

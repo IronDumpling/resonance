@@ -85,6 +85,11 @@ namespace Resonance.Enemies.Core
         public System.Action<float> OnAttackLaunched; // damage dealt
         public System.Action<Transform> OnPlayerDetected; // player target
         public System.Action OnPlayerLost; // player lost
+
+        // Attack Events
+        public System.Action OnAttackWindowOpened; // attack window opened
+        public System.Action OnAttackWindowClosed; // attack window closed
+        public System.Action OnAttackSequenceFinished; // attack sequence finished
         
         // State Events
         public System.Action<string> OnStateChanged; // state name
@@ -462,6 +467,7 @@ namespace Resonance.Enemies.Core
             {
                 _damageHitboxChild.gameObject.SetActive(true);
                 Debug.Log("EnemyController: Hitbox enabled - damage window opened");
+                OnAttackWindowOpened?.Invoke();
             }
             else
             {
@@ -481,7 +487,16 @@ namespace Resonance.Enemies.Core
             {
                 _damageHitboxChild.gameObject.SetActive(false);
                 Debug.Log("EnemyController: Hitbox disabled - damage window closed");
+                OnAttackWindowClosed?.Invoke();
             }
+        }
+
+        /// <summary>
+        /// Attack sequence finished
+        /// </summary>
+        public void AttackSequenceFinished()
+        {
+            OnAttackSequenceFinished?.Invoke();
         }
 
         /// <summary>

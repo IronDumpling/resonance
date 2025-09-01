@@ -117,6 +117,7 @@ GameObject:
   - component: {fileID: 3203894000571929562}
   - component: {fileID: 5136787809936977010}
   - component: {fileID: 5004115887592804459}
+  - component: {fileID: 2629838485125824339}
   m_Layer: 8
   m_Name: Visual
   m_TagString: Untagged
@@ -183,6 +184,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &2629838485125824339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2834259150065660657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ff20b36588affe41b00774ec4718676, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _debugMode: 0
 --- !u!1 &6322296349379799284
 GameObject:
   m_ObjectHideFlags: 0
@@ -333,10 +347,8 @@ MonoBehaviour:
   _patrolSpeed: 2
   _singleCycleDuration: 20
   _waitAtWaypointDuration: 5
-  _arrivalThreshold: 0.5
   _showPatrolPath: 1
   _targetUpdateInterval: 0.5
-  _chaseArrivalThreshold: 1
   _attackDuration: 0.5
   _attackDamage: 20
   _attackCooldown: 3
