@@ -10,12 +10,11 @@ namespace Resonance.Enemies
     }
 
     /// <summary>
-    /// Weakpoint hitbox component - acts as a damage modifier and relay
-    /// Implements IDamageable to receive damage from shooting system,
-    /// modifies the damage based on weakpoint properties,
-    /// then forwards to the enemy's main damage handler
+    /// Weakpoint hitbox component - acts as a damage modifier
+    /// Modifies damage when hit by shooting system,
+    /// then forwards the modified damage to the enemy's main damage handler
     /// </summary>
-    public class WeakpointHitbox : MonoBehaviour, IDamageable
+    public class WeakpointHitbox : MonoBehaviour
     {
         public WeakpointType type;
         public float physicalMultiplier = 2f;     // 打到时对物理部分的倍率
@@ -53,9 +52,14 @@ namespace Resonance.Enemies
 
         #endregion
 
-        #region IDamageable Implementation
+        #region Public Interface
 
-        public void TakeDamage(DamageInfo damageInfo)
+        /// <summary>
+        /// Process damage hit on this weakpoint and apply to enemy
+        /// Called by ShootingSystem when this collider is hit
+        /// </summary>
+        /// <param name="damageInfo">Original damage information</param>
+        public void ProcessDamageHit(DamageInfo damageInfo)
         {
             if (!_isInitialized || _enemyMono == null)
             {
@@ -68,7 +72,7 @@ namespace Resonance.Enemies
 
             if (_debugMode)
             {
-                Debug.Log($"WeakpointHitbox: Received {damageInfo.amount} {damageInfo.type} damage on {type} weakpoint");
+                Debug.Log($"WeakpointHitbox: Processing {damageInfo.amount} {damageInfo.type} damage on {type} weakpoint");
             }
 
             // Modify damage based on weakpoint properties
@@ -77,38 +81,19 @@ namespace Resonance.Enemies
             // Play hit effects
             PlayHitFX(damageInfo.sourcePosition);
             
-            // Forward modified damage to enemy
+            // Apply modified damage to enemy
             _enemyMono.TakeDamage(modifiedDamage);
             
             if (_debugMode)
             {
-                Debug.Log($"WeakpointHitbox: Forwarded {modifiedDamage.amount} {modifiedDamage.type} damage to enemy");
+                Debug.Log($"WeakpointHitbox: Applied modified damage {modifiedDamage.amount} {modifiedDamage.type} to {_enemyMono.name}");
             }
         }
 
-        public void TakePhysicalDamage(float damage, Vector3 damageSource)
-        {
-            DamageInfo damageInfo = new DamageInfo(damage, DamageType.Physical, damageSource, null, $"Weakpoint:{type}");
-            TakeDamage(damageInfo);
-        }
-
-        public void TakeMentalDamage(float damage, Vector3 damageSource)
-        {
-            DamageInfo damageInfo = new DamageInfo(damage, DamageType.Mental, damageSource, null, $"Weakpoint:{type}");
-            TakeDamage(damageInfo);
-        }
-
-        #endregion
-
-        #region IDamageable Properties (Forward to Enemy)
-
-        public bool IsPhysicallyAlive => _isInitialized && _enemyMono != null ? _enemyMono.IsPhysicallyAlive : true;
-        public bool IsMentallyAlive => _isInitialized && _enemyMono != null ? _enemyMono.IsMentallyAlive : true;
-        public bool IsInPhysicalDeathState => _isInitialized && _enemyMono != null ? _enemyMono.IsInPhysicalDeathState : false;
-        public float CurrentPhysicalHealth => _isInitialized && _enemyMono != null ? _enemyMono.CurrentPhysicalHealth : 0f;
-        public float MaxPhysicalHealth => _isInitialized && _enemyMono != null ? _enemyMono.MaxPhysicalHealth : 0f;
-        public float CurrentMentalHealth => _isInitialized && _enemyMono != null ? _enemyMono.CurrentMentalHealth : 0f;
-        public float MaxMentalHealth => _isInitialized && _enemyMono != null ? _enemyMono.MaxMentalHealth : 0f;
+        /// <summary>
+        /// Check if this weakpoint is properly initialized
+        /// </summary>
+        public bool IsInitialized => _isInitialized && _enemyMono != null;
 
         #endregion
 

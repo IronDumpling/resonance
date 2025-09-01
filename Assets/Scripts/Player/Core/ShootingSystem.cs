@@ -469,7 +469,33 @@ namespace Resonance.Player.Core
             
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
-            // 首先尝试在命中对象上查找组件
+            // 首先检查是否命中了弱点
+            Resonance.Enemies.WeakpointHitbox weakpointHitbox = hitObject.GetComponent<Resonance.Enemies.WeakpointHitbox>();
+            if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
+            {
+                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to WeakpointHitbox");
+                
+                // 创建伤害信息
+                DamageInfo damageInfo;
+                if (gunData != null)
+                {
+                    damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
+                }
+                else
+                {
+                    damageInfo = new DamageInfo(damage, DamageType.Physical, damageSource, _playerTransform.gameObject, "Unknown weapon");
+                }
+                
+                // 让弱点处理伤害修改和应用
+                weakpointHitbox.ProcessDamageHit(damageInfo);
+                
+                // 播放音效和触发事件
+                PlayHitAudio(hitInfo.point, hitObject);
+                OnHit?.Invoke(hitInfo.point, hitObject, damage);
+                return;
+            }
+            
+            // 如果不是弱点，按原有逻辑处理IDamageable和IDestructible
             IDamageable damageable = hitObject.GetComponent<IDamageable>();
             IDestructible destructible = hitObject.GetComponent<IDestructible>();
             
