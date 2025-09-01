@@ -3,10 +3,11 @@ using Resonance.Interfaces;
 
 namespace Resonance.Enemies
 {
-    public enum WeakpointType 
+    public enum EnemyHitboxType 
     { 
-        Physical, 
-        Mental 
+        Head,
+        Body, 
+        Core, 
     }
 
     /// <summary>
@@ -14,9 +15,9 @@ namespace Resonance.Enemies
     /// Modifies damage when hit by shooting system,
     /// then forwards the modified damage to the enemy's main damage handler
     /// </summary>
-    public class WeakpointHitbox : MonoBehaviour
+    public class EnemyHitbox : MonoBehaviour
     {
-        public WeakpointType type;
+        public EnemyHitboxType type;
         public float physicalMultiplier = 2f;     // 打到时对物理部分的倍率
         public float mentalMultiplier   = 2f;     // 打到时对精神部分的倍率
         
@@ -46,7 +47,7 @@ namespace Resonance.Enemies
             
             if (_debugMode)
             {
-                Debug.Log($"WeakpointHitbox: Initialized {type} weakpoint on {gameObject.name}");
+                Debug.Log($"EnemyHitbox: Initialized {type} weakpoint on {gameObject.name}");
             }
         }
 
@@ -65,14 +66,14 @@ namespace Resonance.Enemies
             {
                 if (_debugMode)
                 {
-                    Debug.LogWarning($"WeakpointHitbox: Cannot process damage - not initialized or no enemy reference");
+                    Debug.LogWarning($"EnemyHitbox: Cannot process damage - not initialized or no enemy reference");
                 }
                 return;
             }
 
             if (_debugMode)
             {
-                Debug.Log($"WeakpointHitbox: Processing {damageInfo.amount} {damageInfo.type} damage on {type} weakpoint");
+                Debug.Log($"EnemyHitbox: Processing {damageInfo.amount} {damageInfo.type} damage on {type} weakpoint");
             }
 
             // Modify damage based on weakpoint properties
@@ -86,7 +87,7 @@ namespace Resonance.Enemies
             
             if (_debugMode)
             {
-                Debug.Log($"WeakpointHitbox: Applied modified damage {modifiedDamage.amount} {modifiedDamage.type} to {_enemyMono.name}");
+                Debug.Log($"EnemyHitbox: Applied modified damage {modifiedDamage.amount} {modifiedDamage.type} to {_enemyMono.name}");
             }
         }
 
@@ -120,7 +121,7 @@ namespace Resonance.Enemies
             switch (modifiedDamage.type)
             {
                 case DamageType.Physical:
-                    if (convertPhysicalToMental > 0f && type == WeakpointType.Mental) 
+                    if (convertPhysicalToMental > 0f && type == EnemyHitboxType.Core) 
                     {
                         // Convert some physical damage to mental
                         modifiedDamage.type = DamageType.Mixed;
@@ -157,7 +158,7 @@ namespace Resonance.Enemies
 
             if (_debugMode)
             {
-                Debug.Log($"WeakpointHitbox: Modified damage from {d.amount} to {modifiedDamage.amount} ({d.type} -> {modifiedDamage.type})");
+                Debug.Log($"EnemyHitbox: Modified damage from {d.amount} to {modifiedDamage.amount} ({d.type} -> {modifiedDamage.type})");
             }
 
             return modifiedDamage;
@@ -178,7 +179,7 @@ namespace Resonance.Enemies
                 Instantiate(hitVFX, at, Quaternion.identity);
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointHitbox: Spawned hit VFX at {at}");
+                    Debug.Log($"EnemyHitbox: Spawned hit VFX at {at}");
                 }
             }
             
@@ -187,7 +188,7 @@ namespace Resonance.Enemies
                 AudioSource.PlayClipAtPoint(hitSFX, at);
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointHitbox: Played hit SFX at {at}");
+                    Debug.Log($"EnemyHitbox: Played hit SFX at {at}");
                 }
             }
         }

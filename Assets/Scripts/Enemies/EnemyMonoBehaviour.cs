@@ -521,30 +521,7 @@ namespace Resonance.Enemies
                 return;
             }
             
-            Transform weakpointsChild = visualChild.Find("Weakpoints");
-            
-            if (weakpointsChild != null)
-            {
-                // Check and add WeakpointActivator if needed
-                SetupWeakpointActivatorComponent(weakpointsChild.gameObject);
-            }
-            else
-            {
-                // Create Weakpoints GameObject if it doesn't exist
-                GameObject weakpointsGO = new GameObject("Weakpoints");
-                weakpointsGO.transform.SetParent(visualChild);
-                weakpointsGO.transform.localPosition = Vector3.zero;
-                weakpointsGO.layer = gameObject.layer;
-                
-                // Create default Head and Core child objects
-                CreateDefaultWeakpointChild(weakpointsGO, "Head");
-                CreateDefaultWeakpointChild(weakpointsGO, "Core");
-                
-                // Add weakpoint activator component
-                SetupWeakpointActivatorComponent(weakpointsGO);
-                
-                Debug.Log($"EnemyMonoBehaviour: Created default weakpoint system for {gameObject.name}");
-            }
+            SetupEnemyHitboxManagerComponent(visualChild.gameObject);
         }
         
         private void CreateDefaultWeakpointChild(GameObject parent, string childName)
@@ -565,21 +542,21 @@ namespace Resonance.Enemies
             }
         }
         
-        private void SetupWeakpointActivatorComponent(GameObject weakpointsObject)
+        private void SetupEnemyHitboxManagerComponent(GameObject weakpointsObject)
         {
-            // Check if WeakpointActivator already exists
-            WeakpointActivator existingActivator = weakpointsObject.GetComponent<WeakpointActivator>();
+            // Check if EnemyHitboxManager already exists
+            EnemyHitboxManager existingActivator = weakpointsObject.GetComponent<EnemyHitboxManager>();
             
             if (existingActivator != null)
             {
                 existingActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Initialized existing WeakpointActivator on {weakpointsObject.name}");
+                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {weakpointsObject.name}");
             }
             else
             {
-                WeakpointActivator newActivator = weakpointsObject.AddComponent<WeakpointActivator>();
+                EnemyHitboxManager newActivator = weakpointsObject.AddComponent<EnemyHitboxManager>();
                 newActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Added and initialized new WeakpointActivator on {weakpointsObject.name}");
+                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {weakpointsObject.name}");
             }
         }
         
@@ -746,10 +723,10 @@ namespace Resonance.Enemies
                 Transform weakpointsChild = visualChild.Find("Weakpoints");
                 if (weakpointsChild != null)
                 {
-                    WeakpointActivator weakpointActivator = weakpointsChild.GetComponent<WeakpointActivator>();
+                    EnemyHitboxManager weakpointActivator = weakpointsChild.GetComponent<EnemyHitboxManager>();
                     if (weakpointActivator == null)
                     {
-                        SetupWeakpointActivatorComponent(weakpointsChild.gameObject);
+                        SetupEnemyHitboxManagerComponent(weakpointsChild.gameObject);
                     }
                 }
             }

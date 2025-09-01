@@ -9,7 +9,7 @@ namespace Resonance.Enemies
     /// Should be attached to the Weakpoints GameObject (child of Visual)
     /// Automatically finds and manages child weakpoint colliders
     /// </summary>
-    public class WeakpointActivator : MonoBehaviour
+    public class EnemyHitboxManager : MonoBehaviour
     {
         [Header("Weakpoint Configuration")]
         [SerializeField] private bool _debugMode = false;
@@ -18,8 +18,8 @@ namespace Resonance.Enemies
         // References
         private EnemyMonoBehaviour _enemyMono;
         private EnemyController _enemyController;
-        private Collider[] _physicalWeakpoints;  // Head等物理弱点
-        private Collider[] _mentalWeakpoints;    // Core等精神弱点
+        private Collider[] _physicalHitboxes;  // Head, Body, etc.
+        private Collider[] _mentalHitboxes;    // Core, etc.
         
         // State
         private bool _isInitialized = false;
@@ -27,7 +27,7 @@ namespace Resonance.Enemies
         #region Initialization
 
         /// <summary>
-        /// Initialize the weakpoint activator (called by EnemyMonoBehaviour)
+        /// Initialize the hitbox manager (called by EnemyMonoBehaviour)
         /// </summary>
         /// <param name="enemyMono">Enemy MonoBehaviour reference</param>
         public void Initialize(EnemyMonoBehaviour enemyMono)
@@ -36,7 +36,7 @@ namespace Resonance.Enemies
             _enemyController = enemyMono.Controller;
             _isInitialized = true;
             
-            // Setup weakpoint colliders
+            // Setup hitbox colliders
             SetupWeakpointColliders();
             
             // Subscribe to enemy events
@@ -45,56 +45,63 @@ namespace Resonance.Enemies
             _enemyController.OnRevivalCompleted += HandleRevivingEnd;
             _enemyController.OnTrueDeath        += HandleTrueDeath;
             
-            // 初始：活着时只开物理弱点
-            SetPhysicalWeakpoints(true);
-            SetMentalWeakpoints(false);
+            // Initial state: enabled physical hitboxes, disabled mental hitboxes
+            SetPhysicalHitboxes(true);
+            SetMentalHitboxes(false);
             
             if (_debugMode)
             {
-                Debug.Log($"WeakpointActivator: Initialized with enemy controller from {enemyMono.name}");
+                Debug.Log($"EnemyHitboxManager: Initialized with enemy controller from {enemyMono.name}");
             }
         }
 
         /// <summary>
-        /// Setup weakpoint colliders and attach WeakpointHitbox components
+        /// Setup weakpoint colliders and attach EnemyHitbox components
         /// </summary>
         private void SetupWeakpointColliders()
         {
+            _physicalHitboxes = new Collider[2];
+            _mentalHitboxes = new Collider[1];
+            
             // Find physical weakpoints (Head, etc.)
             Transform headTransform = transform.Find("Head");
             if (headTransform != null)
             {
-                _physicalWeakpoints = new Collider[] { GetOrCreateCollider(headTransform.gameObject) };
-                SetupWeakpointHitbox(headTransform.gameObject, WeakpointType.Physical);
+                _physicalHitboxes[0] = GetOrCreateCollider(headTransform.gameObject);
+                SetupEnemyHitbox(headTransform.gameObject, EnemyHitboxType.Head);
             }
-            else
+            else if (_debugMode)
             {
-                _physicalWeakpoints = new Collider[0];
-                if (_debugMode)
-                {
-                    Debug.LogWarning("WeakpointActivator: No Head child found for physical weakpoint");
-                }
+                Debug.LogWarning("EnemyHitboxManager: No Head child found for physical weakpoint");
+            }
+
+            // Find body weakpoints (Body, etc.)
+            Transform bodyTransform = transform.Find("Body");
+            if (bodyTransform != null)
+            {
+                _physicalHitboxes[1] = GetOrCreateCollider(bodyTransform.gameObject);
+                SetupEnemyHitbox(bodyTransform.gameObject, EnemyHitboxType.Body);
+            }
+            else if (_debugMode)
+            {
+                Debug.LogWarning("EnemyHitboxManager: No Body child found for physical weakpoint");
             }
 
             // Find mental weakpoints (Core, etc.)
             Transform coreTransform = transform.Find("Core");
             if (coreTransform != null)
             {
-                _mentalWeakpoints = new Collider[] { GetOrCreateCollider(coreTransform.gameObject) };
-                SetupWeakpointHitbox(coreTransform.gameObject, WeakpointType.Mental);
+                _mentalHitboxes[0] = GetOrCreateCollider(coreTransform.gameObject);
+                SetupEnemyHitbox(coreTransform.gameObject, EnemyHitboxType.Core);
             }
-            else
+            else if (_debugMode)
             {
-                _mentalWeakpoints = new Collider[0];
-                if (_debugMode)
-                {
-                    Debug.LogWarning("WeakpointActivator: No Core child found for mental weakpoint");
-                }
+                Debug.LogWarning("EnemyHitboxManager: No Core child found for mental weakpoint");
             }
             
             if (_debugMode)
             {
-                Debug.Log($"WeakpointActivator: Found {_physicalWeakpoints.Length} physical and {_mentalWeakpoints.Length} mental weakpoints");
+                Debug.Log($"EnemyHitboxManager: Found {_physicalHitboxes.Length} physical and {_mentalHitboxes.Length} mental weakpoints");
             }
         }
 
@@ -114,7 +121,7 @@ namespace Resonance.Enemies
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointActivator: Created default collider for {weakpointObject.name}");
+                    Debug.Log($"EnemyHitboxManager: Created default collider for {weakpointObject.name}");
                 }
             }
             else
@@ -125,7 +132,7 @@ namespace Resonance.Enemies
                     collider.isTrigger = false;
                     if (_debugMode)
                     {
-                        Debug.Log($"WeakpointActivator: Set {weakpointObject.name} collider to non-trigger");
+                        Debug.Log($"EnemyHitboxManager: Set {weakpointObject.name} collider to non-trigger");
                     }
                 }
             }
@@ -134,29 +141,34 @@ namespace Resonance.Enemies
         }
 
         /// <summary>
-        /// Setup WeakpointHitbox component for a weakpoint GameObject
+        /// Setup EnemyHitbox component for a weakpoint GameObject
         /// </summary>
-        private void SetupWeakpointHitbox(GameObject weakpointObject, WeakpointType type)
+        private void SetupEnemyHitbox(GameObject weakpointObject, EnemyHitboxType type)
         {
-            WeakpointHitbox existingHitbox = weakpointObject.GetComponent<WeakpointHitbox>();
+            EnemyHitbox existingHitbox = weakpointObject.GetComponent<EnemyHitbox>();
             
             if (existingHitbox == null)
             {
-                WeakpointHitbox newHitbox = weakpointObject.AddComponent<WeakpointHitbox>();
+                EnemyHitbox newHitbox = weakpointObject.AddComponent<EnemyHitbox>();
                 newHitbox.type = type;
                 
-                // Physical
-                if (type == WeakpointType.Physical)
+                switch (type)
                 {
-                    newHitbox.physicalMultiplier = 2f;
-                    newHitbox.mentalMultiplier = 0f;
-                    newHitbox.convertPhysicalToMental = 0f;
-                }
-                else // Mental
-                {
-                    newHitbox.physicalMultiplier = 0f;
-                    newHitbox.mentalMultiplier = 1.5f;
-                    newHitbox.convertPhysicalToMental = 0.01f; 
+                    case EnemyHitboxType.Head:
+                        newHitbox.physicalMultiplier = 2f;
+                        newHitbox.mentalMultiplier = 0f;
+                        newHitbox.convertPhysicalToMental = 0f;
+                        break;
+                    case EnemyHitboxType.Body:
+                        newHitbox.physicalMultiplier = 1f;
+                        newHitbox.mentalMultiplier = 0f;
+                        newHitbox.convertPhysicalToMental = 0f;
+                        break;
+                    case EnemyHitboxType.Core:
+                        newHitbox.physicalMultiplier = 0f;
+                        newHitbox.mentalMultiplier = 1.5f;
+                        newHitbox.convertPhysicalToMental = 0.01f; 
+                        break;
                 }
                 
                 // Initialize the weakpoint hitbox with enemy reference
@@ -164,7 +176,7 @@ namespace Resonance.Enemies
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointActivator: Added and initialized WeakpointHitbox ({type}) to {weakpointObject.name}");
+                    Debug.Log($"EnemyHitboxManager: Added and initialized EnemyHitbox ({type}) to {weakpointObject.name}");
                 }
             }
             else
@@ -175,7 +187,7 @@ namespace Resonance.Enemies
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointActivator: Updated and initialized existing WeakpointHitbox on {weakpointObject.name}");
+                    Debug.Log($"EnemyHitboxManager: Updated and initialized existing EnemyHitbox on {weakpointObject.name}");
                 }
             }
         }
@@ -198,45 +210,45 @@ namespace Resonance.Enemies
 
         void HandlePhysicalDeath()  
         { 
-            SetPhysicalWeakpoints(false); 
-            SetMentalWeakpoints(true);
+            SetPhysicalHitboxes(false); 
+            SetMentalHitboxes(true);
             
             if (_debugMode)
             {
-                Debug.Log("WeakpointActivator: Physical death - disabled physical, enabled mental weakpoints");
+                Debug.Log("EnemyHitboxManager: Physical death - disabled physical, enabled mental weakpoints");
             }
         }
         
         void HandleRevivingStart()  
         { 
-            SetPhysicalWeakpoints(false); 
-            SetMentalWeakpoints(true);
+            SetPhysicalHitboxes(false); 
+            SetMentalHitboxes(true);
             
             if (_debugMode)
             {
-                Debug.Log("WeakpointActivator: Revival started - disabled physical, enabled mental weakpoints");
+                Debug.Log("EnemyHitboxManager: Revival started - disabled physical, enabled mental weakpoints");
             }
         }
         
         void HandleRevivingEnd()    
         { 
-            SetPhysicalWeakpoints(true);  
-            SetMentalWeakpoints(false);
+            SetPhysicalHitboxes(true);  
+            SetMentalHitboxes(false);
             
             if (_debugMode)
             {
-                Debug.Log("WeakpointActivator: Revival ended - enabled physical, disabled mental weakpoints");
+                Debug.Log("EnemyHitboxManager: Revival ended - enabled physical, disabled mental weakpoints");
             }
         }
         
         void HandleTrueDeath()
         { 
-            SetPhysicalWeakpoints(false); 
-            SetMentalWeakpoints(false);
+            SetPhysicalHitboxes(false); 
+            SetMentalHitboxes(false);
             
             if (_debugMode)
             {
-                Debug.Log("WeakpointActivator: True death - disabled all weakpoints");
+                Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints");
             }
         }
 
@@ -247,11 +259,11 @@ namespace Resonance.Enemies
         /// <summary>
         /// Enable/disable all physical weakpoints
         /// </summary>
-        void SetPhysicalWeakpoints(bool enabled) 
+        void SetPhysicalHitboxes(bool enabled) 
         { 
-            if (_physicalWeakpoints != null)
+            if (_physicalHitboxes != null)
             {
-                foreach (var collider in _physicalWeakpoints)
+                foreach (var collider in _physicalHitboxes)
                 {
                     if (collider != null)
                     {
@@ -264,11 +276,11 @@ namespace Resonance.Enemies
         /// <summary>
         /// Enable/disable all mental weakpoints
         /// </summary>
-        void SetMentalWeakpoints(bool enabled)   
+        void SetMentalHitboxes(bool enabled)   
         { 
-            if (_mentalWeakpoints != null)
+            if (_mentalHitboxes != null)
             {
-                foreach (var collider in _mentalWeakpoints)
+                foreach (var collider in _mentalHitboxes)
                 {
                     if (collider != null)
                     {
@@ -290,12 +302,12 @@ namespace Resonance.Enemies
         /// <summary>
         /// Get count of physical weakpoints
         /// </summary>
-        public int PhysicalWeakpointCount => _physicalWeakpoints?.Length ?? 0;
+        public int PhysicalHitboxCount => _physicalHitboxes?.Length ?? 0;
 
         /// <summary>
         /// Get count of mental weakpoints
         /// </summary>
-        public int MentalWeakpointCount => _mentalWeakpoints?.Length ?? 0;
+        public int MentalHitboxCount => _mentalHitboxes?.Length ?? 0;
 
         #endregion
     }

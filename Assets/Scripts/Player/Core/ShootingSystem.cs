@@ -468,10 +468,10 @@ namespace Resonance.Player.Core
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
             // 首先检查是否命中了弱点
-            Resonance.Enemies.WeakpointHitbox weakpointHitbox = hitObject.GetComponent<Resonance.Enemies.WeakpointHitbox>();
+            Resonance.Enemies.EnemyHitbox weakpointHitbox = hitObject.GetComponent<Resonance.Enemies.EnemyHitbox>();
             if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
             {
-                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to WeakpointHitbox");
+                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
                 
                 // 创建伤害信息
                 DamageInfo damageInfo;
