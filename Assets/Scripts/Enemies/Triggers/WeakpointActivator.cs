@@ -145,18 +145,18 @@ namespace Resonance.Enemies
                 WeakpointHitbox newHitbox = weakpointObject.AddComponent<WeakpointHitbox>();
                 newHitbox.type = type;
                 
-                // Set default multipliers based on type
+                // Physical
                 if (type == WeakpointType.Physical)
                 {
                     newHitbox.physicalMultiplier = 2f;
-                    newHitbox.mentalMultiplier = 1f;
+                    newHitbox.mentalMultiplier = 0f;
                     newHitbox.convertPhysicalToMental = 0f;
                 }
                 else // Mental
                 {
-                    newHitbox.physicalMultiplier = 1f;
-                    newHitbox.mentalMultiplier = 2f;
-                    newHitbox.convertPhysicalToMental = 0.5f; // Convert some physical damage to mental
+                    newHitbox.physicalMultiplier = 0f;
+                    newHitbox.mentalMultiplier = 1.5f;
+                    newHitbox.convertPhysicalToMental = 0.01f; 
                 }
                 
                 // Initialize the weakpoint hitbox with enemy reference

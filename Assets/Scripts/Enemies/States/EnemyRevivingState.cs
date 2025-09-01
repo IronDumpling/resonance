@@ -36,7 +36,6 @@ namespace Resonance.Enemies.States
             _enemyController.ActionController.RegisterAction(reviveAction);
             _enemyController.ActionController.TryStartAction("Revive");
             
-            // TODO: Visual effects for revival process
             // TODO: Play revival audio
             
             Debug.Log("EnemyState: Revival in progress - core still exposed");
@@ -50,12 +49,9 @@ namespace Resonance.Enemies.States
             if (!_enemyController.IsMentallyAlive)
             {
                 Debug.Log("EnemyRevivingState: Revival interrupted - mental health reached 0");
-                // This will trigger true death transition handled by EnemyController
+                // TODO This will trigger Normal State transition handled by EnemyController
                 return;
             }
-            
-            // Revival progress is handled in EnemyController.UpdateRevivalTimer()
-            // The controller will call CompleteRevival() when physical health is full
             
             // Check if revival duration exceeded (safety check)
             if (_revivalTimer > _enemyController.Stats.revivalDuration * 2f)
