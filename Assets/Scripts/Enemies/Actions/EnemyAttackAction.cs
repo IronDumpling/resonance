@@ -14,6 +14,7 @@ namespace Resonance.Enemies.Actions
         private float _actionTimer = 0f;
         private bool _isFinished = false;
         private bool _hasTriggeredAnimation = false;
+        private bool _hasActivatedHitbox = false;
         
         public string Name => "Attack";
         public int Priority => 90; // High priority - interrupts most other actions
@@ -43,7 +44,7 @@ namespace Resonance.Enemies.Actions
             // Optional: Keep minimal logging for important events
             if (!result && !cooldownPassed)
             {
-                Debug.Log($"EnemyAttackAction: Attack on cooldown - {(lastAttackTime + attackCooldown - currentTime):F1}s remaining");
+                // Debug.Log($"EnemyAttackAction: Attack on cooldown - {(lastAttackTime + attackCooldown - currentTime):F1}s remaining");
             }
             
             return result;
@@ -54,6 +55,7 @@ namespace Resonance.Enemies.Actions
             _actionTimer = 0f;
             _isFinished = false;
             _hasTriggeredAnimation = false;
+            _hasActivatedHitbox = false;
             
             Debug.Log("EnemyAttackAction: Started attack action - will trigger animation");
         }
@@ -69,15 +71,45 @@ namespace Resonance.Enemies.Actions
                 _hasTriggeredAnimation = true;
             }
             
+            // NOTE: Hitbox activation is now handled by EnemyController.EnableHitbox()
+            // which properly activates the DamageHitbox GameObject
+            // For now, we'll keep the programmatic activation as a fallback
+            // until animation events are properly configured
+            float hitboxActivationTime = 0.2f; // Activate hitbox 0.2s into attack
+            float hitboxDeactivationTime = 0.4f; // Deactivate hitbox 0.4s into attack
+            
+            if (!_hasActivatedHitbox && _actionTimer >= hitboxActivationTime)
+            {
+                enemy.EnableHitbox();
+                _hasActivatedHitbox = true;
+                Debug.Log("EnemyAttackAction: Programmatically enabled hitbox (fallback method)");
+            }
+            
+            if (_hasActivatedHitbox && _actionTimer >= hitboxDeactivationTime)
+            {
+                enemy.DisableHitbox();
+                Debug.Log("EnemyAttackAction: Programmatically disabled hitbox");
+            }
+            
             // Check if action should finish based on attack duration
             if (_actionTimer >= enemy.AttackDuration)
             {
+                // Ensure hitbox is disabled when action finishes
+                if (_hasActivatedHitbox)
+                {
+                    enemy.DisableHitbox();
+                }
                 _isFinished = true;
             }
             
             // Also finish if player is no longer in range or enemy can't attack
             if (!enemy.HasPlayerTarget || !enemy.IsPlayerInAttackRange())
             {
+                // Ensure hitbox is disabled when action finishes
+                if (_hasActivatedHitbox)
+                {
+                    enemy.DisableHitbox();
+                }
                 _isFinished = true;
             }
         }
@@ -85,6 +117,13 @@ namespace Resonance.Enemies.Actions
         public void Cancel(EnemyController enemy)
         {
             Debug.Log("EnemyAttackAction: Attack action cancelled");
+            
+            // Ensure hitbox is disabled when action is cancelled
+            if (_hasActivatedHitbox)
+            {
+                enemy.DisableHitbox();
+            }
+            
             _isFinished = true;
         }
 
@@ -106,8 +145,6 @@ namespace Resonance.Enemies.Actions
             if (attackStarted)
             {
                 Debug.Log("EnemyAttackAction: Attack process started - animation should be triggered");
-                // The animation trigger will be handled by the MonoBehaviour bridge
-                // through the OnAttackLaunched event
             }
             else
             {

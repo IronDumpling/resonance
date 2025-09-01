@@ -108,8 +108,8 @@ namespace Resonance.Enemies.Actions
             var movement = enemy.Movement;
             float distanceToTarget = movement.GetDistanceToTarget();
             
-            // Use configured arrival threshold
-            if (distanceToTarget <= enemy.ArrivalThreshold)
+            // Use configured arrival threshold from base stats
+            if (distanceToTarget <= enemy.Stats.arrivalThreshold)
             {
                 // Movement system stopped because we reached the target
                 if (!_hasReachedTarget)

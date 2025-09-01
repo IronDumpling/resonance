@@ -21,7 +21,6 @@ namespace Resonance.Enemies.Core
         private float _movementSpeedModifier = 1f;
         
         // Movement configuration
-        private const float ARRIVAL_THRESHOLD = 0.1f;
         private const float ROTATION_SPEED = 10f; // How fast enemy turns
         
         // Events
@@ -31,7 +30,7 @@ namespace Resonance.Enemies.Core
         public Vector3 TargetPosition => _targetPosition;
         public Vector3 Velocity => _velocity;
         public bool HasTarget => _hasTarget;
-        public bool IsMoving => _hasTarget && Vector3.Distance(_transform.position, _targetPosition) > ARRIVAL_THRESHOLD;
+        public bool IsMoving => _hasTarget && Vector3.Distance(_transform.position, _targetPosition) > GetArrivalThreshold();
         public float MovementSpeedModifier 
         { 
             get => _movementSpeedModifier; 
@@ -93,18 +92,35 @@ namespace Resonance.Enemies.Core
             
             // Only move in XZ plane
             direction.y = 0f;
+            
+            float distanceToTarget = direction.magnitude;
             direction = direction.normalized;
+            
+            // Apply minimum distance constraint to prevent collision issues
+            // Stop moving if too close to target to avoid physics conflicts
+            float arrivalThreshold = GetArrivalThreshold();
+            if (distanceToTarget <= arrivalThreshold)
+            {
+                _velocity = Vector3.zero;
+                return;
+            }
             
             // Calculate movement
             float actualSpeed = moveSpeed * _movementSpeedModifier;
             Vector3 movement = direction * actualSpeed * deltaTime;
+            
+            // Ensure we don't overshoot and get too close
+            if (movement.magnitude > (distanceToTarget - arrivalThreshold))
+            {
+                movement = direction * (distanceToTarget - arrivalThreshold);
+            }
             
             // Apply movement
             _transform.position += movement;
             _velocity = movement / deltaTime;
             
             // Check if we've reached the target
-            if (Vector3.Distance(currentPosition, _targetPosition) <= ARRIVAL_THRESHOLD)
+            if (distanceToTarget <= arrivalThreshold)
             {
                 OnTargetReached?.Invoke();
                 Stop();
@@ -122,6 +138,15 @@ namespace Resonance.Enemies.Core
             // Determine move speed based on current enemy state and substate
             float moveSpeed = GetCurrentMoveSpeed();
             MoveToTarget(moveSpeed, deltaTime);
+        }
+        
+        /// <summary>
+        /// Get the arrival threshold from enemy stats configuration
+        /// </summary>
+        private float GetArrivalThreshold()
+        {
+            // Get the configured arrival threshold from enemy stats
+            return _stats.arrivalThreshold;
         }
         
         /// <summary>

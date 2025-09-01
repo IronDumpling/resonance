@@ -81,11 +81,8 @@ namespace Resonance.Enemies
                 Debug.Log("EnemyAnimRelay: OnAttackCommit - enabling hitbox");
             }
 
-            // Enable damage hitbox through controller
+            // Enable damage hitbox through controller (which now handles GameObject activation)
             _enemyController?.EnableHitbox();
-            
-            // Also enable hitbox component directly if available
-            _damageHitbox?.EnableHitbox();
         }
 
         /// <summary>
@@ -105,11 +102,8 @@ namespace Resonance.Enemies
                 Debug.Log("EnemyAnimRelay: OnAttackEnd - disabling hitbox");
             }
 
-            // Disable damage hitbox through controller
+            // Disable damage hitbox through controller (which now handles GameObject deactivation)
             _enemyController?.DisableHitbox();
-            
-            // Also disable hitbox component directly if available
-            _damageHitbox?.DisableHitbox();
         }
 
         /// <summary>

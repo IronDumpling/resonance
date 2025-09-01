@@ -45,6 +45,8 @@ namespace Resonance.Enemies.Data
         public float chaseMoveSpeed = 2f;
         [Tooltip("Patrol radius")]
         public float patrolRadius = 5f;
+        [Tooltip("Distance threshold for considering 'arrived' at target (prevents collision issues)")]
+        public float arrivalThreshold = 1.2f;
         
         [Header("Health Tiers")]
         [Tooltip("Physical health threshold for wounded state (0-1)")]
@@ -109,6 +111,7 @@ namespace Resonance.Enemies.Data
                 moveSpeed = this.moveSpeed,
                 chaseMoveSpeed = this.chaseMoveSpeed,
                 patrolRadius = this.patrolRadius,
+                arrivalThreshold = this.arrivalThreshold,
                 
                 // Health Tiers
                 physicalWoundedThreshold = this.physicalWoundedThreshold,
@@ -197,6 +200,7 @@ namespace Resonance.Enemies.Data
             moveSpeed = Mathf.Max(0.1f, moveSpeed);
             chaseMoveSpeed = Mathf.Max(0.1f, chaseMoveSpeed);
             patrolRadius = Mathf.Max(0f, patrolRadius);
+            arrivalThreshold = Mathf.Max(0.1f, arrivalThreshold);
             
             // Validate health tier thresholds
             physicalWoundedThreshold = Mathf.Clamp01(physicalWoundedThreshold);
@@ -243,6 +247,7 @@ namespace Resonance.Enemies.Data
         public float moveSpeed;
         public float chaseMoveSpeed;
         public float patrolRadius;
+        public float arrivalThreshold;
         
         [Header("Health Tiers")]
         public float physicalWoundedThreshold;

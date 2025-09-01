@@ -145,7 +145,7 @@ namespace Resonance.Enemies.Actions
             var movement = enemy.Movement;
             float distanceToTarget = movement.GetDistanceToTarget();
             
-            if (distanceToTarget <= enemy.ChaseArrivalThreshold)
+            if (distanceToTarget <= enemy.Stats.arrivalThreshold)
             {
                 Debug.Log("EnemyChaseAction: Arrived at target position");
                 // Don't finish immediately - keep chasing as target updates

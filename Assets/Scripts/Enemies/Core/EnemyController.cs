@@ -47,15 +47,16 @@ namespace Resonance.Enemies.Core
         private float _patrolSpeed = 2f;
         private float _singleCycleDuration = 10f;
         private float _waitAtWaypointDuration = 1f;
-        private float _arrivalThreshold = 0.5f;
-        
+
+        // Damage Hitbox
+        private Transform _damageHitboxChild;
+
         // Patrol Runtime State
         private int _currentPatrolCycles = 0;
         private float _currentCycleStartTime = 0f;
         
         // Chase Configuration
         private float _targetUpdateInterval = 0.5f;
-        private float _chaseArrivalThreshold = 1f;
         
         // Attack Configuration
         private float _attackDuration = 1f;
@@ -109,11 +110,9 @@ namespace Resonance.Enemies.Core
         public float PatrolSpeed => _patrolSpeed;
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-        public float ArrivalThreshold => _arrivalThreshold;
         
         // Chase Configuration Properties
         public float TargetUpdateInterval => _targetUpdateInterval;
-        public float ChaseArrivalThreshold => _chaseArrivalThreshold;
         
         // Attack Configuration Properties
         public float AttackDuration => _attackDuration;
@@ -167,6 +166,9 @@ namespace Resonance.Enemies.Core
             _stateMachine = new EnemyStateMachine(this);
             _stateMachine.OnStateChanged += (stateName) => OnStateChanged?.Invoke(stateName);
             _stateMachine.Initialize();
+
+            // Initialize damage hitbox
+            _damageHitboxChild = enemyTransform.Find("DamageHitbox");
             
             Debug.Log($"EnemyController: Initialized at {spawnPosition}");
         }
@@ -454,7 +456,17 @@ namespace Resonance.Enemies.Core
         {
             _hitboxEnabled = true;
             _currentAttackHits.Clear(); // Reset hit tracking for new attack
-            Debug.Log("EnemyController: Hitbox enabled - damage window opened");
+            
+            // Find and enable the actual damage hitbox GameObject
+            if (_damageHitboxChild != null)
+            {
+                _damageHitboxChild.gameObject.SetActive(true);
+                Debug.Log("EnemyController: Hitbox enabled - damage window opened");
+            }
+            else
+            {
+                Debug.LogWarning("EnemyController: EnableHitbox called but no DamageHitbox child found!");
+            }
         }
 
         /// <summary>
@@ -463,8 +475,13 @@ namespace Resonance.Enemies.Core
         public void DisableHitbox()
         {
             _hitboxEnabled = false;
-            _currentAttackHits.Clear(); // Clear hit tracking
-            Debug.Log("EnemyController: Hitbox disabled - damage window closed");
+            
+            // Find and disable the actual damage hitbox GameObject
+            if (_damageHitboxChild != null)
+            {
+                _damageHitboxChild.gameObject.SetActive(false);
+                Debug.Log("EnemyController: Hitbox disabled - damage window closed");
+            }
         }
 
         /// <summary>
@@ -698,16 +715,13 @@ namespace Resonance.Enemies.Core
             int maxCycles,
             float speed,
             float cycleDuration,
-            float waitDuration,
-            float arrivalThreshold)
+            float waitDuration)
         {
             _patrolMode = mode;
             _maxPatrolCycles = maxCycles;
             _patrolSpeed = speed;
             _singleCycleDuration = cycleDuration;
             _waitAtWaypointDuration = waitDuration;
-            _arrivalThreshold = arrivalThreshold;
-            
             Debug.Log($"EnemyController: Patrol configuration set - Mode: {mode}, MaxCycles: {maxCycles}, Speed: {speed:F1}");
         }
         
@@ -715,13 +729,10 @@ namespace Resonance.Enemies.Core
         /// Set chase configuration
         /// </summary>
         public void SetChaseConfiguration(
-            float targetUpdateInterval,
-            float arrivalThreshold)
+            float targetUpdateInterval)
         {
             _targetUpdateInterval = targetUpdateInterval;
-            _chaseArrivalThreshold = arrivalThreshold;
-            
-            Debug.Log($"EnemyController: Chase configuration set - UpdateInterval: {targetUpdateInterval:F2}s, ArrivalThreshold: {arrivalThreshold:F1}");
+            Debug.Log($"EnemyController: Chase configuration set - UpdateInterval: {targetUpdateInterval:F2}s");
         }
         
         /// <summary>

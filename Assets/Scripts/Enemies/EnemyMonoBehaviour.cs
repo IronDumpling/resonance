@@ -59,9 +59,6 @@ namespace Resonance.Enemies
         [SerializeField] private float _waitAtWaypointDuration = 1f;
         [Tooltip("How long to wait at each waypoint before moving to the next.")]
         
-        [SerializeField] private float _arrivalThreshold = 0.5f;
-        [Tooltip("How close to waypoint before considering 'arrived' (meters).")]
-        
         [Header("Patrol System - Visual")]
         [SerializeField] private bool _showPatrolPath = true;
         [Tooltip("Show patrol path in Scene view when enemy is selected.")]
@@ -70,8 +67,7 @@ namespace Resonance.Enemies
         [SerializeField] private float _targetUpdateInterval = 0.5f;
         [Tooltip("How often to update the chase target position (seconds).")]
         
-        [SerializeField] private float _chaseArrivalThreshold = 1f;
-        [Tooltip("How close to get to target before considering 'arrived' (meters).")]
+
 
         [Header("Attack System")]
         [SerializeField] private float _attackDuration = 0.5f;
@@ -138,11 +134,11 @@ namespace Resonance.Enemies
             // Setup visual components
             SetupVisualComponents();
 
-            // Setup detection system
-            SetupDetectionSystem();
-
             // Initialize enemy
             InitializeEnemy();
+
+            // Setup detection system
+            SetupDetectionSystem();
         }
 
         void Start()
@@ -258,13 +254,10 @@ namespace Resonance.Enemies
         public float PatrolSpeed => _patrolSpeed;
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-        public float ArrivalThreshold => _arrivalThreshold;
-        
         /// <summary>
         /// Chase configuration properties
         /// </summary>
         public float TargetUpdateInterval => _targetUpdateInterval;
-        public float ChaseArrivalThreshold => _chaseArrivalThreshold;
         
         /// <summary>
         /// Attack configuration properties
@@ -607,14 +600,12 @@ namespace Resonance.Enemies
                     _maxPatrolCycles,
                     _patrolSpeed,
                     _singleCycleDuration,
-                    _waitAtWaypointDuration,
-                    _arrivalThreshold
+                    _waitAtWaypointDuration
                 );
                 
                 // Set chase and attack configuration
                 _enemyController.SetChaseConfiguration(
-                    _targetUpdateInterval,
-                    _chaseArrivalThreshold
+                    _targetUpdateInterval
                 );
                 
                 _enemyController.SetAttackConfiguration(
@@ -770,7 +761,7 @@ namespace Resonance.Enemies
             if (_animator != null && _animator.isActiveAndEnabled)
             {
                 _animator.SetBool("HasTarget", true);
-                Debug.Log("EnemyMonoBehaviour: Player detected - set HasTarget = true");
+                // Debug.Log("EnemyMonoBehaviour: Player detected - set HasTarget = true");
             }
         }
 
@@ -1226,15 +1217,9 @@ namespace Resonance.Enemies
             if (_waitAtWaypointDuration < 0f)
                 _waitAtWaypointDuration = 0f;
                 
-            if (_arrivalThreshold < 0.1f)
-                _arrivalThreshold = 0.1f;
-            
             // Validate chase configuration
             if (_targetUpdateInterval < 0.1f)
                 _targetUpdateInterval = 0.1f;
-                
-            if (_chaseArrivalThreshold < 0.1f)
-                _chaseArrivalThreshold = 0.1f;
             
             // Validate attack configuration
             if (_attackDuration < 0.1f)

@@ -50,8 +50,6 @@ namespace Resonance.Enemies
                 Debug.LogWarning($"EnemyDamageHitbox: Collider on {gameObject.name} is not a trigger! Setting to trigger.");
                 _hitboxCollider.isTrigger = true;
             }
-
-            // Note: Initialization will be done by EnemyMonoBehaviour, similar to EnemyDetectionTrigger
         }
 
         void Start()
@@ -65,6 +63,11 @@ namespace Resonance.Enemies
 
             // Start disabled - will be enabled by animation events
             gameObject.SetActive(false);
+        }
+
+        void OnEnable()
+        {
+            _hitTargetsThisFrame.Clear();
         }
 
         void OnTriggerEnter(Collider other)
@@ -84,8 +87,12 @@ namespace Resonance.Enemies
                 return;
             }
 
-            // Process collision again in case target moved into range during attack window
             ProcessCollision(other);
+        }
+
+        void LateUpdate()
+        {
+            _hitTargetsThisFrame.Clear();
         }
 
         #endregion
@@ -221,38 +228,6 @@ namespace Resonance.Enemies
         #endregion
 
         #region Public Interface
-
-        /// <summary>
-        /// Enable the hitbox (called by animation events through EnemyAnimRelay)
-        /// </summary>
-        public void EnableHitbox()
-        {
-            if (!_isInitialized) return;
-
-            gameObject.SetActive(true);
-            _hitTargetsThisFrame.Clear();
-            
-            if (_debugMode)
-            {
-                Debug.Log($"EnemyDamageHitbox: Hitbox enabled on {gameObject.name}");
-            }
-        }
-
-        /// <summary>
-        /// Disable the hitbox (called by animation events through EnemyAnimRelay)
-        /// </summary>
-        public void DisableHitbox()
-        {
-            if (!_isInitialized) return;
-
-            gameObject.SetActive(false);
-            _hitTargetsThisFrame.Clear();
-            
-            if (_debugMode)
-            {
-                Debug.Log($"EnemyDamageHitbox: Hitbox disabled on {gameObject.name}");
-            }
-        }
 
         /// <summary>
         /// Check if hitbox is currently active
