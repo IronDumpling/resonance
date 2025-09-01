@@ -104,8 +104,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 2, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 2.2, z: 1}
+  m_Center: {x: 0, y: 0.1, z: 0}
 --- !u!1 &2834259150065660657
 GameObject:
   m_ObjectHideFlags: 0
@@ -115,7 +115,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3203894000571929562}
-  - component: {fileID: 5136787809936977010}
   - component: {fileID: 5004115887592804459}
   - component: {fileID: 2629838485125824339}
   m_Layer: 8
@@ -142,27 +141,6 @@ Transform:
   - {fileID: 4915893129620502284}
   m_Father: {fileID: 631622349711839967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &5136787809936977010
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2834259150065660657}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 2.2, z: 1}
-  m_Center: {x: 0, y: 0.1, z: 0}
 --- !u!95 &5004115887592804459
 Animator:
   serializedVersion: 7
@@ -317,6 +295,7 @@ GameObject:
   - component: {fileID: 9025779555546962014}
   - component: {fileID: 6387475304567247514}
   - component: {fileID: 1294134832740095054}
+  - component: {fileID: 6790058505332197537}
   m_Layer: 8
   m_Name: Body
   m_TagString: Untagged
@@ -392,6 +371,29 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!136 &6790058505332197537
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6322296349379799284}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6416059392138926664
 GameObject:
   m_ObjectHideFlags: 0
@@ -499,7 +501,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4915893129620502284}
   m_Layer: 0
-  m_Name: WeekPoints
+  m_Name: Weakpoints
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

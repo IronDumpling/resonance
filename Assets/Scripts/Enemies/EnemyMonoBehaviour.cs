@@ -390,6 +390,9 @@ namespace Resonance.Enemies
             
             // Setup damage hitbox
             SetupDamageHitbox();
+            
+            // Setup weakpoint system
+            SetupWeakpointSystem();
 
             // Set initial radii
             UpdateColliderRadii();
@@ -507,6 +510,78 @@ namespace Resonance.Enemies
             {
                 EnemyDamageHitbox newHitbox = hitboxObject.AddComponent<EnemyDamageHitbox>();
                 newHitbox.Initialize(this);
+            }
+        }
+        
+        private void SetupWeakpointSystem()
+        {
+            // Try to find existing weakpoints system
+            Transform visualChild = _visualTransform ?? transform.Find("Visual");
+            if (visualChild == null)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: No Visual child found for weakpoint system setup on {gameObject.name}");
+                return;
+            }
+            
+            Transform weakpointsChild = visualChild.Find("Weakpoints");
+            
+            if (weakpointsChild != null)
+            {
+                // Check and add WeakpointActivator if needed
+                SetupWeakpointActivatorComponent(weakpointsChild.gameObject);
+            }
+            else
+            {
+                // Create Weakpoints GameObject if it doesn't exist
+                GameObject weakpointsGO = new GameObject("Weakpoints");
+                weakpointsGO.transform.SetParent(visualChild);
+                weakpointsGO.transform.localPosition = Vector3.zero;
+                weakpointsGO.layer = gameObject.layer;
+                
+                // Create default Head and Core child objects
+                CreateDefaultWeakpointChild(weakpointsGO, "Head");
+                CreateDefaultWeakpointChild(weakpointsGO, "Core");
+                
+                // Add weakpoint activator component
+                SetupWeakpointActivatorComponent(weakpointsGO);
+                
+                Debug.Log($"EnemyMonoBehaviour: Created default weakpoint system for {gameObject.name}");
+            }
+        }
+        
+        private void CreateDefaultWeakpointChild(GameObject parent, string childName)
+        {
+            GameObject childGO = new GameObject(childName);
+            childGO.transform.SetParent(parent.transform);
+            childGO.transform.localPosition = Vector3.zero;
+            childGO.layer = parent.layer;
+            
+            // Position based on weakpoint type
+            if (childName == "Head")
+            {
+                childGO.transform.localPosition = Vector3.up * 1.5f; // Above the enemy
+            }
+            else if (childName == "Core")
+            {
+                childGO.transform.localPosition = Vector3.zero; // Center of the enemy
+            }
+        }
+        
+        private void SetupWeakpointActivatorComponent(GameObject weakpointsObject)
+        {
+            // Check if WeakpointActivator already exists
+            WeakpointActivator existingActivator = weakpointsObject.GetComponent<WeakpointActivator>();
+            
+            if (existingActivator != null)
+            {
+                existingActivator.Initialize(this);
+                Debug.Log($"EnemyMonoBehaviour: Initialized existing WeakpointActivator on {weakpointsObject.name}");
+            }
+            else
+            {
+                WeakpointActivator newActivator = weakpointsObject.AddComponent<WeakpointActivator>();
+                newActivator.Initialize(this);
+                Debug.Log($"EnemyMonoBehaviour: Added and initialized new WeakpointActivator on {weakpointsObject.name}");
             }
         }
         
@@ -663,6 +738,21 @@ namespace Resonance.Enemies
                 if (damageHitbox == null)
                 {
                     SetupDamageHitboxComponent(damageHitboxChild.gameObject);
+                }
+            }
+            
+            // Check weakpoint system
+            Transform visualChild = _visualTransform ?? transform.Find("Visual");
+            if (visualChild != null)
+            {
+                Transform weakpointsChild = visualChild.Find("Weakpoints");
+                if (weakpointsChild != null)
+                {
+                    WeakpointActivator weakpointActivator = weakpointsChild.GetComponent<WeakpointActivator>();
+                    if (weakpointActivator == null)
+                    {
+                        SetupWeakpointActivatorComponent(weakpointsChild.gameObject);
+                    }
                 }
             }
         }
