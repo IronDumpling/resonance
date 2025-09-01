@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 809707716472527147}
   - component: {fileID: 3598880275413671006}
-  m_Layer: 8
+  m_Layer: 0
   m_Name: DetectionRange
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -188,7 +188,7 @@ GameObject:
   - component: {fileID: 4147623693729452070}
   - component: {fileID: 5626122133871307020}
   - component: {fileID: 8619572068309732373}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -500,7 +500,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4915893129620502284}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Weakpoints
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -536,7 +536,7 @@ GameObject:
   - component: {fileID: 6662122104581977967}
   - component: {fileID: 2554608503425324374}
   - component: {fileID: 6499212514403420926}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Core
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -642,7 +642,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3125685371143642785}
   - component: {fileID: 6860426549029046187}
-  m_Layer: 8
+  m_Layer: 0
   m_Name: AttackRange
   m_TagString: Untagged
   m_Icon: {fileID: 0}

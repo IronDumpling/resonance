@@ -67,8 +67,6 @@ namespace Resonance.Enemies
         [SerializeField] private float _targetUpdateInterval = 0.5f;
         [Tooltip("How often to update the chase target position (seconds).")]
         
-
-
         [Header("Attack System")]
         [SerializeField] private float _attackDuration = 0.5f;
         [Tooltip("How long the attack action stays active after performing the attack (seconds).")]

@@ -109,7 +109,6 @@ namespace Resonance.Enemies
             {
                 // Create a default sphere collider if none exists
                 SphereCollider sphereCollider = weakpointObject.AddComponent<SphereCollider>();
-                sphereCollider.isTrigger = true;
                 sphereCollider.radius = 0.5f; // Default radius, can be adjusted in inspector
                 collider = sphereCollider;
                 
@@ -120,13 +119,13 @@ namespace Resonance.Enemies
             }
             else
             {
-                // Ensure existing collider is a trigger
-                if (!collider.isTrigger)
+                // Ensure existing collider is a non-trigger
+                if (collider.isTrigger)
                 {
-                    collider.isTrigger = true;
+                    collider.isTrigger = false;
                     if (_debugMode)
                     {
-                        Debug.Log($"WeakpointActivator: Set {weakpointObject.name} collider to trigger");
+                        Debug.Log($"WeakpointActivator: Set {weakpointObject.name} collider to non-trigger");
                     }
                 }
             }
@@ -160,19 +159,23 @@ namespace Resonance.Enemies
                     newHitbox.convertPhysicalToMental = 0.5f; // Convert some physical damage to mental
                 }
                 
+                // Initialize the weakpoint hitbox with enemy reference
+                newHitbox.Initialize(_enemyMono);
+                
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointActivator: Added WeakpointHitbox ({type}) to {weakpointObject.name}");
+                    Debug.Log($"WeakpointActivator: Added and initialized WeakpointHitbox ({type}) to {weakpointObject.name}");
                 }
             }
             else
             {
-                // Ensure existing hitbox has correct type
+                // Ensure existing hitbox has correct type and is initialized
                 existingHitbox.type = type;
+                existingHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"WeakpointActivator: Updated existing WeakpointHitbox on {weakpointObject.name}");
+                    Debug.Log($"WeakpointActivator: Updated and initialized existing WeakpointHitbox on {weakpointObject.name}");
                 }
             }
         }

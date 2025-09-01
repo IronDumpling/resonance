@@ -73,11 +73,11 @@ namespace Resonance.Player.Core
         /// </summary>
         private void SetDefaultLayerMasks()
         {
-            // 鼠标射线检测层：Default, Environment, Enemy
-            _mouseRaycastLayerMask = (1 << 0) | (1 << 6) | (1 << 8); // Default, Environment, Enemy
+            // 鼠标射线检测层
+            _mouseRaycastLayerMask = (1 << 6) | (1 << 8); // Environment, Enemy
             
-            // 射击目标检测层：应该与鼠标射线检测层保持一致，确保两阶段射击的一致性
-            _targetLayerMask = (1 << 0) | (1 << 6) | (1 << 8); // Default, Environment，Enemy
+            // 射击目标检测层
+            _targetLayerMask = (1 << 6) | (1 << 8); // Environment，Enemy
             
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
         }
