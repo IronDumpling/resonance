@@ -455,8 +455,6 @@ namespace Resonance.Player.Core
             controller.ShowLineTemporarily(_shootingLineRenderer, _lineDisplayDuration);
         }
 
-
-
         /// <summary>
         /// 处理命中目标
         /// </summary>
