@@ -24,8 +24,6 @@ namespace Resonance.Player
         [Header("Physics")]
         [SerializeField] private LayerMask _groundLayerMask = 1;
         
-
-        
         [Header("Edge Protection")]
         [SerializeField] private bool _enableEdgeProtection = true;
         [SerializeField] private float _edgeDetectionDistance = 1f;
@@ -40,6 +38,9 @@ namespace Resonance.Player
         [SerializeField] private Transform _rightArm;
         [SerializeField] private float _armRotationSpeed = 5f;
         [SerializeField] private Camera _playerCamera;
+
+        [Header("Shooting")]
+        [SerializeField] private Vector3 _shootOriginOffset = new Vector3(0, 0.5f, 0.5f);
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -471,7 +472,8 @@ namespace Resonance.Player
             if (!IsInitialized) return;
             
             // 计算射击起始位置（从玩家中心稍微前方）
-            Vector3 shootOrigin = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+            // Vector3 shootOrigin = transform.position + Vector3.up + transform.forward * 0.5f;
+            Vector3 shootOrigin = transform.position + _shootOriginOffset;
             
             var result = _playerController.PerformShoot(shootOrigin);
             if (result.success && _showDebugInfo)
@@ -680,7 +682,7 @@ namespace Resonance.Player
             if (_playerController.IsAiming)
             {
                 // 计算射击起始位置（与射击时相同）
-                Vector3 shootOrigin = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+                Vector3 shootOrigin = transform.position + _shootOriginOffset;
                 
                 // 更新瞄准线
                 _playerController.ShootingSystem?.UpdateAimingLine(shootOrigin);
