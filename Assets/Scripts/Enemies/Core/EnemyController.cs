@@ -222,8 +222,16 @@ namespace Resonance.Enemies.Core
                 // Check if mental health reached 0 during revival (interruption)
                 if (!IsMentallyAlive)
                 {
-                    Debug.Log("EnemyController: Revival interrupted - mental health reached 0");
-                    HandleTrueDeath();
+                    if(IsPhysicallyAlive)
+                    {
+                        Debug.Log("EnemyController: Revival interrupted with mental death - mental health reached 0");
+                        CompleteRevival();
+                    }
+                    else
+                    {
+                        Debug.Log("EnemyController: Revival interrupted with true death - mental health reached 0");
+                        HandleTrueDeath();
+                    }
                     return;
                 }
                 
@@ -232,7 +240,7 @@ namespace Resonance.Enemies.Core
                 {
                     var previousTier = _stats.physicalTier;
                     _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, 
-                        _stats.currentPhysicalHealth + _stats.revivalRate * deltaTime);
+                    _stats.currentPhysicalHealth + _stats.revivalRate * deltaTime);
                     _stats.UpdateHealthTiers();
                     
                     OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
@@ -242,10 +250,13 @@ namespace Resonance.Enemies.Core
                     {
                         OnPhysicalTierChanged?.Invoke(_stats.physicalTier);
                     }
-                    
+
+                    // Debug.Log($"EnemyController: Revival progress: {_stats.currentPhysicalHealth} / {_stats.maxPhysicalHealth}");
+
                     // Check if revival is complete
                     if (_stats.currentPhysicalHealth >= _stats.maxPhysicalHealth)
                     {
+                        Debug.Log("EnemyController: Revival completed without interruption - physical health restored to full");
                         CompleteRevival();
                     }
                 }

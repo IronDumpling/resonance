@@ -49,7 +49,7 @@ namespace Resonance.Enemies.States
             if (!_enemyController.IsMentallyAlive)
             {
                 Debug.Log("EnemyRevivingState: Revival interrupted - mental health reached 0");
-                // TODO This will trigger Normal State transition handled by EnemyController
+                // This will trigger Normal State or TrueDeath State transition handled by EnemyController
                 return;
             }
             
