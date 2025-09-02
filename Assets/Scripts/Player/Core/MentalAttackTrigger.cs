@@ -7,8 +7,7 @@ using Resonance.Enemies;
 namespace Resonance.Player.Core
 {
     /// <summary>
-    /// Trigger component that detects enemies in physical death state within mental attack range.
-    /// Similar to EnemyDetectionTrigger but specifically for player's mental attack detection.
+    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within mental attack range.
     /// Should be attached to the MentalAttackRange GameObject under the Player.
     /// </summary>
     public class MentalAttackTrigger : MonoBehaviour
@@ -17,19 +16,18 @@ namespace Resonance.Player.Core
         private PlayerController _playerController;
         private bool _isInitialized = false;
 
-        // Enemy tracking
-        private List<EnemyHitbox> _enemiesInRange = new List<EnemyHitbox>();
-        private List<EnemyHitbox> _deadEnemiesInRange = new List<EnemyHitbox>();
+        // Core hitbox tracking
+        private List<EnemyHitbox> _coreHitboxesInRange = new List<EnemyHitbox>();
 
         // Events
-        public System.Action<EnemyHitbox> OnDeadEnemyEntered;
-        public System.Action<EnemyHitbox> OnDeadEnemyExited;
-        public System.Action OnDeadEnemiesChanged; // General event for any change in dead enemies
+        public System.Action<EnemyHitbox> OnCoreHitboxEntered;
+        public System.Action<EnemyHitbox> OnCoreHitboxExited;
+        public System.Action OnCoreHitboxesChanged; // General event for any change in core hitboxes
 
         // Properties
-        public bool HasDeadEnemiesInRange => _deadEnemiesInRange.Count > 0;
-        public int DeadEnemyCount => _deadEnemiesInRange.Count;
-        public List<EnemyHitbox> DeadEnemiesInRange => new List<EnemyHitbox>(_deadEnemiesInRange);
+        public bool HasCoreHitboxesInRange => _coreHitboxesInRange.Count > 0;
+        public int CoreHitboxCount => _coreHitboxesInRange.Count;
+        public List<EnemyHitbox> CoreHitboxesInRange => new List<EnemyHitbox>(_coreHitboxesInRange);
 
         #region Unity Lifecycle
 
@@ -96,18 +94,20 @@ namespace Resonance.Player.Core
         {
             if (!_isInitialized) return;
 
-            // Check if it's an enemy
-            var enemy = other.GetComponent<EnemyHitbox>();
-            if (enemy == null) return;
+            // Check if it's a Core type EnemyHitbox
+            var hitbox = other.GetComponent<EnemyHitbox>();
+            if (hitbox == null) return;
 
-            // Add to enemies in range if not already present
-            if (!_enemiesInRange.Contains(enemy))
+            // Only track Core type hitboxes with enabled colliders
+            if (hitbox.type == EnemyHitboxType.Core && other.enabled && hitbox.IsInitialized)
             {
-                _enemiesInRange.Add(enemy);
-                Debug.Log($"MentalAttackTrigger: Enemy {enemy.name} entered range");
-
-                // Check if this enemy is in physical death state
-                CheckEnemyDeathState(enemy);
+                if (!_coreHitboxesInRange.Contains(hitbox))
+                {
+                    _coreHitboxesInRange.Add(hitbox);
+                    OnCoreHitboxEntered?.Invoke(hitbox);
+                    OnCoreHitboxesChanged?.Invoke();
+                    Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} entered range");
+                }
             }
         }
 
@@ -115,23 +115,17 @@ namespace Resonance.Player.Core
         {
             if (!_isInitialized) return;
 
-            // Check if it's an enemy
-            var enemy = other.GetComponent<EnemyHitbox>();
-            if (enemy == null) return;
+            // Check if it's a Core type EnemyHitbox
+            var hitbox = other.GetComponent<EnemyHitbox>();
+            if (hitbox == null) return;
 
-            // Remove from all tracking lists
-            if (_enemiesInRange.Contains(enemy))
+            // Remove from tracking list if present
+            if (_coreHitboxesInRange.Contains(hitbox))
             {
-                _enemiesInRange.Remove(enemy);
-                Debug.Log($"MentalAttackTrigger: Enemy {enemy.name} exited range");
-            }
-
-            if (_deadEnemiesInRange.Contains(enemy))
-            {
-                _deadEnemiesInRange.Remove(enemy);
-                OnDeadEnemyExited?.Invoke(enemy);
-                OnDeadEnemiesChanged?.Invoke();
-                Debug.Log($"MentalAttackTrigger: Dead enemy {enemy.name} exited range");
+                _coreHitboxesInRange.Remove(hitbox);
+                OnCoreHitboxExited?.Invoke(hitbox);
+                OnCoreHitboxesChanged?.Invoke();
+                Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} exited range");
             }
         }
 
@@ -139,78 +133,48 @@ namespace Resonance.Player.Core
         {
             if (!_isInitialized) return;
 
-            // Continuously check enemy state for those in range
-            var enemy = other.GetComponent<EnemyHitbox>();
-            if (enemy != null && _enemiesInRange.Contains(enemy))
+            // Check if Core hitbox collider state changed
+            var hitbox = other.GetComponent<EnemyHitbox>();
+            if (hitbox == null || hitbox.type != EnemyHitboxType.Core || !hitbox.IsInitialized) return;
+
+            bool isInList = _coreHitboxesInRange.Contains(hitbox);
+            bool shouldBeInList = other.enabled;
+
+            if (shouldBeInList && !isInList)
             {
-                CheckEnemyDeathState(enemy);
+                // Collider became enabled, add to list
+                _coreHitboxesInRange.Add(hitbox);
+                OnCoreHitboxEntered?.Invoke(hitbox);
+                OnCoreHitboxesChanged?.Invoke();
+                Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} collider enabled");
+            }
+            else if (!shouldBeInList && isInList)
+            {
+                // Collider became disabled, remove from list
+                _coreHitboxesInRange.Remove(hitbox);
+                OnCoreHitboxExited?.Invoke(hitbox);
+                OnCoreHitboxesChanged?.Invoke();
+                Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} collider disabled");
             }
         }
 
         #endregion
 
-        #region Enemy State Detection
+        #region Core Hitbox Validation
 
         /// <summary>
-        /// Check if an enemy is in physical death state and update tracking accordingly
+        /// Validate if a hitbox should be tracked based on current criteria
         /// </summary>
-        /// <param name="enemy">The enemy to check</param>
-        private void CheckEnemyDeathState(EnemyHitbox enemy)
+        /// <param name="hitbox">The hitbox to validate</param>
+        /// <param name="collider">The collider component</param>
+        /// <returns>True if hitbox should be tracked</returns>
+        private bool IsValidCoreHitbox(EnemyHitbox hitbox, Collider collider)
         {
-            if (enemy == null) return;
-
-            bool isInPhysicalDeathState = IsEnemyInPhysicalDeathState(enemy);
-            bool wasInDeadList = _deadEnemiesInRange.Contains(enemy);
-
-            if (isInPhysicalDeathState && !wasInDeadList)
-            {
-                // Enemy just entered physical death state
-                _deadEnemiesInRange.Add(enemy);
-                OnDeadEnemyEntered?.Invoke(enemy);
-                OnDeadEnemiesChanged?.Invoke();
-                Debug.Log($"MentalAttackTrigger: Enemy {enemy.name} entered physical death state");
-            }
-            else if (!isInPhysicalDeathState && wasInDeadList)
-            {
-                // Enemy left physical death state (revived or truly died)
-                _deadEnemiesInRange.Remove(enemy);
-                OnDeadEnemyExited?.Invoke(enemy);
-                OnDeadEnemiesChanged?.Invoke();
-                Debug.Log($"MentalAttackTrigger: Enemy {enemy.name} left physical death state");
-            }
-        }
-
-        /// <summary>
-        /// Check if an enemy is currently in physical death state
-        /// This method checks the enemy's state machine for PhysicalDeath state
-        /// </summary>
-        /// <param name="enemy">The enemy to check</param>
-        /// <returns>True if enemy is in physical death state</returns>
-        private bool IsEnemyInPhysicalDeathState(EnemyHitbox enemy)
-        {
-            if (enemy == null || !enemy.IsInitialized) return false;
-
-            // Check the enemy's controller state machine
-            // var enemyController = enemy.Controller;
-            // if (enemyController == null) return false;
-
-            // // Check if the enemy is in PhysicalDeath state
-            // // This assumes the enemy has a similar state machine structure to the player
-            // string currentState = enemyController.CurrentState;
-            // bool isPhysicallyDead = currentState == "PhysicalDeath";
-
-            // // Alternative: Check health values if state machine check fails
-            // if (!isPhysicallyDead)
-            // {
-            //     // Check if physical health is 0 but mental health > 0
-            //     var stats = enemyController.Stats;
-            //     if (stats != null)
-            //     {
-            //         isPhysicallyDead = stats.currentPhysicalHealth <= 0f && stats.currentMentalHealth > 0f;
-            //     }
-            // }
-
-            return false;
+            return hitbox != null && 
+                   hitbox.IsInitialized && 
+                   hitbox.type == EnemyHitboxType.Core && 
+                   collider != null && 
+                   collider.enabled;
         }
 
         #endregion
@@ -218,48 +182,59 @@ namespace Resonance.Player.Core
         #region Public Interface
 
         /// <summary>
-        /// Manually refresh the state of all enemies in range
-        /// Useful for ensuring accuracy when enemy states change externally
+        /// Manually refresh the state of all core hitboxes in range
+        /// Useful for ensuring accuracy when collider states change externally
         /// </summary>
-        public void RefreshEnemyStates()
+        public void RefreshCoreHitboxStates()
         {
             if (!_isInitialized) return;
 
-            // Create a copy of the list to avoid modification during iteration
-            var enemiesToCheck = new List<EnemyHitbox>(_enemiesInRange);
+            // Get all colliders in range and check their state
+            var collider = GetComponent<SphereCollider>();
+            if (collider == null) return;
+
+            var hitboxesToCheck = new List<EnemyHitbox>(_coreHitboxesInRange);
             
-            foreach (var enemy in enemiesToCheck)
+            foreach (var hitbox in hitboxesToCheck)
             {
-                if (enemy != null)
+                if (hitbox != null)
                 {
-                    CheckEnemyDeathState(enemy);
+                    var hitboxCollider = hitbox.GetComponent<Collider>();
+                    if (!IsValidCoreHitbox(hitbox, hitboxCollider))
+                    {
+                        // Remove invalid hitboxes
+                        _coreHitboxesInRange.Remove(hitbox);
+                        OnCoreHitboxExited?.Invoke(hitbox);
+                        OnCoreHitboxesChanged?.Invoke();
+                        Debug.Log($"MentalAttackTrigger: Removed invalid core hitbox {hitbox.name}");
+                    }
                 }
             }
 
-            Debug.Log($"MentalAttackTrigger: Refreshed states for {enemiesToCheck.Count} enemies");
+            Debug.Log($"MentalAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
         }
 
         /// <summary>
-        /// Get the closest dead enemy in range
+        /// Get the closest core hitbox in range
         /// </summary>
-        /// <returns>Closest dead enemy or null if none</returns>
-        public EnemyHitbox GetClosestDeadEnemy()
+        /// <returns>Closest core hitbox or null if none</returns>
+        public EnemyHitbox GetClosestCoreHitbox()
         {
-            if (_deadEnemiesInRange.Count == 0) return null;
+            if (_coreHitboxesInRange.Count == 0) return null;
 
             Vector3 playerPosition = transform.position;
             EnemyHitbox closest = null;
             float closestDistance = float.MaxValue;
 
-            foreach (var enemy in _deadEnemiesInRange)
+            foreach (var hitbox in _coreHitboxesInRange)
             {
-                if (enemy != null)
+                if (hitbox != null)
                 {
-                    float distance = Vector3.Distance(playerPosition, enemy.transform.position);
+                    float distance = Vector3.Distance(playerPosition, hitbox.transform.position);
                     if (distance < closestDistance)
                     {
                         closestDistance = distance;
-                        closest = enemy;
+                        closest = hitbox;
                     }
                 }
             }
@@ -268,13 +243,13 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Check if a specific enemy is in range and in physical death state
+        /// Check if a specific core hitbox is in range and has an enabled collider
         /// </summary>
-        /// <param name="enemy">The enemy to check</param>
-        /// <returns>True if enemy is in range and in physical death state</returns>
-        public bool IsEnemyInRangeAndDead(EnemyHitbox enemy)
+        /// <param name="hitbox">The hitbox to check</param>
+        /// <returns>True if core hitbox is in range and has enabled collider</returns>
+        public bool IsCoreHitboxInRange(EnemyHitbox hitbox)
         {
-            return enemy != null && _deadEnemiesInRange.Contains(enemy);
+            return hitbox != null && _coreHitboxesInRange.Contains(hitbox);
         }
 
         #endregion
@@ -289,7 +264,7 @@ namespace Resonance.Player.Core
         {
             if (!_isInitialized) return "Not initialized";
 
-            return $"Enemies in range: {_enemiesInRange.Count}, Dead enemies: {_deadEnemiesInRange.Count}";
+            return $"Core hitboxes in range: {_coreHitboxesInRange.Count}";
         }
 
         /// <summary>
@@ -297,12 +272,11 @@ namespace Resonance.Player.Core
         /// </summary>
         private void Cleanup()
         {
-            OnDeadEnemyEntered = null;
-            OnDeadEnemyExited = null;
-            OnDeadEnemiesChanged = null;
+            OnCoreHitboxEntered = null;
+            OnCoreHitboxExited = null;
+            OnCoreHitboxesChanged = null;
 
-            _enemiesInRange.Clear();
-            _deadEnemiesInRange.Clear();
+            _coreHitboxesInRange.Clear();
 
             _isInitialized = false;
             Debug.Log("MentalAttackTrigger: Cleaned up");
@@ -312,30 +286,29 @@ namespace Resonance.Player.Core
 
         #region Gizmos (for debugging)
 
-        // void OnDrawGizmosSelected()
-        // {
-        //     var collider = GetComponent<SphereCollider>();
-        //     if (collider != null)
-        //     {
-        //         // Draw the detection range
-        //         Gizmos.color = HasDeadEnemiesInRange ? Color.red : Color.yellow;
-        //         Gizmos.DrawWireSphere(transform.position, collider.radius);
-
-        //         // Draw connections to dead enemies
-        //         if (_deadEnemiesInRange != null)
-        //         {
-        //             Gizmos.color = Color.red;
-        //             foreach (var enemy in _deadEnemiesInRange)
-        //             {
-        //                 if (enemy != null)
-        //                 {
-        //                     Gizmos.DrawLine(transform.position, enemy.transform.position);
-        //                     Gizmos.DrawWireCube(enemy.transform.position, Vector3.one * 0.5f);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        void OnDrawGizmosSelected()
+        {
+            var collider = GetComponent<SphereCollider>();
+            if (collider != null)
+            {
+                // Draw the detection range
+                Gizmos.color = HasCoreHitboxesInRange ? Color.red : Color.yellow;
+                Gizmos.DrawWireSphere(transform.position, collider.radius);
+                // Draw connections to core hitboxes
+                if (_coreHitboxesInRange != null)
+                {
+                    Gizmos.color = Color.red;
+                    foreach (var hitbox in _coreHitboxesInRange)
+                    {
+                        if (hitbox != null)
+                        {
+                            Gizmos.DrawLine(transform.position, hitbox.transform.position);
+                            Gizmos.DrawWireCube(hitbox.transform.position, Vector3.one * 0.5f);
+                        }
+                    }
+                }
+            }
+        }
 
         #endregion
     }
