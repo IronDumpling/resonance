@@ -1191,6 +1191,62 @@ namespace Resonance.Enemies
 
         #endregion
 
+        #region Resonance UI Control
+
+        /// <summary>
+        /// Show resonance UI (called by EnemyHitboxManager when Core hitbox is enabled)
+        /// </summary>
+        public void ShowResonanceUI()
+        {
+            if (_resonanceUI != null)
+            {
+                _resonanceUI.SetActive(true);
+                // Default to white color
+                SetResonanceUIColor(Color.white);
+                
+                if (_showDebugInfo)
+                {
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} showing resonance UI");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Hide resonance UI (called by EnemyHitboxManager when Core hitbox is disabled)
+        /// </summary>
+        public void HideResonanceUI()
+        {
+            if (_resonanceUI != null)
+            {
+                _resonanceUI.SetActive(false);
+                
+                if (_showDebugInfo)
+                {
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} hiding resonance UI");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set resonance UI text color (called by MentalAttackTrigger for closest target indication)
+        /// </summary>
+        /// <param name="color">Color to set (red for closest target, white for others)</param>
+        public void SetResonanceUIColor(Color color)
+        {
+            if (_resonanceUIText != null)
+            {
+                _resonanceUIText.color = color;
+                
+                if (_showDebugInfo)
+                {
+                    string colorName = color == Color.red ? "red" : "white";
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} set resonance UI color to {colorName}");
+                }
+            }
+        }
+
+        #endregion
+
         #region Debug
 
         private void DrawDebugInfo()

@@ -18,6 +18,7 @@ namespace Resonance.Player.Core
 
         // Core hitbox tracking
         private List<EnemyHitbox> _coreHitboxesInRange = new List<EnemyHitbox>();
+        private EnemyHitbox _lastClosestCore = null;
 
         // Events
         public System.Action<EnemyHitbox> OnCoreHitboxEntered;
@@ -106,6 +107,7 @@ namespace Resonance.Player.Core
                     _coreHitboxesInRange.Add(hitbox);
                     OnCoreHitboxEntered?.Invoke(hitbox);
                     OnCoreHitboxesChanged?.Invoke();
+                    UpdateClosestCoreNotification();
                     Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} entered range");
                 }
             }
@@ -125,6 +127,7 @@ namespace Resonance.Player.Core
                 _coreHitboxesInRange.Remove(hitbox);
                 OnCoreHitboxExited?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
+                UpdateClosestCoreNotification();
                 Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} exited range");
             }
         }
@@ -146,6 +149,7 @@ namespace Resonance.Player.Core
                 _coreHitboxesInRange.Add(hitbox);
                 OnCoreHitboxEntered?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
+                UpdateClosestCoreNotification();
                 Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} collider enabled");
             }
             else if (!shouldBeInList && isInList)
@@ -154,6 +158,7 @@ namespace Resonance.Player.Core
                 _coreHitboxesInRange.Remove(hitbox);
                 OnCoreHitboxExited?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
+                UpdateClosestCoreNotification();
                 Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} collider disabled");
             }
         }
@@ -175,6 +180,67 @@ namespace Resonance.Player.Core
                    hitbox.type == EnemyHitboxType.Core && 
                    collider != null && 
                    collider.enabled;
+        }
+
+        #endregion
+
+        #region Closest Core Notification
+
+        /// <summary>
+        /// Update closest core notification when core hitboxes list changes
+        /// </summary>
+        private void UpdateClosestCoreNotification()
+        {
+            var currentClosest = GetClosestCoreHitbox();
+            
+            if (currentClosest != _lastClosestCore)
+            {
+                // Notify old closest target to change to white
+                if (_lastClosestCore != null)
+                {
+                    var oldEnemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
+                    oldEnemyMono?.SetResonanceUIColor(Color.white);
+                    Debug.Log($"MentalAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
+                }
+                
+                // Notify new closest target to change to red
+                if (currentClosest != null)
+                {
+                    var newEnemyMono = GetEnemyMonoFromHitbox(currentClosest);
+                    newEnemyMono?.SetResonanceUIColor(Color.red);
+                    Debug.Log($"MentalAttackTrigger: {currentClosest.name} is now closest target, set to red");
+                }
+                
+                _lastClosestCore = currentClosest;
+            }
+        }
+
+        /// <summary>
+        /// Get EnemyMonoBehaviour from EnemyHitbox by traversing up the hierarchy
+        /// </summary>
+        /// <param name="hitbox">The EnemyHitbox to find the parent EnemyMonoBehaviour for</param>
+        /// <returns>EnemyMonoBehaviour if found, null otherwise</returns>
+        private EnemyMonoBehaviour GetEnemyMonoFromHitbox(EnemyHitbox hitbox)
+        {
+            if (hitbox == null) return null;
+
+            // The EnemyHitbox should be on a child of the enemy's Visual object
+            // Hierarchy: Enemy -> Visual -> Weakpoints -> Core (EnemyHitbox)
+            // We need to traverse up to find the root Enemy GameObject
+            Transform current = hitbox.transform;
+            
+            while (current != null)
+            {
+                var enemyMono = current.GetComponentInParent<EnemyMonoBehaviour>();
+                if (enemyMono != null)
+                {
+                    return enemyMono;
+                }
+                current = current.parent;
+            }
+            
+            Debug.LogWarning($"MentalAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
+            return null;
         }
 
         #endregion
@@ -272,11 +338,19 @@ namespace Resonance.Player.Core
         /// </summary>
         private void Cleanup()
         {
+            // Reset closest core tracking before clearing
+            if (_lastClosestCore != null)
+            {
+                var enemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
+                enemyMono?.SetResonanceUIColor(Color.white);
+            }
+            
             OnCoreHitboxEntered = null;
             OnCoreHitboxExited = null;
             OnCoreHitboxesChanged = null;
 
             _coreHitboxesInRange.Clear();
+            _lastClosestCore = null;
 
             _isInitialized = false;
             Debug.Log("MentalAttackTrigger: Cleaned up");

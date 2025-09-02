@@ -49,6 +49,9 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(true);
             SetMentalHitboxes(false);
             
+            // Initially hide resonance UI since mental hitboxes start disabled
+            _enemyMono?.HideResonanceUI();
+            
             if (_debugMode)
             {
                 Debug.Log($"EnemyHitboxManager: Initialized with enemy controller from {enemyMono.name}");
@@ -213,9 +216,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(false); 
             SetMentalHitboxes(true);
             
+            // Show resonance UI when mental hitboxes (including Core) are enabled
+            _enemyMono?.ShowResonanceUI();
+            
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Physical death - disabled physical, enabled mental weakpoints");
+                Debug.Log("EnemyHitboxManager: Physical death - disabled physical, enabled mental weakpoints, showing resonance UI");
             }
         }
         
@@ -224,9 +230,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(false); 
             SetMentalHitboxes(true);
             
+            // Show resonance UI when mental hitboxes (including Core) are enabled
+            _enemyMono?.ShowResonanceUI();
+            
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival started - disabled physical, enabled mental weakpoints");
+                Debug.Log("EnemyHitboxManager: Revival started - disabled physical, enabled mental weakpoints, showing resonance UI");
             }
         }
         
@@ -235,9 +244,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(true);  
             SetMentalHitboxes(false);
             
+            // Hide resonance UI when mental hitboxes (including Core) are disabled
+            _enemyMono?.HideResonanceUI();
+            
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival ended - enabled physical, disabled mental weakpoints");
+                Debug.Log("EnemyHitboxManager: Revival ended - enabled physical, disabled mental weakpoints, hiding resonance UI");
             }
         }
         
@@ -246,9 +258,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(false); 
             SetMentalHitboxes(false);
             
+            // Hide resonance UI when all hitboxes are disabled
+            _enemyMono?.HideResonanceUI();
+            
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints");
+                Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints, hiding resonance UI");
             }
         }
 
