@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+
+using System.Collections.Generic;
+
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Core;
@@ -24,8 +27,6 @@ namespace Resonance.Player
         [Header("Physics")]
         [SerializeField] private LayerMask _groundLayerMask = 1;
         
-
-        
         [Header("Edge Protection")]
         [SerializeField] private bool _enableEdgeProtection = true;
         [SerializeField] private float _edgeDetectionDistance = 1f;
@@ -40,6 +41,9 @@ namespace Resonance.Player
         [SerializeField] private Transform _rightArm;
         [SerializeField] private float _armRotationSpeed = 5f;
         [SerializeField] private Camera _playerCamera;
+
+        [Header("Shooting")]
+        [SerializeField] private Vector3 _shootOriginOffset = new Vector3(0, 0.5f, 0.5f);
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -156,9 +160,9 @@ namespace Resonance.Player
             // Cleanup MentalAttackTrigger events
             if (_mentalAttackTrigger != null)
             {
-                _mentalAttackTrigger.OnDeadEnemyEntered -= OnDeadEnemyEnteredRange;
-                _mentalAttackTrigger.OnDeadEnemyExited -= OnDeadEnemyExitedRange;
-                _mentalAttackTrigger.OnDeadEnemiesChanged -= OnDeadEnemiesChangedInRange;
+                _mentalAttackTrigger.OnCoreHitboxEntered -= OnCoreHitboxEnteredRange;
+                _mentalAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
+                _mentalAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
             }
             
             // Unregister from PlayerService
@@ -273,9 +277,9 @@ namespace Resonance.Player
             _mentalAttackTrigger.Initialize(_playerController, mentalAttackRange);
 
             // Subscribe to events for debugging
-            _mentalAttackTrigger.OnDeadEnemyEntered += OnDeadEnemyEnteredRange;
-            _mentalAttackTrigger.OnDeadEnemyExited += OnDeadEnemyExitedRange;
-            _mentalAttackTrigger.OnDeadEnemiesChanged += OnDeadEnemiesChangedInRange;
+            _mentalAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
+            _mentalAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
+            _mentalAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
 
             Debug.Log($"PlayerMonoBehaviour: MentalAttackTrigger initialized with range {mentalAttackRange}");
         }
@@ -373,19 +377,14 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle Resonance press input (F key short press) - Resonance or Interaction based on priority
+        /// Handle Resonance press input (F key short press) - ResonanceAction
         /// </summary>
         private void HandleResonanceInput()
         {
             if (!IsInitialized) return;
 
-            // Priority logic: 
-            // 1. If dead enemies in mental attack range -> ResonanceAction
-            // 2. Otherwise -> InteractAction (E key functionality)
-            
-            bool hasDeadEnemiesInRange = HasDeadEnemiesInMentalAttackRange();
-            
-            if (hasDeadEnemiesInRange)
+            // Short press F -> ResonanceAction only when Core hitboxes are in range
+            if (HasCoreHitboxesInMentalAttackRange())
             {
                 // Try to start ResonanceAction
                 bool resonanceStarted = _playerController.TryStartAction("Resonance");
@@ -400,16 +399,8 @@ namespace Resonance.Player
             }
             else
             {
-                // Try to start InteractAction (same as E key)
-                bool interactStarted = _playerController.TryStartAction("Interact");
-                if (interactStarted)
-                {
-                    Debug.Log("PlayerMonoBehaviour: Started InteractAction via short press F");
-                }
-                else
-                {
-                    Debug.Log("PlayerMonoBehaviour: InteractAction conditions not met");
-                }
+                // No Core hitboxes in range - short press F does nothing
+                Debug.Log("PlayerMonoBehaviour: Short press F ignored - no Core hitboxes in range");
             }
         }
 
@@ -423,15 +414,22 @@ namespace Resonance.Player
 
             if (isPressed)
             {
-                // F key pressed - try to start RecoverAction
-                bool recoverStarted = _playerController.TryStartAction("Recover");
-                if (recoverStarted)
+                // F key pressed - try to start RecoverAction only when no Core hitboxes in range
+                if (!HasCoreHitboxesInMentalAttackRange())
                 {
-                    Debug.Log("PlayerMonoBehaviour: Started RecoverAction via F key press");
+                    bool recoverStarted = _playerController.TryStartAction("Recover");
+                    if (recoverStarted)
+                    {
+                        Debug.Log("PlayerMonoBehaviour: Started RecoverAction via F key press");
+                    }
+                    else
+                    {
+                        Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
+                    }
                 }
                 else
                 {
-                    Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
+                    Debug.Log("PlayerMonoBehaviour: RecoverAction blocked - Core hitboxes in range (use short press for Resonance)");
                 }
             }
             else
@@ -471,7 +469,8 @@ namespace Resonance.Player
             if (!IsInitialized) return;
             
             // 计算射击起始位置（从玩家中心稍微前方）
-            Vector3 shootOrigin = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+            // Vector3 shootOrigin = transform.position + Vector3.up + transform.forward * 0.5f;
+            Vector3 shootOrigin = transform.position + _shootOriginOffset;
             
             var result = _playerController.PerformShoot(shootOrigin);
             if (result.success && _showDebugInfo)
@@ -680,7 +679,7 @@ namespace Resonance.Player
             if (_playerController.IsAiming)
             {
                 // 计算射击起始位置（与射击时相同）
-                Vector3 shootOrigin = transform.position + Vector3.up * 1.5f + transform.forward * 0.5f;
+                Vector3 shootOrigin = transform.position + _shootOriginOffset;
                 
                 // 更新瞄准线
                 _playerController.ShootingSystem?.UpdateAimingLine(shootOrigin);
@@ -1065,55 +1064,74 @@ namespace Resonance.Player
         #region MentalAttackTrigger Events
 
         /// <summary>
-        /// Called when a dead enemy enters mental attack range
+        /// Called when a Core hitbox enters mental attack range
         /// </summary>
-        /// <param name="enemy">The enemy that entered range</param>
-        private void OnDeadEnemyEnteredRange(EnemyMonoBehaviour enemy)
+        /// <param name="hitbox">The Core hitbox that entered range</param>
+        private void OnCoreHitboxEnteredRange(EnemyHitbox hitbox)
         {
-            if (enemy != null)
+            if (hitbox != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Dead enemy {enemy.name} entered mental attack range");
+                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} entered mental attack range");
             }
         }
 
         /// <summary>
-        /// Called when a dead enemy exits mental attack range
+        /// Called when a Core hitbox exits mental attack range
         /// </summary>
-        /// <param name="enemy">The enemy that exited range</param>
-        private void OnDeadEnemyExitedRange(EnemyMonoBehaviour enemy)
+        /// <param name="hitbox">The Core hitbox that exited range</param>
+        private void OnCoreHitboxExitedRange(EnemyHitbox hitbox)
         {
-            if (enemy != null)
+            if (hitbox != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Dead enemy {enemy.name} exited mental attack range");
+                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} exited mental attack range");
             }
         }
 
         /// <summary>
-        /// Called when the list of dead enemies in range changes
+        /// Called when the list of Core hitboxes in range changes
         /// </summary>
-        private void OnDeadEnemiesChangedInRange()
+        private void OnCoreHitboxesChangedInRange()
         {
-            int deadEnemyCount = _mentalAttackTrigger?.DeadEnemyCount ?? 0;
-            Debug.Log($"PlayerMonoBehaviour: Dead enemies in mental attack range: {deadEnemyCount}");
+            int coreHitboxCount = _mentalAttackTrigger?.CoreHitboxCount ?? 0;
+            Debug.Log($"PlayerMonoBehaviour: Core hitboxes in mental attack range: {coreHitboxCount}");
         }
 
         /// <summary>
-        /// Public method to check if there are dead enemies in mental attack range
+        /// Public method to check if there are Core hitboxes in mental attack range
         /// Used by ActionController for priority logic
         /// </summary>
-        /// <returns>True if there are dead enemies in range</returns>
-        public bool HasDeadEnemiesInMentalAttackRange()
+        /// <returns>True if there are Core hitboxes in range</returns>
+        public bool HasCoreHitboxesInMentalAttackRange()
         {
-            return _mentalAttackTrigger?.HasDeadEnemiesInRange ?? false;
+            return _mentalAttackTrigger?.HasCoreHitboxesInRange ?? false;
         }
 
         /// <summary>
-        /// Get the number of dead enemies in mental attack range
+        /// Get the number of Core hitboxes in mental attack range
         /// </summary>
-        /// <returns>Number of dead enemies in range</returns>
-        public int GetDeadEnemyCount()
+        /// <returns>Number of Core hitboxes in range</returns>
+        public int GetCoreHitboxCount()
         {
-            return _mentalAttackTrigger?.DeadEnemyCount ?? 0;
+            return _mentalAttackTrigger?.CoreHitboxCount ?? 0;
+        }
+
+        /// <summary>
+        /// Get the closest Core hitbox in mental attack range
+        /// Used by PlayerResonanceAction to find target
+        /// </summary>
+        /// <returns>Closest Core hitbox or null if none</returns>
+        public EnemyHitbox GetClosestCoreHitbox()
+        {
+            return _mentalAttackTrigger?.GetClosestCoreHitbox();
+        }
+
+        /// <summary>
+        /// Get all Core hitboxes in mental attack range
+        /// </summary>
+        /// <returns>List of Core hitboxes in range</returns>
+        public List<EnemyHitbox> GetCoreHitboxesInRange()
+        {
+            return _mentalAttackTrigger?.CoreHitboxesInRange ?? new List<EnemyHitbox>();
         }
 
         /// <summary>

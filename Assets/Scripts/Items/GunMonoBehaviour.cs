@@ -154,16 +154,10 @@ namespace Resonance.Items
             // 查找Text组件
             if (_interactTextComponent == null)
             {
-                _interactTextComponent = _interactUI.GetComponentInChildren<TextMeshProUGUI>();
-                
-                // 如果没找到，尝试查找名为"Text"的子对象
-                if (_interactTextComponent == null)
+                Transform textChild = _interactUI.transform.Find("Text");
+                if (textChild != null)
                 {
-                    Transform textChild = _interactUI.transform.Find("Text");
-                    if (textChild != null)
-                    {
-                        _interactTextComponent = textChild.GetComponent<TextMeshProUGUI>();
-                    }
+                    _interactTextComponent = textChild.GetComponent<TextMeshProUGUI>();
                 }
             }
             

@@ -73,11 +73,11 @@ namespace Resonance.Player.Core
         /// </summary>
         private void SetDefaultLayerMasks()
         {
-            // 鼠标射线检测层：Default, Environment, Enemy
-            _mouseRaycastLayerMask = (1 << 0) | (1 << 6) | (1 << 8); // Default, Environment, Enemy
+            // 鼠标射线检测层
+            _mouseRaycastLayerMask = (1 << 6) | (1 << 8); // Environment, Enemy
             
-            // 射击目标检测层：应该与鼠标射线检测层保持一致，确保两阶段射击的一致性
-            _targetLayerMask = (1 << 0) | (1 << 6) | (1 << 8); // Default, Environment，Enemy
+            // 射击目标检测层
+            _targetLayerMask = (1 << 6) | (1 << 8); // Environment，Enemy
             
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
         }
@@ -455,8 +455,6 @@ namespace Resonance.Player.Core
             controller.ShowLineTemporarily(_shootingLineRenderer, _lineDisplayDuration);
         }
 
-
-
         /// <summary>
         /// 处理命中目标
         /// </summary>
@@ -469,7 +467,33 @@ namespace Resonance.Player.Core
             
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
-            // 首先尝试在命中对象上查找组件
+            // 首先检查是否命中了弱点
+            Resonance.Enemies.EnemyHitbox weakpointHitbox = hitObject.GetComponent<Resonance.Enemies.EnemyHitbox>();
+            if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
+            {
+                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
+                
+                // 创建伤害信息
+                DamageInfo damageInfo;
+                if (gunData != null)
+                {
+                    damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
+                }
+                else
+                {
+                    damageInfo = new DamageInfo(damage, DamageType.Physical, damageSource, _playerTransform.gameObject, "Unknown weapon");
+                }
+                
+                // 让弱点处理伤害修改和应用
+                weakpointHitbox.ProcessDamageHit(damageInfo);
+                
+                // 播放音效和触发事件
+                PlayHitAudio(hitInfo.point, hitObject);
+                OnHit?.Invoke(hitInfo.point, hitObject, damage);
+                return;
+            }
+            
+            // 如果不是弱点，按原有逻辑处理IDamageable和IDestructible
             IDamageable damageable = hitObject.GetComponent<IDamageable>();
             IDestructible destructible = hitObject.GetComponent<IDestructible>();
             
