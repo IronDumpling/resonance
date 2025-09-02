@@ -46,7 +46,7 @@ namespace Resonance.Core.GlobalServices
         {
             // Configure which Canvas UI panels should be shown for each game state
             SetStatePanels("MainMenu", "MainMenuPanel");
-            SetStatePanels("Gameplay", "PlayerStatusPanel");
+            SetStatePanels("Gameplay", new string[] { "PlayerStatusPanel", "ResonancePanel" });
             SetStatePanels("Paused", "PauseMenuPanel");
         }
 

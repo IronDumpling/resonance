@@ -283,11 +283,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: _prefabResourcePaths.Array.size
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: '_prefabResourcePaths.Array.data[1]'
       value: Prefabs/UIs/PlayerStatusPanel
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
+      propertyPath: '_prefabResourcePaths.Array.data[2]'
+      value: Prefabs/UIs/ResonancePanel
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
