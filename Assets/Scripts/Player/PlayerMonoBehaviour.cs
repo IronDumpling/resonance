@@ -1070,7 +1070,7 @@ namespace Resonance.Player
         /// Called when a dead enemy enters mental attack range
         /// </summary>
         /// <param name="enemy">The enemy that entered range</param>
-        private void OnDeadEnemyEnteredRange(EnemyMonoBehaviour enemy)
+        private void OnDeadEnemyEnteredRange(EnemyHitbox enemy)
         {
             if (enemy != null)
             {
@@ -1082,7 +1082,7 @@ namespace Resonance.Player
         /// Called when a dead enemy exits mental attack range
         /// </summary>
         /// <param name="enemy">The enemy that exited range</param>
-        private void OnDeadEnemyExitedRange(EnemyMonoBehaviour enemy)
+        private void OnDeadEnemyExitedRange(EnemyHitbox enemy)
         {
             if (enemy != null)
             {

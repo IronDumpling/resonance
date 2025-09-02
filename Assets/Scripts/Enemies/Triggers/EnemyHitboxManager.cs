@@ -167,7 +167,7 @@ namespace Resonance.Enemies
                     case EnemyHitboxType.Core:
                         newHitbox.physicalMultiplier = 0f;
                         newHitbox.mentalMultiplier = 1.5f;
-                        newHitbox.convertPhysicalToMental = 0.01f; 
+                        newHitbox.convertPhysicalToMental = 0f; 
                         break;
                 }
                 

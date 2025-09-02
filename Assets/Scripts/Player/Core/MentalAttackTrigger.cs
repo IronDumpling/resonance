@@ -18,18 +18,18 @@ namespace Resonance.Player.Core
         private bool _isInitialized = false;
 
         // Enemy tracking
-        private List<EnemyMonoBehaviour> _enemiesInRange = new List<EnemyMonoBehaviour>();
-        private List<EnemyMonoBehaviour> _deadEnemiesInRange = new List<EnemyMonoBehaviour>();
+        private List<EnemyHitbox> _enemiesInRange = new List<EnemyHitbox>();
+        private List<EnemyHitbox> _deadEnemiesInRange = new List<EnemyHitbox>();
 
         // Events
-        public System.Action<EnemyMonoBehaviour> OnDeadEnemyEntered;
-        public System.Action<EnemyMonoBehaviour> OnDeadEnemyExited;
+        public System.Action<EnemyHitbox> OnDeadEnemyEntered;
+        public System.Action<EnemyHitbox> OnDeadEnemyExited;
         public System.Action OnDeadEnemiesChanged; // General event for any change in dead enemies
 
         // Properties
         public bool HasDeadEnemiesInRange => _deadEnemiesInRange.Count > 0;
         public int DeadEnemyCount => _deadEnemiesInRange.Count;
-        public List<EnemyMonoBehaviour> DeadEnemiesInRange => new List<EnemyMonoBehaviour>(_deadEnemiesInRange);
+        public List<EnemyHitbox> DeadEnemiesInRange => new List<EnemyHitbox>(_deadEnemiesInRange);
 
         #region Unity Lifecycle
 
@@ -97,7 +97,7 @@ namespace Resonance.Player.Core
             if (!_isInitialized) return;
 
             // Check if it's an enemy
-            var enemy = other.GetComponent<EnemyMonoBehaviour>();
+            var enemy = other.GetComponent<EnemyHitbox>();
             if (enemy == null) return;
 
             // Add to enemies in range if not already present
@@ -116,7 +116,7 @@ namespace Resonance.Player.Core
             if (!_isInitialized) return;
 
             // Check if it's an enemy
-            var enemy = other.GetComponent<EnemyMonoBehaviour>();
+            var enemy = other.GetComponent<EnemyHitbox>();
             if (enemy == null) return;
 
             // Remove from all tracking lists
@@ -140,7 +140,7 @@ namespace Resonance.Player.Core
             if (!_isInitialized) return;
 
             // Continuously check enemy state for those in range
-            var enemy = other.GetComponent<EnemyMonoBehaviour>();
+            var enemy = other.GetComponent<EnemyHitbox>();
             if (enemy != null && _enemiesInRange.Contains(enemy))
             {
                 CheckEnemyDeathState(enemy);
@@ -155,7 +155,7 @@ namespace Resonance.Player.Core
         /// Check if an enemy is in physical death state and update tracking accordingly
         /// </summary>
         /// <param name="enemy">The enemy to check</param>
-        private void CheckEnemyDeathState(EnemyMonoBehaviour enemy)
+        private void CheckEnemyDeathState(EnemyHitbox enemy)
         {
             if (enemy == null) return;
 
@@ -186,31 +186,31 @@ namespace Resonance.Player.Core
         /// </summary>
         /// <param name="enemy">The enemy to check</param>
         /// <returns>True if enemy is in physical death state</returns>
-        private bool IsEnemyInPhysicalDeathState(EnemyMonoBehaviour enemy)
+        private bool IsEnemyInPhysicalDeathState(EnemyHitbox enemy)
         {
             if (enemy == null || !enemy.IsInitialized) return false;
 
             // Check the enemy's controller state machine
-            var enemyController = enemy.Controller;
-            if (enemyController == null) return false;
+            // var enemyController = enemy.Controller;
+            // if (enemyController == null) return false;
 
-            // Check if the enemy is in PhysicalDeath state
-            // This assumes the enemy has a similar state machine structure to the player
-            string currentState = enemyController.CurrentState;
-            bool isPhysicallyDead = currentState == "PhysicalDeath";
+            // // Check if the enemy is in PhysicalDeath state
+            // // This assumes the enemy has a similar state machine structure to the player
+            // string currentState = enemyController.CurrentState;
+            // bool isPhysicallyDead = currentState == "PhysicalDeath";
 
-            // Alternative: Check health values if state machine check fails
-            if (!isPhysicallyDead)
-            {
-                // Check if physical health is 0 but mental health > 0
-                var stats = enemyController.Stats;
-                if (stats != null)
-                {
-                    isPhysicallyDead = stats.currentPhysicalHealth <= 0f && stats.currentMentalHealth > 0f;
-                }
-            }
+            // // Alternative: Check health values if state machine check fails
+            // if (!isPhysicallyDead)
+            // {
+            //     // Check if physical health is 0 but mental health > 0
+            //     var stats = enemyController.Stats;
+            //     if (stats != null)
+            //     {
+            //         isPhysicallyDead = stats.currentPhysicalHealth <= 0f && stats.currentMentalHealth > 0f;
+            //     }
+            // }
 
-            return isPhysicallyDead;
+            return false;
         }
 
         #endregion
@@ -226,7 +226,7 @@ namespace Resonance.Player.Core
             if (!_isInitialized) return;
 
             // Create a copy of the list to avoid modification during iteration
-            var enemiesToCheck = new List<EnemyMonoBehaviour>(_enemiesInRange);
+            var enemiesToCheck = new List<EnemyHitbox>(_enemiesInRange);
             
             foreach (var enemy in enemiesToCheck)
             {
@@ -243,12 +243,12 @@ namespace Resonance.Player.Core
         /// Get the closest dead enemy in range
         /// </summary>
         /// <returns>Closest dead enemy or null if none</returns>
-        public EnemyMonoBehaviour GetClosestDeadEnemy()
+        public EnemyHitbox GetClosestDeadEnemy()
         {
             if (_deadEnemiesInRange.Count == 0) return null;
 
             Vector3 playerPosition = transform.position;
-            EnemyMonoBehaviour closest = null;
+            EnemyHitbox closest = null;
             float closestDistance = float.MaxValue;
 
             foreach (var enemy in _deadEnemiesInRange)
@@ -272,7 +272,7 @@ namespace Resonance.Player.Core
         /// </summary>
         /// <param name="enemy">The enemy to check</param>
         /// <returns>True if enemy is in range and in physical death state</returns>
-        public bool IsEnemyInRangeAndDead(EnemyMonoBehaviour enemy)
+        public bool IsEnemyInRangeAndDead(EnemyHitbox enemy)
         {
             return enemy != null && _deadEnemiesInRange.Contains(enemy);
         }

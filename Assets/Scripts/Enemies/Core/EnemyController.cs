@@ -251,8 +251,6 @@ namespace Resonance.Enemies.Core
                         OnPhysicalTierChanged?.Invoke(_stats.physicalTier);
                     }
 
-                    // Debug.Log($"EnemyController: Revival progress: {_stats.currentPhysicalHealth} / {_stats.maxPhysicalHealth}");
-
                     // Check if revival is complete
                     if (_stats.currentPhysicalHealth >= _stats.maxPhysicalHealth)
                     {
