@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Interfaces;
@@ -77,6 +78,10 @@ namespace Resonance.Enemies
         [SerializeField] private float _attackCooldown = 1f;
         [Tooltip("Cooldown time between attacks (seconds).")]
 
+        [Header("Resonance UI")]
+        [SerializeField] private GameObject _resonanceUI;
+        [SerializeField] private TextMeshProUGUI _resonanceUIText;
+        
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
 
@@ -158,6 +163,9 @@ namespace Resonance.Enemies
             
             // Setup patrol waypoints
             SetupPatrolWaypoints();
+
+            // Setup Resonance UI
+            SetupResonanceUI();
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started successfully");
         }
@@ -524,24 +532,6 @@ namespace Resonance.Enemies
             SetupEnemyHitboxManagerComponent(visualChild.gameObject);
         }
         
-        private void CreateDefaultWeakpointChild(GameObject parent, string childName)
-        {
-            GameObject childGO = new GameObject(childName);
-            childGO.transform.SetParent(parent.transform);
-            childGO.transform.localPosition = Vector3.zero;
-            childGO.layer = parent.layer;
-            
-            // Position based on weakpoint type
-            if (childName == "Head")
-            {
-                childGO.transform.localPosition = Vector3.up * 1.5f; // Above the enemy
-            }
-            else if (childName == "Core")
-            {
-                childGO.transform.localPosition = Vector3.zero; // Center of the enemy
-            }
-        }
-        
         private void SetupEnemyHitboxManagerComponent(GameObject weakpointsObject)
         {
             // Check if EnemyHitboxManager already exists
@@ -624,6 +614,51 @@ namespace Resonance.Enemies
                 EnemyDetectionTrigger newTrigger = triggerObject.AddComponent<EnemyDetectionTrigger>();
                 newTrigger.Initialize(this, triggerType);
             }
+        }
+
+        private void SetupResonanceUI()
+        {
+            if(_resonanceUI == null)
+            {
+                Transform resonanceUIChild = transform.Find("ResonanceUI");
+                if(resonanceUIChild != null)
+                {
+                    _resonanceUI = resonanceUIChild.gameObject;
+                    Debug.Log($"EnemyMonoBehaviour: Found ResonanceUI child object: {resonanceUIChild.name}");
+                }
+            }
+
+            if(_resonanceUI == null)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: No ResonanceUI found on {gameObject.name}. UI resonance will be disabled.");
+                return;
+            }
+
+            if(_resonanceUIText == null)
+            {
+                Transform textChild = _resonanceUI.transform.Find("Text");
+                if(textChild != null)
+                {
+                    _resonanceUIText = textChild.GetComponent<TextMeshProUGUI>();
+                }
+            }
+
+            if (_resonanceUIText == null)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: No TextMeshProUGUI component found in ResonanceUI on {gameObject.name}");
+            }
+            else
+            {
+                Debug.Log($"GunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
+                _resonanceUIText.text = "F";
+            }
+
+            if(_resonanceUI != null)
+            {
+                _resonanceUI.SetActive(false);
+            }
+
+            Debug.Log($"EnemyMonoBehaviour: Resonance UI setup complete");
         }
         
         private void SetupPatrolWaypoints()
