@@ -358,6 +358,15 @@ namespace Resonance.Player
         private void HandleMoveInput(Vector2 input)
         {
             if (!IsInitialized) return;
+            
+            // Check if current action blocks movement (e.g., ResonanceAction, RecoverAction)
+            if (_playerController.ActionController.IsBlocking)
+            {
+                Debug.Log("PlayerMonoBehaviour: Movement input blocked by action");
+                _playerController.Movement.SetMovementInput(Vector2.zero);
+                return;
+            }
+            
             _playerController.Movement.SetMovementInput(input);
         }
 

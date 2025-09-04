@@ -121,7 +121,7 @@ namespace Resonance.Core.GlobalServices
             if (IsResonanceMode) return;
             
             OnResonance?.Invoke();
-            Debug.Log("InputService: Resonance press performed");
+            Debug.Log("InputService: Resonance press performed"); 
         }
 
         private void OnRecoverStarted(InputAction.CallbackContext context)

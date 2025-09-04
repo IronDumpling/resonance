@@ -130,7 +130,8 @@ namespace Resonance.Player.Actions
             {
                 Debug.LogWarning("PlayerResonanceAction: Timed out after maximum duration");
                 _isFinished = true;
-                return;
+                CleanupAction(player);
+                return; 
             }
 
             // Check if target Core hitbox is still valid
@@ -141,6 +142,7 @@ namespace Resonance.Player.Actions
                 {
                     Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer valid, ending action");
                     _isFinished = true;
+                    CleanupAction(player);
                     return;
                 }
                 // If minimum duration not met, continue until minimum time is reached
@@ -253,7 +255,6 @@ namespace Resonance.Player.Actions
         private void UpdateResonanceEffects(PlayerController player, float deltaTime)
         {
             // TODO: Update visual effects intensity
-            // TODO: Update QTE UI
             // TODO: Update audio effects
 
             // Placeholder implementation
@@ -271,6 +272,9 @@ namespace Resonance.Player.Actions
         /// <param name="player">Player controller reference</param>
         private void CleanupAction(PlayerController player)
         {
+            // Prevent multiple cleanup calls
+            if (!_isActive) return;
+            
             _isActive = false;
             _isFinished = true;
 
