@@ -33,6 +33,74 @@ namespace Resonance.Enemies
         // References
         private EnemyMonoBehaviour _enemyMono;
         private bool _isInitialized = false;
+        private Collider _collider;
+        private bool _lastColliderEnabled = false;
+        
+        // Events for collider state changes
+        public System.Action<EnemyHitbox> OnColliderEnabled;
+        public System.Action<EnemyHitbox> OnColliderDisabled;
+
+        #region Unity Lifecycle
+
+        void Awake()
+        {
+            _collider = GetComponent<Collider>();
+        }
+
+        void OnEnable()
+        {
+            if (_isInitialized && _collider != null && _collider.enabled)
+            {
+                OnColliderEnabled?.Invoke(this);
+                if (_debugMode)
+                {
+                    Debug.Log($"EnemyHitbox: {type} collider enabled on {gameObject.name}");
+                }
+            }
+        }
+
+        void OnDisable()
+        {
+            if (_isInitialized)
+            {
+                OnColliderDisabled?.Invoke(this);
+                if (_debugMode)
+                {
+                    Debug.Log($"EnemyHitbox: {type} collider disabled on {gameObject.name}");
+                }
+            }
+        }
+
+        void Update()
+        {
+            // Monitor collider enabled state changes
+            if (_isInitialized && _collider != null)
+            {
+                bool currentEnabled = _collider.enabled;
+                if (currentEnabled != _lastColliderEnabled)
+                {
+                    if (currentEnabled)
+                    {
+                        OnColliderEnabled?.Invoke(this);
+                        if (_debugMode)
+                        {
+                            Debug.Log($"EnemyHitbox: {type} collider enabled on {gameObject.name}");
+                        }
+                    }
+                    else
+                    {
+                        OnColliderDisabled?.Invoke(this);
+                        if (_debugMode)
+                        {
+                            Debug.Log($"EnemyHitbox: {type} collider disabled on {gameObject.name}");
+                        }
+                    }
+                    _lastColliderEnabled = currentEnabled;
+                }
+            }
+        }
+
+        #endregion
 
         #region Initialization
 
@@ -43,7 +111,11 @@ namespace Resonance.Enemies
         public void Initialize(EnemyMonoBehaviour enemyMono)
         {
             _enemyMono = enemyMono;
+            _collider = GetComponent<Collider>();
             _isInitialized = true;
+            
+            // Initialize collider state tracking
+            _lastColliderEnabled = _collider != null && _collider.enabled;
             
             if (_debugMode)
             {

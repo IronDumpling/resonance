@@ -20,6 +20,7 @@ namespace Resonance.Player.Actions
         // Static events for state machine integration
         public static event System.Action<EnemyHitbox> OnResonanceActionStarted;
         public static event System.Action OnResonanceActionEnded;
+
         // Action properties
         public string Name => "Resonance";
         public bool BlocksMovement => true;
@@ -31,6 +32,8 @@ namespace Resonance.Player.Actions
         private bool _isFinished = false;
         private EnemyHitbox _targetCoreHitbox = null;
         private float _actionStartTime = 0f;
+
+        private PlayerController _player;
 
         // Configuration
         private const float MIN_ACTION_DURATION = 0.5f; // Minimum action duration for feedback
@@ -75,6 +78,8 @@ namespace Resonance.Player.Actions
                 return;
             }
 
+            _player = player;
+
             // Find target Core hitbox
             _targetCoreHitbox = FindTargetCoreHitbox();
             if (_targetCoreHitbox == null)
@@ -97,15 +102,15 @@ namespace Resonance.Player.Actions
             _isFinished = false;
             _actionStartTime = Time.time;
 
-            // Subscribe to target Core hitbox events (if needed)
+            // Subscribe to target Core hitbox events
             if (_targetCoreHitbox != null)
             {
-                // TODO: Subscribe to hitbox state change events if needed
-                // For now we'll poll the hitbox state in Update
+                _targetCoreHitbox.OnColliderDisabled += OnTargetCoreColliderDisabled;
+                Debug.Log($"PlayerResonanceAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
             }
 
             // Play resonance audio/effects
-            PlayResonanceEffects(player);
+            PlayResonanceEffects();
 
             // Trigger the resonance started event for state machine
             OnResonanceActionStarted?.Invoke(_targetCoreHitbox);
@@ -116,7 +121,6 @@ namespace Resonance.Player.Actions
         /// <summary>
         /// Update the resonance action each frame
         /// </summary>
-        /// <param name="player">Player controller reference</param>
         /// <param name="deltaTime">Time since last frame</param>
         public void Update(PlayerController player, float deltaTime)
         {
@@ -130,45 +134,43 @@ namespace Resonance.Player.Actions
             {
                 Debug.LogWarning("PlayerResonanceAction: Timed out after maximum duration");
                 _isFinished = true;
-                CleanupAction(player);
+                CleanupAction();
                 return; 
             }
 
-            // Check if target Core hitbox is still valid
-            if (_targetCoreHitbox == null || !IsCoreHitboxStillValidTarget(_targetCoreHitbox))
+            // Check if target Core hitbox is still in range (collider state changes are handled by events)
+            if (_targetCoreHitbox == null || !IsTargetCoreStillInRange(_targetCoreHitbox))
             {
-                // Core hitbox no longer valid (collider disabled) or no longer in range
+                // Core hitbox no longer in range
                 if (actionDuration >= MIN_ACTION_DURATION)
                 {
-                    Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer valid, ending action");
+                    Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer in range, ending action");
                     _isFinished = true;
-                    CleanupAction(player);
+                    CleanupAction();
                     return;
                 }
                 // If minimum duration not met, continue until minimum time is reached
             }
 
             // Update resonance effects (visual feedback, QTE UI placeholder, etc.)
-            UpdateResonanceEffects(player, deltaTime);
+            UpdateResonanceEffects(deltaTime);
         }
 
         /// <summary>
         /// Cancel the resonance action (should not be called since it cannot be interrupted)
         /// </summary>
-        /// <param name="player">Player controller reference</param>
         public void Cancel(PlayerController player)
         {
             if (_isActive)
             {
                 Debug.Log("PlayerResonanceAction: Cancelled");
-                CleanupAction(player);
+                CleanupAction();
             }
         }
 
         /// <summary>
         /// Called when player takes damage (should not interrupt this action)
         /// </summary>
-        /// <param name="player">Player controller reference</param>
         public void OnDamageTaken(PlayerController player)
         {
             // This action provides invulnerability and cannot be interrupted
@@ -201,20 +203,16 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Check if the target Core hitbox is still a valid target
+        /// Check if the target Core hitbox is still in range (collider state is handled by events)
         /// </summary>
         /// <param name="hitbox">Core hitbox to check</param>
-        /// <returns>True if Core hitbox is still valid and in range</returns>
-        private bool IsCoreHitboxStillValidTarget(EnemyHitbox hitbox)
+        /// <returns>True if Core hitbox is still in range</returns>
+        private bool IsTargetCoreStillInRange(EnemyHitbox hitbox)
         {
             if (hitbox == null) return false;
 
             // Check if hitbox is still initialized and is Core type
             if (!hitbox.IsInitialized || hitbox.type != EnemyHitboxType.Core) return false;
-
-            // Check if collider is still enabled
-            var collider = hitbox.GetComponent<Collider>();
-            if (collider == null || !collider.enabled) return false;
 
             // Check if still in range (through PlayerService)
             var playerService = ServiceRegistry.Get<IPlayerService>();
@@ -223,16 +221,37 @@ namespace Resonance.Player.Actions
 
             // Check if this specific hitbox is still being tracked
             var coreHitboxesInRange = playerMono.GetCoreHitboxesInRange();
-            bool isStillInRange = coreHitboxesInRange.Contains(hitbox);
-
-            return isStillInRange;
+            return coreHitboxesInRange.Contains(hitbox);
+        }
+        
+        /// <summary>
+        /// Handle target core hitbox collider disabled event
+        /// </summary>
+        /// <param name="hitbox">The hitbox that was disabled</param>
+        private void OnTargetCoreColliderDisabled(EnemyHitbox hitbox)
+        {
+            if (hitbox == _targetCoreHitbox)
+            {
+                Debug.Log("PlayerResonanceAction: Target core collider disabled - ending resonance action");
+                
+                // Check minimum duration before ending
+                float actionDuration = Time.time - _actionStartTime;
+                if (actionDuration >= MIN_ACTION_DURATION)
+                {
+                    _isFinished = true;
+                    CleanupAction();
+                }
+                else
+                {
+                    Debug.Log($"PlayerResonanceAction: Minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                }
+            }
         }
 
         /// <summary>
         /// Play resonance visual and audio effects
         /// </summary>
-        /// <param name="player">Player controller reference</param>
-        private void PlayResonanceEffects(PlayerController player)
+        private void PlayResonanceEffects()
         {
             // Play resonance start audio
             var audioService = ServiceRegistry.Get<IAudioService>();
@@ -249,10 +268,9 @@ namespace Resonance.Player.Actions
 
         /// <summary>
         /// Update ongoing resonance effects
-        /// </summary>
-        /// <param name="player">Player controller reference</param>
+        /// </summary>  
         /// <param name="deltaTime">Time since last frame</param>
-        private void UpdateResonanceEffects(PlayerController player, float deltaTime)
+        private void UpdateResonanceEffects(float deltaTime)
         {
             // TODO: Update visual effects intensity
             // TODO: Update audio effects
@@ -269,8 +287,7 @@ namespace Resonance.Player.Actions
         /// <summary>
         /// Clean up the action when it ends
         /// </summary>
-        /// <param name="player">Player controller reference</param>
-        private void CleanupAction(PlayerController player)
+        private void CleanupAction()
         {
             // Prevent multiple cleanup calls
             if (!_isActive) return;
@@ -281,11 +298,12 @@ namespace Resonance.Player.Actions
             // Unsubscribe from Core hitbox events
             if (_targetCoreHitbox != null)
             {
-                // TODO: Unsubscribe from hitbox state change events if needed
+                _targetCoreHitbox.OnColliderDisabled -= OnTargetCoreColliderDisabled;
+                Debug.Log("PlayerResonanceAction: Unsubscribed from core hitbox collider events");
             }
 
             // Stop effects
-            StopResonanceEffects(player);
+            StopResonanceEffects();
 
             // Trigger the resonance ended event for state machine
             OnResonanceActionEnded?.Invoke();
@@ -299,8 +317,7 @@ namespace Resonance.Player.Actions
         /// <summary>
         /// Stop resonance effects
         /// </summary>
-        /// <param name="player">Player controller reference</param>
-        private void StopResonanceEffects(PlayerController player)
+        private void StopResonanceEffects()
         {
             // TODO: Stop visual effects
             // TODO: Hide QTE UI
