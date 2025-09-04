@@ -17,6 +17,9 @@ namespace Resonance.Player.Actions
     /// </summary>
     public class PlayerResonanceAction : IPlayerAction
     {
+        // Static events for state machine integration
+        public static event System.Action<EnemyHitbox> OnResonanceActionStarted;
+        public static event System.Action OnResonanceActionEnded;
         // Action properties
         public string Name => "Resonance";
         public bool BlocksMovement => true;
@@ -103,6 +106,9 @@ namespace Resonance.Player.Actions
 
             // Play resonance audio/effects
             PlayResonanceEffects(player);
+
+            // Trigger the resonance started event for state machine
+            OnResonanceActionStarted?.Invoke(_targetCoreHitbox);
 
             Debug.Log($"PlayerResonanceAction: Started with target Core hitbox {_targetCoreHitbox.name}");
         }
@@ -276,6 +282,9 @@ namespace Resonance.Player.Actions
 
             // Stop effects
             StopResonanceEffects(player);
+
+            // Trigger the resonance ended event for state machine
+            OnResonanceActionEnded?.Invoke();
 
             // Clear target reference
             _targetCoreHitbox = null;
