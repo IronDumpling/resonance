@@ -16,6 +16,7 @@ namespace Resonance.Core.StateMachine.States
         // Substate management
         private BaseStateMachine _subStateMachine;
         private EnemyHitbox _currentResonanceTarget;
+        private ResonanceState _resonanceState;
 
         public void Enter()
         {
@@ -90,11 +91,14 @@ namespace Resonance.Core.StateMachine.States
             
             // Add substates
             _subStateMachine.AddState(new NormalGameplayState());
-            // Note: ResonanceState will be added dynamically when needed
+            
+            // Create and add ResonanceState (without target initially)
+            _resonanceState = new ResonanceState(null);
+            _subStateMachine.AddState(_resonanceState);
             
             // Start with normal gameplay
             _subStateMachine.ChangeState("Normal");
-            Debug.Log("GameplayState: Initialized substate machine with Normal state");
+            Debug.Log("GameplayState: Initialized substate machine with Normal and Resonance states");
         }
         
         /// <summary>
@@ -128,9 +132,8 @@ namespace Resonance.Core.StateMachine.States
             // Store target reference
             _currentResonanceTarget = targetCore;
             
-            // Create and add ResonanceState with target information
-            var resonanceState = new ResonanceState(targetCore);
-            _subStateMachine.AddState(resonanceState);
+            // Update existing ResonanceState with new target
+            _resonanceState.SetTargetCore(targetCore);
             
             // Transition to Resonance substate (Risk mitigation: Atomic state transition)
             if (!_subStateMachine.ChangeState("Resonance"))

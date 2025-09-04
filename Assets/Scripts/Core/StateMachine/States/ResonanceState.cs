@@ -124,5 +124,13 @@ namespace Resonance.Core.StateMachine.States
         {
             return _targetCore;
         }
+        
+        /// <summary>
+        /// Set the target core hitbox for this resonance state
+        /// </summary>
+        public void SetTargetCore(EnemyHitbox targetCore)
+        {
+            _targetCore = targetCore;
+        }
     }
 }
