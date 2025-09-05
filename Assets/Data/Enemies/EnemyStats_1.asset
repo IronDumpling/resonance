@@ -24,8 +24,9 @@ MonoBehaviour:
   attackRange: 1.5
   detectionRange: 4
   moveSpeed: 1
-  alertMoveSpeed: 2
+  chaseMoveSpeed: 2
   patrolRadius: 2
+  arrivalThreshold: 1.2
   physicalWoundedThreshold: 0.4
   mentalCriticalThreshold: 0.4
   woundedSpeedMultiplier: 0.7
@@ -38,6 +39,9 @@ MonoBehaviour:
   revivalMaterialPath: Art/Materials/Enemy_Revival
   damageFlashDuration: 0.2
   enableAudio: 1
+  qteEaseType: 4
+  qteCycleDuration: 3
+  qteTargetWindow: 0.2
   showHealthBar: 1
   showDetectionRange: 0
   showAttackRange: 0

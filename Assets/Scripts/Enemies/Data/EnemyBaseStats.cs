@@ -1,10 +1,11 @@
 using UnityEngine;
+using DG.Tweening;
 
 namespace Resonance.Enemies.Data
 {
     /// <summary>
-    /// Enemy基础属性数据的ScriptableObject
-    /// 用于在Unity Editor中创建和编辑Enemy配置
+    /// Enemy base stats data ScriptableObject
+    /// Used to create and edit Enemy configurations in Unity Editor
     /// </summary>
     [CreateAssetMenu(fileName = "New Enemy Stats", menuName = "Resonance/Enemies/Enemy Stats", order = 1)]
     public class EnemyBaseStats : ScriptableObject
@@ -75,15 +76,24 @@ namespace Resonance.Enemies.Data
         [Header("Audio")]
         public bool enableAudio = true;
         
+        [Header("QTE Configuration")]
+        [Tooltip("DoTween ease curve type for QTE value animation in ResonancePanel")]
+        public DG.Tweening.Ease qteEaseType = DG.Tweening.Ease.InOutSine;
+        [Tooltip("QTE cycle duration in seconds")]
+        public float qteCycleDuration = 3f;
+        [Tooltip("QTE target window size (smaller = harder)")]
+        [Range(0.05f, 0.5f)]
+        public float qteTargetWindow = 0.2f;
+        
         [Header("Debug")]
         public bool showHealthBar = true;
         public bool showDetectionRange = false;
         public bool showAttackRange = false;
 
         /// <summary>
-        /// 创建运行时属性实例
+        /// Create runtime stats instance
         /// </summary>
-        /// <returns>运行时属性</returns>
+        /// <returns>Runtime stats</returns>
         public EnemyRuntimeStats CreateRuntimeStats()
         {
             var stats = new EnemyRuntimeStats
@@ -133,6 +143,11 @@ namespace Resonance.Enemies.Data
                 // Audio
                 enableAudio = this.enableAudio,
                 
+                // QTE Configuration
+                qteEaseType = this.qteEaseType,
+                qteCycleDuration = this.qteCycleDuration,
+                qteTargetWindow = this.qteTargetWindow,
+                
                 // Debug
                 showHealthBar = this.showHealthBar,
                 showDetectionRange = this.showDetectionRange,
@@ -145,9 +160,9 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 验证Enemy数据是否有效
+        /// Validate if Enemy data is valid
         /// </summary>
-        /// <returns>验证结果</returns>
+        /// <returns>Validation result</returns>
         public bool ValidateData()
         {
             if (string.IsNullOrEmpty(enemyName))
@@ -187,7 +202,7 @@ namespace Resonance.Enemies.Data
 
         void OnValidate()
         {
-            // 确保数值在合理范围内
+            // Ensure values are within reasonable ranges
             maxPhysicalHealth = Mathf.Max(1f, maxPhysicalHealth);
             maxMentalHealth = Mathf.Max(1f, maxMentalHealth);
             physicalHealthRegenRate = Mathf.Max(0f, physicalHealthRegenRate);
@@ -212,14 +227,18 @@ namespace Resonance.Enemies.Data
             revivalDelay = Mathf.Max(0f, revivalDelay);
             revivalDuration = Mathf.Max(0.1f, revivalDuration);
             damageFlashDuration = Mathf.Max(0.1f, damageFlashDuration);
+            
+            // Validate QTE configuration
+            qteCycleDuration = Mathf.Max(0.5f, qteCycleDuration);
+            qteTargetWindow = Mathf.Clamp(qteTargetWindow, 0.05f, 0.5f);
         }
 
         #endregion
     }
 
     /// <summary>
-    /// Enemy运行时属性数据
-    /// 包含当前状态和可变数据
+    /// Enemy runtime stats data
+    /// Contains current state and variable data
     /// </summary>
     [System.Serializable]
     public class EnemyRuntimeStats
@@ -269,6 +288,11 @@ namespace Resonance.Enemies.Data
         [Header("Audio")]
         public bool enableAudio;
         
+        [Header("QTE Configuration")]
+        public DG.Tweening.Ease qteEaseType;
+        public float qteCycleDuration;
+        public float qteTargetWindow;
+        
         [Header("Debug")]
         public bool showHealthBar;
         public bool showDetectionRange;
@@ -288,7 +312,7 @@ namespace Resonance.Enemies.Data
         public float MentalHealthPercentage => maxMentalHealth > 0 ? currentMentalHealth / maxMentalHealth : 0f;
 
         /// <summary>
-        /// 恢复所有血量到满血
+        /// Restore all health to full
         /// </summary>
         public void RestoreToFullHealth()
         {
@@ -298,7 +322,7 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 恢复物理血量到满血
+        /// Restore physical health to full
         /// </summary>
         public void RestorePhysicalHealth()
         {
@@ -307,7 +331,7 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 恢复精神血量到满血
+        /// Restore mental health to full
         /// </summary>
         public void RestoreMentalHealth()
         {
