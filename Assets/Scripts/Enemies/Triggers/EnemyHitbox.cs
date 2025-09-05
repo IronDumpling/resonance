@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Interfaces;
+using DG.Tweening;
 
 namespace Resonance.Enemies
 {
@@ -8,6 +9,17 @@ namespace Resonance.Enemies
         Head,
         Body, 
         Core, 
+    }
+
+    /// <summary>
+    /// QTE configuration data structure for ResonancePanel
+    /// </summary>
+    [System.Serializable]
+    public class QTEConfig
+    {
+        public Ease easeType;
+        public float cycleDuration;
+        public float targetWindow;
     }
 
     /// <summary>
@@ -167,6 +179,67 @@ namespace Resonance.Enemies
         /// Check if this weakpoint is properly initialized
         /// </summary>
         public bool IsInitialized => _isInitialized && _enemyMono != null;
+
+        /// <summary>
+        /// Get enemy's runtime stats for QTE configuration
+        /// </summary>
+        /// <returns>Enemy runtime stats or null if not initialized</returns>
+        public Enemies.Data.EnemyRuntimeStats GetEnemyStats()
+        {
+            if (!_isInitialized || _enemyMono == null) return null;
+            return _enemyMono.Controller?.Stats;
+        }
+
+        /// <summary>
+        /// Get enemy MonoBehaviour reference for damage application
+        /// </summary>
+        /// <returns>Enemy MonoBehaviour or null if not initialized</returns>
+        public EnemyMonoBehaviour GetEnemyMonoBehaviour()
+        {
+            return _enemyMono;
+        }
+
+        /// <summary>
+        /// Get enemy controller reference for advanced operations
+        /// </summary>
+        /// <returns>Enemy controller or null if not initialized</returns>
+        public Core.EnemyController GetEnemyController()
+        {
+            if (!_isInitialized || _enemyMono == null) return null;
+            return _enemyMono.Controller;
+        }
+
+        /// <summary>
+        /// Get QTE configuration data for this enemy
+        /// </summary>
+        /// <returns>QTE configuration data or null if not available</returns>
+        public QTEConfig GetQTEConfig()
+        {
+            var enemyStats = GetEnemyStats();
+            if (enemyStats == null) return null;
+
+            return new QTEConfig
+            {
+                easeType = enemyStats.qteEaseType,
+                cycleDuration = enemyStats.qteCycleDuration,
+                targetWindow = enemyStats.qteTargetWindow
+            };
+        }
+
+        /// <summary>
+        /// Check if this hitbox is valid for QTE operations
+        /// </summary>
+        /// <returns>True if QTE can be performed on this hitbox</returns>
+        public bool IsValidForQTE()
+        {
+            return _isInitialized && 
+                   _enemyMono != null && 
+                   type == EnemyHitboxType.Core && 
+                   _collider != null && 
+                   _collider.enabled &&
+                   _enemyMono.Controller != null &&
+                   _enemyMono.Controller.Stats != null;
+        }
 
         #endregion
 
