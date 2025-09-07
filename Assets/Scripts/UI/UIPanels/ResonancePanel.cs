@@ -14,9 +14,14 @@ namespace Resonance.UI
     {
         [Header("QTE UI Elements")]
         [SerializeField] private TextMeshProUGUI _qteValueText;
-        [SerializeField] private Slider _qteProgressSlider;
         [SerializeField] private TextMeshProUGUI _instructionText;
         
+        // Player damage configuration
+        [Header("Player Damage Configuration")]
+        [SerializeField] private float _baseMentalDamage = 50f;
+        [SerializeField] private float _maxDamageMultiplier = 3f;
+        [SerializeField] private float _damageScaleFactor = 10f;
+
         // QTE Logic
         private IInputService _inputService;
         private bool _isInitialized = false;
@@ -28,12 +33,6 @@ namespace Resonance.UI
         private QTEConfig _qteConfig;
         private Tween _qteTween;
         private float _qteStartTime;
-        
-        // Player damage configuration
-        [Header("Player Damage Configuration")]
-        [SerializeField] private float _baseMentalDamage = 50f;
-        [SerializeField] private float _maxDamageMultiplier = 3f;
-        [SerializeField] private float _damageScaleFactor = 10f;
 
         protected override void Awake()
         {
@@ -58,12 +57,6 @@ namespace Resonance.UI
             {
                 _inputService.OnQTE += OnQTEInput;
                 Debug.Log("ResonancePanel: Subscribed to QTE input events");
-            }
-            
-            // Initialize UI elements
-            if (_instructionText != null)
-            {
-                _instructionText.text = "Press F when the value is close to 0!";
             }
             
             _isInitialized = true;
@@ -122,7 +115,7 @@ namespace Resonance.UI
                 Transform panelChild = transform.Find("Panel");
                 if (panelChild != null)
                 {
-                    Transform textChild = panelChild.Find("Text");
+                    Transform textChild = panelChild.Find("QTEText");
                     if (textChild != null)
                     {
                         _qteValueText = textChild.GetComponent<TextMeshProUGUI>();
@@ -146,20 +139,6 @@ namespace Resonance.UI
                 }
             }
             
-            // Auto-find Progress Slider if not assigned
-            if (_qteProgressSlider == null)
-            {
-                Transform panelChild = transform.Find("Panel");
-                if (panelChild != null)
-                {
-                    _qteProgressSlider = panelChild.GetComponentInChildren<Slider>();
-                    if (_qteProgressSlider != null)
-                    {
-                        Debug.Log("ResonancePanel: Auto-found QTE Progress Slider");
-                    }
-                }
-            }
-            
             // Auto-find Instruction Text if not assigned
             if (_instructionText == null)
             {
@@ -180,16 +159,7 @@ namespace Resonance.UI
             }
             
             // Validate that essential elements are found
-            if (_qteValueText == null)
-            {
-                Debug.LogError("ResonancePanel: QTE Value Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
-                              "Please assign it in Inspector or ensure hierarchy: ResonancePanel/Panel/Text");
-            }
-            else
-            {
-                // Test the TMPro text component
-                TestQTETextDisplay();
-            }
+            TestQTETextDisplay();
         }
         
         /// <summary>
@@ -197,12 +167,26 @@ namespace Resonance.UI
         /// </summary>
         private void TestQTETextDisplay()
         {
-            if (_qteValueText != null)
+            
+            if (_qteValueText == null)
+            {
+                Debug.LogError("ResonancePanel: QTE Value Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
+                              "Please assign it in Inspector or ensure hierarchy: ResonancePanel/Panel/Text");
+            }
+            else if (_instructionText == null)
+            {
+                Debug.LogError("ResonancePanel: Instruction Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
+                              "Please assign it in Inspector or ensure hierarchy: ResonancePanel/Panel/InstructionText");
+            }
+            else
             {
                 // Test initial display
                 _qteValueText.text = "0.00";
                 _qteValueText.color = Color.white;
-                
+
+                _instructionText.text = "Press F when the value is close to 0!";
+                _instructionText.color = Color.white;
+
                 Debug.Log($"ResonancePanel: QTE Text component validated - " +
                          $"GameObject: {_qteValueText.gameObject.name}, " +
                          $"Active: {_qteValueText.gameObject.activeInHierarchy}, " +
@@ -254,16 +238,6 @@ namespace Resonance.UI
             _qteStartTime = Time.time;
             
             // Start DoTween animation using enemy-specific configuration
-            StartQTEAnimation();
-            
-            Debug.Log($"ResonancePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
-        }
-        
-        /// <summary>
-        /// Start DoTween-based QTE animation
-        /// </summary>
-        private void StartQTEAnimation()
-        {
             // Kill any existing tween
             _qteTween?.Kill();
             
@@ -274,6 +248,8 @@ namespace Resonance.UI
                 .SetEase(_qteConfig.easeType)
                 .SetLoops(-1, LoopType.Yoyo)
                 .OnUpdate(() => UpdateQTEUI());
+            
+            Debug.Log($"ResonancePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
         }
         
         /// <summary>
@@ -296,9 +272,6 @@ namespace Resonance.UI
         private void Update()
         {
             if (!_isQTEActive) return;
-            
-            // DoTween handles the animation via OnUpdate callback
-            // We could add timeout logic here if needed
         }
         
         /// <summary>
@@ -339,13 +312,6 @@ namespace Resonance.UI
             else
             {
                 Debug.LogWarning("ResonancePanel: QTE Value Text (TextMeshProUGUI) is null - cannot update QTE display");
-            }
-            
-            // Update progress slider if available
-            if (_qteProgressSlider != null)
-            {
-                // Map -1 to 1 range to 0 to 1 for slider
-                _qteProgressSlider.value = (_qteValue + 1f) / 2f;
             }
         }
         
@@ -539,7 +505,7 @@ namespace Resonance.UI
             if (audioService != null)
             {
                 // TODO: Add specific resonance success audio clip
-                audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.8f, 1.2f); // Placeholder
+                audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.8f, 1.2f); 
             }
             
             // TODO: Add visual effects (screen flash, particles, etc.)
@@ -556,7 +522,7 @@ namespace Resonance.UI
             if (audioService != null)
             {
                 // TODO: Add specific resonance failure audio clip
-                audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.4f, 0.6f); // Placeholder - lower pitch
+                audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.4f, 0.6f); 
             }
             
             // TODO: Add visual effects (screen shake, red flash, etc.)

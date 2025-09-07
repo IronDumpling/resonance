@@ -262,7 +262,6 @@ namespace Resonance.Player.Actions
             }
 
             // TODO: Add visual effects (particles, screen effects, etc.)
-            // TODO: Show QTE UI placeholder
             Debug.Log("PlayerResonanceAction: Playing resonance effects (placeholder)");
         }
 
@@ -320,7 +319,6 @@ namespace Resonance.Player.Actions
         private void StopResonanceEffects()
         {
             // TODO: Stop visual effects
-            // TODO: Hide QTE UI
             // TODO: Stop audio effects
 
             Debug.Log("PlayerResonanceAction: Stopped resonance effects");
