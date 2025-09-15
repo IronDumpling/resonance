@@ -72,6 +72,7 @@ namespace Resonance.UI
             
             // Record panel open time to prevent immediate input
             _panelOpenTime = Time.time;
+            Debug.Log($"ResonancePanel: Panel open time recorded: {_panelOpenTime}");
             
             // Don't start QTE immediately - wait for SetTargetCore to be called
         }
@@ -336,10 +337,18 @@ namespace Resonance.UI
         /// </summary>
         private void OnQTEInput()
         {
-            if (!_isQTEActive) return;
+            Debug.Log($"ResonancePanel: OnQTEInput called - _isQTEActive: {_isQTEActive}, Current time: {Time.time}, Panel open time: {_panelOpenTime}");
+            
+            if (!_isQTEActive) 
+            {
+                Debug.Log("ResonancePanel: QTE input ignored - QTE not active");
+                return;
+            }
             
             // Check if enough time has passed since panel opened to accept input
             float timeSinceOpen = Time.time - _panelOpenTime;
+            Debug.Log($"ResonancePanel: Time since panel open: {timeSinceOpen:F3}s, Required delay: {QTE_INPUT_DELAY}s");
+            
             if (timeSinceOpen < QTE_INPUT_DELAY)
             {
                 Debug.Log($"ResonancePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
@@ -350,7 +359,7 @@ namespace Resonance.UI
             float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
             bool isSuccess = proximityToZero <= targetWindow;
             
-            Debug.Log($"ResonancePanel: QTE input received. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
+            Debug.Log($"ResonancePanel: QTE input accepted. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
             
             if (isSuccess)
             {
