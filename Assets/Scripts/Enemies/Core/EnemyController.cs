@@ -139,6 +139,9 @@ namespace Resonance.Enemies.Core
         public bool CanAttack => IsMentallyAlive && HasPlayerTarget && 
                                 Time.time >= _lastAttackTime + _attackCooldown;
         
+        // Position Properties
+        public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
+        
         // Animation-driven combat properties (read-only for animation bridge)
         public float AttackDamageValue => _attackDamage;
         public float AttackCooldownValue => _attackCooldown;

@@ -85,6 +85,18 @@ namespace Resonance.Enemies.Data
         [Range(0.05f, 0.5f)]
         public float qteTargetWindow = 0.2f;
         
+        [Header("Loot System")]
+        [Tooltip("Prefab to spawn when enemy dies (true death)")]
+        public GameObject deathLootPrefab;
+        [Tooltip("Number of loot items to spawn")]
+        [Range(1, 5)]
+        public int lootCount = 1;
+        [Tooltip("Spawn radius for loot items")]
+        public float lootSpawnRadius = 1.5f;
+        [Tooltip("Chance to drop loot (0-1)")]
+        [Range(0f, 1f)]
+        public float lootDropChance = 1f;
+
         [Header("Debug")]
         public bool showHealthBar = true;
         public bool showDetectionRange = false;
@@ -147,6 +159,12 @@ namespace Resonance.Enemies.Data
                 qteEaseType = this.qteEaseType,
                 qteCycleDuration = this.qteCycleDuration,
                 qteTargetWindow = this.qteTargetWindow,
+                
+                // Loot System
+                deathLootPrefab = this.deathLootPrefab,
+                lootCount = this.lootCount,
+                lootSpawnRadius = this.lootSpawnRadius,
+                lootDropChance = this.lootDropChance,
                 
                 // Debug
                 showHealthBar = this.showHealthBar,
@@ -231,6 +249,11 @@ namespace Resonance.Enemies.Data
             // Validate QTE configuration
             qteCycleDuration = Mathf.Max(0.5f, qteCycleDuration);
             qteTargetWindow = Mathf.Clamp(qteTargetWindow, 0.05f, 0.5f);
+            
+            // Validate Loot System configuration
+            lootCount = Mathf.Clamp(lootCount, 1, 5);
+            lootSpawnRadius = Mathf.Max(0.5f, lootSpawnRadius);
+            lootDropChance = Mathf.Clamp01(lootDropChance);
         }
 
         #endregion
@@ -292,6 +315,12 @@ namespace Resonance.Enemies.Data
         public DG.Tweening.Ease qteEaseType;
         public float qteCycleDuration;
         public float qteTargetWindow;
+        
+        [Header("Loot System")]
+        public GameObject deathLootPrefab;
+        public int lootCount;
+        public float lootSpawnRadius;
+        public float lootDropChance;
         
         [Header("Debug")]
         public bool showHealthBar;

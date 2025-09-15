@@ -29,6 +29,7 @@ namespace Resonance.Enemies.Core
         // Properties
         public Vector3 TargetPosition => _targetPosition;
         public Vector3 Velocity => _velocity;
+        public Vector3 CurrentPosition => _transform?.position ?? Vector3.zero;
         public bool HasTarget => _hasTarget;
         public bool IsMoving => _hasTarget && Vector3.Distance(_transform.position, _targetPosition) > GetArrivalThreshold();
         public float MovementSpeedModifier 

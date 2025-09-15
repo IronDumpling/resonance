@@ -96,15 +96,58 @@ namespace Resonance.Enemies.States
             
             _lootDropped = true;
             
-            // TODO: Implement loot dropping system
-            // For now, just log the event
-            Debug.Log("EnemyTrueDeathState: Loot dropped (placeholder)");
+            var stats = _enemyController.Stats;
             
-            // Example loot drops:
-            // - Ammo pickups
-            // - Health items
-            // - Experience points
-            // - Special items based on enemy type
+            // Check if loot should drop based on chance
+            if (stats.deathLootPrefab == null)
+            {
+                Debug.Log("EnemyTrueDeathState: No loot prefab configured, skipping loot drop");
+                return;
+            }
+            
+            if (Random.Range(0f, 1f) > stats.lootDropChance)
+            {
+                Debug.Log($"EnemyTrueDeathState: Loot drop failed chance check ({stats.lootDropChance:P0} chance)");
+                return;
+            }
+            
+            // Get enemy position for loot spawn
+            Vector3 enemyPosition = _enemyController.CurrentPosition;
+            
+            // Spawn loot items
+            int itemsToSpawn = stats.lootCount;
+            for (int i = 0; i < itemsToSpawn; i++)
+            {
+                // Calculate spawn position with random offset
+                Vector2 randomCircle = Random.insideUnitCircle * stats.lootSpawnRadius;
+                Vector3 spawnPosition = enemyPosition + new Vector3(randomCircle.x, 0f, randomCircle.y);
+                
+                // Spawn the loot item
+                GameObject lootItem = Object.Instantiate(stats.deathLootPrefab, spawnPosition, Quaternion.identity);
+                
+                if (lootItem != null)
+                {
+                    Debug.Log($"EnemyTrueDeathState: Spawned loot item {i + 1}/{itemsToSpawn} at {spawnPosition}");
+                    
+                    // Add a small upward velocity for visual effect
+                    Rigidbody lootRb = lootItem.GetComponent<Rigidbody>();
+                    if (lootRb != null)
+                    {
+                        Vector3 randomForce = new Vector3(
+                            Random.Range(-2f, 2f),
+                            Random.Range(3f, 5f),
+                            Random.Range(-2f, 2f)
+                        );
+                        lootRb.AddForce(randomForce, ForceMode.Impulse);
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"EnemyTrueDeathState: Failed to instantiate loot item {i + 1}");
+                }
+            }
+            
+            Debug.Log($"EnemyTrueDeathState: Successfully dropped {itemsToSpawn} loot items");
         }
 
         /// <summary>

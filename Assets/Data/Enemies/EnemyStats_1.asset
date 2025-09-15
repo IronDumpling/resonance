@@ -42,6 +42,10 @@ MonoBehaviour:
   qteEaseType: 4
   qteCycleDuration: 3
   qteTargetWindow: 0.2
+  deathLootPrefab: {fileID: 1888247229399058588, guid: 2c7fad3653d846c45aafee4c70bbade6, type: 3}
+  lootCount: 1
+  lootSpawnRadius: 1.5
+  lootDropChance: 1
   showHealthBar: 1
   showDetectionRange: 0
   showAttackRange: 0

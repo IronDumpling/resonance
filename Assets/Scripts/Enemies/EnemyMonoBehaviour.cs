@@ -1102,6 +1102,7 @@ namespace Resonance.Enemies
             _enemyController.StateMachine.ChangeState(stateName);
         }
 
+
         #endregion
 
         #region Destruction
