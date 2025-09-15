@@ -7,31 +7,30 @@ using Resonance.Utilities;
 namespace Resonance.Items
 {
     /// <summary>
-    /// 场景中可交互的Gun物体
-    /// 玩家可以拾取并装备到武器管理器中
+    /// 场景中可交互的Ammo物体
+    /// 玩家可以拾取并添加到弹药库存中
     /// 
     /// Visual System Responsibilities:
-    /// - _pickupVisual: The visual representation for the gun in the world (pickup state)
+    /// - _pickupVisual: The visual representation for the ammo in the world (pickup state)
     /// - This handles pickup animations (bob, rotation) and interaction triggers
-    /// - When equipped, the gun data is passed to WeaponManager but no visual weapon is shown on player yet
-    /// - Future: Add equipped weapon visual system to player for when gun is equipped
+    /// - When picked up, the ammo count is added to player's ammo inventory
     /// </summary>
-    public class GunMonoBehaviour : MonoBehaviour, IInteractable
+    public class AmmoMonoBehaviour : MonoBehaviour, IInteractable
     {
-        [Header("Gun Configuration")]
-        [SerializeField] private GunDataAsset _gunDataAsset;
-        
+        [Header("Ammo Configuration")]
+        [SerializeField] private AmmoDataAsset _ammoDataAsset;
+
         [Header("Interaction")]
-        [SerializeField] private string _interactionText = "Press E";
-        [SerializeField] private float _interactionDuration = 0.2f; 
+        [SerializeField] private string _interactionText = "E";
+        [SerializeField] private float _interactionDuration = 0.1f; // 更快的拾取速度
         
         [Header("Pickup Visual")]
         [SerializeField] private GameObject _pickupVisual;
         [SerializeField] private bool _rotateWhenIdle = true;
-        [SerializeField] private float _rotationSpeed = 30f;
+        [SerializeField] private float _rotationSpeed = 45f; // 比武器转得快一些
         [SerializeField] private bool _bobUpAndDown = true;
-        [SerializeField] private float _bobSpeed = 2f;
-        [SerializeField] private float _bobHeight = 0.2f;
+        [SerializeField] private float _bobSpeed = 3f; // 比武器快一些
+        [SerializeField] private float _bobHeight = 0.15f; // 比武器小一些
         
         [Header("Interaction UI")]
         [SerializeField] private GameObject _interactUI;
@@ -52,16 +51,22 @@ namespace Resonance.Items
         private IAudioService _audioService;
 
         // Properties
-        public GunDataAsset GunData => _gunDataAsset;
+        public AmmoDataAsset AmmoData => _ammoDataAsset;
         public bool IsPickedUp => _isPickedUp;
         public string InteractionText => _interactionText;
 
         void Start()
         {
-            // 验证Gun数据资产
-            if (_gunDataAsset == null)
+            // 验证Ammo数据资产
+            if (_ammoDataAsset == null)
             {
-                Debug.LogError($"GunMonoBehaviour: No GunDataAsset assigned to {gameObject.name}!");
+                Debug.LogError($"AmmoMonoBehaviour: No AmmoDataAsset assigned to {gameObject.name}!");
+                return;
+            }
+
+            if (!_ammoDataAsset.ValidateData())
+            {
+                Debug.LogError($"AmmoMonoBehaviour: Invalid AmmoDataAsset on {gameObject.name}!");
                 return;
             }
 
@@ -88,7 +93,7 @@ namespace Resonance.Items
             }
             else
             {
-                Debug.LogWarning("GunMonoBehaviour: InteractionService not found");
+                Debug.LogWarning("AmmoMonoBehaviour: InteractionService not found");
             }
         }
 
@@ -121,11 +126,11 @@ namespace Resonance.Items
             _audioService = ServiceRegistry.Get<IAudioService>();
             if (_audioService == null)
             {
-                Debug.LogWarning("GunMonoBehaviour: AudioService not found. Audio effects will be disabled.");
+                Debug.LogWarning("AmmoMonoBehaviour: AudioService not found. Audio effects will be disabled.");
             }
             else
             {
-                Debug.Log("GunMonoBehaviour: AudioService connected successfully");
+                Debug.Log("AmmoMonoBehaviour: AudioService connected successfully");
             }
         }
 
@@ -141,13 +146,13 @@ namespace Resonance.Items
                 if (interactUIChild != null)
                 {
                     _interactUI = interactUIChild.gameObject;
-                    Debug.Log($"GunMonoBehaviour: Found InteractUI child object: {interactUIChild.name}");
+                    Debug.Log($"AmmoMonoBehaviour: Found InteractUI child object: {interactUIChild.name}");
                 }
             }
             
             if (_interactUI == null)
             {
-                Debug.LogWarning($"GunMonoBehaviour: No InteractUI found on {gameObject.name}. UI interaction will be disabled.");
+                Debug.LogWarning($"AmmoMonoBehaviour: No InteractUI found on {gameObject.name}. UI interaction will be disabled.");
                 return;
             }
             
@@ -163,12 +168,13 @@ namespace Resonance.Items
             
             if (_interactTextComponent == null)
             {
-                Debug.LogWarning($"GunMonoBehaviour: No TextMeshProUGUI component found in InteractUI on {gameObject.name}");
+                Debug.LogWarning($"AmmoMonoBehaviour: No TextMeshProUGUI component found in InteractUI on {gameObject.name}");
             }
             else
             {
-                Debug.Log($"GunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
-                _interactTextComponent.text = _interactionText;
+                Debug.Log($"AmmoMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
+                // 显示弹药类型和数量
+                _interactTextComponent.text = $"{_interactionText} ({_ammoDataAsset.ammoCount} {_ammoDataAsset.GetAmmoTypeDisplayName()})";
             }
             
             if (_interactUI != null)
@@ -176,7 +182,7 @@ namespace Resonance.Items
                 _interactUI.SetActive(false);
             }
 
-            Debug.Log($"GunMonoBehaviour: Interaction UI setup complete");
+            Debug.Log($"AmmoMonoBehaviour: Interaction UI setup complete");
         }
 
         /// <summary>
@@ -211,7 +217,7 @@ namespace Resonance.Items
         #region IInteractable Implementation
 
         /// <summary>
-        /// Check if this gun can currently be interacted with
+        /// Check if this ammo can currently be interacted with
         /// </summary>
         /// <returns>True if interaction is possible</returns>
         public bool CanInteract()
@@ -221,7 +227,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// Get the interaction duration for picking up this weapon
+        /// Get the interaction duration for picking up this ammo
         /// </summary>
         /// <returns>Duration of the interaction in seconds</returns>
         public float GetInteractionDuration()
@@ -230,7 +236,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// Get the world position of this gun
+        /// Get the world position of this ammo
         /// </summary>
         /// <returns>World position</returns>
         public Vector3 GetPosition()
@@ -245,13 +251,13 @@ namespace Resonance.Items
         {
             if (!CanInteract())
             {
-                Debug.LogWarning($"GunMonoBehaviour: Cannot start interaction with {_gunDataAsset.weaponName}");
+                Debug.LogWarning($"AmmoMonoBehaviour: Cannot start interaction with {_ammoDataAsset.ammoName}");
                 return;
             }
 
             _isInteracting = true;
 
-            Debug.Log($"GunMonoBehaviour: Started interaction with {_gunDataAsset.weaponName}");
+            Debug.Log($"AmmoMonoBehaviour: Started interaction with {_ammoDataAsset.ammoName}");
 
             // Show interaction UI
             if (_interactUI != null)
@@ -263,17 +269,17 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// Complete the interaction successfully - pickup the weapon
+        /// Complete the interaction successfully - pickup the ammo
         /// </summary>
         public void CompleteInteraction()
         {
             if (!_isInteracting)
             {
-                Debug.LogWarning($"GunMonoBehaviour: CompleteInteraction called but not interacting with {_gunDataAsset.weaponName}");
+                Debug.LogWarning($"AmmoMonoBehaviour: CompleteInteraction called but not interacting with {_ammoDataAsset.ammoName}");
                 return;
             }
 
-            Debug.Log($"GunMonoBehaviour: Completing interaction with {_gunDataAsset.weaponName}");
+            Debug.Log($"AmmoMonoBehaviour: Completing interaction with {_ammoDataAsset.ammoName}");
 
             // Get current player from PlayerService
             var playerService = ServiceRegistry.Get<IPlayerService>();
@@ -285,38 +291,24 @@ namespace Resonance.Items
             }
 
             // Perform the actual pickup
-            var gunCopy = PerformPickup();
+            bool pickupSuccess = PerformPickup();
             
-            if (gunCopy != null && playerTransform != null)
+            if (pickupSuccess && playerTransform != null)
             {
-                // Try to equip the weapon to the player
+                // Try to add ammo to player's inventory
                 var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
                 if (playerMono != null && playerMono.IsInitialized)
                 {
-                    var weaponManager = playerMono.Controller.WeaponManager;
-                    if (weaponManager != null)
-                    {
-                        // 实际装备武器
-                        weaponManager.EquipWeapon(gunCopy);
-                        
-                        // 验证装备是否成功
-                        if (weaponManager.HasEquippedWeapon)
-                        {
-                            Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} to player");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"GunMonoBehaviour: Failed to equip {gunCopy.weaponName} to player");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("GunMonoBehaviour: Player's WeaponManager is null");
-                    }
+                    // TODO: Add ammo to player's ammo inventory
+                    // This will be implemented when PlayerAmmoInventory system is ready
+                    Debug.Log($"AmmoMonoBehaviour: Successfully picked up {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo");
+                    
+                    // For now, just log the pickup
+                    Debug.Log($"AmmoMonoBehaviour: Player should receive {_ammoDataAsset.ammoCount} units of {_ammoDataAsset.ammoType} ammo");
                 }
                 else
                 {
-                    Debug.LogError("GunMonoBehaviour: Player not found or not initialized");
+                    Debug.LogError("AmmoMonoBehaviour: Player not found or not initialized");
                 }
             }
 
@@ -328,7 +320,7 @@ namespace Resonance.Items
                 _interactUI.SetActive(false);
             }
 
-            Debug.Log($"GunMonoBehaviour: CompleteInteraction complete");
+            Debug.Log($"AmmoMonoBehaviour: CompleteInteraction complete");
         }
 
         /// <summary>
@@ -338,7 +330,7 @@ namespace Resonance.Items
         {
             if (!_isInteracting) return;
 
-            Debug.Log($"GunMonoBehaviour: Cancelled interaction with {_gunDataAsset.weaponName}");
+            Debug.Log($"AmmoMonoBehaviour: Cancelled interaction with {_ammoDataAsset.ammoName}");
 
             _isInteracting = false;
 
@@ -354,10 +346,10 @@ namespace Resonance.Items
         /// <summary>
         /// Get a descriptive name for this interactable
         /// </summary>
-        /// <returns>Weapon name</returns>
+        /// <returns>Ammo name</returns>
         public string GetInteractableName()
         {
-            return _gunDataAsset?.weaponName ?? "Unknown Weapon";
+            return _ammoDataAsset?.ammoName ?? "Unknown Ammo";
         }
 
         #endregion
@@ -387,9 +379,9 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 重置武器状态（用于重新生成或测试）
+        /// 重置弹药状态（用于重新生成或测试）
         /// </summary>
-        public void ResetWeapon()
+        public void ResetAmmo()
         {
             _isPickedUp = false;
             _isInteracting = false;
@@ -401,20 +393,17 @@ namespace Resonance.Items
         #region Private Methods
 
         /// <summary>
-        /// 拾取武器（新系统内部使用）
+        /// 拾取弹药（内部使用）
         /// </summary>
-        /// <returns>武器数据的副本</returns>
-        private GunDataAsset PerformPickup()
+        /// <returns>是否成功拾取</returns>
+        private bool PerformPickup()
         {
-            if (_isPickedUp) return null;
+            if (_isPickedUp) return false;
 
             _isPickedUp = true;
             _isInteracting = false;
 
             PlayPickupAudio(transform.position);
-            
-            // 创建运行时副本
-            GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
             
             // 停止所有动画
             StopAllCoroutines();
@@ -439,9 +428,9 @@ namespace Resonance.Items
                 gameObject.SetActive(false);
             }
 
-            Debug.Log($"GunMonoBehaviour: PerformPickup complete");
+            Debug.Log($"AmmoMonoBehaviour: PerformPickup complete");
             
-            return gunCopy;
+            return true;
         }
 
         /// <summary>
@@ -452,8 +441,9 @@ namespace Resonance.Items
         {
             if (_audioService == null) return;
 
+            // 使用与武器相同的拾取音效，但音调稍高一些表示是弹药
             AudioClipType audioClipType = AudioClipType.ItemPickup;
-            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.8f, 1f);
+            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.7f, 1.2f); // 稍微高一些的音调
         }
 
         #endregion
