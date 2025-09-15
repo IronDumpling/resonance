@@ -432,6 +432,14 @@ namespace Resonance.Player.Core
                    !(_actionController?.IsBlocking ?? false); // Actions can block shooting
         }
 
+        public bool CanReload()
+        {
+            return IsPhysicallyAlive && 
+                   _stateMachine.CanReload() &&
+                   !IsAiming &&
+                   !(_actionController?.IsActive ?? false); // Cannot reload while another action is active
+        }
+
         /// <summary>
         /// 执行基于鼠标的射击
         /// </summary>
@@ -639,8 +647,9 @@ namespace Resonance.Player.Core
             RegisterAction(new PlayerResonanceAction());
             RegisterAction(new PlayerRecoverAction());
             RegisterAction(new PlayerInteractAction());
+            RegisterAction(new PlayerReloadAction());
 
-            Debug.Log("PlayerController: Registered player actions (Resonance, Recover, Interact)");
+            Debug.Log("PlayerController: Registered player actions (Resonance, Recover, Interact, Reload)");
         }
 
         #endregion

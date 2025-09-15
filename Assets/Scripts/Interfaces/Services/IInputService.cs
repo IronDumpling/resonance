@@ -14,6 +14,7 @@ namespace Resonance.Interfaces.Services
         event Action OnShoot;
         event Action<Vector2> OnLook;
         event Action OnQTE; // QTE input during Resonance mode
+        event Action OnReload; // Reload input (R key)
 
         bool IsEnabled { get; set; }
         bool IsResonanceMode { get; set; } // Control input mode switching

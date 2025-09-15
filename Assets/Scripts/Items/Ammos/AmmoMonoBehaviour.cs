@@ -299,12 +299,21 @@ namespace Resonance.Items
                 var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
                 if (playerMono != null && playerMono.IsInitialized)
                 {
-                    // TODO: Add ammo to player's ammo inventory
-                    // This will be implemented when PlayerAmmoInventory system is ready
-                    Debug.Log($"AmmoMonoBehaviour: Successfully picked up {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo");
-                    
-                    // For now, just log the pickup
-                    Debug.Log($"AmmoMonoBehaviour: Player should receive {_ammoDataAsset.ammoCount} units of {_ammoDataAsset.ammoType} ammo");
+                    // Add ammo to player's ammo inventory
+                    var playerStats = playerMono.Controller?.Stats;
+                    if (playerStats?.ammoInventory != null)
+                    {
+                        playerStats.ammoInventory.AddAmmo(_ammoDataAsset.ammoType, _ammoDataAsset.ammoCount);
+                        Debug.Log($"AmmoMonoBehaviour: Successfully added {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo to player inventory");
+                        
+                        // Log current inventory state for debugging
+                        int currentCount = playerStats.ammoInventory.GetAmmoCount(_ammoDataAsset.ammoType);
+                        Debug.Log($"AmmoMonoBehaviour: Player now has {currentCount} total {_ammoDataAsset.ammoType} ammo");
+                    }
+                    else
+                    {
+                        Debug.LogError("AmmoMonoBehaviour: Player's ammo inventory not found or not initialized");
+                    }
                 }
                 else
                 {

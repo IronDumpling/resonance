@@ -289,7 +289,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _gunDataAsset: {fileID: 11400000, guid: e7b2879db7522a44b9a005d420cb92d4, type: 2}
-  _interactionText: Press E
+  _interactionText: E
   _interactionDuration: 0.2
   _pickupVisual: {fileID: 1012015472892952182}
   _rotateWhenIdle: 1

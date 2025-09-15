@@ -340,12 +340,13 @@ namespace Resonance.Player
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
+            _inputService.OnReload += HandleReloadInput; // R key press (Reload)
         }
 
         private void UnsubscribeFromInput()
         {
             if (_inputService == null) return;
- 
+
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
             _inputService.OnResonance -= HandleResonanceInput;
@@ -353,6 +354,7 @@ namespace Resonance.Player
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
             _inputService.OnShoot -= HandleShootInput;
+            _inputService.OnReload -= HandleReloadInput;
         }
 
         private void HandleMoveInput(Vector2 input)
@@ -485,6 +487,22 @@ namespace Resonance.Player
             if (result.success && _showDebugInfo)
             {
                 Debug.Log($"Shot fired: Hit={result.hasHit}, Target={result.hitObject?.name ?? "None"}");
+            }
+        }
+
+        private void HandleReloadInput()
+        {
+            if (!IsInitialized) return;
+
+            // Try to start reload action
+            bool reloadStarted = _playerController.TryStartAction("Reload");
+            if (reloadStarted)
+            {
+                Debug.Log("PlayerMonoBehaviour: Started Reload action via R key press");
+            }
+            else
+            {
+                Debug.Log("PlayerMonoBehaviour: Reload action conditions not met");
             }
         }
 

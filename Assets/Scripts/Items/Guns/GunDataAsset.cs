@@ -145,6 +145,15 @@ namespace Resonance.Items
         }
 
         /// <summary>
+        /// 设置当前弹药数量
+        /// </summary>
+        /// <param name="ammoCount">弹药数量</param>
+        public void SetCurrentAmmo(int ammoCount)
+        {
+            CurrentAmmo = Mathf.Clamp(ammoCount, 0, maxAmmo);
+        }
+
+        /// <summary>
         /// 创建伤害信息结构体
         /// </summary>
         /// <param name="sourcePosition">伤害来源位置</param>

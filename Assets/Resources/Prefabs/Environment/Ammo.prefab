@@ -81,7 +81,7 @@ MonoBehaviour:
   _ammoDataAsset: {fileID: 11400000, guid: 04f696155a1765e489e66eb1dd527fa4, type: 2}
   _interactionText: E
   _interactionDuration: 0.1
-  _pickupVisual: {fileID: 0}
+  _pickupVisual: {fileID: 519393222693085104}
   _rotateWhenIdle: 1
   _rotationSpeed: 45
   _bobUpAndDown: 1
