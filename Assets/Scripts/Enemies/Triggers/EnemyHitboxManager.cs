@@ -247,9 +247,12 @@ namespace Resonance.Enemies
             // Hide resonance UI when mental hitboxes (including Core) are disabled
             _enemyMono?.HideResonanceUI();
             
+            // Force update collider states to ensure proper synchronization
+            ForceRefreshColliderStates();
+            
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival ended - enabled physical, disabled mental weakpoints, hiding resonance UI");
+                Debug.Log("EnemyHitboxManager: Revival ended - enabled physical, disabled mental weakpoints, hiding resonance UI, refreshed collider states");
             }
         }
         
@@ -264,6 +267,53 @@ namespace Resonance.Enemies
             if (_debugMode)
             {
                 Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints, hiding resonance UI");
+            }
+        }
+
+        /// <summary>
+        /// Force refresh all collider states to ensure synchronization after revival end
+        /// Ensures mental hitboxes are disabled and physical hitboxes are enabled
+        /// </summary>
+        private void ForceRefreshColliderStates()
+        {
+            if (!_isInitialized) return;
+            
+            // Force disable all mental hitboxes (including Core) to ensure they're properly turned off
+            foreach (var mentalHitbox in _mentalHitboxes)
+            {
+                if (mentalHitbox != null)
+                {
+                    var collider = mentalHitbox.GetComponent<Collider>();
+                    if (collider != null && collider.enabled)
+                    {
+                        // Force disable to trigger state change events
+                        collider.enabled = false;
+                        
+                        if (_debugMode)
+                        {
+                            Debug.Log($"EnemyHitboxManager: Force disabled mental hitbox {mentalHitbox} to ensure proper state");
+                        }
+                    }
+                }
+            }
+            
+            // Force enable all physical hitboxes to ensure they're properly turned on
+            foreach (var physicalHitbox in _physicalHitboxes)
+            {
+                if (physicalHitbox != null)
+                {
+                    var collider = physicalHitbox.GetComponent<Collider>();
+                    if (collider != null && !collider.enabled)
+                    {
+                        // Force enable to trigger state change events
+                        collider.enabled = true;
+                        
+                        if (_debugMode)
+                        {
+                            Debug.Log($"EnemyHitboxManager: Force enabled physical hitbox {physicalHitbox} to ensure proper state");
+                        }
+                    }
+                }
             }
         }
 

@@ -48,22 +48,101 @@ namespace Resonance.Player.Actions
         /// <returns>True if all conditions are met</returns>
         public bool CanStart(PlayerController player)
         {
-            if (player == null) return false;
+            if (player == null)
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - player is null");
+                return false;
+            }
 
             // Must be in Normal state (not in other actions or death states)
-            if (player.CurrentState != "Normal") return false;
+            if (player.CurrentState != "Normal")
+            {
+                Debug.Log($"PlayerResonanceAction: Cannot start - player not in Normal state (current: {player.CurrentState})");
+                return false;
+            }
 
             // Must have at least 1 mental health slot available
-            if (!player.CanConsumeSlot) return false;
+            if (!player.CanConsumeSlot)
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - no mental health slots available");
+                return false;
+            }
 
             // Must have Core hitboxes in mental attack range
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer == null) return false;
+            if (playerService?.CurrentPlayer == null)
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - player service or current player is null");
+                return false;
+            }
 
-            if (!playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange()) return false;
+            if (!playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - no Core hitboxes in mental attack range");
+                return false;
+            }
+
+            // Additional check: verify target cores are in valid states
+            var mentalAttackTrigger = playerService.CurrentPlayer.GetComponentInChildren<MentalAttackTrigger>();
+            if (mentalAttackTrigger != null)
+            {
+                var coreHitboxes = mentalAttackTrigger.CoreHitboxesInRange;
+                bool hasValidCore = false;
+                
+                foreach (var core in coreHitboxes)
+                {
+                    if (core != null && IsValidTargetCore(core))
+                    {
+                        hasValidCore = true;
+                        break;
+                    }
+                }
+                
+                if (!hasValidCore)
+                {
+                    Debug.Log("PlayerResonanceAction: Cannot start - no valid target cores (cores may be in invalid states)");
+                    return false;
+                }
+            }
 
             Debug.Log("PlayerResonanceAction: All conditions met, can start");
             return true;
+        }
+        
+        /// <summary>
+        /// Check if a core hitbox is in a valid state for resonance
+        /// </summary>
+        /// <param name="coreHitbox">Core hitbox to check</param>
+        /// <returns>True if core is valid for resonance</returns>
+        private bool IsValidTargetCore(EnemyHitbox coreHitbox)
+        {
+            if (coreHitbox == null || !coreHitbox.IsInitialized)
+                return false;
+                
+            // Check if the collider is enabled
+            var collider = coreHitbox.GetComponent<Collider>();
+            if (collider == null || !collider.enabled)
+                return false;
+                
+            // Check if the enemy is in a valid state for resonance (not in attack state)
+            var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
+            if (enemyMono == null)
+                return false;
+                
+            var enemyController = enemyMono.Controller;
+            if (enemyController == null)
+                return false;
+                
+            // Valid states for resonance: Reviving or physical death (not Normal/Attack states)
+            string enemyState = enemyController.CurrentState;
+            bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
+            
+            if (!isValidState)
+            {
+                Debug.Log($"PlayerResonanceAction: Core {coreHitbox.name} in invalid state for resonance: {enemyState}");
+            }
+            
+            return isValidState;
         }
 
         /// <summary>
@@ -138,13 +217,25 @@ namespace Resonance.Player.Actions
                 return; 
             }
 
-            // Check if target Core hitbox is still in range (collider state changes are handled by events)
-            if (_targetCoreHitbox == null || !IsTargetCoreStillInRange(_targetCoreHitbox))
+            // Check if target Core hitbox is still valid for resonance
+            if (_targetCoreHitbox == null || !IsValidTargetCore(_targetCoreHitbox) || !IsTargetCoreStillInRange(_targetCoreHitbox))
             {
-                // Core hitbox no longer in range
+                // Core hitbox no longer valid or in range
                 if (actionDuration >= MIN_ACTION_DURATION)
                 {
-                    Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer in range, ending action");
+                    if (_targetCoreHitbox == null)
+                    {
+                        Debug.Log("PlayerResonanceAction: Target Core hitbox is null, ending action");
+                    }
+                    else if (!IsValidTargetCore(_targetCoreHitbox))
+                    {
+                        Debug.Log("PlayerResonanceAction: Target Core hitbox no longer in valid state, ending action");
+                    }
+                    else
+                    {
+                        Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer in range, ending action");
+                    }
+                    
                     _isFinished = true;
                     CleanupAction();
                     return;
@@ -303,6 +394,16 @@ namespace Resonance.Player.Actions
 
             // Stop effects
             StopResonanceEffects();
+
+            // Force refresh UI colors to fix BUG2 (second approach UI color not updating)
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            var playerMono = playerService?.CurrentPlayer;
+            if (playerMono != null)
+            {
+                var mentalAttackTrigger = playerMono.GetComponentInChildren<MentalAttackTrigger>();
+                mentalAttackTrigger?.ForceRefreshUIColors();
+                Debug.Log("PlayerResonanceAction: Force refreshed UI colors after cleanup");
+            }
 
             // Trigger the resonance ended event for state machine
             OnResonanceActionEnded?.Invoke();

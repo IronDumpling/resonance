@@ -214,6 +214,60 @@ namespace Resonance.Player.Core
                 _lastClosestCore = currentClosest;
             }
         }
+        
+        /// <summary>
+        /// Force refresh all UI colors - useful after resonance actions end
+        /// Also cleans up invalid hitboxes from tracking list
+        /// </summary>
+        public void ForceRefreshUIColors()
+        {
+            // First, validate and clean up the tracking list
+            var hitboxesToRemove = new List<EnemyHitbox>();
+            
+            foreach (var hitbox in _coreHitboxesInRange)
+            {
+                if (hitbox != null)
+                {
+                    var collider = hitbox.GetComponent<Collider>();
+                    
+                    // Check if hitbox is still valid for tracking
+                    if (!IsValidCoreHitbox(hitbox, collider))
+                    {
+                        hitboxesToRemove.Add(hitbox);
+                        Debug.Log($"MentalAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
+                    }
+                    else
+                    {
+                        // Reset UI color for valid hitboxes
+                        var enemyMono = GetEnemyMonoFromHitbox(hitbox);
+                        enemyMono?.SetResonanceUIColor(Color.white);
+                    }
+                }
+                else
+                {
+                    hitboxesToRemove.Add(hitbox);
+                }
+            }
+            
+            // Remove invalid hitboxes
+            foreach (var hitbox in hitboxesToRemove)
+            {
+                _coreHitboxesInRange.Remove(hitbox);
+                OnCoreHitboxExited?.Invoke(hitbox);
+            }
+            
+            // Trigger change event if we removed any hitboxes
+            if (hitboxesToRemove.Count > 0)
+            {
+                OnCoreHitboxesChanged?.Invoke();
+            }
+            
+            // Clear last closest and force update
+            _lastClosestCore = null;
+            UpdateClosestCoreNotification();
+            
+            Debug.Log($"MentalAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
+        }
 
         /// <summary>
         /// Get EnemyMonoBehaviour from EnemyHitbox by traversing up the hierarchy

@@ -391,9 +391,13 @@ namespace Resonance.Enemies.Core
         private void CompleteRevival()
         {
             _revivalTimer = 0f;
+            
+            // Clear any existing hit tracking to ensure clean state
+            _currentAttackHits.Clear();
+            
             OnRevivalCompleted?.Invoke();
             _stateMachine?.CompleteRevival();
-            Debug.Log("EnemyController: Revival completed");
+            Debug.Log("EnemyController: Revival completed, cleared hit tracking for new combat phase");
         }
 
         #endregion
@@ -491,11 +495,14 @@ namespace Resonance.Enemies.Core
         {
             _hitboxEnabled = false;
             
+            // Clear hit tracking when attack window ends
+            _currentAttackHits.Clear();
+            
             // Find and disable the actual damage hitbox GameObject
             if (_damageHitboxChild != null)
             {
                 _damageHitboxChild.gameObject.SetActive(false);
-                Debug.Log("EnemyController: Hitbox disabled - damage window closed");
+                Debug.Log("EnemyController: Hitbox disabled - damage window closed, cleared hit tracking");
                 OnAttackWindowClosed?.Invoke();
             }
         }

@@ -33,6 +33,10 @@ namespace Resonance.UI
         private QTEConfig _qteConfig;
         private Tween _qteTween;
         private float _qteStartTime;
+        
+        // Input filtering
+        private float _panelOpenTime = 0f;
+        private const float QTE_INPUT_DELAY = 0.2f; // Delay before accepting QTE input after panel opens
 
         protected override void Awake()
         {
@@ -66,8 +70,10 @@ namespace Resonance.UI
         {
             Debug.Log("ResonancePanel: Shown");
             
-            // Start QTE sequence
-            StartQTE();
+            // Record panel open time to prevent immediate input
+            _panelOpenTime = Time.time;
+            
+            // Don't start QTE immediately - wait for SetTargetCore to be called
         }
 
         protected override void OnHide()
@@ -225,6 +231,9 @@ namespace Resonance.UI
                 };
                 Debug.LogWarning($"ResonancePanel: Target core invalid for QTE, using default configuration");
             }
+            
+            // Now that we have the configuration, start the QTE sequence
+            StartQTE();
         }
         
         /// <summary>
@@ -244,10 +253,17 @@ namespace Resonance.UI
             // Create a looping tween that oscillates between 1 and -1
             _qteValue = 1f; // Start at 1
             
+            // Force initial UI update before starting tween
+            UpdateQTEUI();
+            
             _qteTween = DOTween.To(() => _qteValue, x => _qteValue = x, -1f, _qteConfig.cycleDuration / 2f)
                 .SetEase(_qteConfig.easeType)
                 .SetLoops(-1, LoopType.Yoyo)
-                .OnUpdate(() => UpdateQTEUI());
+                .OnUpdate(() => UpdateQTEUI())
+                .OnStart(() => {
+                    Debug.Log("ResonancePanel: DoTween animation started");
+                    UpdateQTEUI(); // Ensure UI is updated when tween starts
+                });
             
             Debug.Log($"ResonancePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
         }
@@ -322,6 +338,14 @@ namespace Resonance.UI
         {
             if (!_isQTEActive) return;
             
+            // Check if enough time has passed since panel opened to accept input
+            float timeSinceOpen = Time.time - _panelOpenTime;
+            if (timeSinceOpen < QTE_INPUT_DELAY)
+            {
+                Debug.Log($"ResonancePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
+                return;
+            }
+            
             float proximityToZero = Mathf.Abs(_qteValue);
             float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
             bool isSuccess = proximityToZero <= targetWindow;
@@ -369,8 +393,9 @@ namespace Resonance.UI
                 ShowFailureFeedback("Failed to apply damage!");
             }
             
-            // QTE sequence completes on success
-            StopQTE();
+            // Continue QTE sequence instead of stopping - player can perform multiple QTEs
+            // The QTE will only end when the ResonanceAction itself ends (enemy state change, etc.)
+            Debug.Log("ResonancePanel: QTE success processed, continuing sequence for more attempts");
         }
         
         /// <summary>
