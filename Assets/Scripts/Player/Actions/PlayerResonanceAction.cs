@@ -229,10 +229,10 @@ namespace Resonance.Player.Actions
             // Play resonance audio/effects
             PlayResonanceEffects();
 
-            // Trigger the resonance started event for state machine
+            // Trigger the resonance started event for state machine and camera system
             OnResonanceActionStarted?.Invoke(_targetCoreHitbox);
 
-            Debug.Log($"PlayerResonanceAction: Started with target Core hitbox {_targetCoreHitbox.name}");
+            Debug.Log($"PlayerResonanceAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
         }
 
         /// <summary>
@@ -463,13 +463,13 @@ namespace Resonance.Player.Actions
                 Debug.Log("PlayerResonanceAction: Force refreshed UI colors after cleanup");
             }
 
-            // Trigger the resonance ended event for state machine
+            // Trigger the resonance ended event for state machine and camera system
             OnResonanceActionEnded?.Invoke();
 
             // Clear target reference
             _targetCoreHitbox = null;
 
-            Debug.Log("PlayerResonanceAction: Cleaned up");
+            Debug.Log("PlayerResonanceAction: Cleaned up - camera should switch back to fixed view");
         }
 
         /// <summary>
