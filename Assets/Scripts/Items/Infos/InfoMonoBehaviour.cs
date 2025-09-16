@@ -3,6 +3,10 @@ using TMPro;
 using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Utilities;
+using Resonance.Core;
+using Resonance.Core.StateMachine;
+using Resonance.Core.StateMachine.States;
+
 
 namespace Resonance.Items
 {
@@ -232,11 +236,58 @@ namespace Resonance.Items
             if (!_isInteracting)
             {
                 Debug.LogWarning($"InfoMonoBehaviour: CompleteInteraction called but not interacting with {_infoDataAsset.infoName}");
+                return;
             }
 
             Debug.Log($"InfoMonoBehaviour: Completing interaction with {_infoDataAsset.infoName}");
 
             _isInteracting = false;
+
+            // Start the info reading session
+            StartInfoReadingSession();
+        }
+
+        /// <summary>
+        /// Start the info reading session by transitioning to InfoReading state
+        /// </summary>
+        private void StartInfoReadingSession()
+        {
+            if (_infoDataAsset == null)
+            {
+                Debug.LogError("InfoMonoBehaviour: Cannot start info reading session with null InfoDataAsset");
+                return;
+            }
+
+            // Get the GameManager and its state machine
+            var gameManager = GameManager.Instance;
+            if (gameManager == null)
+            {
+                Debug.LogError("InfoMonoBehaviour: GameManager instance not found");
+                return;
+            }
+
+            var stateMachine = gameManager.GetComponent<GameStateMachine>();
+            if (stateMachine == null)
+            {
+                Debug.LogError("InfoMonoBehaviour: GameStateMachine not found on GameManager");
+                return;
+            }
+
+            // Get the current GameplayState
+            var gameplayState = stateMachine.GetState<GameplayState>("Gameplay");
+            if (gameplayState == null)
+            {
+                Debug.LogError("InfoMonoBehaviour: GameplayState not found in state machine");
+                return;
+            }
+
+            Debug.Log($"InfoMonoBehaviour: Starting info reading session for {_infoDataAsset.infoName}");
+
+            // Start the info reading session
+            gameplayState.StartInfoReading(_infoDataAsset);
+
+            // Hide the interaction UI since we're now in reading mode
+            HideInteractionUI();
         }
 
         public void CancelInteraction()

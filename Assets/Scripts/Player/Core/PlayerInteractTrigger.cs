@@ -208,6 +208,12 @@ namespace Resonance.Player.Core
             {
                 ammoMono.ShowInteractionUI();
             }
+
+            var infoMono = interactable as Resonance.Items.InfoMonoBehaviour;
+            if (infoMono != null)
+            {
+                infoMono.ShowInteractionUI();
+            }
         }
 
         /// <summary>
@@ -229,6 +235,12 @@ namespace Resonance.Player.Core
             if (ammoMono != null)
             {
                 ammoMono.HideInteractionUI();
+            }
+            
+            var infoMono = interactable as Resonance.Items.InfoMonoBehaviour;
+            if (infoMono != null)
+            {
+                infoMono.HideInteractionUI();
             }
         }
 

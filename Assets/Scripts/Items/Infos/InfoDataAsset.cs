@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Interfaces;
+using UnityEngine.UI;
 
 namespace Resonance.Items
 {
@@ -8,5 +9,6 @@ namespace Resonance.Items
     {
         public string infoName;
         public string infoContent;
+        public Sprite infoImage;
     }
 }
