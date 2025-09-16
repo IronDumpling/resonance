@@ -111,7 +111,7 @@ namespace Resonance.Enemies.States
                 return;
             }
             
-            // Get enemy position for loot spawn
+            // TODO: has some bug here, need to fix it. Get enemy position for loot spawn
             Vector3 enemyPosition = _enemyController.CurrentPosition;
             
             // Spawn loot items

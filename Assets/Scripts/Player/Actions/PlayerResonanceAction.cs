@@ -178,7 +178,7 @@ namespace Resonance.Player.Actions
             string enemyState = enemyController.CurrentState;
             bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
             
-            Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} state: {enemyState}, valid: {isValidState}");
+            // Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} state: {enemyState}, valid: {isValidState}");
             
             return isValidState;
         }

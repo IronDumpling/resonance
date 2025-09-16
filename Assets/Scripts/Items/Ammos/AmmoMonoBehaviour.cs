@@ -22,15 +22,15 @@ namespace Resonance.Items
 
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "E";
-        [SerializeField] private float _interactionDuration = 0.1f; // 更快的拾取速度
+        [SerializeField] private float _interactionDuration = 0.1f;
         
         [Header("Pickup Visual")]
         [SerializeField] private GameObject _pickupVisual;
         [SerializeField] private bool _rotateWhenIdle = true;
-        [SerializeField] private float _rotationSpeed = 45f; // 比武器转得快一些
+        [SerializeField] private float _rotationSpeed = 45f; 
         [SerializeField] private bool _bobUpAndDown = true;
-        [SerializeField] private float _bobSpeed = 3f; // 比武器快一些
-        [SerializeField] private float _bobHeight = 0.15f; // 比武器小一些
+        [SerializeField] private float _bobSpeed = 3f;     
+        [SerializeField] private float _bobHeight = 0.15f; 
         
         [Header("Interaction UI")]
         [SerializeField] private GameObject _interactUI;
@@ -173,8 +173,7 @@ namespace Resonance.Items
             else
             {
                 Debug.Log($"AmmoMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
-                // 显示弹药类型和数量
-                _interactTextComponent.text = $"{_interactionText} ({_ammoDataAsset.ammoCount} {_ammoDataAsset.GetAmmoTypeDisplayName()})";
+                _interactTextComponent.text = _interactionText;
             }
             
             if (_interactUI != null)

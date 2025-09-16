@@ -140,9 +140,8 @@ namespace Resonance.Player.Actions
             if (actionDuration >= _interactionDuration)
             {
                 Debug.Log($"PlayerInteractAction: Duration reached! Completing interaction...");
-                // Complete the interaction
+                // Complete the interaction (this will also set _isFinished = true)
                 CompleteInteraction(player);
-                _isFinished = true;
                 return;
             }
 
@@ -213,6 +212,9 @@ namespace Resonance.Player.Actions
 
             // Play completion effects
             PlayInteractionCompleteEffects(player);
+
+            // Clean up after successful interaction
+            CleanupAction(player);
         }
 
         /// <summary>

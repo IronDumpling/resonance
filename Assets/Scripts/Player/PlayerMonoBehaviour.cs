@@ -164,6 +164,12 @@ namespace Resonance.Player
                 _mentalAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
                 _mentalAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
             }
+
+            // Cleanup PlayerInteractTrigger
+            if (_playerInteractTrigger != null)
+            {
+                _playerInteractTrigger.Cleanup();
+            }
             
             // Unregister from PlayerService
             var playerService = ServiceRegistry.Get<IPlayerService>();
