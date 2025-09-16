@@ -230,7 +230,7 @@ namespace Resonance.Core.StateMachine.States
             _infoReadingState.SetInfoData(infoData);
             
             // Transition to InfoReading substate
-            if (!_subStateMachine.ChangeState("ReadingInfo"))
+            if (!_subStateMachine.ChangeState("InfoReading"))
             {
                 Debug.LogError("GameplayState: Failed to transition to InfoReading substate");
                 return;

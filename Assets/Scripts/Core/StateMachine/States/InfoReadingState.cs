@@ -13,7 +13,7 @@ namespace Resonance.Core.StateMachine.States
     /// </summary>
     public class InfoReadingState : IState
     {
-        public string Name => "ReadingInfo";
+        public string Name => "InfoReading";
 
         private IUIService _uiService;
         private ISelectivePauseService _pauseService;
@@ -35,7 +35,7 @@ namespace Resonance.Core.StateMachine.States
             _pauseService?.PauseGameplay();
 
             // 显示InfoPanel
-            _uiService?.ShowPanelsForState("Gameplay/ReadingInfo");
+            _uiService?.ShowPanelsForState("Gameplay/InfoReading");
 
             // 触发事件
             OnInfoReadingStarted?.Invoke(_currentInfoData);

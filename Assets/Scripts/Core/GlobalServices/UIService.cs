@@ -48,7 +48,7 @@ namespace Resonance.Core.GlobalServices
             SetStatePanels("MainMenu", "MainMenuPanel");
             SetStatePanels("Gameplay", "PlayerStatusPanel"); // ResonancePanel moved to substate
             SetStatePanels("Gameplay/Resonance", "ResonancePanel"); // ResonancePanel only in Resonance substate
-            SetStatePanels("Gameplay/ReadingInfo", "InfoPanel"); // InfoPanel only in ReadingInfo substate
+            SetStatePanels("Gameplay/InfoReading", "InfoPanel"); // InfoPanel only in InfoReading substate
             SetStatePanels("Paused", "PauseMenuPanel");
         }
 
