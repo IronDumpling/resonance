@@ -261,10 +261,10 @@ namespace Resonance.Player.Actions
             bool targetCoreInRange = !targetCoreNull && IsTargetCoreStillInRange(_targetCoreHitbox);
             
             // Debug log every few seconds to track state
-            if (Mathf.FloorToInt(actionDuration * 2) % 10 == 0) // Every 5 seconds
-            {
-                Debug.Log($"PlayerResonanceAction: Update - Duration: {actionDuration:F1}s, Target null: {targetCoreNull}, Valid: {targetCoreValid}, In range: {targetCoreInRange}");
-            }
+            // if (Mathf.FloorToInt(actionDuration * 2) % 10 == 0) // Every 5 seconds
+            // {
+            //     Debug.Log($"PlayerResonanceAction: Update - Duration: {actionDuration:F1}s, Target null: {targetCoreNull}, Valid: {targetCoreValid}, In range: {targetCoreInRange}");
+            // }
 
             if (targetCoreNull || !targetCoreValid || !targetCoreInRange)
             {
