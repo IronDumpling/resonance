@@ -452,7 +452,7 @@ namespace Resonance.Items
         {
             if (_audioService == null) return;
 
-            AudioClipType audioClipType = AudioClipType.ItemPickup;
+            AudioClipType audioClipType = AudioClipType.PistoArming;
             _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.8f, 1f);
         }
 

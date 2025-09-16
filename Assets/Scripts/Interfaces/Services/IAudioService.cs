@@ -156,16 +156,16 @@ namespace Resonance.Interfaces.Services
         // 射击音效
         GunFirePistol,
         GunFireRifle,
-        GunReload,
+        GunReloadPistol,
+        GunReloadRifle,
         GunEmpty,
         GunCock,
+        PistoArming,
+        RifleArming,
         
         // 战斗音效
         EnemyHit,
-        EnemyHitMetal,
-        EnemyHitFlesh,
         EnemyDeath,
-        EnemyDeathExplosion,
         EnemyAttack,
         PlayerHit,
         PlayerDeath,
@@ -175,8 +175,7 @@ namespace Resonance.Interfaces.Services
         FootstepRun,
         FootstepStop,
         FootstepGrass,
-        FootstepStone,
-        FootstepMetal,
+        FootstepStone,      
         
         // 交互音效
         ItemPickup,

@@ -645,26 +645,16 @@ namespace Resonance.Player.Core
             string tag = hitObject.tag.ToLower();
             string name = hitObject.name.ToLower();
             
-            if (tag.Contains("enemy") || name.Contains("enemy"))
-            {
-                // 进一步检查是否是金属或血肉
-                if (name.Contains("metal") || name.Contains("robot"))
-                {
-                    return AudioClipType.EnemyHitMetal;
-                }
-                else
-                {
-                    return AudioClipType.EnemyHitFlesh;
-                }
-            }
-            else if (tag.Contains("player") || name.Contains("player"))
+            if (tag.Contains("player") || name.Contains("player"))
             {
                 return AudioClipType.PlayerHit;
             }
-            else
+            else if (tag.Contains("enemy") || name.Contains("enemy"))
             {
-                return AudioClipType.EnemyHit; // 默认命中音效
+                return AudioClipType.EnemyHit;
             }
+
+            return AudioClipType.PlayerHit;
         }
 
         #endregion

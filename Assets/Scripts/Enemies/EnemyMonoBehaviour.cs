@@ -1037,33 +1037,13 @@ namespace Resonance.Enemies
         private AudioClipType GetHitAudioClipType(DamageInfo damageInfo)
         {
             string enemyName = gameObject.name.ToLower();
-            
-            if (enemyName.Contains("metal") || enemyName.Contains("robot"))
-            {
-                return AudioClipType.EnemyHitMetal;
-            }
-            else if (enemyName.Contains("flesh") || enemyName.Contains("organic"))
-            {
-                return AudioClipType.EnemyHitFlesh;
-            }
-            else
-            {
-                return AudioClipType.EnemyHit;
-            }
+            return AudioClipType.EnemyHit;
         }
 
         private AudioClipType GetDeathAudioClipType()
         {
             string enemyName = gameObject.name.ToLower();
-            
-            if (enemyName.Contains("boss") || enemyName.Contains("explosion"))
-            {
-                return AudioClipType.EnemyDeathExplosion;
-            }
-            else
-            {
-                return AudioClipType.EnemyDeath;
-            }
+            return AudioClipType.EnemyDeath;
         }
 
         #endregion

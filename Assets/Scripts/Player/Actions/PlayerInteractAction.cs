@@ -261,7 +261,7 @@ namespace Resonance.Player.Actions
             if (audioService != null)
             {
                 // TODO: Add specific interaction audio clips
-                audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.5f, 1.2f); // Placeholder audio
+                audioService.PlaySFX2D(AudioClipType.ItemPickup, 0.5f, 1.2f); // Placeholder audio
             }
 
             // TODO: Add visual effects (interaction progress UI, highlight, etc.)
@@ -279,7 +279,7 @@ namespace Resonance.Player.Actions
             if (audioService != null)
             {
                 // TODO: Add specific completion audio clips
-                audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.7f, 1.0f); // Placeholder audio
+                audioService.PlaySFX2D(AudioClipType.ItemPickup, 0.7f, 1.0f); // Placeholder audio
             }
 
             // TODO: Add completion visual effects

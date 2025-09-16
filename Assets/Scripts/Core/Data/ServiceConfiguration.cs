@@ -94,18 +94,17 @@ namespace Resonance.Core
             {
                 case AudioClipType.GunFirePistol:
                 case AudioClipType.GunFireRifle:
-                case AudioClipType.GunReload:
+                case AudioClipType.GunReloadPistol:
+                case AudioClipType.GunReloadRifle:
                 case AudioClipType.GunEmpty:
                 case AudioClipType.GunCock:
+                case AudioClipType.PistoArming:
                     return weaponsMixerGroup;
                 
                 // Enemy SFX
                 case AudioClipType.EnemyHit:
-                case AudioClipType.EnemyHitMetal:
-                case AudioClipType.EnemyHitFlesh:
                     return enemiesHurtMixerGroup;
                 case AudioClipType.EnemyDeath:
-                case AudioClipType.EnemyDeathExplosion:
                     return enemiesDeathMixerGroup;
                 case AudioClipType.EnemyAttack:
                     return enemiesAttackMixerGroup;
@@ -128,7 +127,6 @@ namespace Resonance.Core
                 case AudioClipType.FootstepStop:
                 case AudioClipType.FootstepGrass:
                 case AudioClipType.FootstepStone:
-                case AudioClipType.FootstepMetal:
                     return playerMovementMixerGroup;
                 
                 // UI音效 -> UI组

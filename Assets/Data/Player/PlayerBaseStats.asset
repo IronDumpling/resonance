@@ -35,4 +35,4 @@ MonoBehaviour:
   _defaultAmmoInventory:
     ammoTypes:
     - Pisto
-    ammoCounts: 06000000
+    ammoCounts: 04000000

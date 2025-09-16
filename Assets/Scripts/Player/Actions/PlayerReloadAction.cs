@@ -185,7 +185,15 @@ namespace Resonance.Player.Actions
             if (_audioService == null) return;
 
             // Play reload start sound - using existing GunReload type
-            _audioService.PlaySFX2D(AudioClipType.GunReload, 0.7f, 1f);
+            string weaponAmmoType = playerController.WeaponManager.CurrentGun.ammoType;
+            if (weaponAmmoType == "Pisto")
+            {
+                _audioService.PlaySFX2D(AudioClipType.GunReloadPistol, 0.8f, 1f);
+            }
+            else if (weaponAmmoType == "Rifle")
+            {
+                _audioService.PlaySFX2D(AudioClipType.GunReloadRifle, 0.8f, 1f);
+            }
         }
 
         private void PlayReloadCompleteAudio(PlayerController playerController)
