@@ -256,15 +256,8 @@ namespace Resonance.Player.Actions
         /// <param name="player">Player controller reference</param>
         private void PlayInteractionStartEffects(PlayerController player)
         {
-            // Play interaction start audio
-            var audioService = ServiceRegistry.Get<IAudioService>();
-            if (audioService != null)
-            {
-                // TODO: Add specific interaction audio clips
-                audioService.PlaySFX2D(AudioClipType.ItemPickup, 0.5f, 1.2f); // Placeholder audio
-            }
-
             // TODO: Add visual effects (interaction progress UI, highlight, etc.)
+            // Note: Audio is handled by the individual item MonoBehaviours
             Debug.Log("PlayerInteractAction: Playing interaction start effects (placeholder)");
         }
 
@@ -274,15 +267,8 @@ namespace Resonance.Player.Actions
         /// <param name="player">Player controller reference</param>
         private void PlayInteractionCompleteEffects(PlayerController player)
         {
-            // Play completion audio
-            var audioService = ServiceRegistry.Get<IAudioService>();
-            if (audioService != null)
-            {
-                // TODO: Add specific completion audio clips
-                audioService.PlaySFX2D(AudioClipType.ItemPickup, 0.7f, 1.0f); // Placeholder audio
-            }
-
             // TODO: Add completion visual effects
+            // Note: Audio is handled by the individual item MonoBehaviours
             Debug.Log("PlayerInteractAction: Playing interaction complete effects (placeholder)");
         }
 
@@ -296,7 +282,6 @@ namespace Resonance.Player.Actions
         {
             // TODO: Update interaction progress UI
             // TODO: Update visual effects based on progress
-            // TODO: Update audio effects
 
             // Placeholder implementation
             if (Mathf.FloorToInt(progress * 10) % 2 == 0)

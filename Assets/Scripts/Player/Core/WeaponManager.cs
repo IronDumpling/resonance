@@ -1,5 +1,8 @@
 using UnityEngine;
 using Resonance.Items;
+using Resonance.Interfaces.Services;
+using Resonance.Core;
+using Resonance.Utilities;
 
 namespace Resonance.Player.Core
 {
@@ -42,11 +45,15 @@ namespace Resonance.Player.Core
                 UnequipWeapon();
             }
 
-            _currentGun = gunData;
-            OnWeaponEquipped?.Invoke(_currentGun);
-            OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
+        _currentGun = gunData;
+        
+        // Play weapon equip audio based on weapon type
+        PlayWeaponEquipAudio(_currentGun);
+        
+        OnWeaponEquipped?.Invoke(_currentGun);
+        OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
 
-            Debug.Log($"WeaponManager: Equipped weapon {_currentGun.weaponName} with {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} ammo");
+        Debug.Log($"WeaponManager: Equipped weapon {_currentGun.weaponName} with {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} ammo");
         }
 
         /// <summary>
@@ -112,6 +119,30 @@ namespace Resonance.Player.Core
             if (!HasEquippedWeapon) return "No Weapon";
             
             return $"{_currentGun.weaponName} ({_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} {_currentGun.ammoType})";
+        }
+
+        /// <summary>
+        /// 播放武器装备音效
+        /// </summary>
+        /// <param name="gunData">武器数据</param>
+        private void PlayWeaponEquipAudio(GunDataAsset gunData)
+        {
+            var audioService = ServiceRegistry.Get<IAudioService>();
+            if (audioService == null) return;
+
+            AudioClipType audioClipType = AudioClipType.PistoArming;
+            
+            if (gunData.ammoType == "Pisto")
+            {
+                audioClipType = AudioClipType.PistoArming;
+            }
+            else if (gunData.ammoType == "Rifle")
+            {
+                audioClipType = AudioClipType.RifleArming;
+            }
+            
+            audioService.PlaySFX2D(audioClipType, 0.8f, 1f);
+            Debug.Log($"WeaponManager: Played equip audio for {gunData.weaponName}");
         }
 
         /// <summary>
