@@ -195,6 +195,12 @@ namespace Resonance.UI
                 _weaponManager.OnWeaponUnequipped += OnWeaponUnequipped;
                 _weaponManager.OnAmmoChanged += OnAmmoChanged;
             }
+            
+            // Subscribe to ammo inventory events
+            if (_playerController.Stats?.ammoInventory != null)
+            {
+                _playerController.Stats.ammoInventory.OnAmmoChanged += OnBackupAmmoChanged;
+            }
         }
 
         private void UnsubscribeFromPlayerEvents()
@@ -203,6 +209,12 @@ namespace Resonance.UI
             {
                 _playerController.OnPhysicalHealthChanged -= OnPhysicalHealthChanged;
                 _playerController.OnMentalHealthChanged -= OnMentalHealthChanged;
+                
+                // Unsubscribe from ammo inventory events
+                if (_playerController.Stats?.ammoInventory != null)
+                {
+                    _playerController.Stats.ammoInventory.OnAmmoChanged -= OnBackupAmmoChanged;
+                }
             }
             
             if (_weaponManager != null)
@@ -244,6 +256,16 @@ namespace Resonance.UI
         private void OnAmmoChanged(int currentAmmo)
         {
             UpdateAmmoUI();
+        }
+        
+        private void OnBackupAmmoChanged(string ammoType, int oldAmount, int newAmount)
+        {
+            // Only update UI if the changed ammo type matches the current weapon's ammo type
+            if (_weaponManager != null && _weaponManager.HasEquippedWeapon && 
+                string.Equals(ammoType, _weaponManager.AmmoType, System.StringComparison.OrdinalIgnoreCase))
+            {
+                UpdateAmmoUI();
+            }
         }
 
         #endregion
@@ -287,15 +309,15 @@ namespace Resonance.UI
 
         private void UpdateAmmoUI()
         {
-            if (_ammoCount == null || _weaponManager == null) return;
+            if (_ammoCount == null || _weaponManager == null || _playerController == null) return;
             
             bool hasWeapon = _weaponManager.HasEquippedWeapon;
             
             if (hasWeapon)
             {
                 int currentAmmo = _weaponManager.CurrentAmmo;
-                int maxAmmo = _weaponManager.MaxAmmo;
-                _ammoCount.text = $"{currentAmmo}/{maxAmmo}";
+                int backupAmmo = _playerController.Stats.ammoInventory.GetAmmoCount(_weaponManager.AmmoType);
+                _ammoCount.text = $"{currentAmmo}/{backupAmmo}";
             }
             else
             {

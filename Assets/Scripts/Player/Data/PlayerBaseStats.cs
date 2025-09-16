@@ -266,10 +266,10 @@ namespace Resonance.Player.Data
     public class AmmoInventoryConfig
     {
         [Header("Default Ammo Types")]
-        public List<string> ammoTypes = new List<string> { "TypeA" };
+        public List<string> ammoTypes = new List<string> { "Pisto" };
         
         [Header("Default Ammo Counts")]
-        public List<int> ammoCounts = new List<int> { 60 };
+        public List<int> ammoCounts = new List<int> { 6 };
         
         /// <summary>
         /// Get default ammo as dictionary for easy initialization
@@ -300,6 +300,10 @@ namespace Resonance.Player.Data
     {
         // Single source of truth - runtime dictionary
         private Dictionary<string, int> _ammoCount = new Dictionary<string, int>();
+        
+        // Events for ammo changes
+        public System.Action<string, int> OnAmmoAdded; // ammoType, amount added
+        public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
 
         public PlayerAmmoInventory()
         {
@@ -345,13 +349,17 @@ namespace Resonance.Player.Data
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
                 return false;
             
-            int currentAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
-            if (currentAmount < amount)
+            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
+            if (oldAmount < amount)
                 return false;
                 
-            _ammoCount[ammoType] = currentAmount - amount;
+            int newAmount = oldAmount - amount;
+            _ammoCount[ammoType] = newAmount;
             
-            Debug.Log($"PlayerAmmoInventory: Consumed {amount} {ammoType} ammo. Remaining: {_ammoCount[ammoType]}");
+            Debug.Log($"PlayerAmmoInventory: Consumed {amount} {ammoType} ammo. Remaining: {newAmount}");
+            
+            // Trigger events
+            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
             return true;
         }
 
@@ -365,10 +373,15 @@ namespace Resonance.Player.Data
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
                 return;
             
-            int currentAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
-            _ammoCount[ammoType] = currentAmount + amount;
+            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
+            int newAmount = oldAmount + amount;
+            _ammoCount[ammoType] = newAmount;
             
-            Debug.Log($"PlayerAmmoInventory: Added {amount} {ammoType} ammo. Total: {_ammoCount[ammoType]}");
+            Debug.Log($"PlayerAmmoInventory: Added {amount} {ammoType} ammo. Total: {newAmount}");
+            
+            // Trigger events
+            OnAmmoAdded?.Invoke(ammoType, amount);
+            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
         }
 
         /// <summary>
@@ -461,9 +474,17 @@ namespace Resonance.Player.Data
             if (string.IsNullOrEmpty(ammoType))
                 return;
             
-            _ammoCount[ammoType] = Mathf.Max(0, count);
+            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
+            int newAmount = Mathf.Max(0, count);
+            _ammoCount[ammoType] = newAmount;
             
-            Debug.Log($"PlayerAmmoInventory: Set {ammoType} ammo to {_ammoCount[ammoType]}");
+            Debug.Log($"PlayerAmmoInventory: Set {ammoType} ammo to {newAmount}");
+            
+            // Trigger events if amount actually changed
+            if (oldAmount != newAmount)
+            {
+                OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+            }
         }
 
         /// <summary>

@@ -17,7 +17,7 @@ namespace Resonance.Items
         
         [Header("Ammo")]
         public int maxAmmo = 8;
-        public string ammoType = "TypeA";
+        public string ammoType = "Pisto";
         
         // Runtime state - not serialized, reset each time
         [System.NonSerialized] private int _currentAmmo = -1; // -1 means not initialized

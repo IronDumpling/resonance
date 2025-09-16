@@ -16,7 +16,7 @@ namespace Resonance.Items
         public string ammoDescription = "Standard ammunition for firearms";
         
         [Header("Ammo Properties")]
-        public string ammoType = "TypeA";
+        public string ammoType = "Pisto";
         public int ammoCount = 30;
         
         [Header("Visual")]
@@ -67,10 +67,10 @@ namespace Resonance.Items
         {
             return ammoType switch
             {
-                "TypeA" => "标准弹药",
-                "TypeB" => "穿甲弹药",
-                "TypeC" => "爆炸弹药",
-                _ => $"未知类型 ({ammoType})"
+                "Pisto" => "Pisto Ammo",
+                "Rifle" => "Rifle Ammo",
+                "Sniper" => "Sniper Ammo",
+                _ => $"Unknown Type ({ammoType})"
             };
         }
 
@@ -114,7 +114,7 @@ namespace Resonance.Items
             // 确保ammoType不为空
             if (string.IsNullOrEmpty(ammoType))
             {
-                ammoType = "TypeA";
+                ammoType = "Pisto";
             }
         }
 

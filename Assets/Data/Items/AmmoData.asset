@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ammoName: Pisto Ammo
   ammoDescription: Standard ammunition for Pisto
-  ammoType: TypeA
+  ammoType: Pisto
   ammoCount: 6
   ammoIcon: {fileID: 0}
   gridWidth: 1
