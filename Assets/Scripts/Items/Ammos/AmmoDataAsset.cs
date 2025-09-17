@@ -21,11 +21,8 @@ namespace Resonance.Items
         public string ammoType = "Pisto";
         public int ammoCount = 30;
         
-        [Header("Visual & Info")]
+        [Header("Visual")]
         public Sprite ammoIcon;
-        
-        [Header("Info Display")]
-        [SerializeField] private InfoData _infoData;
         
         [Header("Inventory")]
         public int gridWidth = 1;
@@ -114,17 +111,11 @@ namespace Resonance.Items
         /// </summary>
         public InfoData GetInfoData()
         {
-            // 如果没有设置自定义信息，使用基本信息
-            if (_infoData.IsEmpty)
-            {
-                return new InfoData(
-                    name: ammoName,
-                    content: ammoDescription,
-                    image: ammoIcon
-                );
-            }
-            
-            return _infoData;
+            return new InfoData(
+                name: ammoName,
+                content: ammoDescription,
+                image: ammoIcon
+            );
         }
 
         /// <summary>

@@ -37,11 +37,8 @@ namespace Resonance.Items
         [Range(0f, 1f)]
         public float physicalDamageRatio = 0.5f;
         
-        [Header("Visual & Info")]
+        [Header("Visual")]
         public Sprite weaponIcon;
-        
-        [Header("Info Display")]
-        [SerializeField] private InfoData _infoData;
         
         [Header("Inventory")]
         public int gridWidth = 2;
@@ -229,17 +226,11 @@ namespace Resonance.Items
         /// </summary>
         public InfoData GetInfoData()
         {
-            // 如果没有设置自定义信息，使用基本信息
-            if (_infoData.IsEmpty)
-            {
-                return new InfoData(
-                    name: weaponName,
-                    content: weaponDescription,
-                    image: weaponIcon
-                );
-            }
-            
-            return _infoData;
+            return new InfoData(
+                name: weaponName,
+                content: weaponDescription,
+                image: weaponIcon
+            );
         }
 
         /// <summary>
