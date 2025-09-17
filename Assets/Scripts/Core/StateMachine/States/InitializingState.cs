@@ -24,7 +24,7 @@ namespace Resonance.Core.StateMachine.States
             {
                 // Check if all core services are running
                 var inputService = ServiceRegistry.Get<IInputService>();
-                var loadSceneService = ServiceRegistry.Get<ILoadSceneService>();
+                var loadSceneService = ServiceRegistry.Get<ISceneTransitionService>();
                 var uiService = ServiceRegistry.Get<IUIService>();
                 
                 if (inputService?.State == SystemState.Running &&

@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 
 namespace Resonance.Interfaces.Services
 {
-    public interface ILoadSceneService : IGameService
+    public interface ISceneTransitionService : IGameService
     {
         event Action<string> OnSceneLoadStarted;
         event Action<string> OnSceneLoadCompleted;

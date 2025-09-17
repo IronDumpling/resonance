@@ -7,7 +7,7 @@ using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {
-    public class LoadSceneService : ILoadSceneService
+    public class SceneTransitionService : ISceneTransitionService
     {
         public int Priority => 5;
         public SystemState State { get; private set; } = SystemState.Uninitialized;
@@ -22,7 +22,7 @@ namespace Resonance.Core.GlobalServices
 
         private MonoBehaviour _coroutineRunner;
 
-        public LoadSceneService(MonoBehaviour coroutineRunner)
+        public SceneTransitionService(MonoBehaviour coroutineRunner)
         {
             _coroutineRunner = coroutineRunner;
             CurrentSceneName = SceneManager.GetActiveScene().name;
@@ -32,30 +32,30 @@ namespace Resonance.Core.GlobalServices
         {
             if (State != SystemState.Uninitialized)
             {
-                Debug.LogWarning("LoadSceneService already initialized");
+                Debug.LogWarning("SceneTransitionService already initialized");
                 return;
             }
 
             State = SystemState.Initializing;
-            Debug.Log("LoadSceneService: Initializing");
+            Debug.Log("SceneTransitionService: Initializing");
 
             // Subscribe to Unity scene events
             SceneManager.sceneLoaded += OnSceneLoaded;
             SceneManager.sceneUnloaded += OnSceneUnloaded;
 
             State = SystemState.Running;
-            Debug.Log("LoadSceneService: Initialized successfully");
+            Debug.Log("SceneTransitionService: Initialized successfully");
         }
 
         public void LoadScene(string sceneName, LoadSceneMode mode = LoadSceneMode.Single)
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"LoadSceneService: Cannot load {sceneName}, already loading a scene");
+                Debug.LogWarning($"SceneTransitionService: Cannot load {sceneName}, already loading a scene");
                 return;
             }
 
-            Debug.Log($"LoadSceneService: Loading scene {sceneName}");
+            Debug.Log($"SceneTransitionService: Loading scene {sceneName}");
             OnSceneLoadStarted?.Invoke(sceneName);
             
             SceneManager.LoadScene(sceneName, mode);
@@ -65,7 +65,7 @@ namespace Resonance.Core.GlobalServices
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"LoadSceneService: Cannot load {sceneName}, already loading a scene");
+                Debug.LogWarning($"SceneTransitionService: Cannot load {sceneName}, already loading a scene");
                 return;
             }
 
@@ -75,7 +75,7 @@ namespace Resonance.Core.GlobalServices
         private IEnumerator LoadSceneAsyncCoroutine(string sceneName, LoadSceneMode mode)
         {
             IsLoading = true;
-            Debug.Log($"LoadSceneService: Loading scene {sceneName} asynchronously");
+            Debug.Log($"SceneTransitionService: Loading scene {sceneName} asynchronously");
             OnSceneLoadStarted?.Invoke(sceneName);
 
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, mode);
@@ -92,7 +92,7 @@ namespace Resonance.Core.GlobalServices
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"LoadSceneService: Cannot unload {sceneName}, currently loading a scene");
+                Debug.LogWarning($"SceneTransitionService: Cannot unload {sceneName}, currently loading a scene");
                 return;
             }
 
@@ -101,7 +101,7 @@ namespace Resonance.Core.GlobalServices
 
         private IEnumerator UnloadSceneAsyncCoroutine(string sceneName)
         {
-            Debug.Log($"LoadSceneService: Unloading scene {sceneName}");
+            Debug.Log($"SceneTransitionService: Unloading scene {sceneName}");
             OnSceneUnloadStarted?.Invoke(sceneName);
 
             AsyncOperation operation = SceneManager.UnloadSceneAsync(sceneName);
@@ -119,25 +119,25 @@ namespace Resonance.Core.GlobalServices
             {
                 SceneManager.SetActiveScene(scene);
                 CurrentSceneName = sceneName;
-                Debug.Log($"LoadSceneService: Set active scene to {sceneName}");
+                Debug.Log($"SceneTransitionService: Set active scene to {sceneName}");
             }
             else
             {
-                Debug.LogError($"LoadSceneService: Cannot set active scene {sceneName}, scene is not loaded");
+                Debug.LogError($"SceneTransitionService: Cannot set active scene {sceneName}, scene is not loaded");
             }
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             CurrentSceneName = scene.name;
-            Debug.Log($"LoadSceneService: Scene {scene.name} loaded");
+            Debug.Log($"SceneTransitionService: Scene {scene.name} loaded");
             OnSceneLoadCompleted?.Invoke(scene.name);
             IsLoading = false;
         }
 
         private void OnSceneUnloaded(Scene scene)
         {
-            Debug.Log($"LoadSceneService: Scene {scene.name} unloaded");
+            Debug.Log($"SceneTransitionService: Scene {scene.name} unloaded");
             OnSceneUnloadCompleted?.Invoke(scene.name);
         }
 
@@ -146,7 +146,7 @@ namespace Resonance.Core.GlobalServices
             if (State == SystemState.Shutdown)
                 return;
 
-            Debug.Log("LoadSceneService: Shutting down");
+            Debug.Log("SceneTransitionService: Shutting down");
 
             // Unsubscribe from Unity scene events
             SceneManager.sceneLoaded -= OnSceneLoaded;

@@ -8,19 +8,22 @@ namespace Resonance.Environments
         [Header("Transition Configuration")]
         [SerializeField] private string _targetSceneName;
         [SerializeField] private string _targetSpawnPointID;
-        [SerializeField] private string _transitionID; 
         
-        [Header("Transition Settings")]
-        [SerializeField] private bool _savePlayerStateOnTransition = true;
-        [SerializeField] private float _transitionDelay = 0f;
+        private string _transitionID;
+        private SceneTransitionManager _manager;
         
-        // 当Player进入触发器时调用
+        public void Initialize(string transitionID, SceneTransitionManager manager)
+        {
+            _transitionID = transitionID;
+            _manager = manager;
+        }
+        
         private void OnTriggerEnter(Collider other)
         {
             var player = other.GetComponent<PlayerMonoBehaviour>();
-            if (player != null)
+            if (player != null && _manager != null)
             {
-                // TriggerSceneTransition(player);
+                _manager.TriggerTransition(_transitionID, _targetSceneName, _targetSpawnPointID);
             }
         }
     }

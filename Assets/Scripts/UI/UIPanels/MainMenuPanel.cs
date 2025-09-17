@@ -18,7 +18,7 @@ namespace Resonance.UI
         [SerializeField] private Button _quitButton;
         
         [Header("Services")]
-        private ILoadSceneService _sceneService;
+        private ISceneTransitionService _sceneService;
         private GameManager _gameManager;
         
         protected override void Awake()
@@ -35,7 +35,7 @@ namespace Resonance.UI
             base.Start();
             
             // Get services
-            _sceneService = ServiceRegistry.Get<ILoadSceneService>();
+            _sceneService = ServiceRegistry.Get<ISceneTransitionService>();
             _gameManager = GameManager.Instance;
             
             // Setup button events
@@ -102,7 +102,7 @@ namespace Resonance.UI
                     }
                     else
                     {
-                        Debug.LogError("MainMenu: LoadSceneService not found");
+                        Debug.LogError("MainMenu: SceneTransitionService not found");
                     }
                 }
                 else
