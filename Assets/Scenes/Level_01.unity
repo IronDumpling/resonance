@@ -672,7 +672,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3140920244421437782, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 15
+      value: 14.8
       objectReference: {fileID: 0}
     - target: {fileID: 3140920244421437782, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: m_LocalPosition.y
@@ -964,7 +964,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7706772026751132907, guid: 0142e88b3b9a19840b3b392172894d6f, type: 3}
       propertyPath: _namedSpawnPoints.Array.data[2].spawnID
-      value: level02_door
+      value: level_02_door
       objectReference: {fileID: 0}
     - target: {fileID: 7706772026751132907, guid: 0142e88b3b9a19840b3b392172894d6f, type: 3}
       propertyPath: _namedSpawnPoints.Array.data[0].spawnPoint

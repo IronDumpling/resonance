@@ -116,9 +116,12 @@ namespace Resonance.Player.Core
         private void Initialize(PlayerBaseStats baseStats)
         {
             _stats = baseStats.CreateRuntimeStats();
-            _inventory = new PlayerInventory(_stats.maxInventorySlots, _stats.maxCarryWeight);
+            _inventory = new PlayerInventory(_stats.maxInventorySlots);
             _movement = new PlayerMovement(_stats);
             _weaponManager = new WeaponManager();
+            
+            // 设置WeaponManager与PlayerInventory的双向同步
+            _weaponManager.SetInventoryReference(_inventory);
 
             _unlockedAbilities = new List<string>();
             _gameVariables = new Dictionary<string, float>();
@@ -502,8 +505,23 @@ namespace Resonance.Player.Core
             _unlockedAbilities = new List<string>(saveData.unlockedAbilities);
             _gameVariables = new Dictionary<string, float>(saveData.gameVariables);
 
-            // Load inventory
-            _inventory.LoadFromSaveData(saveData.inventory, saveData.equippedItemIDs);
+            // Load inventory system
+            if (saveData.Inventory != null)
+            {
+                _inventory.LoadFromSaveData(saveData.Inventory);
+                Debug.Log("PlayerController: Loaded inventory data");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: No inventory data found in save data");
+            }
+
+            // Load weapon manager state
+            if (saveData.weaponManager != null)
+            {
+                _weaponManager.LoadFromSaveData(saveData.weaponManager);
+                Debug.Log("PlayerController: Loaded weapon manager data");
+            }
 
             Debug.Log($"PlayerController: Loaded save data from {saveData.saveID}");
 
@@ -525,10 +543,13 @@ namespace Resonance.Player.Core
                 gameVariables = new Dictionary<string, float>(_gameVariables)
             };
 
-            // Save inventory
-            saveData.inventory = _inventory.GetSaveData();
-            saveData.equippedItemIDs = _inventory.GetEquippedItemIDs();
+            // Save inventory system
+            saveData.Inventory = _inventory.GetSaveData();
+            
+            // Save weapon manager state
+            saveData.weaponManager = _weaponManager.GetSaveData();
 
+            Debug.Log($"PlayerController: Created save data for {savePointID} with inventory system");
             return saveData;
         }
 

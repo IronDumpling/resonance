@@ -313,29 +313,38 @@ namespace Resonance.Items
             
             if (gunCopy != null && playerTransform != null)
             {
-                // Try to equip the weapon to the player
+                // Try to equip the weapon to the player using the new inventory system
                 var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
                 if (playerMono != null && playerMono.IsInitialized)
                 {
-                    var weaponManager = playerMono.Controller.WeaponManager;
-                    if (weaponManager != null)
+                    var playerController = playerMono.Controller;
+                    if (playerController != null)
                     {
-                        // 实际装备武器
-                        weaponManager.EquipWeapon(gunCopy);
-                        
-                        // 验证装备是否成功
-                        if (weaponManager.HasEquippedWeapon)
+                        // 通过WeaponManager装备武器（自动同步到PlayerInventory）
+                        var weaponManager = playerController.WeaponManager;
+                        if (weaponManager != null)
                         {
-                            Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} to player");
+                            // 装备武器 - 这会自动添加到PlayerInventory并装备
+                            weaponManager.EquipWeapon(gunCopy);
+                            
+                            // 验证装备是否成功
+                            if (weaponManager.HasEquippedWeapon)
+                            {
+                                Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} to player via new inventory system");
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"GunMonoBehaviour: Failed to equip {gunCopy.weaponName} to player");
+                            }
                         }
                         else
                         {
-                            Debug.LogWarning($"GunMonoBehaviour: Failed to equip {gunCopy.weaponName} to player");
+                            Debug.LogError("GunMonoBehaviour: Player's WeaponManager is null");
                         }
                     }
                     else
                     {
-                        Debug.LogError("GunMonoBehaviour: Player's WeaponManager is null");
+                        Debug.LogError("GunMonoBehaviour: Player's Controller is null");
                     }
                 }
                 else

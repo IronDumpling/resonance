@@ -27,7 +27,6 @@ namespace Resonance.Items
             return _infoData.IsValid();
         }
 
-        // 向后兼容的属性
         public string infoName => _infoData.name;
         public string infoContent => _infoData.content;
         public Sprite infoImage => _infoData.image;
