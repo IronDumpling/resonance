@@ -274,19 +274,11 @@ namespace Resonance.Player.Core
         /// </summary>
         public GunDataAsset GetEquippedWeapon()
         {
-            Debug.Log($"🔍 [DEBUG] GetEquippedWeapon called. _equippedWeaponID: {_equippedWeaponID}");
-            
-            if (_equippedWeaponID == -1) 
-            {
-                Debug.Log($"🔍 [DEBUG] No weapon equipped (_equippedWeaponID == -1)");
-                return null;
-            }
-            
-            Debug.Log($"🔍 [DEBUG] Looking for weapon in {_items.Count} items:");
+            if (_equippedWeaponID == -1)  return null;
+
             for (int i = 0; i < _items.Count; i++)
             {
                 var item = _items[i];
-                Debug.Log($"🔍 [DEBUG] Item {i}: ID={item.ItemID}, Type={item.ItemType}, AssetPath={item.AssetPath}");
             }
             
             var weaponItem = _items.FirstOrDefault(item => 
@@ -294,22 +286,18 @@ namespace Resonance.Player.Core
             
             if (weaponItem == null) 
             {
-                Debug.LogWarning($"🔍 [DEBUG] Weapon not found! Looking for ID {_equippedWeaponID} with type Weapon");
+                Debug.LogWarning($"PlayerInventory: Weapon not found! Looking for ID {_equippedWeaponID} with type Weapon");
                 return null;
             }
-            
-            Debug.Log($"🔍 [DEBUG] Found weapon item: ID={weaponItem.ItemID}, AssetPath={weaponItem.AssetPath}");
             
             // 尝试从CustomData中获取原始GunDataAsset引用
             if (weaponItem.CustomData.ContainsKey("originalAsset") && weaponItem.CustomData["originalAsset"] is GunDataAsset originalAsset)
             {
-                Debug.Log($"🔍 [DEBUG] Using original asset reference: {originalAsset.weaponName}");
                 return originalAsset;
             }
             
             // 如果CustomData中没有，尝试从路径加载
             var gunAsset = LoadAssetFromPath<GunDataAsset>(weaponItem.AssetPath);
-            Debug.Log($"🔍 [DEBUG] LoadAssetFromPath result: {gunAsset?.weaponName ?? "NULL"}");
             
             return gunAsset;
         }
@@ -580,15 +568,15 @@ namespace Resonance.Player.Core
         {
             if (string.IsNullOrEmpty(path)) 
             {
-                Debug.LogWarning($"🔍 [DEBUG] LoadAssetFromPath: path is null or empty");
+                Debug.LogWarning($"PlayerInventory: LoadAssetFromPath: path is null or empty");
                 return null;
             }
             
-            Debug.Log($"🔍 [DEBUG] LoadAssetFromPath: Loading from path: {path}");
+            Debug.Log($"PlayerInventory: LoadAssetFromPath: Loading from path: {path}");
             
             #if UNITY_EDITOR
             var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
-            Debug.Log($"🔍 [DEBUG] LoadAssetFromPath: Editor result: {asset?.name ?? "NULL"}");
+            Debug.Log($"PlayerInventory: LoadAssetFromPath: Editor result: {asset?.name ?? "NULL"}");
             return asset;
             #else
             // 运行时从Resources加载，需要去掉扩展名和Resources路径
@@ -602,9 +590,9 @@ namespace Resonance.Player.Core
                 resourcePath = resourcePath.Substring(0, resourcePath.Length - ".asset".Length);
             }
             
-            Debug.Log($"🔍 [DEBUG] LoadAssetFromPath: Resource path: {resourcePath}");
+            Debug.Log($"PlayerInventory: LoadAssetFromPath: Resource path: {resourcePath}");
             var resource = Resources.Load<T>(resourcePath);
-            Debug.Log($"🔍 [DEBUG] LoadAssetFromPath: Resource result: {resource?.name ?? "NULL"}");
+            Debug.Log($"PlayerInventory: LoadAssetFromPath: Resource result: {resource?.name ?? "NULL"}");
             return resource;
             #endif
         }

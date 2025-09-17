@@ -500,27 +500,27 @@ namespace Resonance.Player.Core
         {
             if (saveData == null)
             {
-                Debug.LogError("💾 [LOAD DATA] Cannot load from null save data");
+                Debug.LogError("PlayerController: Cannot load from null save data");
                 return;
             }
 
-            Debug.Log($"💾 [LOAD DATA] Loading save data from {saveData.saveID}");
+            Debug.Log($"PlayerController: Loading save data from {saveData.saveID}");
 
             // Load stats
             _stats = saveData.stats;
-            Debug.Log($"💾 [LOAD DATA] Loaded stats: Health {_stats.currentPhysicalHealth}/{_stats.maxPhysicalHealth}");
+            Debug.Log($"PlayerController: Loaded stats: Health {_stats.currentPhysicalHealth}/{_stats.maxPhysicalHealth}");
 
             // Load progression
             _unlockedAbilities = new List<string>(saveData.unlockedAbilities);
             _gameVariables = new Dictionary<string, float>(saveData.gameVariables);
-            Debug.Log($"💾 [LOAD DATA] Loaded progression: {_unlockedAbilities.Count} abilities, {_gameVariables.Count} variables");
+            Debug.Log($"PlayerController: Loaded progression: {_unlockedAbilities.Count} abilities, {_gameVariables.Count} variables");
 
             // Load inventory system
             if (saveData.Inventory != null)
             {
-                Debug.Log($"💾 [LOAD DATA] Loading inventory data: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
+                Debug.Log($"PlayerController: Loading inventory data: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
                 _inventory.LoadFromSaveData(saveData.Inventory);
-                Debug.Log($"💾 [LOAD DATA] Inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
+                Debug.Log($"PlayerController: Inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
             }
             else
             {
@@ -530,13 +530,12 @@ namespace Resonance.Player.Core
             // Load weapon manager state
             if (saveData.weaponManager != null)
             {
-                Debug.Log($"💾 [LOAD DATA] Loading weapon manager data: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
+                Debug.Log($"PlayerController: Loading weapon manager data: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
                 _weaponManager.LoadFromSaveData(saveData.weaponManager);
-                Debug.Log($"💾 [LOAD DATA] Weapon manager loaded. HasEquippedWeapon: {_weaponManager.HasEquippedWeapon}");
             }
             else
             {
-                Debug.LogWarning("💾 [LOAD DATA] No weapon manager data found in save data");
+                Debug.LogWarning("PlayerController: No weapon manager data found in save data");
             }
 
             Debug.Log($"PlayerController: Loaded save data from {saveData.saveID}");
@@ -548,7 +547,7 @@ namespace Resonance.Player.Core
 
         public PlayerSaveData CreateSaveData(string savePointID, Vector3 position, Vector3 rotation)
         {
-            Debug.Log($"💾 [SAVE DATA] Creating save data for {savePointID} at position {position}");
+            Debug.Log($"PlayerController: Creating save data for {savePointID} at position {position}");
             
             var saveData = new PlayerSaveData
             {
@@ -562,16 +561,12 @@ namespace Resonance.Player.Core
             };
 
             // Save inventory system
-            Debug.Log($"💾 [SAVE DATA] Getting inventory save data...");
             saveData.Inventory = _inventory.GetSaveData();
-            Debug.Log($"💾 [SAVE DATA] Inventory saved: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
+            Debug.Log($"PlayerController: Inventory saved: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
             
             // Save weapon manager state
-            Debug.Log($"💾 [SAVE DATA] Getting weapon manager save data...");
             saveData.weaponManager = _weaponManager.GetSaveData();
-            Debug.Log($"💾 [SAVE DATA] Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
-
-            Debug.Log($"💾 [SAVE DATA SUCCESS] Created save data for {savePointID} with inventory system");
+            Debug.Log($"PlayerController: Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
             return saveData;
         }
 

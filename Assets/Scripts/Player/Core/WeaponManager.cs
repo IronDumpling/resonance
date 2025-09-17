@@ -51,48 +51,44 @@ namespace Resonance.Player.Core
         {
             if (gunData == null)
             {
-                Debug.LogWarning("🔫 [WEAPON MANAGER] Trying to equip null weapon");
+                Debug.LogWarning("WeaponManager: Trying to equip null weapon");
                 return;
             }
-
-            Debug.Log($"🔫 [WEAPON MANAGER] EquipWeapon called for {gunData.weaponName} (ID: {gunData.GetInstanceID()}), syncWithInventory: {syncWithInventory}");
 
             // 如果已有武器，先卸下
             if (_currentGun != null)
             {
-                Debug.Log($"🔫 [WEAPON MANAGER] Unequipping current weapon: {_currentGun.weaponName}");
+                Debug.Log($"WeaponManager: Unequipping current weapon: {_currentGun.weaponName}");
                 UnequipWeapon(syncWithInventory);
             }
 
             _currentGun = gunData;
-            Debug.Log($"🔫 [WEAPON MANAGER] Set current gun to {_currentGun.weaponName}");
+            Debug.Log($"WeaponManager: Set current gun to {_currentGun.weaponName}");
             
             // 与PlayerInventory同步
             if (syncWithInventory && _inventory != null)
             {
                 int weaponID = gunData.GetInstanceID();
-                Debug.Log($"🔫 [WEAPON MANAGER] Syncing with inventory. WeaponID: {weaponID}, Inventory: {_inventory != null}");
+                Debug.Log($"WeaponManager: Syncing with inventory. WeaponID: {weaponID}, Inventory: {_inventory != null}");
                 
                 // 确保武器在背包中
                 if (!_inventory.HasWeapon(weaponID))
                 {
-                    Debug.Log($"🔫 [WEAPON MANAGER] Adding weapon to inventory...");
                     bool added = _inventory.AddWeapon(gunData);
-                    Debug.Log($"🔫 [WEAPON MANAGER] AddWeapon result: {added}");
+                    Debug.Log($"WeaponManager: AddWeapon result: {added}");
                 }
                 else
                 {
-                    Debug.Log($"🔫 [WEAPON MANAGER] Weapon already in inventory");
+                    Debug.Log($"WeaponManager: Weapon already in inventory");
                 }
                 
                 // 装备武器
-                Debug.Log($"🔫 [WEAPON MANAGER] Equipping weapon in inventory...");
                 bool equipped = _inventory.EquipWeapon(weaponID);
-                Debug.Log($"🔫 [WEAPON MANAGER] EquipWeapon result: {equipped}");
+                Debug.Log($"WeaponManager: EquipWeapon result: {equipped}");
             }
             else
             {
-                Debug.LogWarning($"🔫 [WEAPON MANAGER] Skipping inventory sync. syncWithInventory: {syncWithInventory}, inventory: {_inventory != null}");
+                Debug.LogWarning($"WeaponManager: Skipping inventory sync. syncWithInventory: {syncWithInventory}, inventory: {_inventory != null}");
             }
             
             // Play weapon equip audio based on weapon type
@@ -101,7 +97,7 @@ namespace Resonance.Player.Core
             OnWeaponEquipped?.Invoke(_currentGun);
             OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
 
-            Debug.Log($"🔫 [WEAPON MANAGER SUCCESS] Equipped weapon {_currentGun.weaponName} with {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} ammo (HasEquippedWeapon: {HasEquippedWeapon})");
+            Debug.Log($"WeaponManager: Equipped weapon {_currentGun.weaponName} with {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} ammo (HasEquippedWeapon: {HasEquippedWeapon})");
         }
 
         /// <summary>
@@ -230,21 +226,21 @@ namespace Resonance.Player.Core
         /// </summary>
         public void LoadFromSaveData(WeaponManagerSaveData saveData)
         {
-            Debug.Log($"🔫 [WEAPON MANAGER LOAD] Loading weapon manager from save data...");
+            Debug.Log($"WeaponManager: Loading weapon manager from save data...");
             
             if (saveData == null || saveData.equippedWeaponID == -1)
             {
-                Debug.Log($"🔫 [WEAPON MANAGER LOAD] No weapon to load. SaveData: {saveData != null}, WeaponID: {saveData?.equippedWeaponID}");
+                Debug.Log($"WeaponManager: No weapon to load. SaveData: {saveData != null}, WeaponID: {saveData?.equippedWeaponID}");
                 _currentGun = null;
                 return;
             }
             
-            Debug.Log($"🔫 [WEAPON MANAGER LOAD] Looking for weapon ID: {saveData.equippedWeaponID}, weapon name: {saveData.weaponName}");
+            Debug.Log($"WeaponManager: Looking for weapon ID: {saveData.equippedWeaponID}, weapon name: {saveData.weaponName}");
             
             // 从PlayerInventory获取武器
             if (_inventory != null)
             {
-                Debug.Log($"🔫 [WEAPON MANAGER LOAD] Getting weapon from inventory...");
+                Debug.Log($"WeaponManager: Getting weapon from inventory...");
                 var weapon = _inventory.GetEquippedWeapon();
                 if (weapon != null && weapon.GetInstanceID() == saveData.equippedWeaponID)
                 {
@@ -255,16 +251,16 @@ namespace Resonance.Player.Core
                     OnWeaponEquipped?.Invoke(_currentGun);
                     OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
                     
-                    Debug.Log($"🔫 [WEAPON MANAGER LOAD SUCCESS] Loaded weapon {_currentGun.weaponName} from save data with {_currentGun.CurrentAmmo} ammo");
+                    Debug.Log($"WeaponManager: Loaded weapon {_currentGun.weaponName} from save data with {_currentGun.CurrentAmmo} ammo");
                 }
                 else
                 {
-                    Debug.LogWarning($"🔫 [WEAPON MANAGER LOAD FAILED] Weapon not found in inventory. Weapon: {weapon != null}, ID match: {weapon?.GetInstanceID() == saveData.equippedWeaponID}");
+                    Debug.LogWarning($"WeaponManager: Weapon not found in inventory. Weapon: {weapon != null}, ID match: {weapon?.GetInstanceID() == saveData.equippedWeaponID}");
                 }
             }
             else
             {
-                Debug.LogError("🔫 [WEAPON MANAGER LOAD ERROR] Inventory is null, cannot load weapon");
+                Debug.LogError("WeaponManager: Inventory is null, cannot load weapon");
             }
         }
         
