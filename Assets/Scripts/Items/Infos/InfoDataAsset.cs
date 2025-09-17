@@ -1,15 +1,35 @@
 using UnityEngine;
 using Resonance.Interfaces;
-using UnityEngine.UI;
+using Resonance.Interfaces.Objects;
+using Resonance.Items.Core;
 
 namespace Resonance.Items
 {
     [CreateAssetMenu(fileName = "New Info Data", menuName = "Resonance/Items/Info Data", order = 3)]
-    public class InfoDataAsset : ScriptableObject
+    public class InfoDataAsset : ScriptableObject, IInfoable
     {
-        public string infoName;
-        [TextArea(5, 10)]
-        public string infoContent;
-        public Sprite infoImage;
+        [Header("Info Display")]
+        [SerializeField] private InfoData _infoData;
+
+        /// <summary>
+        /// 获取要在InfoPanel中显示的信息数据
+        /// </summary>
+        public InfoData GetInfoData()
+        {
+            return _infoData;
+        }
+
+        /// <summary>
+        /// 检查是否有有效的信息可以显示
+        /// </summary>
+        public bool HasValidInfo()
+        {
+            return _infoData.IsValid();
+        }
+
+        // 向后兼容的属性
+        public string infoName => _infoData.name;
+        public string infoContent => _infoData.content;
+        public Sprite infoImage => _infoData.image;
     }
 }

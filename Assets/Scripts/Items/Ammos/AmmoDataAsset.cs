@@ -1,5 +1,7 @@
 using UnityEngine;
 using Resonance.Interfaces;
+using Resonance.Interfaces.Objects;
+using Resonance.Items.Core;
 
 namespace Resonance.Items
 {
@@ -8,7 +10,7 @@ namespace Resonance.Items
     /// 用于在Unity Editor中创建和编辑Ammo配置
     /// </summary>
     [CreateAssetMenu(fileName = "New Ammo Data", menuName = "Resonance/Items/Ammo Data", order = 2)]
-    public class AmmoDataAsset : ScriptableObject
+    public class AmmoDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]
         public string ammoName = "Standard Ammo";
@@ -19,8 +21,11 @@ namespace Resonance.Items
         public string ammoType = "Pisto";
         public int ammoCount = 30;
         
-        [Header("Visual")]
+        [Header("Visual & Info")]
         public Sprite ammoIcon;
+        
+        [Header("Info Display")]
+        [SerializeField] private InfoData _infoData;
         
         [Header("Inventory")]
         public int gridWidth = 1;
@@ -101,6 +106,37 @@ namespace Resonance.Items
         {
             return gridWidth * gridHeight;
         }
+
+        #region IInfoable Implementation
+
+        /// <summary>
+        /// 获取要在InfoPanel中显示的信息数据
+        /// </summary>
+        public InfoData GetInfoData()
+        {
+            // 如果没有设置自定义信息，使用基本信息
+            if (_infoData.IsEmpty)
+            {
+                return new InfoData(
+                    name: ammoName,
+                    content: ammoDescription,
+                    image: ammoIcon
+                );
+            }
+            
+            return _infoData;
+        }
+
+        /// <summary>
+        /// 检查是否有有效的信息可以显示
+        /// </summary>
+        public bool HasValidInfo()
+        {
+            var info = GetInfoData();
+            return info.IsValid();
+        }
+
+        #endregion
 
         #region Unity Editor
 

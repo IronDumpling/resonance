@@ -3,6 +3,8 @@ using TMPro;
 using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Utilities;
+using Resonance.Core;
+using Resonance.Core.GlobalServices;
 
 namespace Resonance.Items
 {
@@ -352,6 +354,9 @@ namespace Resonance.Items
                 _interactUI.SetActive(false);
             }
 
+            // Show info panel for the ammo
+            ShowAmmoInfo();
+
             Debug.Log($"AmmoMonoBehaviour: CompleteInteraction complete");
         }
 
@@ -397,7 +402,10 @@ namespace Resonance.Items
             if (_isPaused) return;
             
             _isPaused = true;
-            Debug.Log("AmmoMonoBehaviour: Paused");
+            Debug.Log("AmmoMonoBehaviour: Paused - animations stopped");
+            
+            // Note: This only pauses visual animations in Update()
+            // UI interactions and pickup functionality remain active
         }
 
         public void Resume()
@@ -405,7 +413,28 @@ namespace Resonance.Items
             if (!_isPaused) return;
             
             _isPaused = false;
-            Debug.Log("AmmoMonoBehaviour: Resumed");
+            Debug.Log("AmmoMonoBehaviour: Resumed - animations restarted");
+            
+            // Animations will resume in the next Update() call
+        }
+
+        #endregion
+
+        #region Info Display
+
+        /// <summary>
+        /// Show info panel for this ammo using the unified InfoDisplay system
+        /// </summary>
+        private void ShowAmmoInfo()
+        {
+            if (_ammoDataAsset == null)
+            {
+                Debug.LogError("AmmoMonoBehaviour: Cannot show ammo info with null AmmoDataAsset");
+                return;
+            }
+
+            // Use the unified InfoDisplayService
+            InfoDisplayService.ShowInfo(_ammoDataAsset);
         }
 
         #endregion

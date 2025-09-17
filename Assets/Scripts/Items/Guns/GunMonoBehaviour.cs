@@ -3,6 +3,8 @@ using TMPro;
 using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Utilities;
+using Resonance.Core;
+using Resonance.Core.GlobalServices;
 
 namespace Resonance.Items
 {
@@ -350,6 +352,9 @@ namespace Resonance.Items
                 _interactUI.SetActive(false);
             }
 
+            // Show info panel for the gun
+            ShowGunInfo();
+
             Debug.Log($"GunMonoBehaviour: CompleteInteraction complete");
         }
 
@@ -395,7 +400,10 @@ namespace Resonance.Items
             if (_isPaused) return;
             
             _isPaused = true;
-            Debug.Log("GunMonoBehaviour: Paused");
+            Debug.Log("GunMonoBehaviour: Paused - animations stopped");
+            
+            // Note: This only pauses visual animations in Update()
+            // UI interactions and pickup functionality remain active
         }
 
         public void Resume()
@@ -403,7 +411,28 @@ namespace Resonance.Items
             if (!_isPaused) return;
             
             _isPaused = false;
-            Debug.Log("GunMonoBehaviour: Resumed");
+            Debug.Log("GunMonoBehaviour: Resumed - animations restarted");
+            
+            // Animations will resume in the next Update() call
+        }
+
+        #endregion
+
+        #region Info Display
+
+        /// <summary>
+        /// Show info panel for this gun using the unified InfoDisplay system
+        /// </summary>
+        private void ShowGunInfo()
+        {
+            if (_gunDataAsset == null)
+            {
+                Debug.LogError("GunMonoBehaviour: Cannot show gun info with null GunDataAsset");
+                return;
+            }
+
+            // Use the unified InfoDisplayService
+            InfoDisplayService.ShowInfo(_gunDataAsset);
         }
 
         #endregion

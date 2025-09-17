@@ -1,5 +1,7 @@
 using UnityEngine;
 using Resonance.Interfaces;
+using Resonance.Interfaces.Objects;
+using Resonance.Items.Core;
 
 namespace Resonance.Items
 {
@@ -8,7 +10,7 @@ namespace Resonance.Items
     /// 用于在Unity Editor中创建和编辑Gun配置
     /// </summary>
     [CreateAssetMenu(fileName = "New Gun Data", menuName = "Resonance/Items/Gun Data", order = 1)]
-    public class GunDataAsset : ScriptableObject
+    public class GunDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]
         public string weaponName = "Basic Gun";
@@ -35,8 +37,11 @@ namespace Resonance.Items
         [Range(0f, 1f)]
         public float physicalDamageRatio = 0.5f;
         
-        [Header("Visual")]
+        [Header("Visual & Info")]
         public Sprite weaponIcon;
+        
+        [Header("Info Display")]
+        [SerializeField] private InfoData _infoData;
         
         [Header("Inventory")]
         public int gridWidth = 2;
@@ -213,6 +218,37 @@ namespace Resonance.Items
             copy._currentAmmo = this.maxAmmo; // Start with full ammo
             
             return copy;
+        }
+
+        #endregion
+
+        #region IInfoable Implementation
+
+        /// <summary>
+        /// 获取要在InfoPanel中显示的信息数据
+        /// </summary>
+        public InfoData GetInfoData()
+        {
+            // 如果没有设置自定义信息，使用基本信息
+            if (_infoData.IsEmpty)
+            {
+                return new InfoData(
+                    name: weaponName,
+                    content: weaponDescription,
+                    image: weaponIcon
+                );
+            }
+            
+            return _infoData;
+        }
+
+        /// <summary>
+        /// 检查是否有有效的信息可以显示
+        /// </summary>
+        public bool HasValidInfo()
+        {
+            var info = GetInfoData();
+            return info.IsValid();
         }
 
         #endregion

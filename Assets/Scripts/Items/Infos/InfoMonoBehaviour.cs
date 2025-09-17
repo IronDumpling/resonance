@@ -10,7 +10,7 @@ using Resonance.Core.StateMachine.States;
 
 namespace Resonance.Items
 {
-    public class InfoMonoBehaviour : MonoBehaviour, IInteractable
+    public class InfoMonoBehaviour : MonoBehaviour, IInteractable, IPausable
     {
         [Header("Info Configuration")]
         [SerializeField] private InfoDataAsset _infoDataAsset;
@@ -31,13 +31,13 @@ namespace Resonance.Items
         [SerializeField] private GameObject _interactUI;
         [SerializeField] private TextMeshProUGUI _interactTextComponent;
 
-        // 是否已被拾取
+        // Whether it has been picked up
         private bool _isPickedUp = false;
         
-        // 交互状态
+        // Interaction state
         private bool _isInteracting = false;
         
-        // 动画相关
+        // Animation related
         private Vector3 _originalPosition;
         private float _bobTimer = 0f;
         
@@ -54,43 +54,38 @@ namespace Resonance.Items
 
         void Start()
         {
-            // 验证Info数据资产
+            // Validate InfoDataAsset
             if (_infoDataAsset == null)
             {
                 Debug.LogError($"InfoMonoBehaviour: No InfoDataAsset assigned to {gameObject.name}!");
                 return;
             }
 
-            // 记录原始位置用于动画
+            // Record original position for animation
             _originalPosition = transform.position;
 
-            // 如果没有指定拾取视觉模型，使用自身
+            // If no pickup visual model is specified, use itself
             if (_pickupVisual == null)
             {
                 _pickupVisual = gameObject;
             }
 
-            // 设置音频服务
+            // Setup audio service
             SetupAudioService();
             
-            // 设置交互UI
+            // Setup interaction UI
             SetupInteractionUI();
             
-            // 获取交互服务并注册为可交互对象
-            _interactionService = ServiceRegistry.Get<IInteractionService>();
-            if (_interactionService != null)
-            {
-                _interactionService.RegisterInteractable(gameObject);
-            }
-            else
-            {
-                Debug.LogWarning("InfoMonoBehaviour: InteractionService not found");
-            }
+            // Get interaction service and register as interactable object
+            RegisterInteractionService();
+
+            // Register with SelectivePauseService
+            RegisterWithPauseService();
         }
 
         void OnDestroy()
         {
-            // 清理交互服务注册
+            // Clean up interaction service registration
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -99,14 +94,13 @@ namespace Resonance.Items
 
         void Update()
         {
-            if (_isPickedUp) return;
+            if (_isPickedUp || _isPaused) return;
             
-            // 执行视觉动画
+            // Perform visual animations
             PerformVisualAnimations();
         }
 
         #endregion
-        
 
         #region Setup
 
@@ -125,7 +119,7 @@ namespace Resonance.Items
 
         private void SetupInteractionUI()
         {
-            // 查找InteractUI子对象（如果没有手动分配）
+            // Find InteractUI child object (if not manually assigned)
             if (_interactUI == null)
             {
                 Transform interactUIChild = transform.Find("InteractUI");
@@ -169,6 +163,33 @@ namespace Resonance.Items
             Debug.Log($"InfoMonoBehaviour: Interaction UI setup complete");
         }
 
+        private void RegisterInteractionService()
+        {
+            _interactionService = ServiceRegistry.Get<IInteractionService>();
+            if (_interactionService != null)
+            {
+                _interactionService.RegisterInteractable(gameObject);
+            }
+            else
+            {
+                Debug.LogWarning("InfoMonoBehaviour: InteractionService not found");
+            }
+        }
+
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("InfoMonoBehaviour: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("InfoMonoBehaviour: SelectivePauseService not found, pause functionality will not work");
+            }
+        }
+
         #endregion
 
         private void PerformVisualAnimations()
@@ -178,7 +199,7 @@ namespace Resonance.Items
             Vector3 currentPosition = _originalPosition;
             Vector3 currentRotation = _pickupVisual.transform.eulerAngles;
 
-            // 上下浮动动画
+            // Up and down animation
             if (_bobUpAndDown)
             {
                 _bobTimer += Time.deltaTime * _bobSpeed;
@@ -186,13 +207,13 @@ namespace Resonance.Items
                 currentPosition.y = _originalPosition.y + bobOffset;
             }
 
-            // 旋转动画
+            // Rotation animation
             if (_rotateWhenIdle)
             {
                 currentRotation.y += _rotationSpeed * Time.deltaTime;
             }
 
-            // 应用变换
+            // Apply transform
             transform.position = currentPosition;
             _pickupVisual.transform.eulerAngles = currentRotation;
         }
@@ -310,6 +331,35 @@ namespace Resonance.Items
 
         #endregion
 
+        #region IPausable Implementation
+
+        private bool _isPaused = false;
+
+        public bool IsPaused => _isPaused;
+
+        public void Pause()
+        {
+            if (_isPaused) return;
+            
+            _isPaused = true;
+            Debug.Log("InfoMonoBehaviour: Paused - animations stopped");
+            
+            // Note: This only pauses visual animations in Update()
+            // UI interactions and pickup functionality remain active
+        }
+
+        public void Resume()
+        {
+            if (!_isPaused) return;
+            
+            _isPaused = false;
+            Debug.Log("InfoMonoBehaviour: Resumed - animations restarted");
+            
+            // Animations will resume in the next Update() call
+        }
+
+        #endregion
+        
         #region Public Methods
 
         public void ShowInteractionUI()
