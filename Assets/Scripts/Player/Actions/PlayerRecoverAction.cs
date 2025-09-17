@@ -9,8 +9,8 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Recover Action - triggered by holding F key when no dead enemies are in mental attack range
-    /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, NO EnemyPhysicalDeathState enemy in MentalAttackRange
+    /// Player Recover Action - triggered by holding F key when no Core hitboxes are in mental attack range
+    /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in MentalAttackRange
     /// Behavior: Player cannot move, consumes 1 MentalHealth slot every 1s, restores PhysicalHealth
     /// End condition: Release F key, or interrupted by damage, or reach full health, or no more mental health
     /// </summary>
@@ -49,13 +49,13 @@ namespace Resonance.Player.Actions
             // Must have at least 1 mental health slot available
             if (!player.CanConsumeSlot) return false;
 
-            // Must NOT have dead enemies in mental attack range (ResonanceAction has priority)
+            // Must NOT have Core hitboxes in mental attack range (ResonanceAction has priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer != null)
             {
-                if (playerService.CurrentPlayer.HasDeadEnemiesInMentalAttackRange())
+                if (playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
                 {
-                    Debug.Log("PlayerRecoverAction: Cannot start - dead enemies in range (ResonanceAction has priority)");
+                    Debug.Log("PlayerRecoverAction: Cannot start - Core hitboxes in range (ResonanceAction has priority)");
                     return false;
                 }
             }
@@ -141,7 +141,7 @@ namespace Resonance.Player.Actions
                 return;
             }
 
-            // Check if dead enemies entered range (ResonanceAction gets priority)
+            // Check if Core hitboxes entered range (ResonanceAction gets priority)
             if (ShouldCancel(player))
             {
                 _isFinished = true;
@@ -288,11 +288,11 @@ namespace Resonance.Player.Actions
         /// <returns>True if action should be cancelled</returns>
         public bool ShouldCancel(PlayerController player)
         {
-            // Check if dead enemies entered range (ResonanceAction gets priority)
+            // Check if Core hitboxes entered range (ResonanceAction gets priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer?.HasDeadEnemiesInMentalAttackRange() == true)
+            if (playerService?.CurrentPlayer?.HasCoreHitboxesInMentalAttackRange() == true)
             {
-                Debug.Log("PlayerRecoverAction: Dead enemies entered range, should cancel for ResonanceAction priority");
+                Debug.Log("PlayerRecoverAction: Core hitboxes entered range, should cancel for ResonanceAction priority");
                 return true;
             }
 

@@ -2,12 +2,12 @@ using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Player.Data;
 using Resonance.Player.States;
+using Resonance.Player.Actions;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Items;
-using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
-using Resonance.Player.Actions;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Player.Core
 {
@@ -15,7 +15,7 @@ namespace Resonance.Player.Core
     /// Core player controller that manages player state and behavior.
     /// This is a Non-MonoBehaviour class that handles the player logic.
     /// </summary>
-    public class PlayerController
+    public class PlayerController : IPausable
     {
         // Core Data
         private PlayerRuntimeStats _stats;
@@ -135,7 +135,8 @@ namespace Resonance.Player.Core
             // Register available actions
             RegisterPlayerActions();
 
-            Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
+            // Register with SelectivePauseService
+            RegisterWithPauseService();
         }
 
         /// <summary>
@@ -432,6 +433,14 @@ namespace Resonance.Player.Core
                    !(_actionController?.IsBlocking ?? false); // Actions can block shooting
         }
 
+        public bool CanReload()
+        {
+            return IsPhysicallyAlive && 
+                   _stateMachine.CanReload() &&
+                   !IsAiming &&
+                   !(_actionController?.IsActive ?? false); // Cannot reload while another action is active
+        }
+
         /// <summary>
         /// 执行基于鼠标的射击
         /// </summary>
@@ -639,8 +648,9 @@ namespace Resonance.Player.Core
             RegisterAction(new PlayerResonanceAction());
             RegisterAction(new PlayerRecoverAction());
             RegisterAction(new PlayerInteractAction());
+            RegisterAction(new PlayerReloadAction());
 
-            Debug.Log("PlayerController: Registered player actions (Resonance, Recover, Interact)");
+            Debug.Log("PlayerController: Registered player actions (Resonance, Recover, Interact, Reload)");
         }
 
         #endregion
@@ -668,7 +678,55 @@ namespace Resonance.Player.Core
             OnStateChanged = null;
             OnShoot = null;
 
+            // Unregister from SelectivePauseService
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.UnregisterPausable(this);
+                Debug.Log("PlayerController: Unregistered from SelectivePauseService");
+            }
+
             Debug.Log("PlayerController: Cleaned up");
+        }
+
+        #endregion
+
+        #region IPausable Implementation
+
+        private bool _isPaused = false;
+
+        public bool IsPaused => _isPaused;
+
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("PlayerController: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: SelectivePauseService not found, pause functionality will not work");
+            }
+
+            Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
+        }
+
+        public void Pause()
+        {
+            if (_isPaused) return;
+            
+            _isPaused = true;
+            Debug.Log("PlayerController: Paused");
+        }
+
+        public void Resume()
+        {
+            if (!_isPaused) return;
+            
+            _isPaused = false;
+            Debug.Log("PlayerController: Resumed");
         }
 
         #endregion

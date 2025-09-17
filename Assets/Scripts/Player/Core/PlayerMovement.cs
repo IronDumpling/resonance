@@ -39,8 +39,7 @@ namespace Resonance.Player.Core
 
         public void Update(float deltaTime)
         {
-            // Simple update for 2D platform movement
-            // No complex state management needed
+
         }
 
         #region Input Handling

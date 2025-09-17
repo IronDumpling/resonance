@@ -32,7 +32,7 @@ MonoBehaviour:
   audioClipEntries:
   - clipType: 0
     clipData:
-      clip: {fileID: 8300000, guid: 6739c01659ad96d47987f4ddee226b36, type: 3}
+      clip: {fileID: 8300000, guid: 0dbe91efb8ee94e6695ef0f552d202ce, type: 3}
       volume: 0.7
       pitch: 1
       pitchVariation: 0.1
@@ -54,7 +54,7 @@ MonoBehaviour:
       mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
-  - clipType: 5
+  - clipType: 8
     clipData:
       clip: {fileID: 8300000, guid: 75adfe9a619833445a701305b983e548, type: 3}
       volume: 0
@@ -68,7 +68,7 @@ MonoBehaviour:
       priority: 0
   - clipType: 2
     clipData:
-      clip: {fileID: 8300000, guid: 5e7f633dda3117f4f90253f51ee065f0, type: 3}
+      clip: {fileID: 8300000, guid: e5198250a6a57408bb36e14bc4a322c4, type: 3}
       volume: 0
       pitch: 0.1
       pitchVariation: 0
@@ -78,21 +78,9 @@ MonoBehaviour:
       mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
-  - clipType: 7
+  - clipType: 6
     clipData:
-      clip: {fileID: 8300000, guid: 75adfe9a619833445a701305b983e548, type: 3}
-      volume: 0.7
-      pitch: 1
-      pitchVariation: 0.1
-      spatialBlend: 1
-      minDistance: 1
-      maxDistance: 10
-      mixerGroup: {fileID: -5484685057279478027, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
-      loop: 0
-      priority: 0
-  - clipType: 19
-    clipData:
-      clip: {fileID: 8300000, guid: 5e7f633dda3117f4f90253f51ee065f0, type: 3}
+      clip: {fileID: 8300000, guid: 9158afb6966d445db9caf1dccf7acbcc, type: 3}
       volume: 0.7
       pitch: 1
       pitchVariation: 0.1
@@ -102,7 +90,7 @@ MonoBehaviour:
       mixerGroup: {fileID: 1530335028455296835, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
-  - clipType: 8
+  - clipType: 9
     clipData:
       clip: {fileID: 8300000, guid: a1e47709d296c064f978e30b69067e02, type: 3}
       volume: 0.7
@@ -124,6 +112,30 @@ MonoBehaviour:
       minDistance: 1
       maxDistance: 10
       mixerGroup: {fileID: 7851371029311866321, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      loop: 0
+      priority: 0
+  - clipType: 18
+    clipData:
+      clip: {fileID: 8300000, guid: e0c70bed5c1a4443083a81de5648c7d5, type: 3}
+      volume: 0.7
+      pitch: 1
+      pitchVariation: 0.1
+      spatialBlend: 1
+      minDistance: 1
+      maxDistance: 10
+      mixerGroup: {fileID: 1530335028455296835, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
+      loop: 0
+      priority: 0
+  - clipType: 5
+    clipData:
+      clip: {fileID: 8300000, guid: eb5685b26a6494994af389a3293064e8, type: 3}
+      volume: 0.7
+      pitch: 1
+      pitchVariation: 0.1
+      spatialBlend: 1
+      minDistance: 1
+      maxDistance: 10
+      mixerGroup: {fileID: 119451202430227694, guid: db6ca83700e04a24b9701efe172a29f0, type: 2}
       loop: 0
       priority: 0
   defaultMasterVolume: 1

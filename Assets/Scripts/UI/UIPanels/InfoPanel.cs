@@ -1,0 +1,154 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using Resonance.Core;
+using Resonance.Interfaces.Services;
+using Resonance.Items;
+using Resonance.Utilities;
+using Resonance.Core.StateMachine.States;
+
+namespace Resonance.UI
+{
+    public class InfoPanel : UIPanel
+    {
+        [Header("UI References")]
+        [SerializeField] private TextMeshProUGUI _infoName;
+        [SerializeField] private TextMeshProUGUI _infoContent;
+        [SerializeField] private Image _infoImage;
+        [SerializeField] private Button _closeButton;
+
+        // Current info data
+        private InfoDataAsset _currentInfoData;
+
+        protected override void Awake()
+        {
+            base.Awake();
+
+            _panelName = "InfoPanel";
+            _layer = UILayer.Game;
+            _hideOnStart = true;
+        }
+
+        protected override void Start()
+        {
+            base.Start();
+
+            AutoDiscoverUIComponents();
+            SetupEventListeners();
+        }
+
+        private void OnDestroy()
+        {
+            CleanupEventListeners();
+        }
+        
+        private void AutoDiscoverUIComponents()
+        {
+            if (_infoName == null)
+                _infoName = transform.Find("InfoName")?.GetComponent<TextMeshProUGUI>();
+            if (_infoContent == null)
+                _infoContent = transform.Find("InfoContent")?.GetComponent<TextMeshProUGUI>();
+            if (_infoImage == null)
+                _infoImage = transform.Find("InfoImage")?.GetComponent<Image>();
+            if (_closeButton == null)
+                _closeButton = transform.Find("CloseButton")?.GetComponent<Button>();
+        }
+
+        private void SetupEventListeners()
+        {
+            // Subscribe to InfoReadingState events
+            InfoReadingState.OnInfoReadingStarted += OnInfoReadingStarted;
+            
+            // Setup close button
+            if (_closeButton != null)
+            {
+                _closeButton.onClick.AddListener(OnCloseButtonClicked);
+            }
+            
+            Debug.Log("InfoPanel: Event listeners setup complete");
+        }
+
+        private void CleanupEventListeners()
+        {
+            // Unsubscribe from InfoReadingState events
+            InfoReadingState.OnInfoReadingStarted -= OnInfoReadingStarted;
+            
+            // Cleanup close button
+            if (_closeButton != null)
+            {
+                _closeButton.onClick.RemoveListener(OnCloseButtonClicked);
+            }
+            
+            Debug.Log("InfoPanel: Event listeners cleaned up");
+        }
+
+        private void OnInfoReadingStarted(InfoDataAsset infoData)
+        {
+            Debug.Log($"InfoPanel: Info reading started for {infoData?.infoName ?? "Unknown"}");
+            DisplayInfoData(infoData);
+        }
+
+        private void OnCloseButtonClicked()
+        {
+            Debug.Log("InfoPanel: Close button clicked");
+            CloseInfoPanel();
+        }
+
+        /// <summary>
+        /// Display the info data in the panel
+        /// </summary>
+        /// <param name="infoData">Info data to display</param>
+        public void DisplayInfoData(InfoDataAsset infoData)
+        {
+            _currentInfoData = infoData;
+            
+            if (infoData == null)
+            {
+                Debug.LogWarning("InfoPanel: Cannot display null InfoDataAsset");
+                return;
+            }
+
+            // Update UI elements
+            if (_infoName != null)
+                _infoName.text = infoData.infoName ?? "Unknown Info";
+            
+            if (_infoContent != null)
+                _infoContent.text = infoData.infoContent ?? "No content available.";
+            
+            if (_infoImage != null && infoData.infoImage != null)
+            {
+                _infoImage.sprite = infoData.infoImage;
+                _infoImage.gameObject.SetActive(true);
+            }
+            else if (_infoImage != null)
+            {
+                _infoImage.gameObject.SetActive(false);
+            }
+
+            Debug.Log($"InfoPanel: Displayed info data for {infoData.infoName}");
+        }
+
+        /// <summary>
+        /// Close the info panel and return to normal gameplay
+        /// </summary>
+        public void CloseInfoPanel()
+        {
+            Debug.Log("InfoPanel: Closing info panel");
+            
+            // Trigger the info reading end event via static method
+            InfoReadingState.TriggerInfoReadingEnd();
+            
+            // Clear current data
+            _currentInfoData = null;
+        }
+
+        /// <summary>
+        /// Get the currently displayed info data
+        /// </summary>
+        /// <returns>Current info data or null if none</returns>
+        public InfoDataAsset GetCurrentInfoData()
+        {
+            return _currentInfoData;
+        }
+    }
+}

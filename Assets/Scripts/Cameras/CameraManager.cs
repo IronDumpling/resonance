@@ -46,7 +46,7 @@ namespace Resonance.Cameras
             DiscoverCameras();
         }
         
-        void Start()
+        protected virtual void Start()
         {
             // Activate default camera
             if (!string.IsNullOrEmpty(_defaultCameraName))
@@ -192,7 +192,7 @@ namespace Resonance.Cameras
             }
         }
         
-        void OnDestroy()
+        protected virtual void OnDestroy()
         {
             OnCameraChanged = null;
         }

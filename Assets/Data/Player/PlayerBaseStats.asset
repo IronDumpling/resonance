@@ -32,3 +32,7 @@ MonoBehaviour:
     m_Bits: 128
   _healthyThreshold: 0.7
   _woundedThreshold: 0.3
+  _defaultAmmoInventory:
+    ammoTypes:
+    - Pisto
+    ammoCounts: 04000000

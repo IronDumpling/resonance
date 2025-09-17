@@ -36,6 +36,9 @@ namespace Resonance.Player.Core
                 Debug.LogError("PlayerInteractTrigger: InteractionService not found");
                 return;
             }
+
+            // 监听InteractionService的事件，保持同步
+            _interactionService.OnInteractableChanged += OnInteractionServiceChanged;
             
             Debug.Log($"PlayerInteractTrigger: Initialized successfully on {gameObject.name}");
         }
@@ -50,12 +53,6 @@ namespace Resonance.Player.Core
                 Debug.Log($"PlayerInteractTrigger: Layer filter check failed for {other.name}");
                 return;
             }
-
-            // 忽略Player自己的colliders
-            // if (other.transform.IsChildOf(_playerMono.transform) || other.transform == _playerMono.transform)
-            // {
-            //     return;
-            // }
 
             // 检查是否是可交互对象
             IInteractable interactable = other.GetComponent<IInteractable>();
@@ -93,12 +90,6 @@ namespace Resonance.Player.Core
                 Debug.Log($"PlayerInteractTrigger: Layer filter check failed for {other.name}");
                 return;
             }
-
-            // 忽略Player自己的colliders
-            // if (other.transform.IsChildOf(_playerMono.transform) || other.transform == _playerMono.transform)
-            // {
-            //     return;
-            // }
 
             // 检查是否是可交互对象
             IInteractable interactable = other.GetComponent<IInteractable>();
@@ -144,7 +135,13 @@ namespace Resonance.Player.Core
             {
                 _currentInteractable = interactable;
                 ShowInteractionUI(interactable);
-                Debug.Log($"PlayerInteractTrigger: ShowInteractionUI called for {interactable.GetInteractableName()}");
+                
+                // 同时通知InteractionService设置当前可交互对象
+                GameObject interactableGameObject = (interactable as MonoBehaviour)?.gameObject;
+                if (interactableGameObject != null && _interactionService != null)
+                {
+                    _interactionService.SetCurrentInteractable(interactableGameObject, $"Press E to interact with {interactable.GetInteractableName()}");
+                }
             }
         }
 
@@ -167,13 +164,26 @@ namespace Resonance.Player.Core
                 HideInteractionUI(interactable);
                 _currentInteractable = null;
 
+                // 清理InteractionService的当前对象
+                GameObject interactableGameObject = (interactable as MonoBehaviour)?.gameObject;
+                if (interactableGameObject != null && _interactionService != null && _interactionService.CurrentInteractable == interactableGameObject)
+                {
+                    _interactionService.ClearCurrentInteractable();
+                }
+
                 // 尝试从InteractionService获取下一个最近的可交互对象
                 var nextInteractable = _interactionService?.GetNearestInteractable();
                 if (nextInteractable != null)
                 {
                     _currentInteractable = nextInteractable;
                     ShowInteractionUI(nextInteractable);
-                    Debug.Log($"PlayerInteractTrigger: ShowInteractionUI called for {nextInteractable.GetInteractableName()}");
+                    
+                    // 同时设置InteractionService的当前对象
+                    GameObject nextGameObject = (nextInteractable as MonoBehaviour)?.gameObject;
+                    if (nextGameObject != null)
+                    {
+                        _interactionService.SetCurrentInteractable(nextGameObject, $"Press E to interact with {nextInteractable.GetInteractableName()}");
+                    }
                 }
             }
         }
@@ -191,10 +201,19 @@ namespace Resonance.Player.Core
             if (gunMono != null)
             {
                 gunMono.ShowInteractionUI();
-                Debug.Log($"PlayerInteractTrigger: ShowInteractionUI called for {interactable.GetInteractableName()}");
             }
 
+            var ammoMono = interactable as Resonance.Items.AmmoMonoBehaviour;
+            if (ammoMono != null)
+            {
+                ammoMono.ShowInteractionUI();
+            }
 
+            var infoMono = interactable as Resonance.Items.InfoMonoBehaviour;
+            if (infoMono != null)
+            {
+                infoMono.ShowInteractionUI();
+            }
         }
 
         /// <summary>
@@ -212,7 +231,17 @@ namespace Resonance.Player.Core
                 gunMono.HideInteractionUI();
             }
 
-            Debug.Log($"PlayerInteractTrigger: HideInteractionUI called for {interactable.GetInteractableName()}");
+            var ammoMono = interactable as Resonance.Items.AmmoMonoBehaviour;
+            if (ammoMono != null)
+            {
+                ammoMono.HideInteractionUI();
+            }
+            
+            var infoMono = interactable as Resonance.Items.InfoMonoBehaviour;
+            if (infoMono != null)
+            {
+                infoMono.HideInteractionUI();
+            }
         }
 
         /// <summary>
@@ -235,7 +264,6 @@ namespace Resonance.Player.Core
                 _currentInteractable = null;
             }
 
-            Debug.Log($"PlayerInteractTrigger: ClearCurrentInteractable called");
         }
 
         /// <summary>
@@ -245,7 +273,60 @@ namespace Resonance.Player.Core
         public void SetInteractionLayerMask(LayerMask layerMask)
         {
             _interactionLayerMask = layerMask;
-            Debug.Log($"PlayerInteractTrigger: SetInteractionLayerMask called with {layerMask.value}");
+        }
+
+        /// <summary>
+        /// 处理InteractionService的当前可交互对象变化事件
+        /// 保持PlayerInteractTrigger与InteractionService的状态同步
+        /// </summary>
+        /// <param name="interactableGameObject">新的可交互游戏对象</param>
+        /// <param name="interactionText">交互文本</param>
+        private void OnInteractionServiceChanged(GameObject interactableGameObject, string interactionText)
+        {
+            // 如果InteractionService清除了当前对象，我们也清除
+            if (interactableGameObject == null)
+            {
+                if (_currentInteractable != null)
+                {
+                    HideInteractionUI(_currentInteractable);
+                    _currentInteractable = null;
+
+                    // 尝试从范围内的对象中找到下一个可交互对象
+                    var nextInteractable = _interactionService?.GetNearestInteractable();
+                    if (nextInteractable != null)
+                    {
+                        _currentInteractable = nextInteractable;
+                        ShowInteractionUI(nextInteractable);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 清理触发器，取消事件订阅
+        /// </summary>
+        public void Cleanup()
+        {
+            if (_interactionService != null)
+            {
+                _interactionService.OnInteractableChanged -= OnInteractionServiceChanged;
+            }
+
+            if (_currentInteractable != null)
+            {
+                HideInteractionUI(_currentInteractable);
+                _currentInteractable = null;
+            }
+
+            _isInitialized = false;
+        }
+
+        /// <summary>
+        /// Unity OnDestroy - 确保清理资源
+        /// </summary>
+        void OnDestroy()
+        {
+            Cleanup();
         }
     }
 }

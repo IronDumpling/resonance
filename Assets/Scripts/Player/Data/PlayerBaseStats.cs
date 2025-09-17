@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Resonance.Player.Data
 {
@@ -43,6 +44,9 @@ namespace Resonance.Player.Data
         [SerializeField] private float _healthyThreshold = 0.7f;   // 70%
         [SerializeField] private float _woundedThreshold = 0.3f;   // 30%
 
+        [Header("Ammo Inventory")]
+        [SerializeField] private AmmoInventoryConfig _defaultAmmoInventory;
+
         // Dual Health Properties
         public float MaxPhysicalHealth => _maxPhysicalHealth;
         public float PhysicalHealthRegenRate => _physicalHealthRegenRate;
@@ -70,6 +74,9 @@ namespace Resonance.Player.Data
         // Physical Health Tier Properties
         public float HealthyThreshold => _healthyThreshold;
         public float WoundedThreshold => _woundedThreshold;
+
+        // Ammo Inventory Properties
+        public AmmoInventoryConfig DefaultAmmoInventory => _defaultAmmoInventory;
 
         /// <summary>
         /// Create a runtime copy of these stats that can be modified
@@ -118,6 +125,9 @@ namespace Resonance.Player.Data
         public int mentalHealthSlots;
         public float slotValue; // 每个slot的数值
 
+        [Header("Ammo Inventory")]
+        public PlayerAmmoInventory ammoInventory;
+
         public PlayerRuntimeStats(PlayerBaseStats baseStats)
         {
             // Copy dual health stats to runtime stats
@@ -144,6 +154,9 @@ namespace Resonance.Player.Data
             mentalHealthSlots = baseStats.MentalHealthSlots;
             slotValue = maxMentalHealth / mentalHealthSlots;
             UpdateHealthTiers();
+
+            // Initialize ammo inventory
+            ammoInventory = new PlayerAmmoInventory(baseStats.DefaultAmmoInventory);
         }
 
         /// <summary>
@@ -244,5 +257,265 @@ namespace Resonance.Player.Data
         /// Get current mental health in slot units
         /// </summary>
         public float GetMentalHealthInSlots() => slotValue > 0 ? currentMentalHealth / slotValue : 0f;
+    }
+
+    /// <summary>
+    /// Configuration for default ammo inventory setup
+    /// </summary>
+    [System.Serializable]
+    public class AmmoInventoryConfig
+    {
+        [Header("Default Ammo Types")]
+        public List<string> ammoTypes = new List<string> { "Pisto" };
+        
+        [Header("Default Ammo Counts")]
+        public List<int> ammoCounts = new List<int> { 6 };
+        
+        /// <summary>
+        /// Get default ammo as dictionary for easy initialization
+        /// </summary>
+        public Dictionary<string, int> GetDefaultAmmo()
+        {
+            var result = new Dictionary<string, int>();
+            
+            for (int i = 0; i < ammoTypes.Count && i < ammoCounts.Count; i++)
+            {
+                if (!string.IsNullOrEmpty(ammoTypes[i]))
+                {
+                    result[ammoTypes[i]] = Mathf.Max(0, ammoCounts[i]);
+                }
+            }
+            
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// Player's ammo inventory system
+    /// Manages different types of ammunition and their quantities
+    /// Simple two-layer structure: PlayerAmmoInventory -> Dictionary<string, int>
+    /// Serialization handled by save system, not direct Unity serialization
+    /// </summary>
+    public class PlayerAmmoInventory
+    {
+        // Single source of truth - runtime dictionary
+        private Dictionary<string, int> _ammoCount = new Dictionary<string, int>();
+        
+        // Events for ammo changes
+        public System.Action<string, int> OnAmmoAdded; // ammoType, amount added
+        public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
+
+        public PlayerAmmoInventory()
+        {
+            _ammoCount = new Dictionary<string, int>();
+        }
+
+        public PlayerAmmoInventory(AmmoInventoryConfig config)
+        {
+            _ammoCount = new Dictionary<string, int>();
+            
+            if (config != null)
+            {
+                var defaultAmmo = config.GetDefaultAmmo();
+                foreach (var kvp in defaultAmmo)
+                {
+                    _ammoCount[kvp.Key] = kvp.Value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Check if player has enough ammo of specified type
+        /// </summary>
+        /// <param name="ammoType">Type of ammo to check</param>
+        /// <param name="amount">Amount needed (default: 1)</param>
+        /// <returns>True if player has enough ammo</returns>
+        public bool HasAmmo(string ammoType, int amount = 1)
+        {
+            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+                return false;
+                
+            return _ammoCount.GetValueOrDefault(ammoType, 0) >= amount;
+        }
+
+        /// <summary>
+        /// Consume specified amount of ammo
+        /// </summary>
+        /// <param name="ammoType">Type of ammo to consume</param>
+        /// <param name="amount">Amount to consume</param>
+        /// <returns>True if successful, false if insufficient ammo</returns>
+        public bool ConsumeAmmo(string ammoType, int amount)
+        {
+            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+                return false;
+            
+            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
+            if (oldAmount < amount)
+                return false;
+                
+            int newAmount = oldAmount - amount;
+            _ammoCount[ammoType] = newAmount;
+            
+            Debug.Log($"PlayerAmmoInventory: Consumed {amount} {ammoType} ammo. Remaining: {newAmount}");
+            
+            // Trigger events
+            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+            return true;
+        }
+
+        /// <summary>
+        /// Add ammo to inventory
+        /// </summary>
+        /// <param name="ammoType">Type of ammo to add</param>
+        /// <param name="amount">Amount to add</param>
+        public void AddAmmo(string ammoType, int amount)
+        {
+            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+                return;
+            
+            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
+            int newAmount = oldAmount + amount;
+            _ammoCount[ammoType] = newAmount;
+            
+            Debug.Log($"PlayerAmmoInventory: Added {amount} {ammoType} ammo. Total: {newAmount}");
+            
+            // Trigger events
+            OnAmmoAdded?.Invoke(ammoType, amount);
+            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+        }
+
+        /// <summary>
+        /// Get current count of specific ammo type
+        /// </summary>
+        /// <param name="ammoType">Type of ammo to check</param>
+        /// <returns>Current count</returns>
+        public int GetAmmoCount(string ammoType)
+        {
+            if (string.IsNullOrEmpty(ammoType))
+                return 0;
+                
+            return _ammoCount.GetValueOrDefault(ammoType, 0);
+        }
+
+        /// <summary>
+        /// Get all ammo types and their counts
+        /// </summary>
+        /// <returns>Dictionary of ammo types and counts</returns>
+        public Dictionary<string, int> GetAllAmmo()
+        {
+            return new Dictionary<string, int>(_ammoCount);
+        }
+
+        /// <summary>
+        /// Get list of all available ammo types
+        /// </summary>
+        /// <returns>List of ammo type names</returns>
+        public List<string> GetAvailableAmmoTypes()
+        {
+            var types = new List<string>();
+            
+            foreach (var kvp in _ammoCount)
+            {
+                if (kvp.Value > 0)
+                {
+                    types.Add(kvp.Key);
+                }
+            }
+            
+            return types;
+        }
+
+        /// <summary>
+        /// Check if inventory has any ammo at all
+        /// </summary>
+        /// <returns>True if any ammo is available</returns>
+        public bool HasAnyAmmo()
+        {
+            foreach (var kvp in _ammoCount)
+            {
+                if (kvp.Value > 0)
+                    return true;
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Get total ammo count across all types
+        /// </summary>
+        /// <returns>Total ammo count</returns>
+        public int GetTotalAmmoCount()
+        {
+            int total = 0;
+            foreach (var kvp in _ammoCount)
+            {
+                total += kvp.Value;
+            }
+            
+            return total;
+        }
+
+        /// <summary>
+        /// Clear all ammo (for testing or special events)
+        /// </summary>
+        public void ClearAllAmmo()
+        {
+            _ammoCount.Clear();
+            Debug.Log("PlayerAmmoInventory: All ammo cleared");
+        }
+
+        /// <summary>
+        /// Set ammo count for a specific type (for testing or special events)
+        /// </summary>
+        /// <param name="ammoType">Type of ammo</param>
+        /// <param name="count">New count</param>
+        public void SetAmmoCount(string ammoType, int count)
+        {
+            if (string.IsNullOrEmpty(ammoType))
+                return;
+            
+            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
+            int newAmount = Mathf.Max(0, count);
+            _ammoCount[ammoType] = newAmount;
+            
+            Debug.Log($"PlayerAmmoInventory: Set {ammoType} ammo to {newAmount}");
+            
+            // Trigger events if amount actually changed
+            if (oldAmount != newAmount)
+            {
+                OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+            }
+        }
+
+        /// <summary>
+        /// Load ammo data from save system
+        /// </summary>
+        /// <param name="ammoData">Dictionary of ammo type to count</param>
+        public void LoadFromSaveData(Dictionary<string, int> ammoData)
+        {
+            _ammoCount.Clear();
+            
+            if (ammoData != null)
+            {
+                foreach (var kvp in ammoData)
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key))
+                    {
+                        _ammoCount[kvp.Key] = Mathf.Max(0, kvp.Value);
+                    }
+                }
+            }
+            
+            Debug.Log($"PlayerAmmoInventory: Loaded {_ammoCount.Count} ammo types from save data");
+        }
+
+        /// <summary>
+        /// Get ammo data for save system
+        /// </summary>
+        /// <returns>Dictionary of ammo type to count for serialization</returns>
+        public Dictionary<string, int> GetSaveData()
+        {
+            return new Dictionary<string, int>(_ammoCount);
+        }
     }
 }

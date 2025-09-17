@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Enemies.Core;
+using Resonance.Enemies.Actions;
 
 namespace Resonance.Enemies.States
 {
@@ -30,7 +31,11 @@ namespace Resonance.Enemies.States
             _enemyController.StopPatrol();
             _enemyController.LosePlayer();
             
-            // TODO: Visual effects for revival process
+            // Start the revive action
+            var reviveAction = new EnemyReviveAction();
+            _enemyController.ActionController.RegisterAction(reviveAction);
+            _enemyController.ActionController.TryStartAction("Revive");
+            
             // TODO: Play revival audio
             
             Debug.Log("EnemyState: Revival in progress - core still exposed");
@@ -40,8 +45,13 @@ namespace Resonance.Enemies.States
         {
             _revivalTimer += Time.deltaTime;
             
-            // Revival progress is handled in EnemyController.UpdateRevivalTimer()
-            // The controller will call CompleteRevival() when physical health is full
+            // Check for revival interruption - if mental health reaches 0 during revival
+            if (!_enemyController.IsMentallyAlive)
+            {
+                Debug.Log("EnemyRevivingState: Revival interrupted - mental health reached 0");
+                // This will trigger Normal State or TrueDeath State transition handled by EnemyController
+                return;
+            }
             
             // Check if revival duration exceeded (safety check)
             if (_revivalTimer > _enemyController.Stats.revivalDuration * 2f)
@@ -54,12 +64,15 @@ namespace Resonance.Enemies.States
         public void Exit()
         {
             Debug.Log("EnemyState: Exited Reviving state");
+            
+            // Cleanup revive action
+            _enemyController.ActionController.UnregisterAction("Revive");
         }
 
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to:
-            // - Normal (when physical health is restored)
+            // - Normal (when physical health is restored and mental health > 0)
             // - TrueDeath (when mental health reaches 0)
             return newState.Name == "Normal" || newState.Name == "TrueDeath";
         }

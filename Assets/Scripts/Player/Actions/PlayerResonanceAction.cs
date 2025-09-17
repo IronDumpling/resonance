@@ -10,13 +10,17 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Resonance Action - triggered by short press F when dead enemies are in mental attack range
-    /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, EnemyPhysicalDeathState enemy in MentalAttackRange
+    /// Player Resonance Action - triggered by short press F when Core hitboxes are in mental attack range
+    /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, Core type EnemyHitbox with enabled collider in MentalAttackRange
     /// Behavior: Player cannot move, is invulnerable to physical damage, consumes 1 MentalHealth slot
-    /// End condition: Enemy's EnemyPhysicalDeathState ends
+    /// End condition: Target Core hitbox collider becomes disabled or exits range
     /// </summary>
     public class PlayerResonanceAction : IPlayerAction
     {
+        // Static events for state machine integration
+        public static event System.Action<EnemyHitbox> OnResonanceActionStarted;
+        public static event System.Action OnResonanceActionEnded;
+
         // Action properties
         public string Name => "Resonance";
         public bool BlocksMovement => true;
@@ -26,8 +30,10 @@ namespace Resonance.Player.Actions
         // Runtime state
         private bool _isActive = false;
         private bool _isFinished = false;
-        private EnemyMonoBehaviour _targetEnemy = null;
+        private EnemyHitbox _targetCoreHitbox = null;
         private float _actionStartTime = 0f;
+
+        private PlayerController _player;
 
         // Configuration
         private const float MIN_ACTION_DURATION = 0.5f; // Minimum action duration for feedback
@@ -42,22 +48,139 @@ namespace Resonance.Player.Actions
         /// <returns>True if all conditions are met</returns>
         public bool CanStart(PlayerController player)
         {
-            if (player == null) return false;
+            if (player == null)
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - player is null");
+                return false;
+            }
 
             // Must be in Normal state (not in other actions or death states)
-            if (player.CurrentState != "Normal") return false;
+            if (player.CurrentState != "Normal")
+            {
+                Debug.Log($"PlayerResonanceAction: Cannot start - player not in Normal state (current: {player.CurrentState})");
+                return false;
+            }
 
             // Must have at least 1 mental health slot available
-            if (!player.CanConsumeSlot) return false;
+            if (!player.CanConsumeSlot)
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - no mental health slots available");
+                return false;
+            }
 
-            // Must have dead enemies in mental attack range
+            // Must have Core hitboxes in mental attack range
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer == null) return false;
+            if (playerService?.CurrentPlayer == null)
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - player service or current player is null");
+                return false;
+            }
 
-            if (!playerService.CurrentPlayer.HasDeadEnemiesInMentalAttackRange()) return false;
+            if (!playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - no Core hitboxes in mental attack range");
+                return false;
+            }
+
+            // Additional check: verify target cores are in valid states
+            var mentalAttackTrigger = playerService.CurrentPlayer.GetComponentInChildren<MentalAttackTrigger>();
+            if (mentalAttackTrigger != null)
+            {
+                var coreHitboxes = mentalAttackTrigger.CoreHitboxesInRange;
+                Debug.Log($"PlayerResonanceAction: Found {coreHitboxes.Count} core hitboxes in range");
+                
+                bool hasValidCore = false;
+                
+                foreach (var core in coreHitboxes)
+                {
+                    if (core != null)
+                    {
+                        bool isValid = IsValidTargetCore(core);
+                        Debug.Log($"PlayerResonanceAction: Core {core.name} validity check: {isValid}");
+                        
+                        if (isValid)
+                        {
+                            hasValidCore = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("PlayerResonanceAction: Found null core in range list");
+                    }
+                }
+                
+                if (!hasValidCore)
+                {
+                    Debug.Log("PlayerResonanceAction: Cannot start - no valid target cores (cores may be in invalid states)");
+                    return false;
+                }
+            }
+            else
+            {
+                Debug.Log("PlayerResonanceAction: Cannot start - MentalAttackTrigger not found");
+                return false;
+            }
 
             Debug.Log("PlayerResonanceAction: All conditions met, can start");
             return true;
+        }
+        
+        /// <summary>
+        /// Check if a core hitbox is in a valid state for resonance
+        /// </summary>
+        /// <param name="coreHitbox">Core hitbox to check</param>
+        /// <returns>True if core is valid for resonance</returns>
+        private bool IsValidTargetCore(EnemyHitbox coreHitbox)
+        {
+            if (coreHitbox == null)
+            {
+                Debug.Log("PlayerResonanceAction: IsValidTargetCore - coreHitbox is null");
+                return false;
+            }
+                
+            if (!coreHitbox.IsInitialized)
+            {
+                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} not initialized");
+                return false;
+            }
+                
+            // Check if the collider is enabled
+            var collider = coreHitbox.GetComponent<Collider>();
+            if (collider == null)
+            {
+                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} has no collider");
+                return false;
+            }
+            
+            if (!collider.enabled)
+            {
+                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} collider is disabled");
+                return false;
+            }
+                
+            // Check if the enemy is in a valid state for resonance (not in attack state)
+            var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
+            if (enemyMono == null)
+            {
+                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} has no EnemyMonoBehaviour");
+                return false;
+            }
+                
+            var enemyController = enemyMono.Controller;
+            if (enemyController == null)
+            {
+                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} has no EnemyController");
+                return false;
+            }
+                
+            // Valid states for resonance: Reviving or physical death (not Normal/Attack states)
+            string enemyState = enemyController.CurrentState;
+            bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
+            
+            // Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} state: {enemyState}, valid: {isValidState}");
+            
+            return isValidState;
         }
 
         /// <summary>
@@ -72,11 +195,13 @@ namespace Resonance.Player.Actions
                 return;
             }
 
-            // Find target enemy
-            _targetEnemy = FindTargetEnemy();
-            if (_targetEnemy == null)
+            _player = player;
+
+            // Find target Core hitbox
+            _targetCoreHitbox = FindTargetCoreHitbox();
+            if (_targetCoreHitbox == null)
             {
-                Debug.LogWarning("PlayerResonanceAction: No valid target enemy found");
+                Debug.LogWarning("PlayerResonanceAction: No valid target Core hitbox found");
                 _isFinished = true;
                 return;
             }
@@ -94,23 +219,25 @@ namespace Resonance.Player.Actions
             _isFinished = false;
             _actionStartTime = Time.time;
 
-            // Subscribe to target enemy events
-            if (_targetEnemy != null)
+            // Subscribe to target Core hitbox events
+            if (_targetCoreHitbox != null)
             {
-                // TODO: Subscribe to enemy state change events when enemy system is available
-                // For now we'll poll the enemy state in Update
+                _targetCoreHitbox.OnColliderDisabled += OnTargetCoreColliderDisabled;
+                Debug.Log($"PlayerResonanceAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
             }
 
             // Play resonance audio/effects
-            PlayResonanceEffects(player);
+            PlayResonanceEffects();
 
-            Debug.Log($"PlayerResonanceAction: Started with target enemy {_targetEnemy.name}");
+            // Trigger the resonance started event for state machine and camera system
+            OnResonanceActionStarted?.Invoke(_targetCoreHitbox);
+
+            Debug.Log($"PlayerResonanceAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
         }
 
         /// <summary>
         /// Update the resonance action each frame
         /// </summary>
-        /// <param name="player">Player controller reference</param>
         /// <param name="deltaTime">Time since last frame</param>
         public void Update(PlayerController player, float deltaTime)
         {
@@ -124,43 +251,75 @@ namespace Resonance.Player.Actions
             {
                 Debug.LogWarning("PlayerResonanceAction: Timed out after maximum duration");
                 _isFinished = true;
-                return;
+                CleanupAction();
+                return; 
             }
 
-            // Check if target enemy is still in physical death state
-            if (_targetEnemy == null || !IsEnemyStillValidTarget(_targetEnemy))
+            // Check if target Core hitbox is still valid for resonance
+            bool targetCoreNull = _targetCoreHitbox == null;
+            bool targetCoreValid = !targetCoreNull && IsValidTargetCore(_targetCoreHitbox);
+            bool targetCoreInRange = !targetCoreNull && IsTargetCoreStillInRange(_targetCoreHitbox);
+            
+            // Debug log every few seconds to track state
+            // if (Mathf.FloorToInt(actionDuration * 2) % 10 == 0) // Every 5 seconds
+            // {
+            //     Debug.Log($"PlayerResonanceAction: Update - Duration: {actionDuration:F1}s, Target null: {targetCoreNull}, Valid: {targetCoreValid}, In range: {targetCoreInRange}");
+            // }
+
+            if (targetCoreNull || !targetCoreValid || !targetCoreInRange)
             {
-                // Enemy no longer in physical death state or no longer in range
+                // Core hitbox no longer valid or in range
                 if (actionDuration >= MIN_ACTION_DURATION)
                 {
-                    Debug.Log("PlayerResonanceAction: Target enemy left physical death state, ending action");
+                    if (targetCoreNull)
+                    {
+                        Debug.Log("PlayerResonanceAction: Target Core hitbox is null, ending action");
+                    }
+                    else if (!targetCoreValid)
+                    {
+                        Debug.Log("PlayerResonanceAction: Target Core hitbox no longer in valid state, ending action");
+                        
+                        // Get detailed state info
+                        var enemyController = _targetCoreHitbox.GetEnemyController();
+                        if (enemyController != null)
+                        {
+                            Debug.Log($"PlayerResonanceAction: Enemy state: {enemyController.CurrentState}");
+                        }
+                    }
+                    else if (!targetCoreInRange)
+                    {
+                        Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer in range, ending action");
+                    }
+                    
                     _isFinished = true;
+                    CleanupAction();
                     return;
                 }
-                // If minimum duration not met, continue until minimum time is reached
+                else
+                {
+                    Debug.Log($"PlayerResonanceAction: Target invalid but minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                }
             }
 
             // Update resonance effects (visual feedback, QTE UI placeholder, etc.)
-            UpdateResonanceEffects(player, deltaTime);
+            UpdateResonanceEffects(deltaTime);
         }
 
         /// <summary>
         /// Cancel the resonance action (should not be called since it cannot be interrupted)
         /// </summary>
-        /// <param name="player">Player controller reference</param>
         public void Cancel(PlayerController player)
         {
             if (_isActive)
             {
                 Debug.Log("PlayerResonanceAction: Cancelled");
-                CleanupAction(player);
+                CleanupAction();
             }
         }
 
         /// <summary>
         /// Called when player takes damage (should not interrupt this action)
         /// </summary>
-        /// <param name="player">Player controller reference</param>
         public void OnDamageTaken(PlayerController player)
         {
             // This action provides invulnerability and cannot be interrupted
@@ -169,75 +328,79 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Find the target enemy for resonance action
+        /// Find the target Core hitbox for resonance action
         /// </summary>
-        /// <returns>The target enemy or null if none found</returns>
-        private EnemyMonoBehaviour FindTargetEnemy()
+        /// <returns>The target Core hitbox or null if none found</returns>
+        private EnemyHitbox FindTargetCoreHitbox()
         {
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null) return null;
 
-            // Get the closest dead enemy from MentalAttackTrigger
+            // Get the closest Core hitbox from MentalAttackTrigger
             var playerMono = playerService.CurrentPlayer;
             
-            // Try to get the closest dead enemy
-            // We need to access the MentalAttackTrigger somehow
-            // For now, we'll implement a simple version that checks if there are dead enemies
-            if (playerMono.HasDeadEnemiesInMentalAttackRange() && playerMono.GetDeadEnemyCount() > 0)
+            // Get the closest Core hitbox directly
+            var closestCoreHitbox = playerMono.GetClosestCoreHitbox();
+            if (closestCoreHitbox != null)
             {
-                // In a real implementation, we would get the actual enemy reference
-                // For now, we'll return a placeholder (this needs to be improved when we have access to the trigger)
-                Debug.Log("PlayerResonanceAction: Found target enemy (placeholder implementation)");
-                
-                // TODO: Get actual enemy reference from MentalAttackTrigger
-                // This is a temporary implementation that assumes we have a target
-                return null; // This will be replaced with actual enemy reference
+                Debug.Log($"PlayerResonanceAction: Found target Core hitbox {closestCoreHitbox.name}");
+                return closestCoreHitbox;
             }
 
+            Debug.Log("PlayerResonanceAction: No Core hitboxes found in range");
             return null;
         }
 
         /// <summary>
-        /// Check if the target enemy is still a valid target
+        /// Check if the target Core hitbox is still in range (collider state is handled by events)
         /// </summary>
-        /// <param name="enemy">Enemy to check</param>
-        /// <returns>True if enemy is still in physical death state and in range</returns>
-        private bool IsEnemyStillValidTarget(EnemyMonoBehaviour enemy)
+        /// <param name="hitbox">Core hitbox to check</param>
+        /// <returns>True if Core hitbox is still in range</returns>
+        private bool IsTargetCoreStillInRange(EnemyHitbox hitbox)
         {
-            if (enemy == null) return false;
+            if (hitbox == null) return false;
 
-            // Check if enemy is still in physical death state
-            if (!enemy.IsInitialized) return false;
-
-            var enemyController = enemy.Controller;
-            if (enemyController == null) return false;
-
-            // Check state machine
-            string currentState = enemyController.CurrentState;
-            bool isStillInPhysicalDeath = currentState == "PhysicalDeath";
-
-            // Alternative health check
-            if (!isStillInPhysicalDeath)
-            {
-                var stats = enemyController.Stats;
-                if (stats != null)
-                {
-                    isStillInPhysicalDeath = stats.currentPhysicalHealth <= 0f && stats.currentMentalHealth > 0f;
-                }
-            }
+            // Check if hitbox is still initialized and is Core type
+            if (!hitbox.IsInitialized || hitbox.type != EnemyHitboxType.Core) return false;
 
             // Check if still in range (through PlayerService)
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            bool isStillInRange = playerService?.CurrentPlayer?.HasDeadEnemiesInMentalAttackRange() ?? false;
+            var playerMono = playerService?.CurrentPlayer;
+            if (playerMono == null) return false;
 
-            return isStillInPhysicalDeath && isStillInRange;
+            // Check if this specific hitbox is still being tracked
+            var coreHitboxesInRange = playerMono.GetCoreHitboxesInRange();
+            return coreHitboxesInRange.Contains(hitbox);
+        }
+        
+        /// <summary>
+        /// Handle target core hitbox collider disabled event
+        /// </summary>
+        /// <param name="hitbox">The hitbox that was disabled</param>
+        private void OnTargetCoreColliderDisabled(EnemyHitbox hitbox)
+        {
+            if (hitbox == _targetCoreHitbox)
+            {
+                Debug.Log("PlayerResonanceAction: Target core collider disabled - ending resonance action");
+                
+                // Check minimum duration before ending
+                float actionDuration = Time.time - _actionStartTime;
+                if (actionDuration >= MIN_ACTION_DURATION)
+                {
+                    _isFinished = true;
+                    CleanupAction();
+                }
+                else
+                {
+                    Debug.Log($"PlayerResonanceAction: Minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                }
+            }
         }
 
         /// <summary>
         /// Play resonance visual and audio effects
         /// </summary>
-        /// <param name="player">Player controller reference</param>
-        private void PlayResonanceEffects(PlayerController player)
+        private void PlayResonanceEffects()
         {
             // Play resonance start audio
             var audioService = ServiceRegistry.Get<IAudioService>();
@@ -248,19 +411,16 @@ namespace Resonance.Player.Actions
             }
 
             // TODO: Add visual effects (particles, screen effects, etc.)
-            // TODO: Show QTE UI placeholder
             Debug.Log("PlayerResonanceAction: Playing resonance effects (placeholder)");
         }
 
         /// <summary>
         /// Update ongoing resonance effects
-        /// </summary>
-        /// <param name="player">Player controller reference</param>
+        /// </summary>  
         /// <param name="deltaTime">Time since last frame</param>
-        private void UpdateResonanceEffects(PlayerController player, float deltaTime)
+        private void UpdateResonanceEffects(float deltaTime)
         {
             // TODO: Update visual effects intensity
-            // TODO: Update QTE UI
             // TODO: Update audio effects
 
             // Placeholder implementation
@@ -275,35 +435,49 @@ namespace Resonance.Player.Actions
         /// <summary>
         /// Clean up the action when it ends
         /// </summary>
-        /// <param name="player">Player controller reference</param>
-        private void CleanupAction(PlayerController player)
+        private void CleanupAction()
         {
+            // Prevent multiple cleanup calls
+            if (!_isActive) return;
+            
             _isActive = false;
             _isFinished = true;
 
-            // Unsubscribe from enemy events
-            if (_targetEnemy != null)
+            // Unsubscribe from Core hitbox events
+            if (_targetCoreHitbox != null)
             {
-                // TODO: Unsubscribe from enemy state change events
+                _targetCoreHitbox.OnColliderDisabled -= OnTargetCoreColliderDisabled;
+                Debug.Log("PlayerResonanceAction: Unsubscribed from core hitbox collider events");
             }
 
             // Stop effects
-            StopResonanceEffects(player);
+            StopResonanceEffects();
+
+            // Force refresh UI colors to fix BUG2 (second approach UI color not updating)
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            var playerMono = playerService?.CurrentPlayer;
+            if (playerMono != null)
+            {
+                var mentalAttackTrigger = playerMono.GetComponentInChildren<MentalAttackTrigger>();
+                mentalAttackTrigger?.ForceRefreshUIColors();
+                Debug.Log("PlayerResonanceAction: Force refreshed UI colors after cleanup");
+            }
+
+            // Trigger the resonance ended event for state machine and camera system
+            OnResonanceActionEnded?.Invoke();
 
             // Clear target reference
-            _targetEnemy = null;
+            _targetCoreHitbox = null;
 
-            Debug.Log("PlayerResonanceAction: Cleaned up");
+            Debug.Log("PlayerResonanceAction: Cleaned up - camera should switch back to fixed view");
         }
 
         /// <summary>
         /// Stop resonance effects
         /// </summary>
-        /// <param name="player">Player controller reference</param>
-        private void StopResonanceEffects(PlayerController player)
+        private void StopResonanceEffects()
         {
             // TODO: Stop visual effects
-            // TODO: Hide QTE UI
             // TODO: Stop audio effects
 
             Debug.Log("PlayerResonanceAction: Stopped resonance effects");

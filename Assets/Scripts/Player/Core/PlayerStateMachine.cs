@@ -195,6 +195,11 @@ namespace Resonance.Player.Core
             return IsInState("Aiming") && _playerController.HasEquippedWeapon && _playerController.WeaponManager.CanShoot();
         }
 
+        public bool CanReload()
+        {
+            return IsInState("Normal") && _playerController.HasEquippedWeapon;
+        }
+
         public bool IsPhysicallyDead()
         {
             return IsInState("PhysicalDeath");

@@ -6,8 +6,8 @@ using Resonance.Enemies.States;
 namespace Resonance.Enemies.Core
 {
     /// <summary>
-    /// Enemy-specific state machine that manages enemy states like Normal, PhysicalDeath, Reviving, and TrueDeath.
-    /// Inherits from BaseStateMachine to provide enemy-specific functionality.
+    /// Enemy-specific state machine that manages enemy states: Normal, Reviving, and TrueDeath.
+    /// Handles transitions based on physical and mental health status.
     /// </summary>
     public class EnemyStateMachine
     {
@@ -49,7 +49,6 @@ namespace Resonance.Enemies.Core
         {
             // Add enemy states
             _stateMachine.AddState(new EnemyNormalState(_enemyController));
-            _stateMachine.AddState(new EnemyPhysicalDeathState(_enemyController));
             _stateMachine.AddState(new EnemyRevivingState(_enemyController));
             _stateMachine.AddState(new EnemyTrueDeathState(_enemyController));
 
@@ -122,23 +121,16 @@ namespace Resonance.Enemies.Core
 
         #region Enemy-Specific State Transitions
 
-        public bool EnterPhysicalDeath()
-        {
-            if (CanEnterPhysicalDeath())
-            {
-                return ChangeState("PhysicalDeath");
-            }
-            Debug.Log("EnemyStateMachine: Cannot enter physical death - conditions not met");
-            return false;
-        }
-
+        /// <summary>
+        /// Start revival process when physical health reaches 0
+        /// </summary>
         public bool StartRevival()
         {
-            if (IsInState("PhysicalDeath"))
+            if (IsInState("Normal"))
             {
                 return ChangeState("Reviving");
             }
-            Debug.Log("EnemyStateMachine: Cannot start revival - not in physical death state");
+            Debug.Log("EnemyStateMachine: Cannot start revival - not in normal state");
             return false;
         }
 
@@ -183,7 +175,8 @@ namespace Resonance.Enemies.Core
 
         public bool IsPhysicallyDead()
         {
-            return IsInState("PhysicalDeath");
+            // Physical death is now represented by the Reviving state
+            return IsInState("Reviving");
         }
 
         public bool IsReviving()
@@ -203,13 +196,13 @@ namespace Resonance.Enemies.Core
 
         public bool IsVulnerableToMentalAttacks()
         {
-            // Vulnerable when core is exposed (physical death or reviving)
-            return IsInState("PhysicalDeath") || IsInState("Reviving");
+            // Vulnerable when core is exposed (reviving state only)
+            return IsInState("Reviving");
         }
 
-        public bool CanEnterPhysicalDeath()
+        public bool CanStartRevival()
         {
-            // Can enter physical death from normal state
+            // Can start revival from normal state when physical health reaches 0
             return IsInState("Normal");
         }
 
@@ -244,14 +237,14 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Check if enemy is alert
+        /// Check if enemy is chase
         /// </summary>
-        public bool IsAlert()
+        public bool IsChasing()
         {
             if (IsInState("Normal"))
             {
                 var normalState = GetState<EnemyNormalState>("Normal");
-                return normalState?.IsAlert() ?? false;
+                return normalState?.IsChasing() ?? false;
             }
             return false;
         }

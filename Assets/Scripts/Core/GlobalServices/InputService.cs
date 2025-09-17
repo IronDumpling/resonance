@@ -12,6 +12,9 @@ namespace Resonance.Core.GlobalServices
         private InputActionMap _playerMap;
         private InputActionMap _uiMap;
         private bool _isEnabled = true;
+        
+        // Resonance mode control (Risk mitigation: Input conflict resolution)
+        public bool IsResonanceMode { get; set; } = false;
 
         public int Priority => 10;
         public SystemState State { get; private set; } = SystemState.Uninitialized;
@@ -40,6 +43,8 @@ namespace Resonance.Core.GlobalServices
         public event Action<bool> OnAim; // true when starting to aim, false when stopping
         public event Action OnShoot;
         public event Action<Vector2> OnLook;
+        public event Action OnQTE; // QTE input (F key during Resonance mode)
+        public event Action OnReload; // Reload input (R key)
 
         public void Initialize()
         {
@@ -91,6 +96,9 @@ namespace Resonance.Core.GlobalServices
             _playerMap["Shoot"].performed += OnShootPerformed;
             
             _playerMap["Look"].performed += OnLookPerformed;
+            
+            _playerMap["QTE"].performed += OnQTEPerformed;
+            _playerMap["Reload"].performed += OnReloadPerformed;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext context)
@@ -111,18 +119,27 @@ namespace Resonance.Core.GlobalServices
 
         private void OnResonancePerformed(InputAction.CallbackContext context)
         {
+            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
+            if (IsResonanceMode) return;
+            
             OnResonance?.Invoke();
-            Debug.Log("InputService: Resonance press performed");
+            Debug.Log("InputService: Resonance press performed"); 
         }
 
         private void OnRecoverStarted(InputAction.CallbackContext context)
         {
+            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
+            if (IsResonanceMode) return;
+            
             OnRecover?.Invoke(true);
             Debug.Log("InputService: Recover key pressed (started)");
         }
 
         private void OnRecoverCanceled(InputAction.CallbackContext context)
         {
+            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
+            if (IsResonanceMode) return;
+            
             OnRecover?.Invoke(false);
             Debug.Log("InputService: Recover key released (canceled)");
         }
@@ -156,6 +173,24 @@ namespace Resonance.Core.GlobalServices
         {
             Vector2 lookInput = context.ReadValue<Vector2>();
             OnLook?.Invoke(lookInput);
+        }
+
+        private void OnQTEPerformed(InputAction.CallbackContext context)
+        {
+            // Risk mitigation: Input conflict resolution - only trigger if in Resonance mode
+            if (!IsResonanceMode) return;
+            
+            OnQTE?.Invoke();
+            Debug.Log("InputService: QTE press performed");
+        }
+
+        private void OnReloadPerformed(InputAction.CallbackContext context)
+        {
+            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
+            if (IsResonanceMode) return;
+            
+            OnReload?.Invoke();
+            Debug.Log("InputService: Reload press performed");
         }
 
         public void EnablePlayerInput()
@@ -216,6 +251,8 @@ namespace Resonance.Core.GlobalServices
             OnAim = null;
             OnShoot = null;
             OnLook = null;
+            OnQTE = null;
+            OnReload = null;
 
             State = SystemState.Shutdown;
         }
