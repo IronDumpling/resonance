@@ -8,6 +8,7 @@ namespace Resonance.Items
     public class InfoDataAsset : ScriptableObject
     {
         public string infoName;
+        [TextArea(5, 10)]
         public string infoContent;
         public Sprite infoImage;
     }

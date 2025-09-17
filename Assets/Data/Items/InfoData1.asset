@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: InfoData1
   m_EditorClassIdentifier: 
   infoName: Protect yourself
-  infoContent: Pickup the weapon, right click to aim, and left click to fire.
-  infoImage: {fileID: 0}
+  infoContent: "Press E to pickup the weapon. \nRight click mouse to aim.\nLeft click
+    mouse to fire."
+  infoImage: {fileID: 21300000, guid: fa345a051bde6bd43a39ecd5ab57a6c6, type: 3}

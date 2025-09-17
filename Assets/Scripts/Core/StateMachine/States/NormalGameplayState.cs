@@ -35,7 +35,7 @@ namespace Resonance.Core.StateMachine.States
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to Resonance substate
-            return newState.Name == "Resonance";
+            return newState.Name == "Resonance" || newState.Name == "InfoReading";
         }
     }
 }
