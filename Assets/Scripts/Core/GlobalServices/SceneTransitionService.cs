@@ -1,9 +1,12 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Resonance.Core;
+using Resonance.Utilities;
 using Resonance.Interfaces.Services;
+using Resonance.Environments;
 
 namespace Resonance.Core.GlobalServices
 {
@@ -12,15 +15,35 @@ namespace Resonance.Core.GlobalServices
         public int Priority => 5;
         public SystemState State { get; private set; } = SystemState.Uninitialized;
         
+        // Scene Load Events
         public event Action<string> OnSceneLoadStarted;
         public event Action<string> OnSceneLoadCompleted;
         public event Action<string> OnSceneUnloadStarted;
         public event Action<string> OnSceneUnloadCompleted;
+        
+        // Scene Transition Events
+        public event Action<string, string> OnTransitionRequested; // sceneName, spawnPointID
+        public event Action<string> OnTransitionCompleted; // sceneName
 
+        // Scene Load Properties
         public string CurrentSceneName { get; private set; }
         public bool IsLoading { get; private set; }
+        
+        // Scene Transition Properties
+        public bool HasPendingTransition => _pendingTransition.HasValue;
 
         private MonoBehaviour _coroutineRunner;
+        
+        // Scene Transition State Management
+        private struct PendingTransition
+        {
+            public string targetSceneName;
+            public string targetSpawnPointID;
+            public string sourceTransitionID;
+        }
+        
+        private PendingTransition? _pendingTransition;
+        private Dictionary<string, SceneTransitionManager> _sceneManagers = new Dictionary<string, SceneTransitionManager>();
 
         public SceneTransitionService(MonoBehaviour coroutineRunner)
         {
@@ -141,6 +164,124 @@ namespace Resonance.Core.GlobalServices
             OnSceneUnloadCompleted?.Invoke(scene.name);
         }
 
+        #region Scene Transition Methods
+        
+        /// <summary>
+        /// Request scene transition
+        /// </summary>
+        /// <param name="targetScene">Target scene name</param>
+        /// <param name="spawnPointID">Target spawn point ID</param>
+        /// <param name="transitionID">Transition trigger ID</param>
+        public void RequestTransition(string targetScene, string spawnPointID, string transitionID)
+        {
+            if (IsLoading)
+            {
+                Debug.LogWarning($"SceneTransitionService: Cannot start transition to {targetScene}, already loading a scene");
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(targetScene))
+            {
+                Debug.LogError("SceneTransitionService: Target scene name cannot be empty");
+                return;
+            }
+
+            Debug.Log($"SceneTransitionService: Requesting transition to {targetScene}, spawn point: {spawnPointID}");
+            
+            // Save current Player state to PlayerService
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService != null && playerService.HasPlayer)
+            {
+                playerService.SavePlayerState($"transition_{transitionID}");
+                Debug.Log("SceneTransitionService: Player state saved for transition");
+            }
+            
+            // Record pending transition
+            _pendingTransition = new PendingTransition
+            {
+                targetSceneName = targetScene,
+                targetSpawnPointID = spawnPointID,
+                sourceTransitionID = transitionID
+            };
+            
+            // Trigger event
+            OnTransitionRequested?.Invoke(targetScene, spawnPointID);
+            
+            // Start scene loading
+            LoadScene(targetScene);
+        }
+        
+        /// <summary>
+        /// Complete scene transition (called in new scene)
+        /// </summary>
+        public void CompleteTransition()
+        {
+            if (!_pendingTransition.HasValue)
+            {
+                Debug.Log("SceneTransitionService: No pending transition to complete");
+                return;
+            }
+            
+            var transition = _pendingTransition.Value;
+            Debug.Log($"SceneTransitionService: Completing transition to {transition.targetSceneName}, spawn point: {transition.targetSpawnPointID}");
+            
+            // Trigger Player spawn via PlayerService
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService != null)
+            {
+                if (!string.IsNullOrEmpty(transition.targetSpawnPointID))
+                {
+                    playerService.SpawnPlayerAtPoint(transition.targetSpawnPointID);
+                }
+                else
+                {
+                    Debug.LogWarning("SceneTransitionService: No spawn point specified, using default spawn");
+                    playerService.SpawnPlayerAtPoint("default");
+                }
+            }
+            else
+            {
+                Debug.LogError("SceneTransitionService: PlayerService not found, cannot spawn player");
+            }
+            
+            // Trigger completion event
+            OnTransitionCompleted?.Invoke(transition.targetSceneName);
+            
+            // Clear pending transition
+            _pendingTransition = null;
+            
+            Debug.Log("SceneTransitionService: Transition completed successfully");
+        }
+        
+        /// <summary>
+        /// Register scene manager
+        /// </summary>
+        public void RegisterSceneManager(SceneTransitionManager manager)
+        {
+            if (manager == null) return;
+            
+            string sceneName = manager.gameObject.scene.name;
+            _sceneManagers[sceneName] = manager;
+            Debug.Log($"SceneTransitionService: Registered SceneTransitionManager for scene {sceneName}");
+        }
+        
+        /// <summary>
+        /// Unregister scene manager
+        /// </summary>
+        public void UnregisterSceneManager(SceneTransitionManager manager)
+        {
+            if (manager == null) return;
+            
+            string sceneName = manager.gameObject.scene.name;
+            if (_sceneManagers.ContainsKey(sceneName))
+            {
+                _sceneManagers.Remove(sceneName);
+                Debug.Log($"SceneTransitionService: Unregistered SceneTransitionManager for scene {sceneName}");
+            }
+        }
+        
+        #endregion
+
         public void Shutdown()
         {
             if (State == SystemState.Shutdown)
@@ -152,11 +293,17 @@ namespace Resonance.Core.GlobalServices
             SceneManager.sceneLoaded -= OnSceneLoaded;
             SceneManager.sceneUnloaded -= OnSceneUnloaded;
 
+            // Clear scene transition data
+            _pendingTransition = null;
+            _sceneManagers.Clear();
+
             // Clear events
             OnSceneLoadStarted = null;
             OnSceneLoadCompleted = null;
             OnSceneUnloadStarted = null;
             OnSceneUnloadCompleted = null;
+            OnTransitionRequested = null;
+            OnTransitionCompleted = null;
 
             State = SystemState.Shutdown;
         }
