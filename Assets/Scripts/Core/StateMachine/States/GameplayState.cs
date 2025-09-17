@@ -48,12 +48,19 @@ namespace Resonance.Core.StateMachine.States
 
         private void OnSceneUIPanelsReady(string sceneName)
         {
-            if (sceneName == "Level_01" && !_hasShownUI)
+            // Exclude MainMenu and other non-gameplay scenes
+            bool isGameplayScene = sceneName.Contains("Level") || sceneName.Contains("Room") || sceneName.Contains("Test");
+            
+            if (isGameplayScene && !_hasShownUI)
             {
                 Debug.Log($"GameplayState: Scene {sceneName} UI panels are ready, showing gameplay UI");
                 _hasShownUI = true;
                 _uiService?.ShowPanelsForState("Gameplay");
                 _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
+            }
+            else if (!isGameplayScene)
+            {
+                Debug.Log($"GameplayState: Scene {sceneName} is not a gameplay scene, skipping UI display");
             }
         }
 
