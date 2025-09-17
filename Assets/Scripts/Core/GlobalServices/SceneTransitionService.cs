@@ -192,8 +192,13 @@ namespace Resonance.Core.GlobalServices
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService != null && playerService.HasPlayer)
             {
+                Debug.Log($"🔄 [SCENE TRANSITION] Saving player state before transition...");
                 playerService.SavePlayerState($"transition_{transitionID}");
-                Debug.Log("SceneTransitionService: Player state saved for transition");
+                Debug.Log("🔄 [SCENE TRANSITION] Player state saved for transition");
+            }
+            else
+            {
+                Debug.LogWarning("🔄 [SCENE TRANSITION] No player service or player found, skipping save");
             }
             
             // Record pending transition
@@ -204,10 +209,13 @@ namespace Resonance.Core.GlobalServices
                 sourceTransitionID = transitionID
             };
             
+            Debug.Log($"🔄 [SCENE TRANSITION] Pending transition recorded: {targetScene} -> {spawnPointID}");
+            
             // Trigger event
             OnTransitionRequested?.Invoke(targetScene, spawnPointID);
             
             // Start scene loading
+            Debug.Log($"🔄 [SCENE TRANSITION] Starting scene load...");
             LoadScene(targetScene);
         }
         
