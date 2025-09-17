@@ -38,19 +38,28 @@ namespace Resonance.Core.GlobalServices
 
         public void PauseGameplay()
         {
-            if (_isGameplayPaused) return;
+            if (_isGameplayPaused) 
+            {
+                Debug.Log("SelectivePauseService: Already paused, ignoring duplicate PauseGameplay call");
+                return;
+            }
 
-            Debug.Log("SelectivePauseService: Pausing gameplay");
+            Debug.Log($"SelectivePauseService: Pausing gameplay - {_pausableComponents.Count} components registered");
             _isGameplayPaused = true;
 
             // 暂停所有注册的可暂停组件
+            int pausedCount = 0;
             foreach (var pausable in _pausableComponents)
             {
                 if (pausable != null)
                 {
                     pausable.Pause();
+                    pausedCount++;
+                    Debug.Log($"SelectivePauseService: Paused component {pausable.GetType().Name}");
                 }
             }
+
+            Debug.Log($"SelectivePauseService: Successfully paused {pausedCount} components");
 
             // 不设置 Time.timeScale = 0，这样UI动画等仍然可以运行
             // 具体的暂停逻辑由各个组件自己实现
@@ -58,19 +67,28 @@ namespace Resonance.Core.GlobalServices
 
         public void ResumeGameplay()
         {
-            if (!_isGameplayPaused) return;
+            if (!_isGameplayPaused) 
+            {
+                Debug.Log("SelectivePauseService: Not paused, ignoring ResumeGameplay call");
+                return;
+            }
 
-            Debug.Log("SelectivePauseService: Resuming gameplay");
+            Debug.Log($"SelectivePauseService: Resuming gameplay - {_pausableComponents.Count} components registered");
             _isGameplayPaused = false;
 
             // 恢复所有注册的可暂停组件
+            int resumedCount = 0;
             foreach (var pausable in _pausableComponents)
             {
                 if (pausable != null)
                 {
                     pausable.Resume();
+                    resumedCount++;
+                    Debug.Log($"SelectivePauseService: Resumed component {pausable.GetType().Name}");
                 }
             }
+
+            Debug.Log($"SelectivePauseService: Successfully resumed {resumedCount} components");
         }
 
         public void PauseAll()

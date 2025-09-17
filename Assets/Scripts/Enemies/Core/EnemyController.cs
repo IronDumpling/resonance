@@ -1,11 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Resonance.Enemies;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.States;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces;
-using Resonance.Enemies;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Enemies.Core
 {
@@ -13,7 +14,7 @@ namespace Resonance.Enemies.Core
     /// Enemy核心控制器，管理敌人状态和行为
     /// 这是一个Non-MonoBehaviour类，处理敌人逻辑
     /// </summary>
-    public class EnemyController
+    public class EnemyController : IPausable
     {
         // Core Data
         private EnemyRuntimeStats _stats;
@@ -177,6 +178,18 @@ namespace Resonance.Enemies.Core
 
             // Initialize damage hitbox
             _damageHitboxChild = enemyTransform.Find("DamageHitbox");
+            
+            // Register with SelectivePauseService
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("EnemyController: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("EnemyController: SelectivePauseService not found, pause functionality will not work");
+            }
             
             Debug.Log($"EnemyController: Initialized at {spawnPosition}");
         }
@@ -862,7 +875,47 @@ namespace Resonance.Enemies.Core
             _actionController?.Cleanup();
             _stateMachine?.Shutdown();
             
+            // Unregister from SelectivePauseService
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.UnregisterPausable(this);
+                Debug.Log("EnemyController: Unregistered from SelectivePauseService");
+            }
+            
             Debug.Log("EnemyController: Shutdown completed");
+        }
+
+        #endregion
+
+        #region IPausable Implementation
+
+        private bool _isPaused = false;
+
+        public bool IsPaused => _isPaused;
+
+        public void Pause()
+        {
+            if (_isPaused) return;
+            
+            _isPaused = true;
+            Debug.Log("EnemyController: Paused");
+            
+            // 暂停状态机更新
+            // 暂停移动
+            // 暂停动作控制器
+        }
+
+        public void Resume()
+        {
+            if (!_isPaused) return;
+            
+            _isPaused = false;
+            Debug.Log("EnemyController: Resumed");
+            
+            // 恢复状态机更新
+            // 恢复移动
+            // 恢复动作控制器
         }
 
         #endregion

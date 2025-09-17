@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Items;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
-using Resonance.Items;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -31,8 +31,19 @@ namespace Resonance.Core.StateMachine.States
             _uiService = ServiceRegistry.Get<IUIService>();
             _pauseService = ServiceRegistry.Get<ISelectivePauseService>();
 
+            Debug.Log($"InfoReadingState: UIService = {(_uiService != null ? "Found" : "NULL")}");
+            Debug.Log($"InfoReadingState: SelectivePauseService = {(_pauseService != null ? "Found" : "NULL")}");
+
             // 暂停游戏逻辑但保持UI交互
-            _pauseService?.PauseGameplay();
+            if (_pauseService != null)
+            {
+                Debug.Log("InfoReadingState: Calling PauseGameplay()");
+                _pauseService.PauseGameplay();
+            }
+            else
+            {
+                Debug.LogError("InfoReadingState: SelectivePauseService is null, cannot pause gameplay");
+            }
 
             // 显示InfoPanel
             _uiService?.ShowPanelsForState("Gameplay/InfoReading");
@@ -45,29 +56,26 @@ namespace Resonance.Core.StateMachine.States
 
         public void Update()
         {
-            // 处理输入 - ESC键或其他关闭操作
-            // 这里可以监听输入服务的ESC键事件
-            var inputService = ServiceRegistry.Get<IInputService>();
-            if (inputService != null)
-            {
-                // 如果有ESC键输入，关闭InfoPanel
-                // 注意：具体的输入检测逻辑需要根据你们的InputService实现来调整
-                // 这里只是示例框架
-            }
+            
         }
 
         public void Exit()
         {
             Debug.Log("State: Exiting InfoReading");
 
-            // 隐藏InfoPanel
-            _uiService?.HidePanel("InfoPanel");
+            // 恢复到正常的 Gameplay UI 状态
+            _uiService?.ShowPanelsForState("Gameplay");
 
             // 恢复游戏逻辑
-            _pauseService?.ResumeGameplay();
-
-            // 触发事件
-            TriggerInfoReadingEnd();
+            if (_pauseService != null)
+            {
+                Debug.Log("InfoReadingState: Calling ResumeGameplay()");
+                _pauseService.ResumeGameplay();
+            }
+            else
+            {
+                Debug.LogError("InfoReadingState: SelectivePauseService is null, cannot resume gameplay");
+            }
 
             // 清理状态
             _currentInfoData = null;
@@ -100,17 +108,6 @@ namespace Resonance.Core.StateMachine.States
             return _currentInfoData;
         }
 
-        /// <summary>
-        /// 关闭信息阅读（由UI调用）
-        /// </summary>
-        public void CloseInfoReading()
-        {
-            Debug.Log("InfoReadingState: Close info reading requested");
-            
-            // 触发结束事件，让GameplayState处理状态转换
-            TriggerInfoReadingEnd();
-        }
-        
         /// <summary>
         /// 静态方法：触发信息阅读结束事件（供外部调用）
         /// </summary>
