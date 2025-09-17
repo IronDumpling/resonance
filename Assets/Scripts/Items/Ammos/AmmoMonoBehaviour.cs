@@ -15,7 +15,7 @@ namespace Resonance.Items
     /// - This handles pickup animations (bob, rotation) and interaction triggers
     /// - When picked up, the ammo count is added to player's ammo inventory
     /// </summary>
-    public class AmmoMonoBehaviour : MonoBehaviour, IInteractable
+    public class AmmoMonoBehaviour : MonoBehaviour, IInteractable, IPausable
     {
         [Header("Ammo Configuration")]
         [SerializeField] private AmmoDataAsset _ammoDataAsset;
@@ -79,22 +79,17 @@ namespace Resonance.Items
                 _pickupVisual = gameObject;
             }
 
-            // 设置音频服务
+            // Setup audio service
             SetupAudioService();
             
-            // 设置交互UI
+            // Setup interaction UI
             SetupInteractionUI();
             
-            // 获取交互服务并注册为可交互对象
-            _interactionService = ServiceRegistry.Get<IInteractionService>();
-            if (_interactionService != null)
-            {
-                _interactionService.RegisterInteractable(gameObject);
-            }
-            else
-            {
-                Debug.LogWarning("AmmoMonoBehaviour: InteractionService not found");
-            }
+            // Get interaction service and register as interactable object
+            RegisterInteractionService();
+
+            // Register with SelectivePauseService
+            RegisterWithPauseService();
         }
 
         void OnDestroy()
@@ -112,12 +107,14 @@ namespace Resonance.Items
 
         void Update()
         {
-            if (_isPickedUp) return;
+            if (_isPickedUp || _isPaused) return;
             
             // 执行视觉动画
             PerformVisualAnimations();
         }
 
+        #region Setup
+        
         /// <summary>
         /// 设置音频服务引用
         /// </summary>
@@ -184,8 +181,35 @@ namespace Resonance.Items
             Debug.Log($"AmmoMonoBehaviour: Interaction UI setup complete");
         }
 
+        private void RegisterInteractionService()
+        {
+            _interactionService = ServiceRegistry.Get<IInteractionService>();
+            if (_interactionService != null)
+            {
+                _interactionService.RegisterInteractable(gameObject);
+            }
+        }
+
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("AmmoMonoBehaviour: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("AmmoMonoBehaviour: SelectivePauseService not found, pause functionality will not work");
+            }
+
+            Debug.Log("AmmoMonoBehaviour: Initialized with base stats, weapon manager, state machine, and action controller");
+        }
+
+        #endregion
+
         /// <summary>
-        /// 执行视觉动画
+        /// Perform visual animations
         /// </summary>
         private void PerformVisualAnimations()
         {
@@ -194,7 +218,7 @@ namespace Resonance.Items
             Vector3 currentPosition = _originalPosition;
             Vector3 currentRotation = _pickupVisual.transform.eulerAngles;
 
-            // 上下浮动动画
+            // Up and down animation
             if (_bobUpAndDown)
             {
                 _bobTimer += Time.deltaTime * _bobSpeed;
@@ -202,13 +226,13 @@ namespace Resonance.Items
                 currentPosition.y = _originalPosition.y + bobOffset;
             }
 
-            // 旋转动画
+            // Rotation animation
             if (_rotateWhenIdle)
             {
                 currentRotation.y += _rotationSpeed * Time.deltaTime;
             }
 
-            // 应用变换
+            // Apply transform
             transform.position = currentPosition;
             _pickupVisual.transform.eulerAngles = currentRotation;
         }
@@ -358,6 +382,30 @@ namespace Resonance.Items
         public string GetInteractableName()
         {
             return _ammoDataAsset?.ammoName ?? "Unknown Ammo";
+        }
+
+        #endregion
+
+        #region IPausable Implementation
+
+        private bool _isPaused = false;
+
+        public bool IsPaused => _isPaused;
+
+        public void Pause()
+        {
+            if (_isPaused) return;
+            
+            _isPaused = true;
+            Debug.Log("AmmoMonoBehaviour: Paused");
+        }
+
+        public void Resume()
+        {
+            if (!_isPaused) return;
+            
+            _isPaused = false;
+            Debug.Log("AmmoMonoBehaviour: Resumed");
         }
 
         #endregion

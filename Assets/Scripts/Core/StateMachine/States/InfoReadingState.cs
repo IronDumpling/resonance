@@ -7,9 +7,9 @@ using Resonance.Interfaces.Services;
 namespace Resonance.Core.StateMachine.States
 {
     /// <summary>
-    /// 信息阅读状态 - Gameplay的子状态
-    /// 当玩家与InfoMonoBehaviour交互时进入此状态
-    /// 在此状态下，游戏逻辑暂停但UI保持可交互
+    /// InfoReadingState - Gameplay's sub-state
+    /// When the player interacts with InfoMonoBehaviour, enter this state
+    /// In this state, gameplay is paused but UI remains interactive
     /// </summary>
     public class InfoReadingState : IState
     {
@@ -27,14 +27,14 @@ namespace Resonance.Core.StateMachine.States
         {
             Debug.Log("State: Entering InfoReading");
 
-            // 获取服务
+            // Get services
             _uiService = ServiceRegistry.Get<IUIService>();
             _pauseService = ServiceRegistry.Get<ISelectivePauseService>();
 
             Debug.Log($"InfoReadingState: UIService = {(_uiService != null ? "Found" : "NULL")}");
             Debug.Log($"InfoReadingState: SelectivePauseService = {(_pauseService != null ? "Found" : "NULL")}");
 
-            // 暂停游戏逻辑但保持UI交互
+            // Pause gameplay
             if (_pauseService != null)
             {
                 Debug.Log("InfoReadingState: Calling PauseGameplay()");
@@ -45,10 +45,10 @@ namespace Resonance.Core.StateMachine.States
                 Debug.LogError("InfoReadingState: SelectivePauseService is null, cannot pause gameplay");
             }
 
-            // 显示InfoPanel
+            // Show InfoPanel
             _uiService?.ShowPanelsForState("Gameplay/InfoReading");
 
-            // 触发事件
+            // Trigger events
             OnInfoReadingStarted?.Invoke(_currentInfoData);
 
             Debug.Log($"InfoReadingState: Started reading info - {_currentInfoData?.infoName ?? "Unknown"}");
@@ -56,17 +56,17 @@ namespace Resonance.Core.StateMachine.States
 
         public void Update()
         {
-            
+            // Do nothing
         }
 
         public void Exit()
         {
             Debug.Log("State: Exiting InfoReading");
 
-            // 恢复到正常的 Gameplay UI 状态
+            // Restore to normal Gameplay UI state
             _uiService?.ShowPanelsForState("Gameplay");
 
-            // 恢复游戏逻辑
+            // Resume gameplay
             if (_pauseService != null)
             {
                 Debug.Log("InfoReadingState: Calling ResumeGameplay()");
@@ -77,7 +77,7 @@ namespace Resonance.Core.StateMachine.States
                 Debug.LogError("InfoReadingState: SelectivePauseService is null, cannot resume gameplay");
             }
 
-            // 清理状态
+            // Clean up state
             _currentInfoData = null;
 
             Debug.Log("InfoReadingState: Info reading session ended");
@@ -85,14 +85,14 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // 只能转换回Normal状态或者到Paused状态
+            // Can only transition back to Normal or Paused state
             return newState.Name == "Normal" || newState.Name == "Paused";
         }
 
         /// <summary>
-        /// 设置要阅读的信息数据
+        /// Set the info data to read
         /// </summary>
-        /// <param name="infoData">信息数据资产</param>
+        /// <param name="infoData">Info data asset</param>
         public void SetInfoData(InfoDataAsset infoData)
         {
             _currentInfoData = infoData;
@@ -100,16 +100,16 @@ namespace Resonance.Core.StateMachine.States
         }
 
         /// <summary>
-        /// 获取当前正在阅读的信息数据
+        /// Get the current info data being read
         /// </summary>
-        /// <returns>当前的信息数据</returns>
+        /// <returns>The current info data</returns>
         public InfoDataAsset GetCurrentInfoData()
         {
             return _currentInfoData;
         }
 
         /// <summary>
-        /// 静态方法：触发信息阅读结束事件（供外部调用）
+        /// Static method: Trigger info reading ended event (for external use)
         /// </summary>
         public static void TriggerInfoReadingEnd()
         {

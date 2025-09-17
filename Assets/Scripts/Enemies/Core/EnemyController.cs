@@ -180,17 +180,8 @@ namespace Resonance.Enemies.Core
             _damageHitboxChild = enemyTransform.Find("DamageHitbox");
             
             // Register with SelectivePauseService
-            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
-            if (pauseService != null)
-            {
-                pauseService.RegisterPausable(this);
-                Debug.Log("EnemyController: Registered with SelectivePauseService");
-            }
-            else
-            {
-                Debug.LogWarning("EnemyController: SelectivePauseService not found, pause functionality will not work");
-            }
-            
+            RegisterWithPauseService();
+
             Debug.Log($"EnemyController: Initialized at {spawnPosition}");
         }
 
@@ -893,6 +884,20 @@ namespace Resonance.Enemies.Core
         private bool _isPaused = false;
 
         public bool IsPaused => _isPaused;
+
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("EnemyController: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("EnemyController: SelectivePauseService not found, pause functionality will not work");
+            }
+        }
 
         public void Pause()
         {

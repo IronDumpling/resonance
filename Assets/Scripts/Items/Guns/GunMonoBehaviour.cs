@@ -16,7 +16,7 @@ namespace Resonance.Items
     /// - When equipped, the gun data is passed to WeaponManager but no visual weapon is shown on player yet
     /// - Future: Add equipped weapon visual system to player for when gun is equipped
     /// </summary>
-    public class GunMonoBehaviour : MonoBehaviour, IInteractable
+    public class GunMonoBehaviour : MonoBehaviour, IInteractable, IPausable
     {
         [Header("Gun Configuration")]
         [SerializeField] private GunDataAsset _gunDataAsset;
@@ -74,22 +74,17 @@ namespace Resonance.Items
                 _pickupVisual = gameObject;
             }
 
-            // 设置音频服务
+            // Setup audio service
             SetupAudioService();
             
-            // 设置交互UI
+            // Setup interaction UI
             SetupInteractionUI();
             
-            // 获取交互服务并注册为可交互对象
-            _interactionService = ServiceRegistry.Get<IInteractionService>();
-            if (_interactionService != null)
-            {
-                _interactionService.RegisterInteractable(gameObject);
-            }
-            else
-            {
-                Debug.LogWarning("GunMonoBehaviour: InteractionService not found");
-            }
+            // Register interaction service
+            RegisterInteractionService();
+
+            // Register with SelectivePauseService
+            RegisterWithPauseService();
         }
 
         void OnDestroy()
@@ -107,11 +102,13 @@ namespace Resonance.Items
 
         void Update()
         {
-            if (_isPickedUp) return;
+            if (_isPickedUp || _isPaused) return;
             
             // 执行视觉动画
             PerformVisualAnimations();
         }
+
+        #region Setup
 
         /// <summary>
         /// 设置音频服务引用
@@ -178,6 +175,31 @@ namespace Resonance.Items
 
             Debug.Log($"GunMonoBehaviour: Interaction UI setup complete");
         }
+
+        private void RegisterInteractionService()
+        {
+            _interactionService = ServiceRegistry.Get<IInteractionService>();
+            if (_interactionService != null)
+            {
+                _interactionService.RegisterInteractable(gameObject);
+            }
+        }
+
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("GunMonoBehaviour: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("GunMonoBehaviour: SelectivePauseService not found, pause functionality will not work");
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 执行视觉动画
@@ -358,6 +380,30 @@ namespace Resonance.Items
         public string GetInteractableName()
         {
             return _gunDataAsset?.weaponName ?? "Unknown Weapon";
+        }
+
+        #endregion
+
+        #region IPausable Implementation
+
+        private bool _isPaused = false;
+
+        public bool IsPaused => _isPaused;
+
+        public void Pause()
+        {
+            if (_isPaused) return;
+            
+            _isPaused = true;
+            Debug.Log("GunMonoBehaviour: Paused");
+        }
+
+        public void Resume()
+        {
+            if (!_isPaused) return;
+            
+            _isPaused = false;
+            Debug.Log("GunMonoBehaviour: Resumed");
         }
 
         #endregion

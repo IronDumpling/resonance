@@ -136,7 +136,7 @@ namespace Resonance.Player
 
         void Update()
         {
-            if (!IsInitialized) return;
+            if (!IsInitialized || _playerController.IsPaused) return;
 
             HandlePhysics();
             UpdatePlayerVisualRotation();

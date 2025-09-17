@@ -136,18 +136,7 @@ namespace Resonance.Player.Core
             RegisterPlayerActions();
 
             // Register with SelectivePauseService
-            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
-            if (pauseService != null)
-            {
-                pauseService.RegisterPausable(this);
-                Debug.Log("PlayerController: Registered with SelectivePauseService");
-            }
-            else
-            {
-                Debug.LogWarning("PlayerController: SelectivePauseService not found, pause functionality will not work");
-            }
-
-            Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
+            RegisterWithPauseService();
         }
 
         /// <summary>
@@ -708,16 +697,28 @@ namespace Resonance.Player.Core
 
         public bool IsPaused => _isPaused;
 
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("PlayerController: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: SelectivePauseService not found, pause functionality will not work");
+            }
+
+            Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
+        }
+
         public void Pause()
         {
             if (_isPaused) return;
             
             _isPaused = true;
             Debug.Log("PlayerController: Paused");
-            
-            // 暂停状态机更新
-            // 暂停移动输入处理
-            // 暂停动作控制器
         }
 
         public void Resume()
@@ -726,10 +727,6 @@ namespace Resonance.Player.Core
             
             _isPaused = false;
             Debug.Log("PlayerController: Resumed");
-            
-            // 恢复状态机更新
-            // 恢复移动输入处理
-            // 恢复动作控制器
         }
 
         #endregion

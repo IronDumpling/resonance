@@ -172,7 +172,7 @@ namespace Resonance.Enemies
 
         void Update()
         {
-            if (!IsInitialized) return;
+            if (!IsInitialized || _enemyController.IsPaused) return;
 
             _enemyController.Update(Time.deltaTime);
 
