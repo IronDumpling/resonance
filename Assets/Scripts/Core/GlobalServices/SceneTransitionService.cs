@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Resonance.Core;
+using Resonance.Core.StateMachine;
+using Resonance.Core.StateMachine.States;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
 using Resonance.Environments;
@@ -156,6 +158,49 @@ namespace Resonance.Core.GlobalServices
             Debug.Log($"SceneTransitionService: Scene {scene.name} loaded");
             OnSceneLoadCompleted?.Invoke(scene.name);
             IsLoading = false;
+            
+            // Trigger UI refresh for gameplay scenes after a short delay
+            // This ensures all UI panels are registered before we try to show them
+            if (scene.name.Contains("Level") || scene.name.Contains("Room") || scene.name.Contains("Test"))
+            {
+                Debug.Log($"SceneTransitionService: Scheduling UI refresh for gameplay scene {scene.name}");
+                _coroutineRunner.StartCoroutine(DelayedUIRefresh());
+            }
+        }
+        
+        private IEnumerator DelayedUIRefresh()
+        {
+            // Wait a few frames to ensure all UI panels are registered
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
+            
+            // Get GameManager and refresh gameplay UI
+            var gameManager = GameManager.Instance;
+            if (gameManager != null)
+            {
+                var stateMachine = gameManager.GetComponent<GameStateMachine>();
+                if (stateMachine != null)
+                {
+                    var gameplayState = stateMachine.GetState<GameplayState>("Gameplay");
+                    if (gameplayState != null)
+                    {
+                        Debug.Log("SceneTransitionService: Triggering gameplay UI refresh");
+                        gameplayState.RefreshGameplayUI();
+                    }
+                    else
+                    {
+                        Debug.LogWarning("SceneTransitionService: GameplayState not found in state machine");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("SceneTransitionService: GameStateMachine not found on GameManager");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("SceneTransitionService: GameManager instance not found");
+            }
         }
 
         private void OnSceneUnloaded(Scene scene)

@@ -44,6 +44,10 @@ namespace Resonance.Core.StateMachine.States
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
             Debug.Log("GameplayState: Subscribed to InfoReadingState events");
+            
+            // Reset UI state for new gameplay session
+            _hasShownUI = false;
+            Debug.Log("GameplayState: Reset _hasShownUI flag for new gameplay session");
         }
 
         private void OnSceneUIPanelsReady(string sceneName)
@@ -51,16 +55,27 @@ namespace Resonance.Core.StateMachine.States
             // Exclude MainMenu and other non-gameplay scenes
             bool isGameplayScene = sceneName.Contains("Level") || sceneName.Contains("Room") || sceneName.Contains("Test");
             
-            if (isGameplayScene && !_hasShownUI)
+            if (isGameplayScene)
             {
                 Debug.Log($"GameplayState: Scene {sceneName} UI panels are ready, showing gameplay UI");
-                _hasShownUI = true;
-                _uiService?.ShowPanelsForState("Gameplay");
-                _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
+                ShowGameplayUI();
             }
-            else if (!isGameplayScene)
+        }
+        
+        /// <summary>
+        /// Show gameplay UI for the current scene
+        /// This method can be called multiple times safely (e.g., on scene transitions)
+        /// </summary>
+        private void ShowGameplayUI()
+        {
+            if (_uiService != null)
             {
-                Debug.Log($"GameplayState: Scene {sceneName} is not a gameplay scene, skipping UI display");
+                _uiService.ShowPanelsForState("Gameplay");
+                _hasShownUI = true;
+            }
+            else
+            {
+                Debug.LogError("GameplayState: UIService is null, cannot show gameplay UI");
             }
         }
 
@@ -252,6 +267,15 @@ namespace Resonance.Core.StateMachine.States
         public string GetCurrentSubstateName()
         {
             return _subStateMachine?.CurrentState?.Name ?? "None";
+        }
+        
+        /// <summary>
+        /// Force refresh of gameplay UI (useful after scene transitions)
+        /// </summary>
+        public void RefreshGameplayUI()
+        {
+            Debug.Log("GameplayState: Force refreshing gameplay UI");
+            ShowGameplayUI();
         }
     }
 }
