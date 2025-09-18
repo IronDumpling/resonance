@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Resonance.Player.Core;
 
 namespace Resonance.Player.Data
 {
@@ -21,8 +22,12 @@ namespace Resonance.Player.Data
         public PlayerRuntimeStats stats;
 
         [Header("Inventory")]
-        public List<ItemSaveData> inventory;
+        public List<ItemSaveData> inventory; // 向后兼容：传统物品
         public List<int> equippedItemIDs; // IDs of currently equipped items
+        
+        [Header(" Inventory System")]
+        public InventorySaveData Inventory; // 新的统一背包数据
+        public WeaponManagerSaveData weaponManager; // 武器管理器数据
 
         [Header("Progression")]
         public List<string> unlockedAbilities;
@@ -36,6 +41,8 @@ namespace Resonance.Player.Data
         {
             inventory = new List<ItemSaveData>();
             equippedItemIDs = new List<int>();
+            Inventory = new InventorySaveData();
+            weaponManager = new WeaponManagerSaveData();
             unlockedAbilities = new List<string>();
             gameVariables = new Dictionary<string, float>();
             collectedItems = new Dictionary<string, bool>();
@@ -53,7 +60,9 @@ namespace Resonance.Player.Data
             {
                 saveID = savePointID,
                 sceneName = sceneName,
-                saveTimestamp = Time.time
+                saveTimestamp = Time.time,
+                Inventory = new InventorySaveData(),
+                weaponManager = new WeaponManagerSaveData()
             };
         }
     }

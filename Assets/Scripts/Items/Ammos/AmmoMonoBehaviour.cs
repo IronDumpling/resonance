@@ -320,24 +320,47 @@ namespace Resonance.Items
             
             if (pickupSuccess && playerTransform != null)
             {
-                // Try to add ammo to player's inventory
+                // Try to add ammo to player's new inventory system
                 var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
                 if (playerMono != null && playerMono.IsInitialized)
                 {
-                    // Add ammo to player's ammo inventory
-                    var playerStats = playerMono.Controller?.Stats;
-                    if (playerStats?.ammoInventory != null)
+                    var playerController = playerMono.Controller;
+                    if (playerController != null)
                     {
-                        playerStats.ammoInventory.AddAmmo(_ammoDataAsset.ammoType, _ammoDataAsset.ammoCount);
-                        Debug.Log($"AmmoMonoBehaviour: Successfully added {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo to player inventory");
-                        
-                        // Log current inventory state for debugging
-                        int currentCount = playerStats.ammoInventory.GetAmmoCount(_ammoDataAsset.ammoType);
-                        Debug.Log($"AmmoMonoBehaviour: Player now has {currentCount} total {_ammoDataAsset.ammoType} ammo");
+                        // 使用新的统一背包系统添加弹药
+                        var inventory = playerController.Inventory;
+                        if (inventory != null)
+                        {
+                            // 添加弹药到统一背包系统
+                            bool added = inventory.AddConsumable(_ammoDataAsset.GetInstanceID(), _ammoDataAsset.ammoCount);
+                            if (added)
+                            {
+                                Debug.Log($"AmmoMonoBehaviour: Successfully added {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo to new inventory system");
+                                
+                                // 同时添加到传统的弹药库存系统（保持兼容性）
+                                var playerStats = playerController.Stats;
+                                if (playerStats?.ammoInventory != null)
+                                {
+                                    playerStats.ammoInventory.AddAmmo(_ammoDataAsset.ammoType, _ammoDataAsset.ammoCount);
+                                    
+                                    // Log current inventory state for debugging
+                                    int currentCount = playerStats.ammoInventory.GetAmmoCount(_ammoDataAsset.ammoType);
+                                    Debug.Log($"AmmoMonoBehaviour: Player now has {currentCount} total {_ammoDataAsset.ammoType} ammo in legacy system");
+                                }
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"AmmoMonoBehaviour: Failed to add {_ammoDataAsset.ammoType} ammo to inventory - inventory full");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError("AmmoMonoBehaviour: Player's inventory not found");
+                        }
                     }
                     else
                     {
-                        Debug.LogError("AmmoMonoBehaviour: Player's ammo inventory not found or not initialized");
+                        Debug.LogError("AmmoMonoBehaviour: Player's Controller is null");
                     }
                 }
                 else

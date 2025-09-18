@@ -30,7 +30,6 @@ namespace Resonance.Player.Data
 
         [Header("Inventory")]
         [SerializeField] private int _maxInventorySlots = 20;
-        [SerializeField] private float _maxCarryWeight = 100f;
 
         [Header("Mental Health Slots")]
         [SerializeField] private int _mentalHealthSlots = 3;  // Fixed to 3 slots
@@ -61,7 +60,6 @@ namespace Resonance.Player.Data
         public float AttackCooldown => _attackCooldown;
         public float InvulnerabilityTime => _invulnerabilityTime;
         public int MaxInventorySlots => _maxInventorySlots;
-        public float MaxCarryWeight => _maxCarryWeight;
 
         // Mental Health Slots Properties
         public int MentalHealthSlots => _mentalHealthSlots;
@@ -117,7 +115,6 @@ namespace Resonance.Player.Data
 
         [Header("Current Inventory")]
         public int maxInventorySlots;
-        public float maxCarryWeight;
 
         [Header("Health Tiers")]
         public MentalHealthTier mentalTier;
@@ -148,7 +145,6 @@ namespace Resonance.Player.Data
             invulnerabilityTime = baseStats.InvulnerabilityTime;
             
             maxInventorySlots = baseStats.MaxInventorySlots;
-            maxCarryWeight = baseStats.MaxCarryWeight;
 
             // Initialize health tiers
             mentalHealthSlots = baseStats.MentalHealthSlots;

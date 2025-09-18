@@ -10,7 +10,7 @@ namespace Resonance.Player
     /// Handles player spawning in scenes. Automatically spawns player when scene loads.
     /// Can be configured with different spawn points based on how player entered the scene.
     /// </summary>
-    public class PlayerSpawner : MonoBehaviour
+    public class PlayerSpawnManager : MonoBehaviour
     {
         [Header("Spawn Configuration")]
         [SerializeField] private Transform _defaultSpawnPoint;
@@ -38,7 +38,7 @@ namespace Resonance.Player
             _playerService = ServiceRegistry.Get<IPlayerService>();
             if (_playerService == null)
             {
-                Debug.LogError("PlayerSpawner: PlayerService not found!");
+                Debug.LogError("PlayerSpawnManager: PlayerService not found!");
                 return;
             }
 
@@ -51,7 +51,7 @@ namespace Resonance.Player
                 SpawnPlayer(_defaultSpawnID);
             }
 
-            Debug.Log($"PlayerSpawner: Initialized in scene {gameObject.scene.name}");
+            Debug.Log($"PlayerSpawnManager: Initialized in scene {gameObject.scene.name}");
         }
 
         private void RegisterSpawnPoints()
@@ -80,7 +80,7 @@ namespace Resonance.Player
                 }
             }
 
-            Debug.Log($"PlayerSpawner: Registered {namedPointsCount + 1} spawn points");
+            Debug.Log($"PlayerSpawnManager: Registered {namedPointsCount + 1} spawn points");
         }
 
         public void SpawnPlayer(string spawnPointID = null)
@@ -95,7 +95,7 @@ namespace Resonance.Player
             {
                 // Move existing player to spawn point
                 MovePlayerToSpawnPoint(existingPlayer, spawnID);
-                Debug.Log($"PlayerSpawner: Moved existing player to spawn point {spawnID}");
+                Debug.Log($"PlayerSpawnManager: Moved existing player to spawn point {spawnID}");
             }
             else
             {
@@ -125,7 +125,7 @@ namespace Resonance.Player
             }
 
             CreatePlayerAtPosition(spawnPosition, spawnRotation);
-            Debug.Log($"PlayerSpawner: Spawned new player at {spawnID} ({spawnPosition})");
+            Debug.Log($"PlayerSpawnManager: Spawned new player at {spawnID} ({spawnPosition})");
         }
 
         public void SpawnPlayerAtPosition(Vector3 position, Vector3 rotation)
@@ -178,7 +178,7 @@ namespace Resonance.Player
 
             if (prefabToUse == null)
             {
-                Debug.LogError("PlayerSpawner: No player prefab available!");
+                Debug.LogError("PlayerSpawnManager: No player prefab available!");
                 return;
             }
 
@@ -186,7 +186,7 @@ namespace Resonance.Player
             GameObject playerInstance = Instantiate(prefabToUse, position, Quaternion.Euler(rotation));
             playerInstance.name = "Player";
 
-            Debug.Log($"PlayerSpawner: Created new player at {position}");
+            Debug.Log($"PlayerSpawnManager: Created new player at {position}");
         }
 
         // Public methods for external triggers

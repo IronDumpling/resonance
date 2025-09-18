@@ -44,16 +44,38 @@ namespace Resonance.Core.StateMachine.States
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
             Debug.Log("GameplayState: Subscribed to InfoReadingState events");
+            
+            // Reset UI state for new gameplay session
+            _hasShownUI = false;
+            Debug.Log("GameplayState: Reset _hasShownUI flag for new gameplay session");
         }
 
         private void OnSceneUIPanelsReady(string sceneName)
         {
-            if (sceneName == "Level_01" && !_hasShownUI)
+            // Exclude MainMenu and other non-gameplay scenes
+            bool isGameplayScene = sceneName.Contains("Level") || sceneName.Contains("Room") || sceneName.Contains("Test");
+            
+            if (isGameplayScene)
             {
                 Debug.Log($"GameplayState: Scene {sceneName} UI panels are ready, showing gameplay UI");
+                ShowGameplayUI();
+            }
+        }
+        
+        /// <summary>
+        /// Show gameplay UI for the current scene
+        /// This method can be called multiple times safely (e.g., on scene transitions)
+        /// </summary>
+        private void ShowGameplayUI()
+        {
+            if (_uiService != null)
+            {
+                _uiService.ShowPanelsForState("Gameplay");
                 _hasShownUI = true;
-                _uiService?.ShowPanelsForState("Gameplay");
-                _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
+            }
+            else
+            {
+                Debug.LogError("GameplayState: UIService is null, cannot show gameplay UI");
             }
         }
 
@@ -245,6 +267,15 @@ namespace Resonance.Core.StateMachine.States
         public string GetCurrentSubstateName()
         {
             return _subStateMachine?.CurrentState?.Name ?? "None";
+        }
+        
+        /// <summary>
+        /// Force refresh of gameplay UI (useful after scene transitions)
+        /// </summary>
+        public void RefreshGameplayUI()
+        {
+            Debug.Log("GameplayState: Force refreshing gameplay UI");
+            ShowGameplayUI();
         }
     }
 }

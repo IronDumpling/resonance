@@ -10,7 +10,7 @@ namespace Resonance.Core
     public class Services
     {
         private GlobalServices.InputService _inputService;
-        private GlobalServices.LoadSceneService _loadSceneService;
+        private GlobalServices.SceneTransitionService _sceneTransitionService;
         private GlobalServices.UIService _uiService;
         private GlobalServices.PlayerService _playerService;
         private GlobalServices.InteractionService _interactionService;
@@ -39,9 +39,9 @@ namespace Resonance.Core
                 _inputService = new GlobalServices.InputService(configuration);
             }
 
-            if (_loadSceneService == null)
+            if (_sceneTransitionService == null)
             {
-                _loadSceneService = new GlobalServices.LoadSceneService(_gameManagerObject.GetComponent<MonoBehaviour>());
+                _sceneTransitionService = new GlobalServices.SceneTransitionService(_gameManagerObject.GetComponent<MonoBehaviour>());
             }
 
             if (_uiService == null)
@@ -71,7 +71,7 @@ namespace Resonance.Core
 
             // Add services to list
             AddService(_inputService);
-            AddService(_loadSceneService);
+            AddService(_sceneTransitionService);
             AddService(_uiService);
             AddService(_playerService);
             AddService(_interactionService);

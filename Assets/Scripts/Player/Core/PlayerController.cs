@@ -116,9 +116,12 @@ namespace Resonance.Player.Core
         private void Initialize(PlayerBaseStats baseStats)
         {
             _stats = baseStats.CreateRuntimeStats();
-            _inventory = new PlayerInventory(_stats.maxInventorySlots, _stats.maxCarryWeight);
+            _inventory = new PlayerInventory(_stats.maxInventorySlots);
             _movement = new PlayerMovement(_stats);
             _weaponManager = new WeaponManager();
+            
+            // 设置WeaponManager与PlayerInventory的双向同步
+            _weaponManager.SetInventoryReference(_inventory);
 
             _unlockedAbilities = new List<string>();
             _gameVariables = new Dictionary<string, float>();
@@ -495,15 +498,45 @@ namespace Resonance.Player.Core
 
         public void LoadFromSaveData(PlayerSaveData saveData)
         {
+            if (saveData == null)
+            {
+                Debug.LogError("PlayerController: Cannot load from null save data");
+                return;
+            }
+
+            Debug.Log($"PlayerController: Loading save data from {saveData.saveID}");
+
             // Load stats
             _stats = saveData.stats;
+            Debug.Log($"PlayerController: Loaded stats: Health {_stats.currentPhysicalHealth}/{_stats.maxPhysicalHealth}");
 
             // Load progression
             _unlockedAbilities = new List<string>(saveData.unlockedAbilities);
             _gameVariables = new Dictionary<string, float>(saveData.gameVariables);
+            Debug.Log($"PlayerController: Loaded progression: {_unlockedAbilities.Count} abilities, {_gameVariables.Count} variables");
 
-            // Load inventory
-            _inventory.LoadFromSaveData(saveData.inventory, saveData.equippedItemIDs);
+            // Load inventory system
+            if (saveData.Inventory != null)
+            {
+                Debug.Log($"PlayerController: Loading inventory data: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
+                _inventory.LoadFromSaveData(saveData.Inventory);
+                Debug.Log($"PlayerController: Inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: No inventory data found in save data");
+            }
+
+            // Load weapon manager state
+            if (saveData.weaponManager != null)
+            {
+                Debug.Log($"PlayerController: Loading weapon manager data: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
+                _weaponManager.LoadFromSaveData(saveData.weaponManager);
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: No weapon manager data found in save data");
+            }
 
             Debug.Log($"PlayerController: Loaded save data from {saveData.saveID}");
 
@@ -514,6 +547,8 @@ namespace Resonance.Player.Core
 
         public PlayerSaveData CreateSaveData(string savePointID, Vector3 position, Vector3 rotation)
         {
+            Debug.Log($"PlayerController: Creating save data for {savePointID} at position {position}");
+            
             var saveData = new PlayerSaveData
             {
                 saveID = savePointID,
@@ -525,10 +560,13 @@ namespace Resonance.Player.Core
                 gameVariables = new Dictionary<string, float>(_gameVariables)
             };
 
-            // Save inventory
-            saveData.inventory = _inventory.GetSaveData();
-            saveData.equippedItemIDs = _inventory.GetEquippedItemIDs();
-
+            // Save inventory system
+            saveData.Inventory = _inventory.GetSaveData();
+            Debug.Log($"PlayerController: Inventory saved: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
+            
+            // Save weapon manager state
+            saveData.weaponManager = _weaponManager.GetSaveData();
+            Debug.Log($"PlayerController: Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
             return saveData;
         }
 

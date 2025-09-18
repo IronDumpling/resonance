@@ -4,7 +4,7 @@ using Resonance.Player;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
 
-namespace Resonance.Save
+namespace Resonance.Environments
 {
     /// <summary>
     /// Save point component that allows players to save their game.

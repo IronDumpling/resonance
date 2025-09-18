@@ -131,22 +131,22 @@ namespace Resonance.Core.GlobalServices
 
         public void ShowPanelsForState(string stateName)
         {
-            Debug.Log($"UIService: Showing panels for state {stateName}");
-            
             // First hide all panels
             HideAllPanels();
             
             // Then show panels for the new state
             if (_statePanels.TryGetValue(stateName, out List<string> panelNames))
             {
+                Debug.Log($"🔍 [UISERVICE DEBUG] Found {panelNames.Count} panels for state {stateName}: {string.Join(", ", panelNames)}");
                 foreach (string panelName in panelNames)
                 {
+                    Debug.Log($"🔍 [UISERVICE DEBUG] Attempting to show panel: {panelName}");
                     ShowPanel(panelName);
                 }
             }
             else
             {
-                Debug.LogWarning($"UIService: No panels configured for state {stateName}");
+                Debug.LogWarning($"🔍 [UISERVICE DEBUG] No panels configured for state {stateName}");
             }
         }
 

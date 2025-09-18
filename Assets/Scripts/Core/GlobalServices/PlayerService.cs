@@ -195,7 +195,7 @@ namespace Resonance.Core.GlobalServices
             }
             else
             {
-                Debug.LogWarning("PlayerService: No player to move. Player should be spawned by scene's PlayerSpawner.");
+                Debug.LogWarning("PlayerService: No player to move. Player should be spawned by scene's PlayerSpawnManager.");
             }
         }
 
