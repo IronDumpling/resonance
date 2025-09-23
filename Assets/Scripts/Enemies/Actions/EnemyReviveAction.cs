@@ -22,7 +22,7 @@ namespace Resonance.Enemies.Actions
         {
             // Can only start revival if:
             // 1. Physical health is 0 (dead)
-            // 2. Mental health > 0 (still has consciousness)
+            // 2. Core health > 0 (still has consciousness)
             // 3. Currently in reviving state
             return !enemy.IsAlive && 
                    enemy.IsCoreAlive && 
@@ -45,10 +45,10 @@ namespace Resonance.Enemies.Actions
         {
             _reviveTimer += deltaTime;
             
-            // Check if mental health dropped to 0 during revival (interruption)
+            // Check if core health dropped to 0 during revival (interruption)
             if (!enemy.IsCoreAlive)
             {
-                Debug.Log("EnemyReviveAction: Revival interrupted - mental health reached 0");
+                Debug.Log("EnemyReviveAction: Revival interrupted - core health reached 0");
                 _isFinished = true;
                 return;
             }

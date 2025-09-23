@@ -31,9 +31,9 @@ namespace Resonance.Enemies
     {
         public EnemyHitboxType type;
         public float physicalMultiplier = 2f;     // 打到时对物理部分的倍率
-        public float mentalMultiplier   = 2f;     // 打到时对精神部分的倍率
+        public float coreMultiplier   = 2f;     // 打到时对精神部分的倍率
         
-        [Range(0,1)] public float convertPhysicalToMental = 0f; // 例如核心被打时，把物理伤害按比例转为精神
+        [Range(0,1)] public float convertPhysicalToCore = 0f; // 例如核心被打时，把物理伤害按比例转为精神
         
         public float poiseBonus = 0f;             // 额外韧性值
         public GameObject hitVFX; 
@@ -266,15 +266,15 @@ namespace Resonance.Enemies
             switch (modifiedDamage.type)
             {
                 case DamageType.Physical:
-                    if (convertPhysicalToMental > 0f && type == EnemyHitboxType.Core) 
+                    if (convertPhysicalToCore > 0f && type == EnemyHitboxType.Core) 
                     {
-                        // Convert some physical damage to mental
+                        // Convert some physical damage to core
                         modifiedDamage.type = DamageType.Mixed;
-                        modifiedDamage.physicalRatio = Mathf.Clamp01(1f - convertPhysicalToMental);
+                        modifiedDamage.physicalRatio = Mathf.Clamp01(1f - convertPhysicalToCore);
                         
                         // Apply multipliers to both parts
                         float physPart = modifiedDamage.amount * modifiedDamage.physicalRatio * physicalMultiplier;
-                        float mentPart = modifiedDamage.amount * (1f - modifiedDamage.physicalRatio) * mentalMultiplier;
+                        float mentPart = modifiedDamage.amount * (1f - modifiedDamage.physicalRatio) * coreMultiplier;
                         modifiedDamage.amount = physPart + mentPart;
                     } 
                     else 
@@ -283,14 +283,14 @@ namespace Resonance.Enemies
                     }
                     break;
                     
-                case DamageType.Mental:
-                    modifiedDamage.amount *= mentalMultiplier;
+                case DamageType.Core:
+                    modifiedDamage.amount *= coreMultiplier;
                     break;
                     
                 case DamageType.Mixed:
-                    // Apply multipliers separately to physical and mental portions
+                    // Apply multipliers separately to physical and core portions
                     float physDamage = modifiedDamage.amount * modifiedDamage.physicalRatio * physicalMultiplier;
-                    float mentDamage = modifiedDamage.amount * (1f - modifiedDamage.physicalRatio) * mentalMultiplier;
+                    float mentDamage = modifiedDamage.amount * (1f - modifiedDamage.physicalRatio) * coreMultiplier;
                     modifiedDamage.amount = physDamage + mentDamage;
                     break;
             }

@@ -28,7 +28,7 @@ namespace Resonance.Interfaces
         /// </summary>
         /// <param name="damage">伤害值</param>
         /// <param name="damageSource">伤害来源位置</param>
-        void TakeMentalDamage(float damage, Vector3 damageSource);
+        void TakeCoreDamage(float damage, Vector3 damageSource);
         
         #endregion
         

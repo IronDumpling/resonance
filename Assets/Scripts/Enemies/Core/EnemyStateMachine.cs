@@ -7,7 +7,7 @@ namespace Resonance.Enemies.Core
 {
     /// <summary>
     /// Enemy-specific state machine that manages enemy states: Normal, Reviving, and TrueDeath.
-    /// Handles transitions based on physical and mental health status.
+    /// Handles transitions based on physical and core health status.
     /// </summary>
     public class EnemyStateMachine
     {
@@ -194,7 +194,7 @@ namespace Resonance.Enemies.Core
             return IsInState("Normal");
         }
 
-        public bool IsVulnerableToMentalAttacks()
+        public bool IsVulnerableToCoreAttacks()
         {
             // Vulnerable when core is exposed (reviving state only)
             return IsInState("Reviving");

@@ -74,13 +74,13 @@ namespace Resonance.Enemies.Core
         public System.Action<float, float> OnPhysicalHealthChanged; // current, max
         public System.Action<float, float> OnCoreHealthChanged; // current, max
         public System.Action OnPhysicalDeath; // Physical health reaches 0
-        public System.Action OnTrueDeath; // Mental health reaches 0
+        public System.Action OnTrueDeath; // Core health reaches 0
         public System.Action OnRevivalStarted; // Revival process started
         public System.Action OnRevivalCompleted; // Revival completed
         
         // Health Tier Events
         public System.Action<EnemyPhysicalHealthTier> OnPhysicalTierChanged;
-        public System.Action<EnemyCoreHealthTier> OnMentalTierChanged;
+        public System.Action<EnemyCoreHealthTier> OnCoreTierChanged;
         
         // Combat Events
         public System.Action<float> OnAttackLaunched; // damage dealt
@@ -134,7 +134,7 @@ namespace Resonance.Enemies.Core
         
         // Health Tier Properties
         public EnemyPhysicalHealthTier PhysicalTier => _stats.physicalTier;
-        public EnemyCoreHealthTier MentalTier => _stats.mentalTier;
+        public EnemyCoreHealthTier CoreTier => _stats.coreTier;
         
         // Combat Properties
         public bool CanAttack => IsCoreAlive && HasPlayerTarget && 
@@ -210,12 +210,12 @@ namespace Resonance.Enemies.Core
                 OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
             }
             
-            // Mental health regeneration (only in normal state)
-            if (_stateMachine.IsInState("Normal") && _stats.mentalHealthRegenRate > 0f && 
+            // Core health regeneration (only in normal state)
+            if (_stateMachine.IsInState("Normal") && _stats.coreHealthRegenRate > 0f && 
                 _stats.currentCoreHealth < _stats.maxCoreHealth)
             {
                 _stats.currentCoreHealth = Mathf.Min(_stats.maxCoreHealth, 
-                    _stats.currentCoreHealth + _stats.mentalHealthRegenRate * deltaTime);
+                    _stats.currentCoreHealth + _stats.coreHealthRegenRate * deltaTime);
                 OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
             }
         }
@@ -226,17 +226,17 @@ namespace Resonance.Enemies.Core
             {
                 _revivalTimer += deltaTime;
                 
-                // Check if mental health reached 0 during revival (interruption)
+                // Check if core health reached 0 during revival (interruption)
                 if (!IsCoreAlive)
                 {
                     if(IsAlive)
                     {
-                        Debug.Log("EnemyController: Revival interrupted with mental death - mental health reached 0");
+                        Debug.Log("EnemyController: Revival interrupted with core death - core health reached 0");
                         CompleteRevival();
                     }
                     else
                     {
-                        Debug.Log("EnemyController: Revival interrupted with true death - mental health reached 0");
+                        Debug.Log("EnemyController: Revival interrupted with true death - core health reached 0");
                         HandleTrueDeath();
                     }
                     return;
@@ -270,13 +270,13 @@ namespace Resonance.Enemies.Core
 
         /// <summary>
         /// Take physical damage (affects physical health)
-        /// Apply mental health tier damage modifiers
+        /// Apply core health tier damage modifiers
         /// </summary>
         public void TakePhysicalDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
-            // Apply mental health tier damage modifier
+            // Apply core health tier damage modifier
             float modifiedDamage = damage * _stats.GetPhysicalDamageMultiplier();
             
             var previousTier = _stats.physicalTier;
@@ -306,13 +306,13 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Take mental damage (affects mental health)
+        /// Take core damage (affects core health)
         /// </summary>
-        public void TakeMentalDamage(float damage)
+        public void TakeCoreDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
-            var previousTier = _stats.mentalTier;
+            var previousTier = _stats.coreTier;
             _stats.currentCoreHealth = Mathf.Max(0f, _stats.currentCoreHealth - damage);
             _stats.UpdateHealthTiers();
             
@@ -321,10 +321,10 @@ namespace Resonance.Enemies.Core
             
             OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
             
-            // Check for mental tier change
-            if (_stats.mentalTier != previousTier)
+            // Check for core tier change
+            if (_stats.coreTier != previousTier)
             {
-                OnMentalTierChanged?.Invoke(_stats.mentalTier);
+                OnCoreTierChanged?.Invoke(_stats.coreTier);
             }
             
             // Notify action controller of damage taken
@@ -335,12 +335,12 @@ namespace Resonance.Enemies.Core
                 HandleTrueDeath();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} mental damage, mental health: {_stats.currentCoreHealth:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} core damage, core health: {_stats.currentCoreHealth:F1}");
         }
 
         /// <summary>
         /// Handle physical death (physical health reaches 0)
-        /// Check mental health to determine next state: Revival if mental > 0, TrueDeath if mental <= 0
+        /// Check core health to determine next state: Revival if core > 0, TrueDeath if core <= 0
         /// </summary>
         private void HandlePhysicalDeath()
         {
@@ -350,14 +350,14 @@ namespace Resonance.Enemies.Core
                 return;
             }
             
-            Debug.Log("EnemyController: Physical death - checking mental health for state transition");
+            Debug.Log("EnemyController: Physical death - checking core health for state transition");
             OnPhysicalDeath?.Invoke();
             
-            // Check mental health to determine next state
+            // Check core health to determine next state
             if (IsCoreAlive)
             {
-                // Mental health > 0: Enter revival state
-                Debug.Log("EnemyController: Mental health > 0, entering revival state");
+                // Core health > 0: Enter revival state
+                Debug.Log("EnemyController: Core health > 0, entering revival state");
                 bool revivalStarted = _stateMachine?.StartRevival() ?? false;
                 if (revivalStarted)
                 {
@@ -366,14 +366,14 @@ namespace Resonance.Enemies.Core
             }
             else
             {
-                // Mental health <= 0: Enter true death state
-                Debug.Log("EnemyController: Mental health <= 0, entering true death state");
+                // Core health <= 0: Enter true death state
+                Debug.Log("EnemyController: Core health <= 0, entering true death state");
                 HandleTrueDeath();
             }
         }
 
         /// <summary>
-        /// Handle true death (mental health reaches 0)
+        /// Handle true death (core health reaches 0)
         /// </summary>
         private void HandleTrueDeath()
         {
@@ -536,7 +536,7 @@ namespace Resonance.Enemies.Core
 
             if (!IsCoreAlive)
             {
-                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is not mentally alive");
+                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is not corely alive");
                 return false;
             }
 
@@ -553,7 +553,7 @@ namespace Resonance.Enemies.Core
                 return false;
             }
 
-            // Apply mental health tier damage modifier
+            // Apply core health tier damage modifier
             float modifiedDamage = damageInfo.amount * _stats.GetPhysicalDamageMultiplier();
             
             // Create modified damage info
@@ -825,7 +825,7 @@ namespace Resonance.Enemies.Core
         public string GetStats()
         {
             return $"Physical Health: {_stats.currentPhysicalHealth:F1}/{_stats.maxPhysicalHealth}, " +
-                   $"Mental Health: {_stats.currentCoreHealth:F1}/{_stats.maxCoreHealth}, " +
+                   $"Core Health: {_stats.currentCoreHealth:F1}/{_stats.maxCoreHealth}, " +
                    $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken:F1}, " +
                    $"Attacks: {_attacksLaunched}, Damage Dealt: {_totalDamageDealt:F1}";
         }
@@ -861,7 +861,7 @@ namespace Resonance.Enemies.Core
             OnPlayerLost = null;
             OnStateChanged = null;
             OnPhysicalTierChanged = null;
-            OnMentalTierChanged = null;
+            OnCoreTierChanged = null;
             
             _actionController?.Cleanup();
             _stateMachine?.Shutdown();

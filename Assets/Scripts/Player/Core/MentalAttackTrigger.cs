@@ -7,10 +7,10 @@ using Resonance.Enemies;
 namespace Resonance.Player.Core
 {
     /// <summary>
-    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within mental attack range.
-    /// Should be attached to the MentalAttackRange GameObject under the Player.
+    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within core attack range.
+    /// Should be attached to the CoreAttackRange GameObject under the Player.
     /// </summary>
-    public class MentalAttackTrigger : MonoBehaviour
+    public class CoreAttackTrigger : MonoBehaviour
     {
         // Core references
         private PlayerController _playerController;
@@ -38,17 +38,17 @@ namespace Resonance.Player.Core
             var collider = GetComponent<SphereCollider>();
             if (collider == null)
             {
-                Debug.LogError("MentalAttackTrigger: No SphereCollider found! Please add a SphereCollider component.");
+                Debug.LogError("CoreAttackTrigger: No SphereCollider found! Please add a SphereCollider component.");
                 return;
             }
 
             if (!collider.isTrigger)
             {
-                Debug.LogWarning("MentalAttackTrigger: SphereCollider is not set as trigger. Setting it now.");
+                Debug.LogWarning("CoreAttackTrigger: SphereCollider is not set as trigger. Setting it now.");
                 collider.isTrigger = true;
             }
 
-            Debug.Log($"MentalAttackTrigger: Initialized with range {collider.radius}");
+            Debug.Log($"CoreAttackTrigger: Initialized with range {collider.radius}");
         }
 
         void OnDestroy()
@@ -69,7 +69,7 @@ namespace Resonance.Player.Core
         {
             if (_isInitialized)
             {
-                Debug.LogWarning("MentalAttackTrigger: Already initialized");
+                Debug.LogWarning("CoreAttackTrigger: Already initialized");
                 return;
             }
 
@@ -80,11 +80,11 @@ namespace Resonance.Player.Core
             if (collider != null)
             {
                 collider.radius = range;
-                Debug.Log($"MentalAttackTrigger: Set detection range to {range}");
+                Debug.Log($"CoreAttackTrigger: Set detection range to {range}");
             }
 
             _isInitialized = true;
-            Debug.Log("MentalAttackTrigger: Initialized successfully");
+            Debug.Log("CoreAttackTrigger: Initialized successfully");
         }
 
         #endregion
@@ -108,7 +108,7 @@ namespace Resonance.Player.Core
                     OnCoreHitboxEntered?.Invoke(hitbox);
                     OnCoreHitboxesChanged?.Invoke();
                     UpdateClosestCoreNotification();
-                    Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} entered range");
+                    Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} entered range");
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace Resonance.Player.Core
                 OnCoreHitboxExited?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} exited range");
+                Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} exited range");
             }
         }
 
@@ -150,7 +150,7 @@ namespace Resonance.Player.Core
                 OnCoreHitboxEntered?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} collider enabled");
+                Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} collider enabled");
             }
             else if (!shouldBeInList && isInList)
             {
@@ -159,7 +159,7 @@ namespace Resonance.Player.Core
                 OnCoreHitboxExited?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"MentalAttackTrigger: Core hitbox {hitbox.name} collider disabled");
+                Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} collider disabled");
             }
         }
 
@@ -200,7 +200,7 @@ namespace Resonance.Player.Core
                 {
                     var oldEnemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
                     oldEnemyMono?.SetWaveUIColor(Color.white);
-                    Debug.Log($"MentalAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
+                    Debug.Log($"CoreAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
                 }
                 
                 // Notify new closest target to change to red
@@ -208,7 +208,7 @@ namespace Resonance.Player.Core
                 {
                     var newEnemyMono = GetEnemyMonoFromHitbox(currentClosest);
                     newEnemyMono?.SetWaveUIColor(Color.red);
-                    Debug.Log($"MentalAttackTrigger: {currentClosest.name} is now closest target, set to red");
+                    Debug.Log($"CoreAttackTrigger: {currentClosest.name} is now closest target, set to red");
                 }
                 
                 _lastClosestCore = currentClosest;
@@ -234,7 +234,7 @@ namespace Resonance.Player.Core
                     if (!IsValidCoreHitbox(hitbox, collider))
                     {
                         hitboxesToRemove.Add(hitbox);
-                        Debug.Log($"MentalAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
+                        Debug.Log($"CoreAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
                     }
                     else
                     {
@@ -266,7 +266,7 @@ namespace Resonance.Player.Core
             _lastClosestCore = null;
             UpdateClosestCoreNotification();
             
-            Debug.Log($"MentalAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
+            Debug.Log($"CoreAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace Resonance.Player.Core
                 current = current.parent;
             }
             
-            Debug.LogWarning($"MentalAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
+            Debug.LogWarning($"CoreAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
             return null;
         }
 
@@ -326,12 +326,12 @@ namespace Resonance.Player.Core
                         _coreHitboxesInRange.Remove(hitbox);
                         OnCoreHitboxExited?.Invoke(hitbox);
                         OnCoreHitboxesChanged?.Invoke();
-                        Debug.Log($"MentalAttackTrigger: Removed invalid core hitbox {hitbox.name}");
+                        Debug.Log($"CoreAttackTrigger: Removed invalid core hitbox {hitbox.name}");
                     }
                 }
             }
 
-            Debug.Log($"MentalAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
+            Debug.Log($"CoreAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
         }
 
         /// <summary>
@@ -407,7 +407,7 @@ namespace Resonance.Player.Core
             _lastClosestCore = null;
 
             _isInitialized = false;
-            Debug.Log("MentalAttackTrigger: Cleaned up");
+            Debug.Log("CoreAttackTrigger: Cleaned up");
         }
 
         #endregion

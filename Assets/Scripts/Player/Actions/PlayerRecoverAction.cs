@@ -9,10 +9,10 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Heal Action - triggered by holding F key when no Core hitboxes are in mental attack range
-    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in MentalAttackRange
+    /// Player Heal Action - triggered by holding F key when no Core hitboxes are in core attack range
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in CoreAttackRange
     /// Behavior: Player cannot move, consumes 1 CoreHealth slot every 1s, restores PhysicalHealth
-    /// End condition: Release F key, or interrupted by damage, or reach full health, or no more mental health
+    /// End condition: Release F key, or interrupted by damage, or reach full health, or no more core health
     /// </summary>
     public class PlayerHealAction : IPlayerAction
     {
@@ -46,14 +46,14 @@ namespace Resonance.Player.Actions
             // Must be in Normal state (not in other actions or death states)
             if (player.CurrentState != "Normal") return false;
 
-            // Must have at least 1 mental health slot available
+            // Must have at least 1 core health slot available
             if (!player.CanConsumeSlot) return false;
 
-            // Must NOT have Core hitboxes in mental attack range (WaveAction has priority)
+            // Must NOT have Core hitboxes in core attack range (WaveAction has priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer != null)
             {
-                if (playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
+                if (playerService.CurrentPlayer.HasCoreHitboxesInCoreAttackRange())
                 {
                     Debug.Log("PlayerHealAction: Cannot start - Core hitboxes in range (WaveAction has priority)");
                     return false;
@@ -113,7 +113,7 @@ namespace Resonance.Player.Actions
                 // Check if player can still consume slots
                 if (!player.CanConsumeSlot)
                 {
-                    Debug.Log("PlayerHealAction: No more mental health slots available, ending action");
+                    Debug.Log("PlayerHealAction: No more core health slots available, ending action");
                     _isFinished = true;
                     return;
                 }
@@ -123,11 +123,11 @@ namespace Resonance.Player.Actions
                 {
                     PerformHeal(player);
                     _lastSlotConsumedTime = currentTime;
-                    Debug.Log("PlayerHealAction: Consumed mental health slot and healed");
+                    Debug.Log("PlayerHealAction: Consumed core health slot and healed");
                 }
                 else
                 {
-                    Debug.LogWarning("PlayerHealAction: Failed to consume mental health slot");
+                    Debug.LogWarning("PlayerHealAction: Failed to consume core health slot");
                     _isFinished = true;
                     return;
                 }
@@ -189,17 +189,17 @@ namespace Resonance.Player.Actions
             // Calculate heal amount (could be modified by tiers, equipment, etc.)
             float healAmount = HEAL_AMOUNT_PER_CONSUMPTION;
 
-            // Apply tier modifiers based on current mental health tier
-            // switch (player.MentalTier)
+            // Apply tier modifiers based on current core health tier
+            // switch (player.CoreTier)
             // {
             //     case CoreHealthTier.High:
-            //         healAmount *= 1.2f; // 20% bonus when mental health is high
+            //         healAmount *= 1.2f; // 20% bonus when core health is high
             //         break;
             //     case CoreHealthTier.Low:
-            //         healAmount *= 0.8f; // 20% penalty when mental health is low
+            //         healAmount *= 0.8f; // 20% penalty when core health is low
             //         break;
             //     case CoreHealthTier.Empty:
-            //         healAmount *= 0.5f; // 50% penalty when mental health is empty
+            //         healAmount *= 0.5f; // 50% penalty when core health is empty
             //         break;
             // }
 
@@ -249,7 +249,7 @@ namespace Resonance.Player.Actions
         /// <param name="deltaTime">Time since last frame</param>
         private void UpdateHealEffects(PlayerController player, float deltaTime)
         {
-            // TODO: Update visual effects intensity based on mental tier
+            // TODO: Update visual effects intensity based on core tier
             // TODO: Update UI feedback showing recovery progress
             // TODO: Update audio effects
         }
@@ -290,7 +290,7 @@ namespace Resonance.Player.Actions
         {
             // Check if Core hitboxes entered range (WaveAction gets priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer?.HasCoreHitboxesInMentalAttackRange() == true)
+            if (playerService?.CurrentPlayer?.HasCoreHitboxesInCoreAttackRange() == true)
             {
                 Debug.Log("PlayerHealAction: Core hitboxes entered range, should cancel for WaveAction priority");
                 return true;

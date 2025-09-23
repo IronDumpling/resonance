@@ -208,7 +208,7 @@ namespace Resonance.Core.GlobalServices
             return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsAlive;
         }
 
-        public bool IsPlayerMentallyAlive()
+        public bool IsPlayerCorelyAlive()
         {
             return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsCoreAlive;
         }

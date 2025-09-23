@@ -18,7 +18,7 @@ namespace Resonance.UI
         
         // Player damage configuration
         [Header("Player Damage Configuration")]
-        [SerializeField] private float _baseMentalDamage = 50f;
+        [SerializeField] private float _baseCoreDamage = 50f;
         [SerializeField] private float _maxDamageMultiplier = 3f;
         [SerializeField] private float _damageScaleFactor = 10f;
 
@@ -381,12 +381,12 @@ namespace Resonance.UI
             // Calculate damage based on timing accuracy
             float accuracy = Mathf.Abs(_qteValue); // Distance from 0
             float damageMultiplier = CalculateDamageMultiplier(accuracy);
-            float finalDamage = _baseMentalDamage * damageMultiplier;
+            float finalDamage = _baseCoreDamage * damageMultiplier;
             
             Debug.Log($"WavePanel: QTE Success! Accuracy: {accuracy:F3}, Multiplier: {damageMultiplier:F2}, Damage: {finalDamage:F1}");
             
-            // Apply mental damage to target enemy
-            bool damageApplied = ApplyMentalDamageToEnemy(finalDamage);
+            // Apply core damage to target enemy
+            bool damageApplied = ApplyCoreDamageToEnemy(finalDamage);
             
             if (damageApplied)
             {
@@ -398,7 +398,7 @@ namespace Resonance.UI
             }
             else
             {
-                Debug.LogWarning("WavePanel: Failed to apply mental damage to enemy");
+                Debug.LogWarning("WavePanel: Failed to apply core damage to enemy");
                 ShowFailureFeedback("Failed to apply damage!");
             }
             
@@ -448,11 +448,11 @@ namespace Resonance.UI
         }
         
         /// <summary>
-        /// Apply mental damage to the target enemy
+        /// Apply core damage to the target enemy
         /// </summary>
-        /// <param name="damage">Amount of mental damage to apply</param>
+        /// <param name="damage">Amount of core damage to apply</param>
         /// <returns>True if damage was successfully applied</returns>
-        private bool ApplyMentalDamageToEnemy(float damage)
+        private bool ApplyCoreDamageToEnemy(float damage)
         {
             var enemyMono = _targetCore.GetEnemyMonoBehaviour();
             if (enemyMono == null)
@@ -469,16 +469,16 @@ namespace Resonance.UI
             // Create damage information
             DamageInfo damageInfo = new DamageInfo(
                 amount: damage,
-                type: DamageType.Mental,
+                type: DamageType.Core,
                 sourcePosition: playerPosition,
                 sourceObject: playerObject,
-                description: "Wave QTE Mental Damage"
+                description: "Wave QTE Core Damage"
             );
             
             // Apply damage through the enemy's damage system
             enemyMono.TakeDamage(damageInfo);
             
-            Debug.Log($"WavePanel: Applied {damage:F1} mental damage to {enemyMono.name}");
+            Debug.Log($"WavePanel: Applied {damage:F1} core damage to {enemyMono.name}");
             return true;
         }
         
@@ -492,7 +492,7 @@ namespace Resonance.UI
             if (_instructionText != null)
             {
                 string accuracyGrade = GetAccuracyGrade(accuracy);
-                _instructionText.text = $"SUCCESS! {damage:F0} Mental Damage ({accuracyGrade})";
+                _instructionText.text = $"SUCCESS! {damage:F0} Core Damage ({accuracyGrade})";
                 _instructionText.color = Color.green;
             }
         }

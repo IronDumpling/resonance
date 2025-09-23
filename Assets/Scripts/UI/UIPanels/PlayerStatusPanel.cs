@@ -12,7 +12,7 @@ namespace Resonance.UI
 {
     /// <summary>
     /// PlayerStatusPanel displays the player's status and health information.
-    /// It displays player's physical health and mental health.
+    /// It displays player's physical health and core health.
     /// It also displays the current weapon equipped, and it's ammo count.
     /// </summary>
     public class PlayerStatusPanel : UIPanel
@@ -20,7 +20,7 @@ namespace Resonance.UI
         [Header("UI References")]
         [SerializeField] private GameObject _weaponPanel;
         [SerializeField] private GameObject _physicalHealthPanel;
-        [SerializeField] private GameObject _mentalHealthPanel;
+        [SerializeField] private GameObject _coreHealthPanel;
         
         [Header("Weapon UI")]
         [SerializeField] private Image _weaponIcon;
@@ -29,9 +29,9 @@ namespace Resonance.UI
         [Header("Physical Health UI")]
         [SerializeField] private Image _physicalHealthValue;
         
-        [Header("Mental Health UI")]
-        [SerializeField] private Image _mentalHealthBar;
-        [SerializeField] private Image _mentalHealthValue;
+        [Header("Core Health UI")]
+        [SerializeField] private Image _coreHealthBar;
+        [SerializeField] private Image _coreHealthValue;
         
         [Header("Physical Health Sprites")]
         [SerializeField] private Sprite _healthyHealthSprite;
@@ -81,8 +81,8 @@ namespace Resonance.UI
                 _weaponPanel = FindChildGameObject("Weapon");
             if (_physicalHealthPanel == null)
                 _physicalHealthPanel = FindChildGameObject("PhysicalHealth");
-            if (_mentalHealthPanel == null)
-                _mentalHealthPanel = FindChildGameObject("CoreHealth");
+            if (_coreHealthPanel == null)
+                _coreHealthPanel = FindChildGameObject("CoreHealth");
             
             // Auto-find weapon UI components
             if (_weaponIcon == null && _weaponPanel != null)
@@ -94,11 +94,11 @@ namespace Resonance.UI
             if (_physicalHealthValue == null && _physicalHealthPanel != null)
                 _physicalHealthValue = FindChildComponent<Image>(_physicalHealthPanel, "Value");
             
-            // Auto-find mental health UI components
-            if (_mentalHealthBar == null && _mentalHealthPanel != null)
-                _mentalHealthBar = FindChildComponent<Image>(_mentalHealthPanel, "Bar");
-            if (_mentalHealthValue == null && _mentalHealthPanel != null)
-                _mentalHealthValue = FindChildComponent<Image>(_mentalHealthPanel, "Value");
+            // Auto-find core health UI components
+            if (_coreHealthBar == null && _coreHealthPanel != null)
+                _coreHealthBar = FindChildComponent<Image>(_coreHealthPanel, "Bar");
+            if (_coreHealthValue == null && _coreHealthPanel != null)
+                _coreHealthValue = FindChildComponent<Image>(_coreHealthPanel, "Value");
         }
 
         private void LoadHealthSprites()
@@ -358,7 +358,7 @@ namespace Resonance.UI
 
         private void UpdateCoreHealthUI(float currentHealth = -1, float maxHealth = -1)
         {
-            if (_mentalHealthValue == null || _playerController == null) return;
+            if (_coreHealthValue == null || _playerController == null) return;
             
             // Get current values if not provided
             if (currentHealth < 0 || maxHealth < 0)
@@ -372,7 +372,7 @@ namespace Resonance.UI
             float healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0f;
             
             // Update fill amount
-            _mentalHealthValue.fillAmount = healthPercentage;
+            _coreHealthValue.fillAmount = healthPercentage;
         }
 
         #endregion

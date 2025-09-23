@@ -781,15 +781,15 @@ namespace Resonance.Enemies
                     _enemyController.TakePhysicalDamage(damageInfo.amount);
                     break;
                     
-                case DamageType.Mental:
-                    _enemyController.TakeMentalDamage(damageInfo.amount);
+                case DamageType.Core:
+                    _enemyController.TakeCoreDamage(damageInfo.amount);
                     break;
                     
                 case DamageType.Mixed:
                     float physicalDamage = damageInfo.amount * damageInfo.physicalRatio;
-                    float mentalDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
+                    float coreDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
                     _enemyController.TakePhysicalDamage(physicalDamage);
-                    _enemyController.TakeMentalDamage(mentalDamage);
+                    _enemyController.TakeCoreDamage(coreDamage);
                     break;
             }
 
@@ -810,13 +810,13 @@ namespace Resonance.Enemies
             }
         }
 
-        public void TakeMentalDamage(float damage, Vector3 damageSource)
+        public void TakeCoreDamage(float damage, Vector3 damageSource)
         {
             if (IsInitialized)
             {
-                _enemyController.TakeMentalDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Mental, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Mental, damageSource));
+                _enemyController.TakeCoreDamage(damage);
+                ShowDamageEffect(new DamageInfo(damage, DamageType.Core, damageSource));
+                PlayHitAudio(new DamageInfo(damage, DamageType.Core, damageSource));
             }
         }
 
@@ -893,7 +893,7 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - checking mental health for state transition");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - checking core health for state transition");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
             
@@ -1209,7 +1209,7 @@ namespace Resonance.Enemies
         }
 
         /// <summary>
-        /// Set resonance UI text color (called by MentalAttackTrigger for closest target indication)
+        /// Set resonance UI text color (called by CoreAttackTrigger for closest target indication)
         /// </summary>
         /// <param name="color">Color to set (red for closest target, white for others)</param>
         public void SetWaveUIColor(Color color)
@@ -1242,7 +1242,7 @@ namespace Resonance.Enemies
             }
             
             Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentPhysicalHealth:F1}/{stats.maxPhysicalHealth}, " +
-                     $"Mental: {stats.currentCoreHealth:F1}/{stats.maxCoreHealth}, {stateInfo}");
+                     $"Core: {stats.currentCoreHealth:F1}/{stats.maxCoreHealth}, {stateInfo}");
         }
 
         void OnDrawGizmos()
@@ -1264,21 +1264,21 @@ namespace Resonance.Enemies
             Vector3 physicalBarPosition = barPosition + Vector3.left * (barWidth * (1f - physicalPercentage) * 0.5f);
             Gizmos.DrawCube(physicalBarPosition, physicalBarSize);
             
-            // Mental health (top bar)
-            Vector3 mentalBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
+            // Core health (top bar)
+            Vector3 coreBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
             Gizmos.color = Color.blue;
-            Gizmos.DrawCube(mentalBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float mentalPercentage = _enemyController.Stats.CoreHealthPercentage;
+            float corePercentage = _enemyController.Stats.CoreHealthPercentage;
             Gizmos.color = Color.cyan;
-            Vector3 mentalBarSize = new Vector3(barWidth * mentalPercentage, barHeight * 0.5f, 0.1f);
-            Vector3 mentalBarPosition = mentalBarCenter + Vector3.left * (barWidth * (1f - mentalPercentage) * 0.5f);
-            Gizmos.DrawCube(mentalBarPosition, mentalBarSize);
+            Vector3 coreBarSize = new Vector3(barWidth * corePercentage, barHeight * 0.5f, 0.1f);
+            Vector3 coreBarPosition = coreBarCenter + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
+            Gizmos.DrawCube(coreBarPosition, coreBarSize);
             
             // Border
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
-            Gizmos.DrawWireCube(mentalBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
         }
 
         void OnDrawGizmosSelected()

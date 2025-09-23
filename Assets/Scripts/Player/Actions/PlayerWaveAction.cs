@@ -10,8 +10,8 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Wave Action - triggered by short press F when Core hitboxes are in mental attack range
-    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, Core type EnemyHitbox with enabled collider in MentalAttackRange
+    /// Player Wave Action - triggered by short press F when Core hitboxes are in core attack range
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, Core type EnemyHitbox with enabled collider in CoreAttackRange
     /// Behavior: Player cannot move, is invulnerable to physical damage, consumes 1 CoreHealth slot
     /// End condition: Target Core hitbox collider becomes disabled or exits range
     /// </summary>
@@ -61,14 +61,14 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            // Must have at least 1 mental health slot available
+            // Must have at least 1 core health slot available
             if (!player.CanConsumeSlot)
             {
-                Debug.Log("PlayerWaveAction: Cannot start - no mental health slots available");
+                Debug.Log("PlayerWaveAction: Cannot start - no core health slots available");
                 return false;
             }
 
-            // Must have Core hitboxes in mental attack range
+            // Must have Core hitboxes in core attack range
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null)
             {
@@ -76,17 +76,17 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            if (!playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
+            if (!playerService.CurrentPlayer.HasCoreHitboxesInCoreAttackRange())
             {
-                Debug.Log("PlayerWaveAction: Cannot start - no Core hitboxes in mental attack range");
+                Debug.Log("PlayerWaveAction: Cannot start - no Core hitboxes in core attack range");
                 return false;
             }
 
             // Additional check: verify target cores are in valid states
-            var mentalAttackTrigger = playerService.CurrentPlayer.GetComponentInChildren<MentalAttackTrigger>();
-            if (mentalAttackTrigger != null)
+            var coreAttackTrigger = playerService.CurrentPlayer.GetComponentInChildren<CoreAttackTrigger>();
+            if (coreAttackTrigger != null)
             {
-                var coreHitboxes = mentalAttackTrigger.CoreHitboxesInRange;
+                var coreHitboxes = coreAttackTrigger.CoreHitboxesInRange;
                 Debug.Log($"PlayerWaveAction: Found {coreHitboxes.Count} core hitboxes in range");
                 
                 bool hasValidCore = false;
@@ -118,7 +118,7 @@ namespace Resonance.Player.Actions
             }
             else
             {
-                Debug.Log("PlayerWaveAction: Cannot start - MentalAttackTrigger not found");
+                Debug.Log("PlayerWaveAction: Cannot start - CoreAttackTrigger not found");
                 return false;
             }
 
@@ -206,10 +206,10 @@ namespace Resonance.Player.Actions
                 return;
             }
 
-            // Consume mental health slot
+            // Consume core health slot
             if (!player.ConsumeSlot())
             {
-                Debug.LogWarning("PlayerWaveAction: Failed to consume mental health slot");
+                Debug.LogWarning("PlayerWaveAction: Failed to consume core health slot");
                 _isFinished = true;
                 return;
             }
@@ -336,7 +336,7 @@ namespace Resonance.Player.Actions
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null) return null;
 
-            // Get the closest Core hitbox from MentalAttackTrigger
+            // Get the closest Core hitbox from CoreAttackTrigger
             var playerMono = playerService.CurrentPlayer;
             
             // Get the closest Core hitbox directly
@@ -458,8 +458,8 @@ namespace Resonance.Player.Actions
             var playerMono = playerService?.CurrentPlayer;
             if (playerMono != null)
             {
-                var mentalAttackTrigger = playerMono.GetComponentInChildren<MentalAttackTrigger>();
-                mentalAttackTrigger?.ForceRefreshUIColors();
+                var coreAttackTrigger = playerMono.GetComponentInChildren<CoreAttackTrigger>();
+                coreAttackTrigger?.ForceRefreshUIColors();
                 Debug.Log("PlayerWaveAction: Force refreshed UI colors after cleanup");
             }
 

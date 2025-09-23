@@ -9,7 +9,7 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Interact Action - triggered by E key for environmental interactions
+    /// Player Interact Action - triggered by E key for environcore interactions
     /// This replaces the functionality from PlayerInteractingState.cs
     /// Conditions: PlayerNormalState, valid interactable object in range
     /// Behavior: Player cannot move, performs interaction with target object

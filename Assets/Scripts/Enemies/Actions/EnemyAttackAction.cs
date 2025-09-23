@@ -35,7 +35,7 @@ namespace Resonance.Enemies.Actions
             bool inRange = enemy.IsPlayerInAttackRange();
             
             // Break down CanAttack for detailed debugging
-            // bool isMentallyAlive = enemy.IsCoreAlive;
+            // bool isCorelyAlive = enemy.IsCoreAlive;
             // bool hasPlayerTargetForAttack = enemy.HasPlayerTarget;
             // float currentTime = Time.time;
             // float lastAttackTime = enemy.LastAttackTime;

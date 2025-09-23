@@ -53,7 +53,7 @@ namespace Resonance.Player
         private PlayerController _playerController;
         private IInputService _inputService;
         private IInteractionService _interactionService;
-        private MentalAttackTrigger _mentalAttackTrigger;
+        private CoreAttackTrigger _coreAttackTrigger;
         private PlayerInteractTrigger _playerInteractTrigger;
 
         // Physics
@@ -125,8 +125,8 @@ namespace Resonance.Player
             var playerService = ServiceRegistry.Get<IPlayerService>();
             playerService?.RegisterPlayer(this);
 
-            // Initialize MentalAttackTrigger
-            InitializeMentalAttackTrigger();
+            // Initialize CoreAttackTrigger
+            InitializeCoreAttackTrigger();
 
             // Initialize PlayerInteractTrigger
             InitializePlayerInteractTrigger();
@@ -157,12 +157,12 @@ namespace Resonance.Player
         {
             UnsubscribeFromInput();
             
-            // Cleanup MentalAttackTrigger events
-            if (_mentalAttackTrigger != null)
+            // Cleanup CoreAttackTrigger events
+            if (_coreAttackTrigger != null)
             {
-                _mentalAttackTrigger.OnCoreHitboxEntered -= OnCoreHitboxEnteredRange;
-                _mentalAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
-                _mentalAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
+                _coreAttackTrigger.OnCoreHitboxEntered -= OnCoreHitboxEnteredRange;
+                _coreAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
+                _coreAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
             }
 
             // Cleanup PlayerInteractTrigger
@@ -251,42 +251,42 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Initialize the MentalAttackTrigger component
+        /// Initialize the CoreAttackTrigger component
         /// </summary>
-        private void InitializeMentalAttackTrigger()
+        private void InitializeCoreAttackTrigger()
         {
             if (_playerController == null)
             {
-                Debug.LogError("PlayerMonoBehaviour: Cannot initialize MentalAttackTrigger - PlayerController is null");
+                Debug.LogError("PlayerMonoBehaviour: Cannot initialize CoreAttackTrigger - PlayerController is null");
                 return;
             }
 
-            // Find the MentalAttackRange GameObject
-            Transform mentalAttackRangeTransform = transform.Find("MentalAttackRange");
-            if (mentalAttackRangeTransform == null)
+            // Find the CoreAttackRange GameObject
+            Transform coreAttackRangeTransform = transform.Find("CoreAttackRange");
+            if (coreAttackRangeTransform == null)
             {
-                Debug.LogError("PlayerMonoBehaviour: MentalAttackRange GameObject not found as child of Player");
+                Debug.LogError("PlayerMonoBehaviour: CoreAttackRange GameObject not found as child of Player");
                 return;
             }
 
-            // Get or add the MentalAttackTrigger component
-            _mentalAttackTrigger = mentalAttackRangeTransform.GetComponent<MentalAttackTrigger>();
-            if (_mentalAttackTrigger == null)
+            // Get or add the CoreAttackTrigger component
+            _coreAttackTrigger = coreAttackRangeTransform.GetComponent<CoreAttackTrigger>();
+            if (_coreAttackTrigger == null)
             {
-                _mentalAttackTrigger = mentalAttackRangeTransform.gameObject.AddComponent<MentalAttackTrigger>();
-                Debug.Log("PlayerMonoBehaviour: Added MentalAttackTrigger component to MentalAttackRange GameObject");
+                _coreAttackTrigger = coreAttackRangeTransform.gameObject.AddComponent<CoreAttackTrigger>();
+                Debug.Log("PlayerMonoBehaviour: Added CoreAttackTrigger component to CoreAttackRange GameObject");
             }
 
             // Initialize with player controller and range from base stats
-            float mentalAttackRange = _baseStats?.MentalAttackRange ?? 1.5f;
-            _mentalAttackTrigger.Initialize(_playerController, mentalAttackRange);
+            float coreAttackRange = _baseStats?.CoreAttackRange ?? 1.5f;
+            _coreAttackTrigger.Initialize(_playerController, coreAttackRange);
 
             // Subscribe to events for debugging
-            _mentalAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
-            _mentalAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
-            _mentalAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
+            _coreAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
+            _coreAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
+            _coreAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
 
-            Debug.Log($"PlayerMonoBehaviour: MentalAttackTrigger initialized with range {mentalAttackRange}");
+            Debug.Log($"PlayerMonoBehaviour: CoreAttackTrigger initialized with range {coreAttackRange}");
         }
 
         /// <summary>
@@ -400,7 +400,7 @@ namespace Resonance.Player
             if (!IsInitialized) return;
 
             // Short press F -> WaveAction only when Core hitboxes are in range
-            if (HasCoreHitboxesInMentalAttackRange())
+            if (HasCoreHitboxesInCoreAttackRange())
             {
                 // Try to start WaveAction
                 bool resonanceStarted = _playerController.TryStartAction("Wave");
@@ -431,7 +431,7 @@ namespace Resonance.Player
             if (isPressed)
             {
                 // F key pressed - try to start HealAction only when no Core hitboxes in range
-                if (!HasCoreHitboxesInMentalAttackRange())
+                if (!HasCoreHitboxesInCoreAttackRange())
                 {
                     bool recoverStarted = _playerController.TryStartAction("Heal");
                     if (recoverStarted)
@@ -897,13 +897,13 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Take mental damage (affects mental health)
+        /// Take core damage (affects core health)
         /// </summary>
-        public void TakeMentalDamage(float damage)
+        public void TakeCoreDamage(float damage)
         {
             if (IsInitialized)
             {
-                _playerController.TakeMentalDamage(damage);
+                _playerController.TakeCoreDamage(damage);
             }
         }
 
@@ -919,13 +919,13 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Heal mental health
+        /// Heal core health
         /// </summary>
-        public void HealMental(float amount)
+        public void HealCore(float amount)
         {
             if (IsInitialized)
             {
-                _playerController.HealMental(amount);
+                _playerController.HealCore(amount);
             }
         }
 
@@ -943,16 +943,16 @@ namespace Resonance.Player
                 $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
                 "Edge Protection: OFF";
                 
-            // MentalAttackTrigger debug info
-            string mentalAttackInfo = GetMentalAttackRangeDebugInfo();
+            // CoreAttackTrigger debug info
+            string coreAttackInfo = GetCoreAttackRangeDebugInfo();
             
             Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
-                     $"Mental Health: {stats.currentCoreHealth}/{stats.maxCoreHealth}, " +
-                     $"Mental Tier: {_playerController.MentalTier}, Physical Tier: {_playerController.PhysicalTier}, " +
-                     $"Slots: {_playerController.CoreHealthInSlots:F1}/{stats.mentalHealthSlots}, " +
+                     $"Core Health: {stats.currentCoreHealth}/{stats.maxCoreHealth}, " +
+                     $"Core Tier: {_playerController.CoreTier}, Physical Tier: {_playerController.PhysicalTier}, " +
+                     $"Slots: {_playerController.CoreHealthInSlots:F1}/{stats.coreHealthSlots}, " +
                      $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
-                     $"{edgeInfo}, {mentalAttackInfo}");
+                     $"{edgeInfo}, {coreAttackInfo}");
         }
 
         void OnDrawGizmosSelected()
@@ -1002,15 +1002,15 @@ namespace Resonance.Player
                     _playerController.TakePhysicalDamage(damageInfo.amount);
                     break;
                     
-                case DamageType.Mental:
-                    _playerController.TakeMentalDamage(damageInfo.amount);
+                case DamageType.Core:
+                    _playerController.TakeCoreDamage(damageInfo.amount);
                     break;
                     
                 case DamageType.Mixed:
                     float physicalDamage = damageInfo.amount * damageInfo.physicalRatio;
-                    float mentalDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
+                    float coreDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
                     _playerController.TakePhysicalDamage(physicalDamage);
-                    _playerController.TakeMentalDamage(mentalDamage);
+                    _playerController.TakeCoreDamage(coreDamage);
                     break;
             }
             
@@ -1029,13 +1029,13 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Take mental damage
+        /// Take core damage
         /// </summary>
-        public void TakeMentalDamage(float damage, Vector3 damageSource)
+        public void TakeCoreDamage(float damage, Vector3 damageSource)
         {
             if (IsInitialized)
             {
-                _playerController.TakeMentalDamage(damage);
+                _playerController.TakeCoreDamage(damage);
             }
         }
 
@@ -1049,12 +1049,12 @@ namespace Resonance.Player
         public bool IsAlive => IsInitialized && _playerController.IsAlive;
 
         /// <summary>
-        /// Is mentally alive (mental health > 0)
+        /// Is corely alive (core health > 0)
         /// </summary>
         public bool IsCoreAlive => IsInitialized && _playerController.IsCoreAlive;
 
         /// <summary>
-        /// Is in death state (physical health = 0 but mental health > 0)
+        /// Is in death state (physical health = 0 but core health > 0)
         /// </summary>
         public bool IsInDeathState => IsInitialized && _playerController.IsInDeathState;
 
@@ -1069,40 +1069,40 @@ namespace Resonance.Player
         public float MaxPhysicalHealth => IsInitialized ? _playerController.Stats.maxPhysicalHealth : 0f;
 
         /// <summary>
-        /// Current mental health
+        /// Current core health
         /// </summary>
         public float CurrentCoreHealth => IsInitialized ? _playerController.Stats.currentCoreHealth : 0f;
 
         /// <summary>
-        /// Max mental health
+        /// Max core health
         /// </summary>
         public float MaxCoreHealth => IsInitialized ? _playerController.Stats.maxCoreHealth : 0f;
 
         #endregion
 
-        #region MentalAttackTrigger Events
+        #region CoreAttackTrigger Events
 
         /// <summary>
-        /// Called when a Core hitbox enters mental attack range
+        /// Called when a Core hitbox enters core attack range
         /// </summary>
         /// <param name="hitbox">The Core hitbox that entered range</param>
         private void OnCoreHitboxEnteredRange(EnemyHitbox hitbox)
         {
             if (hitbox != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} entered mental attack range");
+                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} entered core attack range");
             }
         }
 
         /// <summary>
-        /// Called when a Core hitbox exits mental attack range
+        /// Called when a Core hitbox exits core attack range
         /// </summary>
         /// <param name="hitbox">The Core hitbox that exited range</param>
         private void OnCoreHitboxExitedRange(EnemyHitbox hitbox)
         {
             if (hitbox != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} exited mental attack range");
+                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} exited core attack range");
             }
         }
 
@@ -1111,55 +1111,55 @@ namespace Resonance.Player
         /// </summary>
         private void OnCoreHitboxesChangedInRange()
         {
-            int coreHitboxCount = _mentalAttackTrigger?.CoreHitboxCount ?? 0;
-            Debug.Log($"PlayerMonoBehaviour: Core hitboxes in mental attack range: {coreHitboxCount}");
+            int coreHitboxCount = _coreAttackTrigger?.CoreHitboxCount ?? 0;
+            Debug.Log($"PlayerMonoBehaviour: Core hitboxes in core attack range: {coreHitboxCount}");
         }
 
         /// <summary>
-        /// Public method to check if there are Core hitboxes in mental attack range
+        /// Public method to check if there are Core hitboxes in core attack range
         /// Used by ActionController for priority logic
         /// </summary>
         /// <returns>True if there are Core hitboxes in range</returns>
-        public bool HasCoreHitboxesInMentalAttackRange()
+        public bool HasCoreHitboxesInCoreAttackRange()
         {
-            return _mentalAttackTrigger?.HasCoreHitboxesInRange ?? false;
+            return _coreAttackTrigger?.HasCoreHitboxesInRange ?? false;
         }
 
         /// <summary>
-        /// Get the number of Core hitboxes in mental attack range
+        /// Get the number of Core hitboxes in core attack range
         /// </summary>
         /// <returns>Number of Core hitboxes in range</returns>
         public int GetCoreHitboxCount()
         {
-            return _mentalAttackTrigger?.CoreHitboxCount ?? 0;
+            return _coreAttackTrigger?.CoreHitboxCount ?? 0;
         }
 
         /// <summary>
-        /// Get the closest Core hitbox in mental attack range
+        /// Get the closest Core hitbox in core attack range
         /// Used by PlayerWaveAction to find target
         /// </summary>
         /// <returns>Closest Core hitbox or null if none</returns>
         public EnemyHitbox GetClosestCoreHitbox()
         {
-            return _mentalAttackTrigger?.GetClosestCoreHitbox();
+            return _coreAttackTrigger?.GetClosestCoreHitbox();
         }
 
         /// <summary>
-        /// Get all Core hitboxes in mental attack range
+        /// Get all Core hitboxes in core attack range
         /// </summary>
         /// <returns>List of Core hitboxes in range</returns>
         public List<EnemyHitbox> GetCoreHitboxesInRange()
         {
-            return _mentalAttackTrigger?.CoreHitboxesInRange ?? new List<EnemyHitbox>();
+            return _coreAttackTrigger?.CoreHitboxesInRange ?? new List<EnemyHitbox>();
         }
 
         /// <summary>
-        /// Get debug information about mental attack range detection
+        /// Get debug information about core attack range detection
         /// </summary>
         /// <returns>Debug info string</returns>
-        public string GetMentalAttackRangeDebugInfo()
+        public string GetCoreAttackRangeDebugInfo()
         {
-            return _mentalAttackTrigger?.GetDebugInfo() ?? "MentalAttackTrigger not initialized";
+            return _coreAttackTrigger?.GetDebugInfo() ?? "CoreAttackTrigger not initialized";
         }
 
         #endregion

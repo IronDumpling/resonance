@@ -18,7 +18,7 @@ namespace Resonance.Interfaces
         /// 精神伤害 - 影响精神血量
         /// 例如：共振攻击、心理攻击等
         /// </summary>
-        Mental,
+        Core,
         
         /// <summary>
         /// 混合伤害 - 同时影响物理和精神血量

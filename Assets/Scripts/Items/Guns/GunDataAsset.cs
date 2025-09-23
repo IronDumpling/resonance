@@ -33,7 +33,7 @@ namespace Resonance.Items
         [Tooltip("Type of damage this weapon deals")]
         public DamageType damageType = DamageType.Physical;
         
-        [Tooltip("For Mixed damage type: ratio of physical damage (0-1). 1.0 = all physical, 0.0 = all mental")]
+        [Tooltip("For Mixed damage type: ratio of physical damage (0-1). 1.0 = all physical, 0.0 = all core")]
         [Range(0f, 1f)]
         public float physicalDamageRatio = 0.5f;
         
@@ -182,7 +182,7 @@ namespace Resonance.Items
             return damageType switch
             {
                 DamageType.Physical => "物理伤害 - 影响物理血量",
-                DamageType.Mental => "精神伤害 - 影响精神血量",
+                DamageType.Core => "精神伤害 - 影响精神血量",
                 DamageType.Mixed => $"混合伤害 - 物理{physicalDamageRatio:P0}/精神{(1-physicalDamageRatio):P0}",
                 _ => "未知伤害类型"
             };

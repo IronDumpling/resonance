@@ -45,10 +45,10 @@ namespace Resonance.Enemies.States
         {
             _revivalTimer += Time.deltaTime;
             
-            // Check for revival interruption - if mental health reaches 0 during revival
+            // Check for revival interruption - if core health reaches 0 during revival
             if (!_enemyController.IsCoreAlive)
             {
-                Debug.Log("EnemyRevivingState: Revival interrupted - mental health reached 0");
+                Debug.Log("EnemyRevivingState: Revival interrupted - core health reached 0");
                 // This will trigger Normal State or TrueDeath State transition handled by EnemyController
                 return;
             }
@@ -72,8 +72,8 @@ namespace Resonance.Enemies.States
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to:
-            // - Normal (when physical health is restored and mental health > 0)
-            // - TrueDeath (when mental health reaches 0)
+            // - Normal (when physical health is restored and core health > 0)
+            // - TrueDeath (when core health reaches 0)
             return newState.Name == "Normal" || newState.Name == "TrueDeath";
         }
 

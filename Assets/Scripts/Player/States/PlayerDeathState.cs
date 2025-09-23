@@ -5,7 +5,7 @@ using Resonance.Player.Core;
 namespace Resonance.Player.States
 {
     /// <summary>
-    /// Death state where player is completely dead (mental health = 0).
+    /// Death state where player is completely dead (core health = 0).
     /// This is a terminal state that can only be exited through game over/reload mechanisms.
     /// </summary>
     public class PlayerDeathState : IState
@@ -21,7 +21,7 @@ namespace Resonance.Player.States
 
         public void Enter()
         {
-            Debug.Log("PlayerState: Entered Death state - Mental health depleted");
+            Debug.Log("PlayerState: Entered Death state - Core health depleted");
             
             // Stop all movement and actions
             _playerController.Movement.MovementSpeedModifier = 0f;

@@ -47,7 +47,7 @@ namespace Resonance.Player.Core
         public System.Action OnDeath; // Health reaches 0
         
         // Health Tier Events
-        public System.Action<CoreHealthTier> OnMentalTierChanged;
+        public System.Action<CoreHealthTier> OnCoreTierChanged;
         public System.Action<PhysicalHealthTier> OnPhysicalTierChanged;
         
         // Other Events
@@ -70,7 +70,7 @@ namespace Resonance.Player.Core
         public bool IsInDeathState => _stats.IsInDeathState;
         
         // Health Tier Properties
-        public CoreHealthTier MentalTier => _stats.mentalTier;
+        public CoreHealthTier CoreTier => _stats.coreTier;
         public PhysicalHealthTier PhysicalTier => _stats.physicalTier;
         public float SlotValue => _stats.slotValue;
         public float CoreHealthInSlots => _stats.GetCoreHealthInSlots();
@@ -177,13 +177,13 @@ namespace Resonance.Player.Core
                 OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
             }
             
-            // Mental health regeneration (only in normal state) or decay (in core state)
+            // Core health regeneration (only in normal state) or decay (in core state)
             if (IsInDeathState)
             {
-                // Mental health decays when in physical death state (core mode)
-                if (_stats.mentalHealthDecayRate > 0f && _stats.currentCoreHealth > 0f)
+                // Core health decays when in physical death state (core mode)
+                if (_stats.coreHealthDecayRate > 0f && _stats.currentCoreHealth > 0f)
                 {
-                    _stats.currentCoreHealth = Mathf.Max(0f, _stats.currentCoreHealth - _stats.mentalHealthDecayRate * deltaTime);
+                    _stats.currentCoreHealth = Mathf.Max(0f, _stats.currentCoreHealth - _stats.coreHealthDecayRate * deltaTime);
                     OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
                     
                     // Check for true death
@@ -193,11 +193,11 @@ namespace Resonance.Player.Core
                     }
                 }
             }
-            else if (_stats.mentalHealthRegenRate > 0f && _stats.currentCoreHealth < _stats.maxCoreHealth)
+            else if (_stats.coreHealthRegenRate > 0f && _stats.currentCoreHealth < _stats.maxCoreHealth)
             {
-                // Mental health regenerates in normal state
+                // Core health regenerates in normal state
                 _stats.currentCoreHealth = Mathf.Min(_stats.maxCoreHealth, 
-                    _stats.currentCoreHealth + _stats.mentalHealthRegenRate * deltaTime);
+                    _stats.currentCoreHealth + _stats.coreHealthRegenRate * deltaTime);
                 OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
             }
         }
@@ -249,14 +249,14 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Take mental damage (affects mental health)
+        /// Take core damage (affects core health)
         /// </summary>
-        public void TakeMentalDamage(float damage)
+        public void TakeCoreDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
             // Store old tier for comparison
-            var oldMentalTier = _stats.mentalTier;
+            var oldCoreTier = _stats.coreTier;
 
             _stats.currentCoreHealth = Mathf.Max(0f, _stats.currentCoreHealth - damage);
             
@@ -264,10 +264,10 @@ namespace Resonance.Player.Core
             _stats.UpdateHealthTiers();
             
             // Fire tier change event if tier changed
-            if (oldMentalTier != _stats.mentalTier)
+            if (oldCoreTier != _stats.coreTier)
             {
-                OnMentalTierChanged?.Invoke(_stats.mentalTier);
-                Debug.Log($"PlayerController: Mental tier changed from {oldMentalTier} to {_stats.mentalTier}");
+                OnCoreTierChanged?.Invoke(_stats.coreTier);
+                Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.coreTier}");
             }
 
             OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
@@ -278,7 +278,7 @@ namespace Resonance.Player.Core
             }
             else
             {
-                Debug.Log($"PlayerController: Took {damage} mental damage, mental health: {_stats.currentCoreHealth}");
+                Debug.Log($"PlayerController: Took {damage} core damage, core health: {_stats.currentCoreHealth}");
             }
         }
 
@@ -309,14 +309,14 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Heal mental health
+        /// Heal core health
         /// </summary>
-        public void HealMental(float amount)
+        public void HealCore(float amount)
         {
             if (!IsCoreAlive) return;
 
             // Store old tier for comparison
-            var oldMentalTier = _stats.mentalTier;
+            var oldCoreTier = _stats.coreTier;
 
             _stats.currentCoreHealth = Mathf.Min(_stats.maxCoreHealth, _stats.currentCoreHealth + amount);
             
@@ -324,14 +324,14 @@ namespace Resonance.Player.Core
             _stats.UpdateHealthTiers();
             
             // Fire tier change event if tier changed
-            if (oldMentalTier != _stats.mentalTier)
+            if (oldCoreTier != _stats.coreTier)
             {
-                OnMentalTierChanged?.Invoke(_stats.mentalTier);
-                Debug.Log($"PlayerController: Mental tier changed from {oldMentalTier} to {_stats.mentalTier}");
+                OnCoreTierChanged?.Invoke(_stats.coreTier);
+                Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.coreTier}");
             }
 
             OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
-            Debug.Log($"PlayerController: Healed {amount} mental health, current: {_stats.currentCoreHealth}");
+            Debug.Log($"PlayerController: Healed {amount} core health, current: {_stats.currentCoreHealth}");
         }
 
         /// <summary>
@@ -372,13 +372,13 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Restore only mental health
+        /// Restore only core health
         /// </summary>
         public void RestoreCoreHealth()
         {
             _stats.RestoreCoreHealth();
             OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
-            Debug.Log("PlayerController: Mental health restored to full");
+            Debug.Log("PlayerController: Core health restored to full");
         }
 
         /// <summary>
@@ -462,12 +462,12 @@ namespace Resonance.Player.Core
             {
                 result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun);
                 
-                // Mental health recovery: 10 physical damage = 2 mental health recovery
+                // Core health recovery: 10 physical damage = 2 core health recovery
                 if (result.success && result.hasHit && result.damage > 0)
                 {
-                    float mentalRecovery = result.damage * 0.2f; // 10 damage = 2 recovery
-                    HealMental(mentalRecovery);
-                    Debug.Log($"PlayerController: Recovered {mentalRecovery} mental health from dealing {result.damage} damage");
+                    float coreRecovery = result.damage * 0.2f; // 10 damage = 2 recovery
+                    HealCore(coreRecovery);
+                    Debug.Log($"PlayerController: Recovered {coreRecovery} core health from dealing {result.damage} damage");
                 }
             }
             
@@ -627,15 +627,15 @@ namespace Resonance.Player.Core
 
         #endregion
 
-        #region Mental Health Slot Management
+        #region Core Health Slot Management
         
         /// <summary>
-        /// Consume one mental health slot for actions
+        /// Consume one core health slot for actions
         /// </summary>
-        /// <returns>True if successful, false if insufficient mental health</returns>
+        /// <returns>True if successful, false if insufficient core health</returns>
         public bool ConsumeSlot()
         {
-            var oldMentalTier = _stats.mentalTier;
+            var oldCoreTier = _stats.coreTier;
             bool success = _stats.ConsumeSlot();
             
             if (success)
@@ -643,13 +643,13 @@ namespace Resonance.Player.Core
                 // Fire events
                 OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
                 
-                if (oldMentalTier != _stats.mentalTier)
+                if (oldCoreTier != _stats.coreTier)
                 {
-                    OnMentalTierChanged?.Invoke(_stats.mentalTier);
-                    Debug.Log($"PlayerController: Mental tier changed from {oldMentalTier} to {_stats.mentalTier} after slot consumption");
+                    OnCoreTierChanged?.Invoke(_stats.coreTier);
+                    Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.coreTier} after slot consumption");
                 }
                 
-                Debug.Log($"PlayerController: Consumed 1 slot ({_stats.slotValue} mental health). Remaining: {_stats.currentCoreHealth}/{_stats.maxCoreHealth} ({_stats.GetCoreHealthInSlots():F1} slots)");
+                Debug.Log($"PlayerController: Consumed 1 slot ({_stats.slotValue} core health). Remaining: {_stats.currentCoreHealth}/{_stats.maxCoreHealth} ({_stats.GetCoreHealthInSlots():F1} slots)");
             }
             
             return success;
@@ -692,7 +692,7 @@ namespace Resonance.Player.Core
             OnPhysicalHealthChanged = null;
             OnCoreHealthChanged = null;
             OnDeath = null;
-            OnMentalTierChanged = null;
+            OnCoreTierChanged = null;
             OnPhysicalTierChanged = null;
             OnStateChanged = null;
             OnShoot = null;

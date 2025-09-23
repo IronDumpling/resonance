@@ -1,7 +1,7 @@
 namespace Resonance.Enemies.Data
 {
     /// <summary>
-    /// Enemy mental health tier based on percentage thresholds
+    /// Enemy core health tier based on percentage thresholds
     /// Affects physical damage taken and dealt
     /// </summary>
     public enum EnemyCoreHealthTier
