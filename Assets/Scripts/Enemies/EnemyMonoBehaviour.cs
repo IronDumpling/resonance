@@ -826,7 +826,7 @@ namespace Resonance.Enemies
 
         public bool IsPhysicallyAlive => IsInitialized && _enemyController.IsPhysicallyAlive;
         public bool IsMentallyAlive => IsInitialized && _enemyController.IsMentallyAlive;
-        public bool IsInPhysicalDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
+        public bool IsInDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
         public float CurrentPhysicalHealth => IsInitialized ? _enemyController.Stats.currentPhysicalHealth : 0f;
         public float MaxPhysicalHealth => IsInitialized ? _enemyController.Stats.maxPhysicalHealth : 0f;
         public float CurrentMentalHealth => IsInitialized ? _enemyController.Stats.currentMentalHealth : 0f;

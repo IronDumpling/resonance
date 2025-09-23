@@ -44,8 +44,7 @@ namespace Resonance.Player.Core
         // Dual Health Events
         public System.Action<float, float> OnPhysicalHealthChanged; // current, max
         public System.Action<float, float> OnMentalHealthChanged; // current, max
-        public System.Action OnPhysicalDeath; // Physical health reaches 0
-        public System.Action OnTrueDeath; // Mental health reaches 0
+        public System.Action OnDeath; // Health reaches 0
         
         // Health Tier Events
         public System.Action<MentalHealthTier> OnMentalTierChanged;
@@ -68,7 +67,7 @@ namespace Resonance.Player.Core
         // Dual Health Properties
         public bool IsPhysicallyAlive => _stats.IsPhysicallyAlive;
         public bool IsMentallyAlive => _stats.IsMentallyAlive;
-        public bool IsInPhysicalDeathState => _stats.IsInPhysicalDeathState;
+        public bool IsInDeathState => _stats.IsInDeathState;
         
         // Health Tier Properties
         public MentalHealthTier MentalTier => _stats.mentalTier;
@@ -179,7 +178,7 @@ namespace Resonance.Player.Core
             }
             
             // Mental health regeneration (only in normal state) or decay (in core state)
-            if (IsInPhysicalDeathState)
+            if (IsInDeathState)
             {
                 // Mental health decays when in physical death state (core mode)
                 if (_stats.mentalHealthDecayRate > 0f && _stats.currentMentalHealth > 0f)
@@ -190,7 +189,7 @@ namespace Resonance.Player.Core
                     // Check for true death
                     if (_stats.currentMentalHealth <= 0f)
                     {
-                        HandleTrueDeath();
+                        HandleDeath();
                     }
                 }
             }
@@ -238,7 +237,7 @@ namespace Resonance.Player.Core
 
             if (_stats.currentPhysicalHealth <= 0f)
             {
-                HandlePhysicalDeath();
+                HandleDeath();
             }
             else
             {
@@ -275,7 +274,7 @@ namespace Resonance.Player.Core
 
             if (_stats.currentMentalHealth <= 0f && _stats.currentPhysicalHealth <= 0f)
             {
-                HandleTrueDeath();
+                HandleDeath();
             }
             else
             {
@@ -336,29 +335,19 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Handle physical death (physical health reaches 0)
+        /// Handle death (health reaches 0)
         /// </summary>
-        private void HandlePhysicalDeath()
+        private void HandleDeath()
         {
             // Prevent multiple calls - only trigger if not already in death states
-            if (_stateMachine?.IsPhysicallyDead() == true || _stateMachine?.IsMentallyDead() == true)
+            if (_stateMachine?.IsDead() == true)
             {
                 return;
             }
             
-            Debug.Log("PlayerController: Physical death - entering core mode");
-            OnPhysicalDeath?.Invoke();
-            _stateMachine?.EnterPhysicalDeath();
-        }
-
-        /// <summary>
-        /// Handle true death (mental health reaches 0)
-        /// </summary>
-        private void HandleTrueDeath()
-        {
-            Debug.Log("PlayerController: True death - game over");
-            OnTrueDeath?.Invoke();
-            _stateMachine?.EnterTrueDeath();
+            Debug.Log("PlayerController: Death - game over");
+            OnDeath?.Invoke();
+            _stateMachine?.EnterDeath();
         }
 
         /// <summary>
@@ -702,8 +691,7 @@ namespace Resonance.Player.Core
             // Clear events
             OnPhysicalHealthChanged = null;
             OnMentalHealthChanged = null;
-            OnPhysicalDeath = null;
-            OnTrueDeath = null;
+            OnDeath = null;
             OnMentalTierChanged = null;
             OnPhysicalTierChanged = null;
             OnStateChanged = null;

@@ -45,9 +45,9 @@ namespace Resonance.Interfaces
         bool IsMentallyAlive { get; }
         
         /// <summary>
-        /// 是否处于物理死亡状态 (物理血量 = 0 但精神血量 > 0)
+        /// 是否处于死亡状态 (物理血量 = 0 但精神血量 > 0)
         /// </summary>
-        bool IsInPhysicalDeathState { get; }
+        bool IsInDeathState { get; }
         
         /// <summary>
         /// 当前物理血量

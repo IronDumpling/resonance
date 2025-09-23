@@ -57,8 +57,7 @@ namespace Resonance.Player.States
         {
             // Can transition back to Normal or to death states
             return newState.Name == "Normal" || 
-                   newState.Name == "PhysicalDeath" ||
-                   newState.Name == "TrueDeath";
+                   newState.Name == "Death";
         }
     }
 }

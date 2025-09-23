@@ -244,8 +244,7 @@ namespace Resonance.Player
             _playerController.Initialize(_baseStats, gameObject);
             
             // Subscribe to death events for game logic (not UI)
-            _playerController.OnPhysicalDeath += HandlePhysicalDeath;
-            _playerController.OnTrueDeath += HandleTrueDeath;
+            _playerController.OnDeath += HandleDeath;
 
             OnPlayerInitialized?.Invoke(_playerController);
             Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
@@ -827,22 +826,9 @@ namespace Resonance.Player
 
         #region Event Handlers
 
-
-
-        private void HandlePhysicalDeath()
+        private void HandleDeath()
         {
-            Debug.Log("PlayerMonoBehaviour: Physical death - player entering core mode");
-            
-            // TODO: Transition to core movement mode
-            // This will be implemented when we add the new player states
-            
-            // Play physical death effects
-            // Show core exposure effects
-        }
-
-        private void HandleTrueDeath()
-        {
-            Debug.Log("PlayerMonoBehaviour: True death - triggering game over sequence");
+            Debug.Log("PlayerMonoBehaviour: Death - triggering game over sequence");
             
             // Disable input
             if (_inputService != null)
@@ -850,7 +836,7 @@ namespace Resonance.Player
                 _inputService.IsEnabled = false;
             }
 
-            // Trigger true death animation/effects
+            // Trigger death animation/effects
             // This should trigger game over screen, respawn logic, etc.
             
             // For now, just load the last save
@@ -1068,9 +1054,9 @@ namespace Resonance.Player
         public bool IsMentallyAlive => IsInitialized && _playerController.IsMentallyAlive;
 
         /// <summary>
-        /// Is in physical death state (physical health = 0 but mental health > 0)
+        /// Is in death state (physical health = 0 but mental health > 0)
         /// </summary>
-        public bool IsInPhysicalDeathState => IsInitialized && _playerController.IsInPhysicalDeathState;
+        public bool IsInDeathState => IsInitialized && _playerController.IsInDeathState;
 
         /// <summary>
         /// Current physical health
