@@ -12,7 +12,6 @@ namespace Resonance.Core.StateMachine.States
     {
         public string Name => "Gameplay";
         private IUIService _uiService;
-        private bool _hasShownUI = false;
         
         // Substate management
         private BaseStateMachine _subStateMachine;
@@ -46,7 +45,6 @@ namespace Resonance.Core.StateMachine.States
             Debug.Log("GameplayState: Subscribed to InfoReadingState events");
             
             // Reset UI state for new gameplay session
-            _hasShownUI = false;
             Debug.Log("GameplayState: Reset _hasShownUI flag for new gameplay session");
         }
 
@@ -71,7 +69,6 @@ namespace Resonance.Core.StateMachine.States
             if (_uiService != null)
             {
                 _uiService.ShowPanelsForState("Gameplay");
-                _hasShownUI = true;
             }
             else
             {
@@ -107,8 +104,6 @@ namespace Resonance.Core.StateMachine.States
             _subStateMachine?.Clear();
             _subStateMachine = null;
             _currentResonanceTarget = null;
-            
-            _hasShownUI = false;
         }
 
         public bool CanTransitionTo(IState newState)

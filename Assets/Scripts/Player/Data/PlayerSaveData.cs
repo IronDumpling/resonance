@@ -25,13 +25,9 @@ namespace Resonance.Player.Data
         public List<ItemSaveData> inventory; // 向后兼容：传统物品
         public List<int> equippedItemIDs; // IDs of currently equipped items
         
-        [Header(" Inventory System")]
+        [Header("Inventory System")]
         public InventorySaveData Inventory; // 新的统一背包数据
         public WeaponManagerSaveData weaponManager; // 武器管理器数据
-
-        [Header("Progression")]
-        public List<string> unlockedAbilities;
-        public Dictionary<string, float> gameVariables; // Numeric game variables
 
         [Header("Scene-specific Data")]
         public Dictionary<string, bool> collectedItems; // Items collected in each scene
@@ -43,8 +39,6 @@ namespace Resonance.Player.Data
             equippedItemIDs = new List<int>();
             Inventory = new InventorySaveData();
             weaponManager = new WeaponManagerSaveData();
-            unlockedAbilities = new List<string>();
-            gameVariables = new Dictionary<string, float>();
             collectedItems = new Dictionary<string, bool>();
             completedEvents = new Dictionary<string, bool>();
             saveTimestamp = Time.time;

@@ -510,11 +510,6 @@ namespace Resonance.Player.Core
             _stats = saveData.stats;
             Debug.Log($"PlayerController: Loaded stats: Health {_stats.currentPhysicalHealth}/{_stats.maxPhysicalHealth}");
 
-            // Load progression
-            _unlockedAbilities = new List<string>(saveData.unlockedAbilities);
-            _gameVariables = new Dictionary<string, float>(saveData.gameVariables);
-            Debug.Log($"PlayerController: Loaded progression: {_unlockedAbilities.Count} abilities, {_gameVariables.Count} variables");
-
             // Load inventory system
             if (saveData.Inventory != null)
             {
@@ -555,9 +550,7 @@ namespace Resonance.Player.Core
                 sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
                 savePosition = position,
                 saveRotation = rotation,
-                stats = _stats,
-                unlockedAbilities = new List<string>(_unlockedAbilities),
-                gameVariables = new Dictionary<string, float>(_gameVariables)
+                stats = _stats
             };
 
             // Save inventory system
