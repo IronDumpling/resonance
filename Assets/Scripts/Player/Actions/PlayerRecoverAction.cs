@@ -90,7 +90,7 @@ namespace Resonance.Player.Actions
             _lastSlotConsumedTime = Time.time;
 
             // Play recover start effects
-            PlayRecoverStartEffects(player);
+            PlayHealStartEffects(player);
 
             Debug.Log("PlayerHealAction: Started recovery process");
         }
@@ -149,7 +149,7 @@ namespace Resonance.Player.Actions
             }
 
             // Update visual effects
-            UpdateRecoverEffects(player, deltaTime);
+            UpdateHealEffects(player, deltaTime);
         }
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace Resonance.Player.Actions
         /// Play recover start effects
         /// </summary>
         /// <param name="player">Player controller reference</param>
-        private void PlayRecoverStartEffects(PlayerController player)
+        private void PlayHealStartEffects(PlayerController player)
         {
             // Play recovery start audio
             var audioService = ServiceRegistry.Get<IAudioService>();
@@ -247,7 +247,7 @@ namespace Resonance.Player.Actions
         /// </summary>
         /// <param name="player">Player controller reference</param>
         /// <param name="deltaTime">Time since last frame</param>
-        private void UpdateRecoverEffects(PlayerController player, float deltaTime)
+        private void UpdateHealEffects(PlayerController player, float deltaTime)
         {
             // TODO: Update visual effects intensity based on mental tier
             // TODO: Update UI feedback showing recovery progress
@@ -264,7 +264,7 @@ namespace Resonance.Player.Actions
             _isFinished = true;
 
             // Stop effects
-            StopRecoverEffects(player);
+            StopHealEffects(player);
 
             Debug.Log("PlayerHealAction: Cleaned up");
         }
@@ -273,7 +273,7 @@ namespace Resonance.Player.Actions
         /// Stop recover effects
         /// </summary>
         /// <param name="player">Player controller reference</param>
-        private void StopRecoverEffects(PlayerController player)
+        private void StopHealEffects(PlayerController player)
         {
             // TODO: Stop visual effects
             // TODO: Stop audio effects

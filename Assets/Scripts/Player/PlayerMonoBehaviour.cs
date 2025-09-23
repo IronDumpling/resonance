@@ -342,7 +342,7 @@ namespace Resonance.Player
             _inputService.OnMove += HandleMoveInput;
             _inputService.OnInteract += HandleInteractInput;
             _inputService.OnWave += HandleWaveInput; // F key short press (Wave)
-            _inputService.OnHeal += HandleRecoverInput; // F key press/release (Recover)
+            _inputService.OnHeal += HandleHealInput; // F key press/release (Heal)
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
@@ -356,7 +356,7 @@ namespace Resonance.Player
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
             _inputService.OnWave -= HandleWaveInput;
-            _inputService.OnHeal -= HandleRecoverInput;
+            _inputService.OnHeal -= HandleHealInput;
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
             _inputService.OnShoot -= HandleShootInput;
@@ -422,10 +422,10 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle Recover input (F key press/release) - HealAction
+        /// Handle Heal input (F key press/release) - HealAction
         /// </summary>
         /// <param name="isPressed">True when F key is pressed, false when released</param>
-        private void HandleRecoverInput(bool isPressed)
+        private void HandleHealInput(bool isPressed)
         {
             if (!IsInitialized) return;
 
@@ -434,7 +434,7 @@ namespace Resonance.Player
                 // F key pressed - try to start HealAction only when no Core hitboxes in range
                 if (!HasCoreHitboxesInMentalAttackRange())
                 {
-                    bool recoverStarted = _playerController.TryStartAction("Recover");
+                    bool recoverStarted = _playerController.TryStartAction("Heal");
                     if (recoverStarted)
                     {
                         Debug.Log("PlayerMonoBehaviour: Started HealAction via F key press");
@@ -452,7 +452,7 @@ namespace Resonance.Player
             else
             {
                 // F key released - stop HealAction if it's running
-                if (_playerController.GetCurrentActionName() == "Recover")
+                if (_playerController.GetCurrentActionName() == "Heal")
                 {
                     _playerController.CancelCurrentAction();
                     Debug.Log("PlayerMonoBehaviour: Stopped HealAction via F key release");

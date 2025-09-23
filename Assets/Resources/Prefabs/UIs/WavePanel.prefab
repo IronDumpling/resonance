@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 2721692996668308013}
   - component: {fileID: 5913303637366283664}
   m_Layer: 5
-  m_Name: ResonancePanel
+  m_Name: WavePanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

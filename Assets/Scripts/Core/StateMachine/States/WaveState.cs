@@ -52,7 +52,7 @@ namespace Resonance.Core.StateMachine.States
                 }
             }
             
-            // Switch input mode to Wave (disable Recover/Wave, enable QTE)
+            // Switch input mode to Wave (disable Heal/Wave, enable QTE)
             if (_inputService != null)
             {
                 _inputService.IsWaveMode = true;

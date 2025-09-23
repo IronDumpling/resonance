@@ -132,7 +132,7 @@ namespace Resonance.Core.GlobalServices
             if (IsWaveMode) return;
             
             OnHeal?.Invoke(true);
-            Debug.Log("InputService: Recover key pressed (started)");
+            Debug.Log("InputService: Heal key pressed (started)");
         }
 
         private void OnHealCanceled(InputAction.CallbackContext context)
@@ -141,7 +141,7 @@ namespace Resonance.Core.GlobalServices
             if (IsWaveMode) return;
             
             OnHeal?.Invoke(false);
-            Debug.Log("InputService: Recover key released (canceled)");
+            Debug.Log("InputService: Heal key released (canceled)");
         }
 
         private void OnRunStarted(InputAction.CallbackContext context)
