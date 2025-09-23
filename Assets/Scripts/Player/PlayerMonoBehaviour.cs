@@ -947,9 +947,9 @@ namespace Resonance.Player
             string mentalAttackInfo = GetMentalAttackRangeDebugInfo();
             
             Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
-                     $"Mental Health: {stats.currentMentalHealth}/{stats.maxMentalHealth}, " +
+                     $"Mental Health: {stats.currentCoreHealth}/{stats.maxCoreHealth}, " +
                      $"Mental Tier: {_playerController.MentalTier}, Physical Tier: {_playerController.PhysicalTier}, " +
-                     $"Slots: {_playerController.MentalHealthInSlots:F1}/{stats.mentalHealthSlots}, " +
+                     $"Slots: {_playerController.CoreHealthInSlots:F1}/{stats.mentalHealthSlots}, " +
                      $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
                      $"{edgeInfo}, {mentalAttackInfo}");
@@ -1046,12 +1046,12 @@ namespace Resonance.Player
         /// <summary>
         /// Is physically alive (physical health > 0)
         /// </summary>
-        public bool IsPhysicallyAlive => IsInitialized && _playerController.IsPhysicallyAlive;
+        public bool IsAlive => IsInitialized && _playerController.IsAlive;
 
         /// <summary>
         /// Is mentally alive (mental health > 0)
         /// </summary>
-        public bool IsMentallyAlive => IsInitialized && _playerController.IsMentallyAlive;
+        public bool IsCoreAlive => IsInitialized && _playerController.IsCoreAlive;
 
         /// <summary>
         /// Is in death state (physical health = 0 but mental health > 0)
@@ -1071,12 +1071,12 @@ namespace Resonance.Player
         /// <summary>
         /// Current mental health
         /// </summary>
-        public float CurrentMentalHealth => IsInitialized ? _playerController.Stats.currentMentalHealth : 0f;
+        public float CurrentCoreHealth => IsInitialized ? _playerController.Stats.currentCoreHealth : 0f;
 
         /// <summary>
         /// Max mental health
         /// </summary>
-        public float MaxMentalHealth => IsInitialized ? _playerController.Stats.maxMentalHealth : 0f;
+        public float MaxCoreHealth => IsInitialized ? _playerController.Stats.maxCoreHealth : 0f;
 
         #endregion
 

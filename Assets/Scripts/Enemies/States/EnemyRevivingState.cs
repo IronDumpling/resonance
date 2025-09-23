@@ -46,7 +46,7 @@ namespace Resonance.Enemies.States
             _revivalTimer += Time.deltaTime;
             
             // Check for revival interruption - if mental health reaches 0 during revival
-            if (!_enemyController.IsMentallyAlive)
+            if (!_enemyController.IsCoreAlive)
             {
                 Debug.Log("EnemyRevivingState: Revival interrupted - mental health reached 0");
                 // This will trigger Normal State or TrueDeath State transition handled by EnemyController

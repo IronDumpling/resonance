@@ -82,7 +82,7 @@ namespace Resonance.UI
             if (_physicalHealthPanel == null)
                 _physicalHealthPanel = FindChildGameObject("PhysicalHealth");
             if (_mentalHealthPanel == null)
-                _mentalHealthPanel = FindChildGameObject("MentalHealth");
+                _mentalHealthPanel = FindChildGameObject("CoreHealth");
             
             // Auto-find weapon UI components
             if (_weaponIcon == null && _weaponPanel != null)
@@ -186,7 +186,7 @@ namespace Resonance.UI
             
             // Subscribe to dual health events
             _playerController.OnPhysicalHealthChanged += OnPhysicalHealthChanged;
-            _playerController.OnMentalHealthChanged += OnMentalHealthChanged;
+            _playerController.OnCoreHealthChanged += OnCoreHealthChanged;
             
             // Subscribe to weapon events
             if (_weaponManager != null)
@@ -208,7 +208,7 @@ namespace Resonance.UI
             if (_playerController != null)
             {
                 _playerController.OnPhysicalHealthChanged -= OnPhysicalHealthChanged;
-                _playerController.OnMentalHealthChanged -= OnMentalHealthChanged;
+                _playerController.OnCoreHealthChanged -= OnCoreHealthChanged;
                 
                 // Unsubscribe from ammo inventory events
                 if (_playerController.Stats?.ammoInventory != null)
@@ -238,9 +238,9 @@ namespace Resonance.UI
             UpdatePhysicalHealthUI(currentHealth, maxHealth);
         }
 
-        private void OnMentalHealthChanged(float currentHealth, float maxHealth)
+        private void OnCoreHealthChanged(float currentHealth, float maxHealth)
         {
-            UpdateMentalHealthUI(currentHealth, maxHealth);
+            UpdateCoreHealthUI(currentHealth, maxHealth);
         }
 
         private void OnWeaponEquipped(GunDataAsset gunData)
@@ -278,7 +278,7 @@ namespace Resonance.UI
             
             UpdateWeaponUI();
             UpdatePhysicalHealthUI();
-            UpdateMentalHealthUI();
+            UpdateCoreHealthUI();
         }
 
         private void UpdateWeaponUI()
@@ -356,7 +356,7 @@ namespace Resonance.UI
             }
         }
 
-        private void UpdateMentalHealthUI(float currentHealth = -1, float maxHealth = -1)
+        private void UpdateCoreHealthUI(float currentHealth = -1, float maxHealth = -1)
         {
             if (_mentalHealthValue == null || _playerController == null) return;
             
@@ -364,8 +364,8 @@ namespace Resonance.UI
             if (currentHealth < 0 || maxHealth < 0)
             {
                 var stats = _playerController.Stats;
-                currentHealth = stats.currentMentalHealth;
-                maxHealth = stats.maxMentalHealth;
+                currentHealth = stats.currentCoreHealth;
+                maxHealth = stats.maxCoreHealth;
             }
             
             // Calculate health percentage

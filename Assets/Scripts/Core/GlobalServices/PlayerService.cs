@@ -205,12 +205,12 @@ namespace Resonance.Core.GlobalServices
 
         public bool IsPlayerPhysicallyAlive()
         {
-            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsPhysicallyAlive;
+            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsAlive;
         }
 
         public bool IsPlayerMentallyAlive()
         {
-            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsMentallyAlive;
+            return _currentPlayer != null && _currentPlayer.IsInitialized && _currentPlayer.Controller.IsCoreAlive;
         }
 
         #endregion

@@ -10,8 +10,8 @@ namespace Resonance.Player.Actions
 {
     /// <summary>
     /// Player Heal Action - triggered by holding F key when no Core hitboxes are in mental attack range
-    /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in MentalAttackRange
-    /// Behavior: Player cannot move, consumes 1 MentalHealth slot every 1s, restores PhysicalHealth
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in MentalAttackRange
+    /// Behavior: Player cannot move, consumes 1 CoreHealth slot every 1s, restores PhysicalHealth
     /// End condition: Release F key, or interrupted by damage, or reach full health, or no more mental health
     /// </summary>
     public class PlayerHealAction : IPlayerAction
@@ -192,13 +192,13 @@ namespace Resonance.Player.Actions
             // Apply tier modifiers based on current mental health tier
             // switch (player.MentalTier)
             // {
-            //     case MentalHealthTier.High:
+            //     case CoreHealthTier.High:
             //         healAmount *= 1.2f; // 20% bonus when mental health is high
             //         break;
-            //     case MentalHealthTier.Low:
+            //     case CoreHealthTier.Low:
             //         healAmount *= 0.8f; // 20% penalty when mental health is low
             //         break;
-            //     case MentalHealthTier.Empty:
+            //     case CoreHealthTier.Empty:
             //         healAmount *= 0.5f; // 50% penalty when mental health is empty
             //         break;
             // }

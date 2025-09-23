@@ -24,8 +24,8 @@ namespace Resonance.Enemies.Actions
             // 1. Physical health is 0 (dead)
             // 2. Mental health > 0 (still has consciousness)
             // 3. Currently in reviving state
-            return !enemy.IsPhysicallyAlive && 
-                   enemy.IsMentallyAlive && 
+            return !enemy.IsAlive && 
+                   enemy.IsCoreAlive && 
                    enemy.StateMachine.IsInState("Reviving");
         }
 
@@ -46,7 +46,7 @@ namespace Resonance.Enemies.Actions
             _reviveTimer += deltaTime;
             
             // Check if mental health dropped to 0 during revival (interruption)
-            if (!enemy.IsMentallyAlive)
+            if (!enemy.IsCoreAlive)
             {
                 Debug.Log("EnemyReviveAction: Revival interrupted - mental health reached 0");
                 _isFinished = true;
@@ -57,7 +57,7 @@ namespace Resonance.Enemies.Actions
             // This action mainly serves as a state indicator and behavior controller
             
             // Check if revival is complete (physical health restored)
-            if (enemy.IsPhysicallyAlive)
+            if (enemy.IsAlive)
             {
                 Debug.Log("EnemyReviveAction: Revival completed - physical health restored");
                 _isFinished = true;

@@ -25,7 +25,7 @@ namespace Resonance.Enemies.Actions
             // 1. Enemy is alive and can move
             // 2. Has player target
             // 3. Player is in detection range but not in attack range
-            return enemy.IsPhysicallyAlive && 
+            return enemy.IsAlive && 
                    enemy.HasPlayerTarget && 
                    enemy.IsPlayerInDetectionRange() &&
                    !enemy.IsPlayerInAttackRange() &&

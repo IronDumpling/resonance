@@ -19,7 +19,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("Maximum physical health")]
         public float maxPhysicalHealth = 100f;
         [Tooltip("Maximum mental health")]
-        public float maxMentalHealth = 50f;
+        public float maxCoreHealth = 50f;
         
         [Header("Health Regeneration")]
         [Tooltip("Physical health regeneration rate per second (only when physically alive)")]
@@ -115,8 +115,8 @@ namespace Resonance.Enemies.Data
                 currentPhysicalHealth = this.maxPhysicalHealth,
                 
                 // Mental Health
-                maxMentalHealth = this.maxMentalHealth,
-                currentMentalHealth = this.maxMentalHealth,
+                maxCoreHealth = this.maxCoreHealth,
+                currentCoreHealth = this.maxCoreHealth,
                 
                 // Regeneration
                 physicalHealthRegenRate = this.physicalHealthRegenRate,
@@ -195,9 +195,9 @@ namespace Resonance.Enemies.Data
                 return false;
             }
 
-            if (maxMentalHealth <= 0)
+            if (maxCoreHealth <= 0)
             {
-                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid max mental health: {maxMentalHealth}");
+                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid max mental health: {maxCoreHealth}");
                 return false;
             }
 
@@ -222,7 +222,7 @@ namespace Resonance.Enemies.Data
         {
             // Ensure values are within reasonable ranges
             maxPhysicalHealth = Mathf.Max(1f, maxPhysicalHealth);
-            maxMentalHealth = Mathf.Max(1f, maxMentalHealth);
+            maxCoreHealth = Mathf.Max(1f, maxCoreHealth);
             physicalHealthRegenRate = Mathf.Max(0f, physicalHealthRegenRate);
             mentalHealthRegenRate = Mathf.Max(0f, mentalHealthRegenRate);
             revivalRate = Mathf.Max(0.1f, revivalRate);
@@ -271,8 +271,8 @@ namespace Resonance.Enemies.Data
         public float currentPhysicalHealth;
         
         [Header("Mental Health")]
-        public float maxMentalHealth;
-        public float currentMentalHealth;
+        public float maxCoreHealth;
+        public float currentCoreHealth;
         
         [Header("Regeneration")]
         public float physicalHealthRegenRate;
@@ -329,16 +329,16 @@ namespace Resonance.Enemies.Data
 
         [Header("Health Tiers")]
         public EnemyPhysicalHealthTier physicalTier;
-        public EnemyMentalHealthTier mentalTier;
+        public EnemyCoreHealthTier mentalTier;
         
         // Health Properties
-        public bool IsPhysicallyAlive => currentPhysicalHealth > 0f;
-        public bool IsMentallyAlive => currentMentalHealth > 0f;
-        public bool IsInPhysicalDeathState => currentPhysicalHealth <= 0f && currentMentalHealth > 0f;
+        public bool IsAlive => currentPhysicalHealth > 0f;
+        public bool IsCoreAlive => currentCoreHealth > 0f;
+        public bool IsInPhysicalDeathState => currentPhysicalHealth <= 0f && currentCoreHealth > 0f;
         
         // Health Percentages
         public float PhysicalHealthPercentage => maxPhysicalHealth > 0 ? currentPhysicalHealth / maxPhysicalHealth : 0f;
-        public float MentalHealthPercentage => maxMentalHealth > 0 ? currentMentalHealth / maxMentalHealth : 0f;
+        public float CoreHealthPercentage => maxCoreHealth > 0 ? currentCoreHealth / maxCoreHealth : 0f;
 
         /// <summary>
         /// Restore all health to full
@@ -346,7 +346,7 @@ namespace Resonance.Enemies.Data
         public void RestoreToFullHealth()
         {
             currentPhysicalHealth = maxPhysicalHealth;
-            currentMentalHealth = maxMentalHealth;
+            currentCoreHealth = maxCoreHealth;
             UpdateHealthTiers();
         }
 
@@ -362,9 +362,9 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// Restore mental health to full
         /// </summary>
-        public void RestoreMentalHealth()
+        public void RestoreCoreHealth()
         {
-            currentMentalHealth = maxMentalHealth;
+            currentCoreHealth = maxCoreHealth;
             UpdateHealthTiers();
         }
         
@@ -382,12 +382,12 @@ namespace Resonance.Enemies.Data
                 physicalTier = EnemyPhysicalHealthTier.Healthy;
                 
             // Mental Tier calculation  
-            if (currentMentalHealth <= 0f)
-                mentalTier = EnemyMentalHealthTier.Dead;
-            else if (MentalHealthPercentage <= mentalCriticalThreshold)
-                mentalTier = EnemyMentalHealthTier.Critical;
+            if (currentCoreHealth <= 0f)
+                mentalTier = EnemyCoreHealthTier.Dead;
+            else if (CoreHealthPercentage <= mentalCriticalThreshold)
+                mentalTier = EnemyCoreHealthTier.Critical;
             else
-                mentalTier = EnemyMentalHealthTier.Healthy;
+                mentalTier = EnemyCoreHealthTier.Healthy;
         }
         
         /// <summary>
@@ -423,9 +423,9 @@ namespace Resonance.Enemies.Data
         {
             switch (mentalTier)
             {
-                case EnemyMentalHealthTier.Dead:
+                case EnemyCoreHealthTier.Dead:
                     return deadPhysicalDamageMultiplier;
-                case EnemyMentalHealthTier.Critical:
+                case EnemyCoreHealthTier.Critical:
                     return criticalPhysicalDamageMultiplier;
                 default:
                     return 1f;

@@ -28,7 +28,7 @@ namespace Resonance.Enemies.Actions
             // 2. No player detected
             // 3. Not currently patrolling to avoid overlapping patrol actions
             // 4. Haven't exceeded patrol cycle limit (for Limited mode)
-            return enemy.IsPhysicallyAlive && 
+            return enemy.IsAlive && 
                    !enemy.HasPlayerTarget && 
                    !enemy.IsPatrolling &&
                    enemy.Stats.GetModifiedMoveSpeed() > 0f &&

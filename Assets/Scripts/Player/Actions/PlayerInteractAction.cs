@@ -50,7 +50,7 @@ namespace Resonance.Player.Actions
             if (player.CurrentState != "Normal") return false;
 
             // Must be physically alive to interact
-            if (!player.IsPhysicallyAlive) return false;
+            if (!player.IsAlive) return false;
 
             // Find a valid interactable object in range
             _targetInteractable = FindNearestInteractable();

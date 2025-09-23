@@ -37,12 +37,12 @@ namespace Resonance.Interfaces
         /// <summary>
         /// 是否物理存活 (物理血量 > 0)
         /// </summary>
-        bool IsPhysicallyAlive { get; }
+        bool IsAlive { get; }
         
         /// <summary>
         /// 是否精神存活 (精神血量 > 0)
         /// </summary>
-        bool IsMentallyAlive { get; }
+        bool IsCoreAlive { get; }
         
         /// <summary>
         /// 是否处于死亡状态 (物理血量 = 0 但精神血量 > 0)
@@ -62,12 +62,12 @@ namespace Resonance.Interfaces
         /// <summary>
         /// 当前精神血量
         /// </summary>
-        float CurrentMentalHealth { get; }
+        float CurrentCoreHealth { get; }
         
         /// <summary>
         /// 最大精神血量
         /// </summary>
-        float MaxMentalHealth { get; }
+        float MaxCoreHealth { get; }
         
         #endregion
     }

@@ -324,7 +324,7 @@ namespace Resonance.Enemies
 
             // Subscribe to enemy events
             _enemyController.OnPhysicalHealthChanged += HandlePhysicalHealthChanged;
-            _enemyController.OnMentalHealthChanged += HandleMentalHealthChanged;
+            _enemyController.OnCoreHealthChanged += HandleCoreHealthChanged;
             _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
             _enemyController.OnTrueDeath += HandleTrueDeath;
             _enemyController.OnRevivalStarted += HandleRevivalStarted;
@@ -824,13 +824,13 @@ namespace Resonance.Enemies
 
         #region Health Properties
 
-        public bool IsPhysicallyAlive => IsInitialized && _enemyController.IsPhysicallyAlive;
-        public bool IsMentallyAlive => IsInitialized && _enemyController.IsMentallyAlive;
+        public bool IsAlive => IsInitialized && _enemyController.IsAlive;
+        public bool IsCoreAlive => IsInitialized && _enemyController.IsCoreAlive;
         public bool IsInDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
         public float CurrentPhysicalHealth => IsInitialized ? _enemyController.Stats.currentPhysicalHealth : 0f;
         public float MaxPhysicalHealth => IsInitialized ? _enemyController.Stats.maxPhysicalHealth : 0f;
-        public float CurrentMentalHealth => IsInitialized ? _enemyController.Stats.currentMentalHealth : 0f;
-        public float MaxMentalHealth => IsInitialized ? _enemyController.Stats.maxMentalHealth : 0f;
+        public float CurrentCoreHealth => IsInitialized ? _enemyController.Stats.currentCoreHealth : 0f;
+        public float MaxCoreHealth => IsInitialized ? _enemyController.Stats.maxCoreHealth : 0f;
 
         #endregion
 
@@ -886,7 +886,7 @@ namespace Resonance.Enemies
             // Health UI updates would go here
         }
 
-        private void HandleMentalHealthChanged(float current, float max)
+        private void HandleCoreHealthChanged(float current, float max)
         {
             // Health UI updates would go here
         }
@@ -1242,7 +1242,7 @@ namespace Resonance.Enemies
             }
             
             Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentPhysicalHealth:F1}/{stats.maxPhysicalHealth}, " +
-                     $"Mental: {stats.currentMentalHealth:F1}/{stats.maxMentalHealth}, {stateInfo}");
+                     $"Mental: {stats.currentCoreHealth:F1}/{stats.maxCoreHealth}, {stateInfo}");
         }
 
         void OnDrawGizmos()
@@ -1269,7 +1269,7 @@ namespace Resonance.Enemies
             Gizmos.color = Color.blue;
             Gizmos.DrawCube(mentalBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float mentalPercentage = _enemyController.Stats.MentalHealthPercentage;
+            float mentalPercentage = _enemyController.Stats.CoreHealthPercentage;
             Gizmos.color = Color.cyan;
             Vector3 mentalBarSize = new Vector3(barWidth * mentalPercentage, barHeight * 0.5f, 0.1f);
             Vector3 mentalBarPosition = mentalBarCenter + Vector3.left * (barWidth * (1f - mentalPercentage) * 0.5f);

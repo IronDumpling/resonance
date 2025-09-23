@@ -15,7 +15,7 @@ namespace Resonance.Player.Data
         [SerializeField] private float _physicalHealthRegenRate = 0f; // Physical health per second
         
         [Header("Mental Health")]
-        [SerializeField] private float _maxMentalHealth = 50f;
+        [SerializeField] private float _maxCoreHealth = 50f;
         [SerializeField] private float _mentalHealthDecayRate = 1f; // Mental health decay per second when in core mode
         [SerializeField] private float _mentalHealthRegenRate = 0f; // Mental health regen per second in normal state
 
@@ -49,9 +49,9 @@ namespace Resonance.Player.Data
         // Dual Health Properties
         public float MaxPhysicalHealth => _maxPhysicalHealth;
         public float PhysicalHealthRegenRate => _physicalHealthRegenRate;
-        public float MaxMentalHealth => _maxMentalHealth;
-        public float MentalHealthDecayRate => _mentalHealthDecayRate;
-        public float MentalHealthRegenRate => _mentalHealthRegenRate;
+        public float MaxCoreHealth => _maxCoreHealth;
+        public float CoreHealthDecayRate => _mentalHealthDecayRate;
+        public float CoreHealthRegenRate => _mentalHealthRegenRate;
         
         // Other Properties
         public float MoveSpeed => _moveSpeed;
@@ -62,7 +62,7 @@ namespace Resonance.Player.Data
         public int MaxInventorySlots => _maxInventorySlots;
 
         // Mental Health Slots Properties
-        public int MentalHealthSlots => _mentalHealthSlots;
+        public int CoreHealthSlots => _mentalHealthSlots;
         public float MentalAttackRange => _mentalAttackRange;
 
         // Interaction Properties
@@ -99,8 +99,8 @@ namespace Resonance.Player.Data
         public float physicalHealthRegenRate;
         
         [Header("Current Mental Health")]
-        public float currentMentalHealth;
-        public float maxMentalHealth;
+        public float currentCoreHealth;
+        public float maxCoreHealth;
         public float mentalHealthDecayRate;
         public float mentalHealthRegenRate;
 
@@ -117,7 +117,7 @@ namespace Resonance.Player.Data
         public int maxInventorySlots;
 
         [Header("Health Tiers")]
-        public MentalHealthTier mentalTier;
+        public CoreHealthTier mentalTier;
         public PhysicalHealthTier physicalTier;
         public int mentalHealthSlots;
         public float slotValue; // 每个slot的数值
@@ -132,10 +132,10 @@ namespace Resonance.Player.Data
             currentPhysicalHealth = maxPhysicalHealth; // Start at full physical health
             physicalHealthRegenRate = baseStats.PhysicalHealthRegenRate;
             
-            maxMentalHealth = baseStats.MaxMentalHealth;
-            currentMentalHealth = maxMentalHealth; // Start at full mental health
-            mentalHealthDecayRate = baseStats.MentalHealthDecayRate;
-            mentalHealthRegenRate = baseStats.MentalHealthRegenRate;
+            maxCoreHealth = baseStats.MaxCoreHealth;
+            currentCoreHealth = maxCoreHealth; // Start at full mental health
+            mentalHealthDecayRate = baseStats.CoreHealthDecayRate;
+            mentalHealthRegenRate = baseStats.CoreHealthRegenRate;
             
             moveSpeed = baseStats.MoveSpeed;
             runSpeedMultiplier = baseStats.RunSpeedMultiplier;
@@ -147,8 +147,8 @@ namespace Resonance.Player.Data
             maxInventorySlots = baseStats.MaxInventorySlots;
 
             // Initialize health tiers
-            mentalHealthSlots = baseStats.MentalHealthSlots;
-            slotValue = maxMentalHealth / mentalHealthSlots;
+            mentalHealthSlots = baseStats.CoreHealthSlots;
+            slotValue = maxCoreHealth / mentalHealthSlots;
             UpdateHealthTiers();
 
             // Initialize ammo inventory
@@ -161,7 +161,7 @@ namespace Resonance.Player.Data
         public void RestoreToFullHealth()
         {
             currentPhysicalHealth = maxPhysicalHealth;
-            currentMentalHealth = maxMentalHealth;
+            currentCoreHealth = maxCoreHealth;
         }
 
         /// <summary>
@@ -175,20 +175,15 @@ namespace Resonance.Player.Data
         /// <summary>
         /// Restore only mental health to maximum
         /// </summary>
-        public void RestoreMentalHealth()
+        public void RestoreCoreHealth()
         {
-            currentMentalHealth = maxMentalHealth;
+            currentCoreHealth = maxCoreHealth;
         }
 
         /// <summary>
         /// Check if player is physically alive (physical health > 0)
         /// </summary>
-        public bool IsPhysicallyAlive => currentPhysicalHealth > 0f;
-
-        /// <summary>
-        /// Check if player is mentally alive (mental health > 0)
-        /// </summary>
-        public bool IsMentallyAlive => currentMentalHealth > 0f;
+        public bool IsAlive => currentPhysicalHealth > 0f;
 
         /// <summary>
         /// Check if player is in death state (physical health = 0)
@@ -201,9 +196,14 @@ namespace Resonance.Player.Data
         public float PhysicalHealthPercentage => maxPhysicalHealth > 0 ? currentPhysicalHealth / maxPhysicalHealth : 0f;
 
         /// <summary>
+        /// Check if player is mentally alive (mental health > 0)
+        /// </summary>
+        public bool IsCoreAlive => currentCoreHealth > 0f;
+
+        /// <summary>
         /// Get mental health percentage (0-1)
         /// </summary>
-        public float MentalHealthPercentage => maxMentalHealth > 0 ? currentMentalHealth / maxMentalHealth : 0f;
+        public float CoreHealthPercentage => maxCoreHealth > 0 ? currentCoreHealth / maxCoreHealth : 0f;
         
         /// <summary>
         /// Update health tiers based on current health values
@@ -211,15 +211,15 @@ namespace Resonance.Player.Data
         public void UpdateHealthTiers()
         {
             // Update slot value in case mental health max changed
-            slotValue = maxMentalHealth / mentalHealthSlots;
+            slotValue = maxCoreHealth / mentalHealthSlots;
             
             // Mental Tier calculation
-            if (currentMentalHealth <= 0f)
-                mentalTier = MentalHealthTier.Empty;
-            else if (currentMentalHealth <= slotValue)
-                mentalTier = MentalHealthTier.Low;
+            if (currentCoreHealth <= 0f)
+                mentalTier = CoreHealthTier.Empty;
+            else if (currentCoreHealth <= slotValue)
+                mentalTier = CoreHealthTier.Low;
             else
-                mentalTier = MentalHealthTier.High;
+                mentalTier = CoreHealthTier.High;
                 
             // Physical Tier calculation  
             float physicalPercent = PhysicalHealthPercentage;
@@ -234,7 +234,7 @@ namespace Resonance.Player.Data
         /// <summary>
         /// Check if player can consume one mental health slot
         /// </summary>
-        public bool CanConsumeSlot() => currentMentalHealth >= slotValue;
+        public bool CanConsumeSlot() => currentCoreHealth >= slotValue;
 
         /// <summary>
         /// Consume one mental health slot (precise slot value)
@@ -244,7 +244,7 @@ namespace Resonance.Player.Data
         {
             if (!CanConsumeSlot()) return false;
             
-            currentMentalHealth = Mathf.Max(0f, currentMentalHealth - slotValue);
+            currentCoreHealth = Mathf.Max(0f, currentCoreHealth - slotValue);
             UpdateHealthTiers();
             return true;
         }
@@ -252,7 +252,7 @@ namespace Resonance.Player.Data
         /// <summary>
         /// Get current mental health in slot units
         /// </summary>
-        public float GetMentalHealthInSlots() => slotValue > 0 ? currentMentalHealth / slotValue : 0f;
+        public float GetCoreHealthInSlots() => slotValue > 0 ? currentCoreHealth / slotValue : 0f;
     }
 
     /// <summary>

@@ -33,7 +33,7 @@ namespace Resonance.Player.Actions
         public bool CanStart(PlayerController playerController)
         {
             // Check basic conditions
-            if (!playerController.IsPhysicallyAlive)
+            if (!playerController.IsAlive)
             {
                 Debug.Log("PlayerReloadAction: Cannot reload - player not physically alive");
                 return false;

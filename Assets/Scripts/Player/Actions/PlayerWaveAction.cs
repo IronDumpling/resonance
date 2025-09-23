@@ -11,8 +11,8 @@ namespace Resonance.Player.Actions
 {
     /// <summary>
     /// Player Wave Action - triggered by short press F when Core hitboxes are in mental attack range
-    /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, Core type EnemyHitbox with enabled collider in MentalAttackRange
-    /// Behavior: Player cannot move, is invulnerable to physical damage, consumes 1 MentalHealth slot
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, Core type EnemyHitbox with enabled collider in MentalAttackRange
+    /// Behavior: Player cannot move, is invulnerable to physical damage, consumes 1 CoreHealth slot
     /// End condition: Target Core hitbox collider becomes disabled or exits range
     /// </summary>
     public class PlayerWaveAction : IPlayerAction

@@ -4,7 +4,7 @@ namespace Resonance.Player.Data
     /// Mental health tier based on slot consumption
     /// Mental health is divided into N slots (currently 3)
     /// </summary>
-    public enum MentalHealthTier
+    public enum CoreHealthTier
     {
         High,   // > 1 slot
         Low,    // ≤ 1 slot, > 0  
