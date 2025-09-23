@@ -1,5 +1,6 @@
 using System;
 using UnityEngine.SceneManagement;
+using Resonance.Environments;
 
 namespace Resonance.Interfaces.Services
 {
@@ -31,7 +32,7 @@ namespace Resonance.Interfaces.Services
         // Scene Transition Methods
         void RequestTransition(string targetScene, string spawnPointID, string transitionID);
         void CompleteTransition();
-        void RegisterSceneManager(Resonance.Environments.SceneTransitionManager manager);
-        void UnregisterSceneManager(Resonance.Environments.SceneTransitionManager manager);
+        void RegisterSceneManager(SceneTransitionManager manager);
+        void UnregisterSceneManager(SceneTransitionManager manager);
     }
 }

@@ -341,8 +341,8 @@ namespace Resonance.Player
 
             _inputService.OnMove += HandleMoveInput;
             _inputService.OnInteract += HandleInteractInput;
-            _inputService.OnResonance += HandleResonanceInput; // F key short press (Resonance)
-            _inputService.OnRecover += HandleRecoverInput; // F key press/release (Recover)
+            _inputService.OnWave += HandleWaveInput; // F key short press (Wave)
+            _inputService.OnHeal += HandleRecoverInput; // F key press/release (Recover)
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
             _inputService.OnShoot += HandleShootInput;
@@ -355,8 +355,8 @@ namespace Resonance.Player
 
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
-            _inputService.OnResonance -= HandleResonanceInput;
-            _inputService.OnRecover -= HandleRecoverInput;
+            _inputService.OnWave -= HandleWaveInput;
+            _inputService.OnHeal -= HandleRecoverInput;
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
             _inputService.OnShoot -= HandleShootInput;
@@ -367,7 +367,7 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
             
-            // Check if current action blocks movement (e.g., ResonanceAction, RecoverAction)
+            // Check if current action blocks movement (e.g., WaveAction, HealAction)
             if (_playerController.ActionController.IsBlocking)
             {
                 Debug.Log("PlayerMonoBehaviour: Movement input blocked by action");
@@ -394,24 +394,24 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle Resonance press input (F key short press) - ResonanceAction
+        /// Handle Wave press input (F key short press) - WaveAction
         /// </summary>
-        private void HandleResonanceInput()
+        private void HandleWaveInput()
         {
             if (!IsInitialized) return;
 
-            // Short press F -> ResonanceAction only when Core hitboxes are in range
+            // Short press F -> WaveAction only when Core hitboxes are in range
             if (HasCoreHitboxesInMentalAttackRange())
             {
-                // Try to start ResonanceAction
-                bool resonanceStarted = _playerController.TryStartAction("Resonance");
+                // Try to start WaveAction
+                bool resonanceStarted = _playerController.TryStartAction("Wave");
                 if (resonanceStarted)
                 {
-                    Debug.Log("PlayerMonoBehaviour: Started ResonanceAction via short press F");
+                    Debug.Log("PlayerMonoBehaviour: Started WaveAction via short press F");
                 }
                 else
                 {
-                    Debug.Log("PlayerMonoBehaviour: ResonanceAction conditions not met");
+                    Debug.Log("PlayerMonoBehaviour: WaveAction conditions not met");
                 }
             }
             else
@@ -422,7 +422,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle Recover input (F key press/release) - RecoverAction
+        /// Handle Recover input (F key press/release) - HealAction
         /// </summary>
         /// <param name="isPressed">True when F key is pressed, false when released</param>
         private void HandleRecoverInput(bool isPressed)
@@ -431,31 +431,31 @@ namespace Resonance.Player
 
             if (isPressed)
             {
-                // F key pressed - try to start RecoverAction only when no Core hitboxes in range
+                // F key pressed - try to start HealAction only when no Core hitboxes in range
                 if (!HasCoreHitboxesInMentalAttackRange())
                 {
                     bool recoverStarted = _playerController.TryStartAction("Recover");
                     if (recoverStarted)
                     {
-                        Debug.Log("PlayerMonoBehaviour: Started RecoverAction via F key press");
+                        Debug.Log("PlayerMonoBehaviour: Started HealAction via F key press");
                     }
                     else
                     {
-                        Debug.Log("PlayerMonoBehaviour: RecoverAction conditions not met");
+                        Debug.Log("PlayerMonoBehaviour: HealAction conditions not met");
                     }
                 }
                 else
                 {
-                    Debug.Log("PlayerMonoBehaviour: RecoverAction blocked - Core hitboxes in range (use short press for Resonance)");
+                    Debug.Log("PlayerMonoBehaviour: HealAction blocked - Core hitboxes in range (use short press for Wave)");
                 }
             }
             else
             {
-                // F key released - stop RecoverAction if it's running
+                // F key released - stop HealAction if it's running
                 if (_playerController.GetCurrentActionName() == "Recover")
                 {
                     _playerController.CancelCurrentAction();
-                    Debug.Log("PlayerMonoBehaviour: Stopped RecoverAction via F key release");
+                    Debug.Log("PlayerMonoBehaviour: Stopped HealAction via F key release");
                 }
             }
         }
@@ -1150,7 +1150,7 @@ namespace Resonance.Player
 
         /// <summary>
         /// Get the closest Core hitbox in mental attack range
-        /// Used by PlayerResonanceAction to find target
+        /// Used by PlayerWaveAction to find target
         /// </summary>
         /// <returns>Closest Core hitbox or null if none</returns>
         public EnemyHitbox GetClosestCoreHitbox()

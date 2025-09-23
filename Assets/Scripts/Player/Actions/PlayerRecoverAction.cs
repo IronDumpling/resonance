@@ -9,15 +9,15 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Recover Action - triggered by holding F key when no Core hitboxes are in mental attack range
+    /// Player Heal Action - triggered by holding F key when no Core hitboxes are in mental attack range
     /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in MentalAttackRange
     /// Behavior: Player cannot move, consumes 1 MentalHealth slot every 1s, restores PhysicalHealth
     /// End condition: Release F key, or interrupted by damage, or reach full health, or no more mental health
     /// </summary>
-    public class PlayerRecoverAction : IPlayerAction
+    public class PlayerHealAction : IPlayerAction
     {
         // Action properties
-        public string Name => "Recover";
+        public string Name => "Heal";
         public bool BlocksMovement => true;
         public bool ProvidesInvulnerability => false;
         public bool CanInterrupt => true; // Can be interrupted by damage
@@ -35,7 +35,7 @@ namespace Resonance.Player.Actions
         public bool IsFinished => _isFinished;
 
         /// <summary>
-        /// Check if the RecoverAction can start
+        /// Check if the HealAction can start
         /// </summary>
         /// <param name="player">Player controller reference</param>
         /// <returns>True if all conditions are met</returns>
@@ -49,13 +49,13 @@ namespace Resonance.Player.Actions
             // Must have at least 1 mental health slot available
             if (!player.CanConsumeSlot) return false;
 
-            // Must NOT have Core hitboxes in mental attack range (ResonanceAction has priority)
+            // Must NOT have Core hitboxes in mental attack range (WaveAction has priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer != null)
             {
                 if (playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
                 {
-                    Debug.Log("PlayerRecoverAction: Cannot start - Core hitboxes in range (ResonanceAction has priority)");
+                    Debug.Log("PlayerHealAction: Cannot start - Core hitboxes in range (WaveAction has priority)");
                     return false;
                 }
             }
@@ -63,11 +63,11 @@ namespace Resonance.Player.Actions
             // Must not be at full physical health (no point in recovering if already full)
             if (player.Stats.PhysicalHealthPercentage >= 1.0f)
             {
-                Debug.Log("PlayerRecoverAction: Cannot start - already at full physical health");
+                Debug.Log("PlayerHealAction: Cannot start - already at full physical health");
                 return false;
             }
 
-            Debug.Log("PlayerRecoverAction: All conditions met, can start");
+            Debug.Log("PlayerHealAction: All conditions met, can start");
             return true;
         }
 
@@ -79,7 +79,7 @@ namespace Resonance.Player.Actions
         {
             if (player == null)
             {
-                Debug.LogError("PlayerRecoverAction: Cannot start with null player");
+                Debug.LogError("PlayerHealAction: Cannot start with null player");
                 return;
             }
 
@@ -92,7 +92,7 @@ namespace Resonance.Player.Actions
             // Play recover start effects
             PlayRecoverStartEffects(player);
 
-            Debug.Log("PlayerRecoverAction: Started recovery process");
+            Debug.Log("PlayerHealAction: Started recovery process");
         }
 
         /// <summary>
@@ -113,7 +113,7 @@ namespace Resonance.Player.Actions
                 // Check if player can still consume slots
                 if (!player.CanConsumeSlot)
                 {
-                    Debug.Log("PlayerRecoverAction: No more mental health slots available, ending action");
+                    Debug.Log("PlayerHealAction: No more mental health slots available, ending action");
                     _isFinished = true;
                     return;
                 }
@@ -123,11 +123,11 @@ namespace Resonance.Player.Actions
                 {
                     PerformHeal(player);
                     _lastSlotConsumedTime = currentTime;
-                    Debug.Log("PlayerRecoverAction: Consumed mental health slot and healed");
+                    Debug.Log("PlayerHealAction: Consumed mental health slot and healed");
                 }
                 else
                 {
-                    Debug.LogWarning("PlayerRecoverAction: Failed to consume mental health slot");
+                    Debug.LogWarning("PlayerHealAction: Failed to consume mental health slot");
                     _isFinished = true;
                     return;
                 }
@@ -136,12 +136,12 @@ namespace Resonance.Player.Actions
             // Check if at full health
             if (player.Stats.PhysicalHealthPercentage >= 1.0f)
             {
-                Debug.Log("PlayerRecoverAction: Reached full health, ending action");
+                Debug.Log("PlayerHealAction: Reached full health, ending action");
                 _isFinished = true;
                 return;
             }
 
-            // Check if Core hitboxes entered range (ResonanceAction gets priority)
+            // Check if Core hitboxes entered range (WaveAction gets priority)
             if (ShouldCancel(player))
             {
                 _isFinished = true;
@@ -160,7 +160,7 @@ namespace Resonance.Player.Actions
         {
             if (_isActive)
             {
-                Debug.Log("PlayerRecoverAction: Cancelled");
+                Debug.Log("PlayerHealAction: Cancelled");
                 CleanupAction(player);
             }
         }
@@ -173,7 +173,7 @@ namespace Resonance.Player.Actions
         {
             if (_isActive)
             {
-                Debug.Log("PlayerRecoverAction: Interrupted by damage");
+                Debug.Log("PlayerHealAction: Interrupted by damage");
                 _isFinished = true; // Will be cleaned up by ActionController
             }
         }
@@ -209,7 +209,7 @@ namespace Resonance.Player.Actions
             // Play heal effect
             PlayHealEffect(player);
 
-            Debug.Log($"PlayerRecoverAction: Healed {healAmount:F1} physical health");
+            Debug.Log($"PlayerHealAction: Healed {healAmount:F1} physical health");
         }
 
         /// <summary>
@@ -227,7 +227,7 @@ namespace Resonance.Player.Actions
             }
 
             // TODO: Add visual effects (healing particles, screen glow, etc.)
-            Debug.Log("PlayerRecoverAction: Playing recovery start effects (placeholder)");
+            Debug.Log("PlayerHealAction: Playing recovery start effects (placeholder)");
         }
 
         /// <summary>
@@ -239,7 +239,7 @@ namespace Resonance.Player.Actions
             // TODO: Play healing audio
             // TODO: Show healing numbers/effect
 
-            Debug.Log("PlayerRecoverAction: Playing heal effect (placeholder)");
+            Debug.Log("PlayerHealAction: Playing heal effect (placeholder)");
         }
 
         /// <summary>
@@ -266,7 +266,7 @@ namespace Resonance.Player.Actions
             // Stop effects
             StopRecoverEffects(player);
 
-            Debug.Log("PlayerRecoverAction: Cleaned up");
+            Debug.Log("PlayerHealAction: Cleaned up");
         }
 
         /// <summary>
@@ -278,7 +278,7 @@ namespace Resonance.Player.Actions
             // TODO: Stop visual effects
             // TODO: Stop audio effects
 
-            Debug.Log("PlayerRecoverAction: Stopped recovery effects");
+            Debug.Log("PlayerHealAction: Stopped recovery effects");
         }
 
         /// <summary>
@@ -288,11 +288,11 @@ namespace Resonance.Player.Actions
         /// <returns>True if action should be cancelled</returns>
         public bool ShouldCancel(PlayerController player)
         {
-            // Check if Core hitboxes entered range (ResonanceAction gets priority)
+            // Check if Core hitboxes entered range (WaveAction gets priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer?.HasCoreHitboxesInMentalAttackRange() == true)
             {
-                Debug.Log("PlayerRecoverAction: Core hitboxes entered range, should cancel for ResonanceAction priority");
+                Debug.Log("PlayerHealAction: Core hitboxes entered range, should cancel for WaveAction priority");
                 return true;
             }
 

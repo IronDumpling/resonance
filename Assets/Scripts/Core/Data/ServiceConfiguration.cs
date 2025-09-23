@@ -5,7 +5,7 @@ using Resonance.Interfaces.Services;
 
 namespace Resonance.Core
 {
-    [CreateAssetMenu(fileName = "ServiceConfiguration", menuName = "Resonance/Service Configuration")]
+    [CreateAssetMenu(fileName = "ServiceConfiguration", menuName = "Wave/Service Configuration")]
     public class ServiceConfiguration : ScriptableObject
     {
         [Header("Input System Configuration")]

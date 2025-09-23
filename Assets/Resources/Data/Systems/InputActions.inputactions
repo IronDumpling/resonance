@@ -61,7 +61,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Resonance",
+                    "name": "Wave",
                     "type": "Button",
                     "id": "1a2b3c4d-5e6f-7890-abcd-ef1234567891",
                     "expectedControlType": "",
@@ -70,7 +70,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Recover",
+                    "name": "Heal",
                     "type": "Button",
                     "id": "8e9f0a1b-2c3d-4e5f-6789-012345678901",
                     "expectedControlType": "",
@@ -182,7 +182,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Resonance",
+                    "action": "Wave",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -193,7 +193,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Recover",
+                    "action": "Heal",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -8,12 +8,12 @@ using Resonance.UI;
 namespace Resonance.Core.StateMachine.States
 {
     /// <summary>
-    /// Resonance substate - handles QTE mechanics during resonance attacks
+    /// Wave substate - handles QTE mechanics during resonance attacks
     /// Active when player is performing resonance action on enemy cores
     /// </summary>
-    public class ResonanceState : IState
+    public class WaveState : IState
     {
-        public string Name => "Resonance";
+        public string Name => "Wave";
         
         private IUIService _uiService;
         private IInputService _inputService;
@@ -24,14 +24,14 @@ namespace Resonance.Core.StateMachine.States
         private float _stateEnterTime = 0f;
         private const float MAX_RESONANCE_DURATION = 30f; // 30 seconds timeout
 
-        public ResonanceState(EnemyHitbox targetCore)
+        public WaveState(EnemyHitbox targetCore)
         {
             _targetCore = targetCore;
         }
 
         public void Enter()
         {
-            Debug.Log("ResonanceState: Entering Resonance substate");
+            Debug.Log("WaveState: Entering Wave substate");
             
             // Get services
             _uiService = ServiceRegistry.Get<IUIService>();
@@ -39,24 +39,24 @@ namespace Resonance.Core.StateMachine.States
             
             if (_uiService != null)
             {
-                // Show ResonancePanel for this substate
-                _uiService.ShowPanelsForState("Gameplay/Resonance");
-                Debug.Log("ResonanceState: Showed ResonancePanel");
+                // Show WavePanel for this substate
+                _uiService.ShowPanelsForState("Gameplay/Wave");
+                Debug.Log("WaveState: Showed WavePanel");
                 
-                // Pass target core information to ResonancePanel
-                var resonancePanel = _uiService.GetPanel<ResonancePanel>("ResonancePanel");
+                // Pass target core information to WavePanel
+                var resonancePanel = _uiService.GetPanel<WavePanel>("WavePanel");
                 if (resonancePanel != null)
                 {
                     resonancePanel.SetTargetCore(_targetCore);
-                    Debug.Log($"ResonanceState: Initialized ResonancePanel with target {_targetCore?.name}");
+                    Debug.Log($"WaveState: Initialized WavePanel with target {_targetCore?.name}");
                 }
             }
             
-            // Switch input mode to Resonance (disable Recover/Resonance, enable QTE)
+            // Switch input mode to Wave (disable Recover/Wave, enable QTE)
             if (_inputService != null)
             {
-                _inputService.IsResonanceMode = true;
-                Debug.Log("ResonanceState: Switched to Resonance input mode");
+                _inputService.IsWaveMode = true;
+                Debug.Log("WaveState: Switched to Wave input mode");
             }
             
             // Record enter time for timeout mechanism
@@ -72,7 +72,7 @@ namespace Resonance.Core.StateMachine.States
             // Safety timeout check (Risk mitigation: Prevent stuck states)
             if (Time.time - _stateEnterTime > MAX_RESONANCE_DURATION)
             {
-                Debug.LogWarning("ResonanceState: Timeout reached, forcing exit from Resonance state");
+                Debug.LogWarning("WaveState: Timeout reached, forcing exit from Wave state");
                 // This will be handled by the parent GameplayState through normal exit mechanisms
                 return;
             }
@@ -80,7 +80,7 @@ namespace Resonance.Core.StateMachine.States
             // Monitor target core state for safety (defensive programming)
             if (_targetCore == null || !_targetCore.IsInitialized)
             {
-                Debug.LogWarning("ResonanceState: Target core is null or not initialized");
+                Debug.LogWarning("WaveState: Target core is null or not initialized");
                 return;
             }
             
@@ -90,20 +90,20 @@ namespace Resonance.Core.StateMachine.States
 
         public void Exit()
         {
-            Debug.Log("ResonanceState: Exiting Resonance substate");
+            Debug.Log("WaveState: Exiting Wave substate");
             
             // Restore normal input mode
             if (_inputService != null)
             {
-                _inputService.IsResonanceMode = false;
-                Debug.Log("ResonanceState: Restored normal input mode");
+                _inputService.IsWaveMode = false;
+                Debug.Log("WaveState: Restored normal input mode");
             }
             
-            // Hide ResonancePanel and show normal Gameplay panels
+            // Hide WavePanel and show normal Gameplay panels
             if (_uiService != null)
             {
                 _uiService.ShowPanelsForState("Gameplay");
-                Debug.Log("ResonanceState: Restored normal Gameplay panels");
+                Debug.Log("WaveState: Restored normal Gameplay panels");
             }
             
             // Clear references
@@ -126,7 +126,7 @@ namespace Resonance.Core.StateMachine.States
         }
         
         /// <summary>
-        /// Set the target core hitbox for this resonance state
+        /// Set the target core hitbox for this wave state
         /// </summary>
         public void SetTargetCore(EnemyHitbox targetCore)
         {

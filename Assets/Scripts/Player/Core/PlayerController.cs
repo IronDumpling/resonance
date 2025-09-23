@@ -676,12 +676,12 @@ namespace Resonance.Player.Core
         private void RegisterPlayerActions()
         {
             // Register core actions
-            RegisterAction(new PlayerResonanceAction());
-            RegisterAction(new PlayerRecoverAction());
+            RegisterAction(new PlayerWaveAction());
+            RegisterAction(new PlayerHealAction());
             RegisterAction(new PlayerInteractAction());
             RegisterAction(new PlayerReloadAction());
 
-            Debug.Log("PlayerController: Registered player actions (Resonance, Recover, Interact, Reload)");
+            Debug.Log("PlayerController: Registered player actions (Wave, Recover, Interact, Reload)");
         }
 
         #endregion

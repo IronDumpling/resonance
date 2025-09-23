@@ -78,7 +78,7 @@ namespace Resonance.Enemies
         [SerializeField] private float _attackCooldown = 1f;
         [Tooltip("Cooldown time between attacks (seconds).")]
 
-        [Header("Resonance UI")]
+        [Header("Wave UI")]
         [SerializeField] private GameObject _resonanceUI;
         [SerializeField] private TextMeshProUGUI _resonanceUIText;
         
@@ -164,8 +164,8 @@ namespace Resonance.Enemies
             // Setup patrol waypoints
             SetupPatrolWaypoints();
 
-            // Setup Resonance UI
-            SetupResonanceUI();
+            // Setup Wave UI
+            SetupWaveUI();
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started successfully");
         }
@@ -616,21 +616,21 @@ namespace Resonance.Enemies
             }
         }
 
-        private void SetupResonanceUI()
+        private void SetupWaveUI()
         {
             if(_resonanceUI == null)
             {
-                Transform resonanceUIChild = transform.Find("ResonanceUI");
+                Transform resonanceUIChild = transform.Find("WaveUI");
                 if(resonanceUIChild != null)
                 {
                     _resonanceUI = resonanceUIChild.gameObject;
-                    Debug.Log($"EnemyMonoBehaviour: Found ResonanceUI child object: {resonanceUIChild.name}");
+                    Debug.Log($"EnemyMonoBehaviour: Found WaveUI child object: {resonanceUIChild.name}");
                 }
             }
 
             if(_resonanceUI == null)
             {
-                Debug.LogWarning($"EnemyMonoBehaviour: No ResonanceUI found on {gameObject.name}. UI resonance will be disabled.");
+                Debug.LogWarning($"EnemyMonoBehaviour: No WaveUI found on {gameObject.name}. UI resonance will be disabled.");
                 return;
             }
 
@@ -645,7 +645,7 @@ namespace Resonance.Enemies
 
             if (_resonanceUIText == null)
             {
-                Debug.LogWarning($"EnemyMonoBehaviour: No TextMeshProUGUI component found in ResonanceUI on {gameObject.name}");
+                Debug.LogWarning($"EnemyMonoBehaviour: No TextMeshProUGUI component found in WaveUI on {gameObject.name}");
             }
             else
             {
@@ -658,7 +658,7 @@ namespace Resonance.Enemies
                 _resonanceUI.SetActive(false);
             }
 
-            Debug.Log($"EnemyMonoBehaviour: Resonance UI setup complete");
+            Debug.Log($"EnemyMonoBehaviour: Wave UI setup complete");
         }
         
         private void SetupPatrolWaypoints()
@@ -1172,18 +1172,18 @@ namespace Resonance.Enemies
 
         #endregion
 
-        #region Resonance UI Control
+        #region Wave UI Control
 
         /// <summary>
         /// Show resonance UI (called by EnemyHitboxManager when Core hitbox is enabled)
         /// </summary>
-        public void ShowResonanceUI()
+        public void ShowWaveUI()
         {
             if (_resonanceUI != null)
             {
                 _resonanceUI.SetActive(true);
                 // Default to white color
-                SetResonanceUIColor(Color.white);
+                SetWaveUIColor(Color.white);
                 
                 if (_showDebugInfo)
                 {
@@ -1195,7 +1195,7 @@ namespace Resonance.Enemies
         /// <summary>
         /// Hide resonance UI (called by EnemyHitboxManager when Core hitbox is disabled)
         /// </summary>
-        public void HideResonanceUI()
+        public void HideWaveUI()
         {
             if (_resonanceUI != null)
             {
@@ -1212,7 +1212,7 @@ namespace Resonance.Enemies
         /// Set resonance UI text color (called by MentalAttackTrigger for closest target indication)
         /// </summary>
         /// <param name="color">Color to set (red for closest target, white for others)</param>
-        public void SetResonanceUIColor(Color color)
+        public void SetWaveUIColor(Color color)
         {
             if (_resonanceUIText != null)
             {

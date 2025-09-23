@@ -10,7 +10,7 @@ using DG.Tweening;
 
 namespace Resonance.UI
 {
-    public class ResonancePanel : UIPanel
+    public class WavePanel : UIPanel
     {
         [Header("QTE UI Elements")]
         [SerializeField] private TextMeshProUGUI _qteValueText;
@@ -41,7 +41,7 @@ namespace Resonance.UI
         protected override void Awake()
         {
             base.Awake();
-            _panelName = "ResonancePanel";
+            _panelName = "WavePanel";
             _layer = UILayer.Game;
             _hideOnStart = true;
         }
@@ -50,7 +50,7 @@ namespace Resonance.UI
 
         protected override void OnInitialize()
         {
-            Debug.Log("ResonancePanel: OnInitialize called");
+            Debug.Log("WavePanel: OnInitialize called");
             
             // Auto-find UI elements if not assigned in Inspector
             ValidateUIElements();
@@ -60,7 +60,7 @@ namespace Resonance.UI
             if (_inputService != null)
             {
                 _inputService.OnQTE += OnQTEInput;
-                Debug.Log("ResonancePanel: Subscribed to QTE input events");
+                Debug.Log("WavePanel: Subscribed to QTE input events");
             }
             
             _isInitialized = true;
@@ -68,18 +68,18 @@ namespace Resonance.UI
 
         protected override void OnShow()
         {
-            Debug.Log("ResonancePanel: Shown");
+            Debug.Log("WavePanel: Shown");
             
             // Record panel open time to prevent immediate input
             _panelOpenTime = Time.time;
-            Debug.Log($"ResonancePanel: Panel open time recorded: {_panelOpenTime}");
+            Debug.Log($"WavePanel: Panel open time recorded: {_panelOpenTime}");
             
             // Don't start QTE immediately - wait for SetTargetCore to be called
         }
 
         protected override void OnHide()
         {
-            Debug.Log("ResonancePanel: Hidden");
+            Debug.Log("WavePanel: Hidden");
             
             // Stop QTE sequence
             StopQTE();
@@ -91,7 +91,7 @@ namespace Resonance.UI
             if (_inputService != null)
             {
                 _inputService.OnQTE -= OnQTEInput;
-                Debug.Log("ResonancePanel: Unsubscribed from QTE input events");
+                Debug.Log("WavePanel: Unsubscribed from QTE input events");
             }
             
             // Stop QTE and clean up DoTween
@@ -102,7 +102,7 @@ namespace Resonance.UI
             _qteTween = null;
             
             _isInitialized = false;
-            Debug.Log("ResonancePanel: Cleaned up");
+            Debug.Log("WavePanel: Cleaned up");
         }
 
         #endregion
@@ -111,14 +111,14 @@ namespace Resonance.UI
         
         /// <summary>
         /// Validate and auto-find UI elements if not assigned in Inspector
-        /// Follows Unity hierarchy: ResonancePanel -> Panel -> Text (TMPro)
+        /// Follows Unity hierarchy: WavePanel -> Panel -> Text (TMPro)
         /// </summary>
         private void ValidateUIElements()
         {
             // Auto-find QTE Value Text if not assigned
             if (_qteValueText == null)
             {
-                // Try to find: ResonancePanel/Panel/Text
+                // Try to find: WavePanel/Panel/Text
                 Transform panelChild = transform.Find("Panel");
                 if (panelChild != null)
                 {
@@ -128,21 +128,21 @@ namespace Resonance.UI
                         _qteValueText = textChild.GetComponent<TextMeshProUGUI>();
                         if (_qteValueText != null)
                         {
-                            Debug.Log("ResonancePanel: Auto-found QTE Value Text at Panel/Text");
+                            Debug.Log("WavePanel: Auto-found QTE Value Text at Panel/Text");
                         }
                         else
                         {
-                            Debug.LogWarning("ResonancePanel: Found Text GameObject but no TextMeshProUGUI component");
+                            Debug.LogWarning("WavePanel: Found Text GameObject but no TextMeshProUGUI component");
                         }
                     }
                     else
                     {
-                        Debug.LogWarning("ResonancePanel: Could not find Text child under Panel");
+                        Debug.LogWarning("WavePanel: Could not find Text child under Panel");
                     }
                 }
                 else
                 {
-                    Debug.LogWarning("ResonancePanel: Could not find Panel child");
+                    Debug.LogWarning("WavePanel: Could not find Panel child");
                 }
             }
             
@@ -159,7 +159,7 @@ namespace Resonance.UI
                         _instructionText = instructionChild.GetComponent<TextMeshProUGUI>();
                         if (_instructionText != null)
                         {
-                            Debug.Log("ResonancePanel: Auto-found Instruction Text");
+                            Debug.Log("WavePanel: Auto-found Instruction Text");
                         }
                     }
                 }
@@ -177,13 +177,13 @@ namespace Resonance.UI
             
             if (_qteValueText == null)
             {
-                Debug.LogError("ResonancePanel: QTE Value Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
-                              "Please assign it in Inspector or ensure hierarchy: ResonancePanel/Panel/Text");
+                Debug.LogError("WavePanel: QTE Value Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
+                              "Please assign it in Inspector or ensure hierarchy: WavePanel/Panel/Text");
             }
             else if (_instructionText == null)
             {
-                Debug.LogError("ResonancePanel: Instruction Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
-                              "Please assign it in Inspector or ensure hierarchy: ResonancePanel/Panel/InstructionText");
+                Debug.LogError("WavePanel: Instruction Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
+                              "Please assign it in Inspector or ensure hierarchy: WavePanel/Panel/InstructionText");
             }
             else
             {
@@ -194,7 +194,7 @@ namespace Resonance.UI
                 _instructionText.text = "Press F when the value is close to 0!";
                 _instructionText.color = Color.white;
 
-                Debug.Log($"ResonancePanel: QTE Text component validated - " +
+                Debug.Log($"WavePanel: QTE Text component validated - " +
                          $"GameObject: {_qteValueText.gameObject.name}, " +
                          $"Active: {_qteValueText.gameObject.activeInHierarchy}, " +
                          $"Enabled: {_qteValueText.enabled}, " +
@@ -218,7 +218,7 @@ namespace Resonance.UI
             if (_targetCore != null && _targetCore.IsValidForQTE())
             {
                 _qteConfig = _targetCore.GetQTEConfig();
-                Debug.Log($"ResonancePanel: Set target core to {targetCore.name} with QTE config - " +
+                Debug.Log($"WavePanel: Set target core to {targetCore.name} with QTE config - " +
                          $"Ease: {_qteConfig?.easeType}, Duration: {_qteConfig?.cycleDuration}, Window: {_qteConfig?.targetWindow}");
             }
             else
@@ -230,7 +230,7 @@ namespace Resonance.UI
                     cycleDuration = 3f,
                     targetWindow = 0.2f
                 };
-                Debug.LogWarning($"ResonancePanel: Target core invalid for QTE, using default configuration");
+                Debug.LogWarning($"WavePanel: Target core invalid for QTE, using default configuration");
             }
             
             // Now that we have the configuration, start the QTE sequence
@@ -262,11 +262,11 @@ namespace Resonance.UI
                 .SetLoops(-1, LoopType.Yoyo)
                 .OnUpdate(() => UpdateQTEUI())
                 .OnStart(() => {
-                    Debug.Log("ResonancePanel: DoTween animation started");
+                    Debug.Log("WavePanel: DoTween animation started");
                     UpdateQTEUI(); // Ensure UI is updated when tween starts
                 });
             
-            Debug.Log($"ResonancePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
+            Debug.Log($"WavePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
         }
         
         /// <summary>
@@ -280,7 +280,7 @@ namespace Resonance.UI
             _qteTween?.Kill();
             _qteTween = null;
             
-            Debug.Log("ResonancePanel: Stopped QTE sequence");
+            Debug.Log("WavePanel: Stopped QTE sequence");
         }
         
         /// <summary>
@@ -323,12 +323,12 @@ namespace Resonance.UI
                 // Ensure the text component is enabled and visible
                 if (!_qteValueText.gameObject.activeInHierarchy)
                 {
-                    Debug.LogWarning("ResonancePanel: QTE Value Text GameObject is not active");
+                    Debug.LogWarning("WavePanel: QTE Value Text GameObject is not active");
                 }
             }
             else
             {
-                Debug.LogWarning("ResonancePanel: QTE Value Text (TextMeshProUGUI) is null - cannot update QTE display");
+                Debug.LogWarning("WavePanel: QTE Value Text (TextMeshProUGUI) is null - cannot update QTE display");
             }
         }
         
@@ -337,21 +337,21 @@ namespace Resonance.UI
         /// </summary>
         private void OnQTEInput()
         {
-            Debug.Log($"ResonancePanel: OnQTEInput called - _isQTEActive: {_isQTEActive}, Current time: {Time.time}, Panel open time: {_panelOpenTime}");
+            Debug.Log($"WavePanel: OnQTEInput called - _isQTEActive: {_isQTEActive}, Current time: {Time.time}, Panel open time: {_panelOpenTime}");
             
             if (!_isQTEActive) 
             {
-                Debug.Log("ResonancePanel: QTE input ignored - QTE not active");
+                Debug.Log("WavePanel: QTE input ignored - QTE not active");
                 return;
             }
             
             // Check if enough time has passed since panel opened to accept input
             float timeSinceOpen = Time.time - _panelOpenTime;
-            Debug.Log($"ResonancePanel: Time since panel open: {timeSinceOpen:F3}s, Required delay: {QTE_INPUT_DELAY}s");
+            Debug.Log($"WavePanel: Time since panel open: {timeSinceOpen:F3}s, Required delay: {QTE_INPUT_DELAY}s");
             
             if (timeSinceOpen < QTE_INPUT_DELAY)
             {
-                Debug.Log($"ResonancePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
+                Debug.Log($"WavePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
                 return;
             }
             
@@ -359,7 +359,7 @@ namespace Resonance.UI
             float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
             bool isSuccess = proximityToZero <= targetWindow;
             
-            Debug.Log($"ResonancePanel: QTE input accepted. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
+            Debug.Log($"WavePanel: QTE input accepted. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
             
             if (isSuccess)
             {
@@ -383,7 +383,7 @@ namespace Resonance.UI
             float damageMultiplier = CalculateDamageMultiplier(accuracy);
             float finalDamage = _baseMentalDamage * damageMultiplier;
             
-            Debug.Log($"ResonancePanel: QTE Success! Accuracy: {accuracy:F3}, Multiplier: {damageMultiplier:F2}, Damage: {finalDamage:F1}");
+            Debug.Log($"WavePanel: QTE Success! Accuracy: {accuracy:F3}, Multiplier: {damageMultiplier:F2}, Damage: {finalDamage:F1}");
             
             // Apply mental damage to target enemy
             bool damageApplied = ApplyMentalDamageToEnemy(finalDamage);
@@ -398,13 +398,13 @@ namespace Resonance.UI
             }
             else
             {
-                Debug.LogWarning("ResonancePanel: Failed to apply mental damage to enemy");
+                Debug.LogWarning("WavePanel: Failed to apply mental damage to enemy");
                 ShowFailureFeedback("Failed to apply damage!");
             }
             
             // Continue QTE sequence instead of stopping - player can perform multiple QTEs
-            // The QTE will only end when the ResonanceAction itself ends (enemy state change, etc.)
-            Debug.Log("ResonancePanel: QTE success processed, continuing sequence for more attempts");
+            // The QTE will only end when the WaveAction itself ends (enemy state change, etc.)
+            Debug.Log("WavePanel: QTE success processed, continuing sequence for more attempts");
         }
         
         /// <summary>
@@ -415,7 +415,7 @@ namespace Resonance.UI
             float accuracy = Mathf.Abs(_qteValue);
             float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
             
-            Debug.Log($"ResonancePanel: QTE Failed! Accuracy: {accuracy:F3}, Required: {targetWindow:F3}");
+            Debug.Log($"WavePanel: QTE Failed! Accuracy: {accuracy:F3}, Required: {targetWindow:F3}");
             
             // Show failure feedback with accuracy info
             ShowFailureFeedback($"MISSED! (Off by {accuracy:F2}) Try again...");
@@ -457,7 +457,7 @@ namespace Resonance.UI
             var enemyMono = _targetCore.GetEnemyMonoBehaviour();
             if (enemyMono == null)
             {
-                Debug.LogError("ResonancePanel: Cannot apply damage - enemy MonoBehaviour is null");
+                Debug.LogError("WavePanel: Cannot apply damage - enemy MonoBehaviour is null");
                 return false;
             }
             
@@ -472,13 +472,13 @@ namespace Resonance.UI
                 type: DamageType.Mental,
                 sourcePosition: playerPosition,
                 sourceObject: playerObject,
-                description: "Resonance QTE Mental Damage"
+                description: "Wave QTE Mental Damage"
             );
             
             // Apply damage through the enemy's damage system
             enemyMono.TakeDamage(damageInfo);
             
-            Debug.Log($"ResonancePanel: Applied {damage:F1} mental damage to {enemyMono.name}");
+            Debug.Log($"WavePanel: Applied {damage:F1} mental damage to {enemyMono.name}");
             return true;
         }
         
@@ -543,7 +543,7 @@ namespace Resonance.UI
             }
             
             // TODO: Add visual effects (screen flash, particles, etc.)
-            Debug.Log("ResonancePanel: Playing success effects");
+            Debug.Log("WavePanel: Playing success effects");
         }
         
         /// <summary>
@@ -560,7 +560,7 @@ namespace Resonance.UI
             }
             
             // TODO: Add visual effects (screen shake, red flash, etc.)
-            Debug.Log("ResonancePanel: Playing failure effects");
+            Debug.Log("WavePanel: Playing failure effects");
         }
         
         #endregion

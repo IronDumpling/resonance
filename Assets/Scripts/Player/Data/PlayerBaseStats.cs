@@ -7,7 +7,7 @@ namespace Resonance.Player.Data
     /// Base player statistics and configuration data.
     /// This defines the baseline stats for the player character.
     /// </summary>
-    [CreateAssetMenu(fileName = "PlayerBaseStats", menuName = "Resonance/Player/Base Stats")]
+    [CreateAssetMenu(fileName = "PlayerBaseStats", menuName = "Wave/Player/Base Stats")]
     public class PlayerBaseStats : ScriptableObject
     {
         [Header("Physical Health")]

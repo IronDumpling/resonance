@@ -10,19 +10,19 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Resonance Action - triggered by short press F when Core hitboxes are in mental attack range
+    /// Player Wave Action - triggered by short press F when Core hitboxes are in mental attack range
     /// Conditions: PlayerNormalState, MentalHealth >= 1 slot, Core type EnemyHitbox with enabled collider in MentalAttackRange
     /// Behavior: Player cannot move, is invulnerable to physical damage, consumes 1 MentalHealth slot
     /// End condition: Target Core hitbox collider becomes disabled or exits range
     /// </summary>
-    public class PlayerResonanceAction : IPlayerAction
+    public class PlayerWaveAction : IPlayerAction
     {
         // Static events for state machine integration
-        public static event System.Action<EnemyHitbox> OnResonanceActionStarted;
-        public static event System.Action OnResonanceActionEnded;
+        public static event System.Action<EnemyHitbox> OnWaveActionStarted;
+        public static event System.Action OnWaveActionEnded;
 
         // Action properties
-        public string Name => "Resonance";
+        public string Name => "Wave";
         public bool BlocksMovement => true;
         public bool ProvidesInvulnerability => true;
         public bool CanInterrupt => false; // Cannot be interrupted
@@ -42,7 +42,7 @@ namespace Resonance.Player.Actions
         public bool IsFinished => _isFinished;
 
         /// <summary>
-        /// Check if the ResonanceAction can start
+        /// Check if the WaveAction can start
         /// </summary>
         /// <param name="player">Player controller reference</param>
         /// <returns>True if all conditions are met</returns>
@@ -50,21 +50,21 @@ namespace Resonance.Player.Actions
         {
             if (player == null)
             {
-                Debug.Log("PlayerResonanceAction: Cannot start - player is null");
+                Debug.Log("PlayerWaveAction: Cannot start - player is null");
                 return false;
             }
 
             // Must be in Normal state (not in other actions or death states)
             if (player.CurrentState != "Normal")
             {
-                Debug.Log($"PlayerResonanceAction: Cannot start - player not in Normal state (current: {player.CurrentState})");
+                Debug.Log($"PlayerWaveAction: Cannot start - player not in Normal state (current: {player.CurrentState})");
                 return false;
             }
 
             // Must have at least 1 mental health slot available
             if (!player.CanConsumeSlot)
             {
-                Debug.Log("PlayerResonanceAction: Cannot start - no mental health slots available");
+                Debug.Log("PlayerWaveAction: Cannot start - no mental health slots available");
                 return false;
             }
 
@@ -72,13 +72,13 @@ namespace Resonance.Player.Actions
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null)
             {
-                Debug.Log("PlayerResonanceAction: Cannot start - player service or current player is null");
+                Debug.Log("PlayerWaveAction: Cannot start - player service or current player is null");
                 return false;
             }
 
             if (!playerService.CurrentPlayer.HasCoreHitboxesInMentalAttackRange())
             {
-                Debug.Log("PlayerResonanceAction: Cannot start - no Core hitboxes in mental attack range");
+                Debug.Log("PlayerWaveAction: Cannot start - no Core hitboxes in mental attack range");
                 return false;
             }
 
@@ -87,7 +87,7 @@ namespace Resonance.Player.Actions
             if (mentalAttackTrigger != null)
             {
                 var coreHitboxes = mentalAttackTrigger.CoreHitboxesInRange;
-                Debug.Log($"PlayerResonanceAction: Found {coreHitboxes.Count} core hitboxes in range");
+                Debug.Log($"PlayerWaveAction: Found {coreHitboxes.Count} core hitboxes in range");
                 
                 bool hasValidCore = false;
                 
@@ -96,7 +96,7 @@ namespace Resonance.Player.Actions
                     if (core != null)
                     {
                         bool isValid = IsValidTargetCore(core);
-                        Debug.Log($"PlayerResonanceAction: Core {core.name} validity check: {isValid}");
+                        Debug.Log($"PlayerWaveAction: Core {core.name} validity check: {isValid}");
                         
                         if (isValid)
                         {
@@ -106,23 +106,23 @@ namespace Resonance.Player.Actions
                     }
                     else
                     {
-                        Debug.Log("PlayerResonanceAction: Found null core in range list");
+                        Debug.Log("PlayerWaveAction: Found null core in range list");
                     }
                 }
                 
                 if (!hasValidCore)
                 {
-                    Debug.Log("PlayerResonanceAction: Cannot start - no valid target cores (cores may be in invalid states)");
+                    Debug.Log("PlayerWaveAction: Cannot start - no valid target cores (cores may be in invalid states)");
                     return false;
                 }
             }
             else
             {
-                Debug.Log("PlayerResonanceAction: Cannot start - MentalAttackTrigger not found");
+                Debug.Log("PlayerWaveAction: Cannot start - MentalAttackTrigger not found");
                 return false;
             }
 
-            Debug.Log("PlayerResonanceAction: All conditions met, can start");
+            Debug.Log("PlayerWaveAction: All conditions met, can start");
             return true;
         }
         
@@ -135,13 +135,13 @@ namespace Resonance.Player.Actions
         {
             if (coreHitbox == null)
             {
-                Debug.Log("PlayerResonanceAction: IsValidTargetCore - coreHitbox is null");
+                Debug.Log("PlayerWaveAction: IsValidTargetCore - coreHitbox is null");
                 return false;
             }
                 
             if (!coreHitbox.IsInitialized)
             {
-                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} not initialized");
+                Debug.Log($"PlayerWaveAction: IsValidTargetCore - {coreHitbox.name} not initialized");
                 return false;
             }
                 
@@ -149,13 +149,13 @@ namespace Resonance.Player.Actions
             var collider = coreHitbox.GetComponent<Collider>();
             if (collider == null)
             {
-                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} has no collider");
+                Debug.Log($"PlayerWaveAction: IsValidTargetCore - {coreHitbox.name} has no collider");
                 return false;
             }
             
             if (!collider.enabled)
             {
-                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} collider is disabled");
+                Debug.Log($"PlayerWaveAction: IsValidTargetCore - {coreHitbox.name} collider is disabled");
                 return false;
             }
                 
@@ -163,14 +163,14 @@ namespace Resonance.Player.Actions
             var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
             if (enemyMono == null)
             {
-                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} has no EnemyMonoBehaviour");
+                Debug.Log($"PlayerWaveAction: IsValidTargetCore - {coreHitbox.name} has no EnemyMonoBehaviour");
                 return false;
             }
                 
             var enemyController = enemyMono.Controller;
             if (enemyController == null)
             {
-                Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} has no EnemyController");
+                Debug.Log($"PlayerWaveAction: IsValidTargetCore - {coreHitbox.name} has no EnemyController");
                 return false;
             }
                 
@@ -178,7 +178,7 @@ namespace Resonance.Player.Actions
             string enemyState = enemyController.CurrentState;
             bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
             
-            // Debug.Log($"PlayerResonanceAction: IsValidTargetCore - {coreHitbox.name} state: {enemyState}, valid: {isValidState}");
+            // Debug.Log($"PlayerWaveAction: IsValidTargetCore - {coreHitbox.name} state: {enemyState}, valid: {isValidState}");
             
             return isValidState;
         }
@@ -191,7 +191,7 @@ namespace Resonance.Player.Actions
         {
             if (player == null)
             {
-                Debug.LogError("PlayerResonanceAction: Cannot start with null player");
+                Debug.LogError("PlayerWaveAction: Cannot start with null player");
                 return;
             }
 
@@ -201,7 +201,7 @@ namespace Resonance.Player.Actions
             _targetCoreHitbox = FindTargetCoreHitbox();
             if (_targetCoreHitbox == null)
             {
-                Debug.LogWarning("PlayerResonanceAction: No valid target Core hitbox found");
+                Debug.LogWarning("PlayerWaveAction: No valid target Core hitbox found");
                 _isFinished = true;
                 return;
             }
@@ -209,7 +209,7 @@ namespace Resonance.Player.Actions
             // Consume mental health slot
             if (!player.ConsumeSlot())
             {
-                Debug.LogWarning("PlayerResonanceAction: Failed to consume mental health slot");
+                Debug.LogWarning("PlayerWaveAction: Failed to consume mental health slot");
                 _isFinished = true;
                 return;
             }
@@ -223,16 +223,16 @@ namespace Resonance.Player.Actions
             if (_targetCoreHitbox != null)
             {
                 _targetCoreHitbox.OnColliderDisabled += OnTargetCoreColliderDisabled;
-                Debug.Log($"PlayerResonanceAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
+                Debug.Log($"PlayerWaveAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
             }
 
             // Play resonance audio/effects
-            PlayResonanceEffects();
+            PlayWaveEffects();
 
             // Trigger the resonance started event for state machine and camera system
-            OnResonanceActionStarted?.Invoke(_targetCoreHitbox);
+            OnWaveActionStarted?.Invoke(_targetCoreHitbox);
 
-            Debug.Log($"PlayerResonanceAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
+            Debug.Log($"PlayerWaveAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
         }
 
         /// <summary>
@@ -249,7 +249,7 @@ namespace Resonance.Player.Actions
             // Safety timeout
             if (actionDuration > MAX_ACTION_DURATION)
             {
-                Debug.LogWarning("PlayerResonanceAction: Timed out after maximum duration");
+                Debug.LogWarning("PlayerWaveAction: Timed out after maximum duration");
                 _isFinished = true;
                 CleanupAction();
                 return; 
@@ -263,7 +263,7 @@ namespace Resonance.Player.Actions
             // Debug log every few seconds to track state
             // if (Mathf.FloorToInt(actionDuration * 2) % 10 == 0) // Every 5 seconds
             // {
-            //     Debug.Log($"PlayerResonanceAction: Update - Duration: {actionDuration:F1}s, Target null: {targetCoreNull}, Valid: {targetCoreValid}, In range: {targetCoreInRange}");
+            //     Debug.Log($"PlayerWaveAction: Update - Duration: {actionDuration:F1}s, Target null: {targetCoreNull}, Valid: {targetCoreValid}, In range: {targetCoreInRange}");
             // }
 
             if (targetCoreNull || !targetCoreValid || !targetCoreInRange)
@@ -273,22 +273,22 @@ namespace Resonance.Player.Actions
                 {
                     if (targetCoreNull)
                     {
-                        Debug.Log("PlayerResonanceAction: Target Core hitbox is null, ending action");
+                        Debug.Log("PlayerWaveAction: Target Core hitbox is null, ending action");
                     }
                     else if (!targetCoreValid)
                     {
-                        Debug.Log("PlayerResonanceAction: Target Core hitbox no longer in valid state, ending action");
+                        Debug.Log("PlayerWaveAction: Target Core hitbox no longer in valid state, ending action");
                         
                         // Get detailed state info
                         var enemyController = _targetCoreHitbox.GetEnemyController();
                         if (enemyController != null)
                         {
-                            Debug.Log($"PlayerResonanceAction: Enemy state: {enemyController.CurrentState}");
+                            Debug.Log($"PlayerWaveAction: Enemy state: {enemyController.CurrentState}");
                         }
                     }
                     else if (!targetCoreInRange)
                     {
-                        Debug.Log("PlayerResonanceAction: Target Core hitbox is no longer in range, ending action");
+                        Debug.Log("PlayerWaveAction: Target Core hitbox is no longer in range, ending action");
                     }
                     
                     _isFinished = true;
@@ -297,12 +297,12 @@ namespace Resonance.Player.Actions
                 }
                 else
                 {
-                    Debug.Log($"PlayerResonanceAction: Target invalid but minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                    Debug.Log($"PlayerWaveAction: Target invalid but minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
                 }
             }
 
             // Update resonance effects (visual feedback, QTE UI placeholder, etc.)
-            UpdateResonanceEffects(deltaTime);
+            UpdateWaveEffects(deltaTime);
         }
 
         /// <summary>
@@ -312,7 +312,7 @@ namespace Resonance.Player.Actions
         {
             if (_isActive)
             {
-                Debug.Log("PlayerResonanceAction: Cancelled");
+                Debug.Log("PlayerWaveAction: Cancelled");
                 CleanupAction();
             }
         }
@@ -324,7 +324,7 @@ namespace Resonance.Player.Actions
         {
             // This action provides invulnerability and cannot be interrupted
             // Log for debugging purposes
-            Debug.Log("PlayerResonanceAction: Damage taken but action is invulnerable");
+            Debug.Log("PlayerWaveAction: Damage taken but action is invulnerable");
         }
 
         /// <summary>
@@ -343,11 +343,11 @@ namespace Resonance.Player.Actions
             var closestCoreHitbox = playerMono.GetClosestCoreHitbox();
             if (closestCoreHitbox != null)
             {
-                Debug.Log($"PlayerResonanceAction: Found target Core hitbox {closestCoreHitbox.name}");
+                Debug.Log($"PlayerWaveAction: Found target Core hitbox {closestCoreHitbox.name}");
                 return closestCoreHitbox;
             }
 
-            Debug.Log("PlayerResonanceAction: No Core hitboxes found in range");
+            Debug.Log("PlayerWaveAction: No Core hitboxes found in range");
             return null;
         }
 
@@ -381,7 +381,7 @@ namespace Resonance.Player.Actions
         {
             if (hitbox == _targetCoreHitbox)
             {
-                Debug.Log("PlayerResonanceAction: Target core collider disabled - ending resonance action");
+                Debug.Log("PlayerWaveAction: Target core collider disabled - ending resonance action");
                 
                 // Check minimum duration before ending
                 float actionDuration = Time.time - _actionStartTime;
@@ -392,7 +392,7 @@ namespace Resonance.Player.Actions
                 }
                 else
                 {
-                    Debug.Log($"PlayerResonanceAction: Minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                    Debug.Log($"PlayerWaveAction: Minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
                 }
             }
         }
@@ -400,7 +400,7 @@ namespace Resonance.Player.Actions
         /// <summary>
         /// Play resonance visual and audio effects
         /// </summary>
-        private void PlayResonanceEffects()
+        private void PlayWaveEffects()
         {
             // Play resonance start audio
             var audioService = ServiceRegistry.Get<IAudioService>();
@@ -411,14 +411,14 @@ namespace Resonance.Player.Actions
             }
 
             // TODO: Add visual effects (particles, screen effects, etc.)
-            Debug.Log("PlayerResonanceAction: Playing resonance effects (placeholder)");
+            Debug.Log("PlayerWaveAction: Playing resonance effects (placeholder)");
         }
 
         /// <summary>
         /// Update ongoing resonance effects
         /// </summary>  
         /// <param name="deltaTime">Time since last frame</param>
-        private void UpdateResonanceEffects(float deltaTime)
+        private void UpdateWaveEffects(float deltaTime)
         {
             // TODO: Update visual effects intensity
             // TODO: Update audio effects
@@ -428,7 +428,7 @@ namespace Resonance.Player.Actions
             if (actionDuration > 0.1f && Mathf.FloorToInt(actionDuration * 4) % 2 == 0)
             {
                 // Simple feedback every 0.25 seconds
-                // Debug.Log($"PlayerResonanceAction: Resonance active for {actionDuration:F1}s");
+                // Debug.Log($"PlayerWaveAction: Wave active for {actionDuration:F1}s");
             }
         }
 
@@ -447,11 +447,11 @@ namespace Resonance.Player.Actions
             if (_targetCoreHitbox != null)
             {
                 _targetCoreHitbox.OnColliderDisabled -= OnTargetCoreColliderDisabled;
-                Debug.Log("PlayerResonanceAction: Unsubscribed from core hitbox collider events");
+                Debug.Log("PlayerWaveAction: Unsubscribed from core hitbox collider events");
             }
 
             // Stop effects
-            StopResonanceEffects();
+            StopWaveEffects();
 
             // Force refresh UI colors to fix BUG2 (second approach UI color not updating)
             var playerService = ServiceRegistry.Get<IPlayerService>();
@@ -460,27 +460,27 @@ namespace Resonance.Player.Actions
             {
                 var mentalAttackTrigger = playerMono.GetComponentInChildren<MentalAttackTrigger>();
                 mentalAttackTrigger?.ForceRefreshUIColors();
-                Debug.Log("PlayerResonanceAction: Force refreshed UI colors after cleanup");
+                Debug.Log("PlayerWaveAction: Force refreshed UI colors after cleanup");
             }
 
             // Trigger the resonance ended event for state machine and camera system
-            OnResonanceActionEnded?.Invoke();
+            OnWaveActionEnded?.Invoke();
 
             // Clear target reference
             _targetCoreHitbox = null;
 
-            Debug.Log("PlayerResonanceAction: Cleaned up - camera should switch back to fixed view");
+            Debug.Log("PlayerWaveAction: Cleaned up - camera should switch back to fixed view");
         }
 
         /// <summary>
         /// Stop resonance effects
         /// </summary>
-        private void StopResonanceEffects()
+        private void StopWaveEffects()
         {
             // TODO: Stop visual effects
             // TODO: Stop audio effects
 
-            Debug.Log("PlayerResonanceAction: Stopped resonance effects");
+            Debug.Log("PlayerWaveAction: Stopped resonance effects");
         }
     }
 }

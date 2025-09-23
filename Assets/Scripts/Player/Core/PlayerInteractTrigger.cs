@@ -2,6 +2,7 @@ using UnityEngine;
 using Resonance.Interfaces.Objects;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
+using Resonance.Items;
 
 namespace Resonance.Player.Core
 {
@@ -197,19 +198,19 @@ namespace Resonance.Player.Core
             if (interactable == null) return;
 
             // 如果可交互对象有UI显示方法，调用它
-            var gunMono = interactable as Resonance.Items.GunMonoBehaviour;
+            var gunMono = interactable as GunMonoBehaviour;
             if (gunMono != null)
             {
                 gunMono.ShowInteractionUI();
             }
 
-            var ammoMono = interactable as Resonance.Items.AmmoMonoBehaviour;
+            var ammoMono = interactable as AmmoMonoBehaviour;
             if (ammoMono != null)
             {
                 ammoMono.ShowInteractionUI();
             }
 
-            var infoMono = interactable as Resonance.Items.InfoMonoBehaviour;
+            var infoMono = interactable as InfoMonoBehaviour;
             if (infoMono != null)
             {
                 infoMono.ShowInteractionUI();
@@ -225,19 +226,19 @@ namespace Resonance.Player.Core
             if (interactable == null) return;
 
             // 如果可交互对象有UI隐藏方法，调用它
-            var gunMono = interactable as Resonance.Items.GunMonoBehaviour;
+            var gunMono = interactable as GunMonoBehaviour;
             if (gunMono != null)
             {
                 gunMono.HideInteractionUI();
             }
 
-            var ammoMono = interactable as Resonance.Items.AmmoMonoBehaviour;
+            var ammoMono = interactable as AmmoMonoBehaviour;
             if (ammoMono != null)
             {
                 ammoMono.HideInteractionUI();
             }
             
-            var infoMono = interactable as Resonance.Items.InfoMonoBehaviour;
+            var infoMono = interactable as InfoMonoBehaviour;
             if (infoMono != null)
             {
                 infoMono.HideInteractionUI();

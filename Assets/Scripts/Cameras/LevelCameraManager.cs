@@ -21,14 +21,14 @@ namespace Resonance.Cameras
         [SerializeField] private Vector3 _playerCameraOffset = new Vector3(0, 2, 0);
         
         // State tracking
-        private bool _isInResonanceMode = false;
+        private bool _isInWaveMode = false;
         private Transform _playerTransform;
         
         // Events
-        public System.Action<bool> OnResonanceModeChanged;
+        public System.Action<bool> OnWaveModeChanged;
         
         // Properties
-        public bool IsInResonanceMode => _isInResonanceMode;
+        public bool IsInWaveMode => _isInWaveMode;
         public string FixedCameraName => _fixedCameraName;
         public string PlayerCameraName => _playerCameraName;
         
@@ -43,7 +43,7 @@ namespace Resonance.Cameras
             }
             
             // Subscribe to resonance action events
-            SubscribeToResonanceEvents();
+            SubscribeToWaveEvents();
             
             // Ensure we start with the fixed camera
             SwitchToFixedCamera();
@@ -88,37 +88,37 @@ namespace Resonance.Cameras
         /// <summary>
         /// Subscribe to resonance action events for automatic camera switching
         /// </summary>
-        private void SubscribeToResonanceEvents()
+        private void SubscribeToWaveEvents()
         {
-            PlayerResonanceAction.OnResonanceActionStarted += OnResonanceStarted;
-            PlayerResonanceAction.OnResonanceActionEnded += OnResonanceEnded;
+            PlayerWaveAction.OnWaveActionStarted += OnWaveStarted;
+            PlayerWaveAction.OnWaveActionEnded += OnWaveEnded;
         }
         
         /// <summary>
         /// Unsubscribe from resonance action events
         /// </summary>
-        private void UnsubscribeFromResonanceEvents()
+        private void UnsubscribeFromWaveEvents()
         {
-            PlayerResonanceAction.OnResonanceActionStarted -= OnResonanceStarted;
-            PlayerResonanceAction.OnResonanceActionEnded -= OnResonanceEnded;
+            PlayerWaveAction.OnWaveActionStarted -= OnWaveStarted;
+            PlayerWaveAction.OnWaveActionEnded -= OnWaveEnded;
         }
         
         /// <summary>
         /// Handle resonance action started - switch to player camera
         /// </summary>
         /// <param name="targetCore">The target core hitbox (not used for camera switching)</param>
-        private void OnResonanceStarted(Resonance.Enemies.EnemyHitbox targetCore)
+        private void OnWaveStarted(Resonance.Enemies.EnemyHitbox targetCore)
         {
-            Debug.Log("LevelCameraManager: Resonance started, switching to player camera");
+            Debug.Log("LevelCameraManager: Wave started, switching to player camera");
             SwitchToPlayerCamera();
         }
         
         /// <summary>
         /// Handle resonance action ended - switch back to fixed camera
         /// </summary>
-        private void OnResonanceEnded()
+        private void OnWaveEnded()
         {
-            Debug.Log("LevelCameraManager: Resonance ended, switching to fixed camera");
+            Debug.Log("LevelCameraManager: Wave ended, switching to fixed camera");
             SwitchToFixedCamera();
         }
         
@@ -136,8 +136,8 @@ namespace Resonance.Cameras
             bool success = SwitchToCamera(_fixedCameraName);
             if (success)
             {
-                _isInResonanceMode = false;
-                OnResonanceModeChanged?.Invoke(false);
+                _isInWaveMode = false;
+                OnWaveModeChanged?.Invoke(false);
                 Debug.Log("LevelCameraManager: Switched to fixed camera");
             }
             
@@ -164,8 +164,8 @@ namespace Resonance.Cameras
             bool success = SwitchToCamera(_playerCameraName);
             if (success)
             {
-                _isInResonanceMode = true;
-                OnResonanceModeChanged?.Invoke(true);
+                _isInWaveMode = true;
+                OnWaveModeChanged?.Invoke(true);
                 Debug.Log("LevelCameraManager: Switched to player camera");
             }
             
@@ -177,7 +177,7 @@ namespace Resonance.Cameras
         /// </summary>
         public void ToggleCamera()
         {
-            if (_isInResonanceMode)
+            if (_isInWaveMode)
             {
                 SwitchToFixedCamera();
             }
@@ -210,7 +210,7 @@ namespace Resonance.Cameras
         /// <summary>
         /// Configure camera settings for better resonance experience
         /// </summary>
-        public void ConfigureResonanceCamera(float fieldOfView = 65f, float followDamping = 1.2f)
+        public void ConfigureWaveCamera(float fieldOfView = 65f, float followDamping = 1.2f)
         {
             if (!HasCamera(_playerCameraName)) return;
             
@@ -229,8 +229,8 @@ namespace Resonance.Cameras
         
         protected override void OnDestroy()
         {
-            UnsubscribeFromResonanceEvents();
-            OnResonanceModeChanged = null;
+            UnsubscribeFromWaveEvents();
+            OnWaveModeChanged = null;
             base.OnDestroy();
         }
         

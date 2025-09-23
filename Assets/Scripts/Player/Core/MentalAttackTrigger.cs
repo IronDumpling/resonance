@@ -199,7 +199,7 @@ namespace Resonance.Player.Core
                 if (_lastClosestCore != null)
                 {
                     var oldEnemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
-                    oldEnemyMono?.SetResonanceUIColor(Color.white);
+                    oldEnemyMono?.SetWaveUIColor(Color.white);
                     Debug.Log($"MentalAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
                 }
                 
@@ -207,7 +207,7 @@ namespace Resonance.Player.Core
                 if (currentClosest != null)
                 {
                     var newEnemyMono = GetEnemyMonoFromHitbox(currentClosest);
-                    newEnemyMono?.SetResonanceUIColor(Color.red);
+                    newEnemyMono?.SetWaveUIColor(Color.red);
                     Debug.Log($"MentalAttackTrigger: {currentClosest.name} is now closest target, set to red");
                 }
                 
@@ -240,7 +240,7 @@ namespace Resonance.Player.Core
                     {
                         // Reset UI color for valid hitboxes
                         var enemyMono = GetEnemyMonoFromHitbox(hitbox);
-                        enemyMono?.SetResonanceUIColor(Color.white);
+                        enemyMono?.SetWaveUIColor(Color.white);
                     }
                 }
                 else
@@ -396,7 +396,7 @@ namespace Resonance.Player.Core
             if (_lastClosestCore != null)
             {
                 var enemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
-                enemyMono?.SetResonanceUIColor(Color.white);
+                enemyMono?.SetWaveUIColor(Color.white);
             }
             
             OnCoreHitboxEntered = null;

@@ -50,7 +50,7 @@ namespace Resonance.Enemies
             SetMentalHitboxes(false);
             
             // Initially hide resonance UI since mental hitboxes start disabled
-            _enemyMono?.HideResonanceUI();
+            _enemyMono?.HideWaveUI();
             
             if (_debugMode)
             {
@@ -217,7 +217,7 @@ namespace Resonance.Enemies
             SetMentalHitboxes(true);
             
             // Show resonance UI when mental hitboxes (including Core) are enabled
-            _enemyMono?.ShowResonanceUI();
+            _enemyMono?.ShowWaveUI();
             
             if (_debugMode)
             {
@@ -231,7 +231,7 @@ namespace Resonance.Enemies
             SetMentalHitboxes(true);
             
             // Show resonance UI when mental hitboxes (including Core) are enabled
-            _enemyMono?.ShowResonanceUI();
+            _enemyMono?.ShowWaveUI();
             
             if (_debugMode)
             {
@@ -245,7 +245,7 @@ namespace Resonance.Enemies
             SetMentalHitboxes(false);
             
             // Hide resonance UI when mental hitboxes (including Core) are disabled
-            _enemyMono?.HideResonanceUI();
+            _enemyMono?.HideWaveUI();
             
             // Force update collider states to ensure proper synchronization
             ForceRefreshColliderStates();
@@ -262,7 +262,7 @@ namespace Resonance.Enemies
             SetMentalHitboxes(false);
             
             // Hide resonance UI when all hitboxes are disabled
-            _enemyMono?.HideResonanceUI();
+            _enemyMono?.HideWaveUI();
             
             if (_debugMode)
             {

@@ -7,7 +7,7 @@ namespace Resonance.Enemies.Data
     /// Enemy base stats data ScriptableObject
     /// Used to create and edit Enemy configurations in Unity Editor
     /// </summary>
-    [CreateAssetMenu(fileName = "New Enemy Stats", menuName = "Resonance/Enemies/Enemy Stats", order = 1)]
+    [CreateAssetMenu(fileName = "New Enemy Stats", menuName = "Wave/Enemies/Enemy Stats", order = 1)]
     public class EnemyBaseStats : ScriptableObject
     {
         [Header("Basic Info")]
@@ -77,7 +77,7 @@ namespace Resonance.Enemies.Data
         public bool enableAudio = true;
         
         [Header("QTE Configuration")]
-        [Tooltip("DoTween ease curve type for QTE value animation in ResonancePanel")]
+        [Tooltip("DoTween ease curve type for QTE value animation in WavePanel")]
         public DG.Tweening.Ease qteEaseType = DG.Tweening.Ease.InOutSine;
         [Tooltip("QTE cycle duration in seconds")]
         public float qteCycleDuration = 3f;

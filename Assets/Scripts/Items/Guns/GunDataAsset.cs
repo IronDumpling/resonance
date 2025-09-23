@@ -9,7 +9,7 @@ namespace Resonance.Items
     /// Gun数据的ScriptableObject资产
     /// 用于在Unity Editor中创建和编辑Gun配置
     /// </summary>
-    [CreateAssetMenu(fileName = "New Gun Data", menuName = "Resonance/Items/Gun Data", order = 1)]
+    [CreateAssetMenu(fileName = "New Gun Data", menuName = "Wave/Items/Gun Data", order = 1)]
     public class GunDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]

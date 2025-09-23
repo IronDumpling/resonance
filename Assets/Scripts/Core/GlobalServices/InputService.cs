@@ -13,8 +13,8 @@ namespace Resonance.Core.GlobalServices
         private InputActionMap _uiMap;
         private bool _isEnabled = true;
         
-        // Resonance mode control (Risk mitigation: Input conflict resolution)
-        public bool IsResonanceMode { get; set; } = false;
+        // Wave mode control (Risk mitigation: Input conflict resolution)
+        public bool IsWaveMode { get; set; } = false;
 
         public int Priority => 10;
         public SystemState State { get; private set; } = SystemState.Uninitialized;
@@ -37,13 +37,13 @@ namespace Resonance.Core.GlobalServices
         // Input events
         public event Action<Vector2> OnMove;
         public event Action OnInteract;
-        public event Action OnResonance; // Short press F (ResonanceAction)
-        public event Action<bool> OnRecover; // F key press/release (RecoverAction) - true for press, false for release
+        public event Action OnWave; // Short press F (WaveAction)
+        public event Action<bool> OnHeal; // F key press/release (HealAction) - true for press, false for release
         public event Action<bool> OnRun; // true when starting to run, false when stopping
         public event Action<bool> OnAim; // true when starting to aim, false when stopping
         public event Action OnShoot;
         public event Action<Vector2> OnLook;
-        public event Action OnQTE; // QTE input (F key during Resonance mode)
+        public event Action OnQTE; // QTE input (F key during Wave mode)
         public event Action OnReload; // Reload input (R key)
 
         public void Initialize()
@@ -83,9 +83,9 @@ namespace Resonance.Core.GlobalServices
             
             _playerMap["Interact"].performed += OnInteractPerformed;
             
-            _playerMap["Resonance"].performed += OnResonancePerformed;
-            _playerMap["Recover"].started += OnRecoverStarted;
-            _playerMap["Recover"].canceled += OnRecoverCanceled;
+            _playerMap["Wave"].performed += OnWavePerformed;
+            _playerMap["Heal"].started += OnHealStarted;
+            _playerMap["Heal"].canceled += OnHealCanceled;
             
             _playerMap["Run"].started += OnRunStarted;
             _playerMap["Run"].canceled += OnRunCanceled;
@@ -117,30 +117,30 @@ namespace Resonance.Core.GlobalServices
             OnInteract?.Invoke();
         }
 
-        private void OnResonancePerformed(InputAction.CallbackContext context)
+        private void OnWavePerformed(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
-            if (IsResonanceMode) return;
+            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
+            if (IsWaveMode) return;
             
-            OnResonance?.Invoke();
-            Debug.Log("InputService: Resonance press performed"); 
+            OnWave?.Invoke();
+            Debug.Log("InputService: Wave press performed"); 
         }
 
-        private void OnRecoverStarted(InputAction.CallbackContext context)
+        private void OnHealStarted(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
-            if (IsResonanceMode) return;
+            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
+            if (IsWaveMode) return;
             
-            OnRecover?.Invoke(true);
+            OnHeal?.Invoke(true);
             Debug.Log("InputService: Recover key pressed (started)");
         }
 
-        private void OnRecoverCanceled(InputAction.CallbackContext context)
+        private void OnHealCanceled(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
-            if (IsResonanceMode) return;
+            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
+            if (IsWaveMode) return;
             
-            OnRecover?.Invoke(false);
+            OnHeal?.Invoke(false);
             Debug.Log("InputService: Recover key released (canceled)");
         }
 
@@ -177,8 +177,8 @@ namespace Resonance.Core.GlobalServices
 
         private void OnQTEPerformed(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if in Resonance mode
-            if (!IsResonanceMode) return;
+            // Risk mitigation: Input conflict resolution - only trigger if in Wave mode
+            if (!IsWaveMode) return;
             
             OnQTE?.Invoke();
             Debug.Log("InputService: QTE press performed");
@@ -186,8 +186,8 @@ namespace Resonance.Core.GlobalServices
 
         private void OnReloadPerformed(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Resonance mode
-            if (IsResonanceMode) return;
+            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
+            if (IsWaveMode) return;
             
             OnReload?.Invoke();
             Debug.Log("InputService: Reload press performed");
@@ -245,8 +245,8 @@ namespace Resonance.Core.GlobalServices
             // Clear all event listeners
             OnMove = null;
             OnInteract = null;
-            OnResonance = null;
-            OnRecover = null;
+            OnWave = null;
+            OnHeal = null;
             OnRun = null;
             OnAim = null;
             OnShoot = null;

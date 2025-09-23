@@ -12,7 +12,7 @@ namespace Resonance.Enemies
     }
 
     /// <summary>
-    /// QTE configuration data structure for ResonancePanel
+    /// QTE configuration data structure for WavePanel
     /// </summary>
     [System.Serializable]
     public class QTEConfig

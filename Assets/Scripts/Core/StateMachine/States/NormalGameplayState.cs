@@ -5,7 +5,7 @@ namespace Resonance.Core.StateMachine.States
 {
     /// <summary>
     /// Normal gameplay substate - default substate of GameplayState
-    /// Handles regular gameplay when not in special modes like Resonance
+    /// Handles regular gameplay when not in special modes like Wave
     /// </summary>
     public class NormalGameplayState : IState
     {
@@ -34,8 +34,8 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition to Resonance substate
-            return newState.Name == "Resonance" || newState.Name == "InfoReading";
+            // Can transition to Wave substate
+            return newState.Name == "Wave" || newState.Name == "InfoReading";
         }
     }
 }

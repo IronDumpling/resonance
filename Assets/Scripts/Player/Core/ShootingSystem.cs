@@ -3,6 +3,7 @@ using Resonance.Items;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
+using Resonance.Enemies;
 
 namespace Resonance.Player.Core
 {
@@ -468,7 +469,7 @@ namespace Resonance.Player.Core
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
             // 首先检查是否命中了弱点
-            Resonance.Enemies.EnemyHitbox weakpointHitbox = hitObject.GetComponent<Resonance.Enemies.EnemyHitbox>();
+            EnemyHitbox weakpointHitbox = hitObject.GetComponent<EnemyHitbox>();
             if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
             {
                 Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
