@@ -189,20 +189,6 @@ namespace Resonance.Player.Actions
             // Calculate heal amount (could be modified by tiers, equipment, etc.)
             float healAmount = HEAL_AMOUNT_PER_CONSUMPTION;
 
-            // Apply tier modifiers based on current core health tier
-            // switch (player.CoreTier)
-            // {
-            //     case CoreHealthTier.High:
-            //         healAmount *= 1.2f; // 20% bonus when core health is high
-            //         break;
-            //     case CoreHealthTier.Low:
-            //         healAmount *= 0.8f; // 20% penalty when core health is low
-            //         break;
-            //     case CoreHealthTier.Empty:
-            //         healAmount *= 0.5f; // 50% penalty when core health is empty
-            //         break;
-            // }
-
             // Heal the player
             player.HealPhysical(healAmount);
 

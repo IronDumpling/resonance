@@ -116,6 +116,7 @@ MonoBehaviour:
   _rightArm: {fileID: 805687583871536803}
   _armRotationSpeed: 5
   _playerCamera: {fileID: 0}
+  _shootOriginOffset: {x: 0, y: 0.5, z: 0.5}
   _showDebugInfo: 0
 --- !u!1 &761355972448294419
 GameObject:
@@ -128,7 +129,7 @@ GameObject:
   - component: {fileID: 2977560670499066947}
   - component: {fileID: 6428683155455555653}
   m_Layer: 3
-  m_Name: MentalAttackRange
+  m_Name: CoreAttackRange
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
