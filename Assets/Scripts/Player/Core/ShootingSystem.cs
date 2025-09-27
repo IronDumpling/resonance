@@ -482,7 +482,7 @@ namespace Resonance.Player.Core
                 }
                 else
                 {
-                    damageInfo = new DamageInfo(damage, DamageType.Physical, damageSource, _playerTransform.gameObject, "Unknown weapon");
+                    damageInfo = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
                 }
                 
                 // 让弱点处理伤害修改和应用
@@ -546,9 +546,9 @@ namespace Resonance.Player.Core
                 else
                 {
                     // 如果没有武器数据，创建默认的物理伤害
-                    DamageInfo defaultDamage = new DamageInfo(damage, DamageType.Physical, damageSource, _playerTransform.gameObject, "Unknown weapon");
+                    DamageInfo defaultDamage = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
                     damageable.TakeDamage(defaultDamage);
-                    Debug.Log($"ShootingSystem: Dealt {damage} default physical damage to {damageableObject.name}");
+                    Debug.Log($"ShootingSystem: Dealt {damage} default health damage to {damageableObject.name}");
                 }
                 
                 PlayHitAudio(hitInfo.point, damageableObject);

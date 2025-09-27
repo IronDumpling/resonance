@@ -9,7 +9,7 @@ namespace Resonance.Items
     /// Ammo数据的ScriptableObject资产
     /// 用于在Unity Editor中创建和编辑Ammo配置
     /// </summary>
-    [CreateAssetMenu(fileName = "New Ammo Data", menuName = "Wave/Items/Ammo Data", order = 2)]
+    [CreateAssetMenu(fileName = "New Ammo Data", menuName = "Resonance/Items/Ammo Data", order = 2)]
     public class AmmoDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]

@@ -7,7 +7,7 @@ namespace Resonance.Enemies.Core
 {
     /// <summary>
     /// Enemy-specific state machine that manages enemy states: Normal, Reviving, and TrueDeath.
-    /// Handles transitions based on physical and core health status.
+    /// Handles transitions based on health and core health status.
     /// </summary>
     public class EnemyStateMachine
     {
@@ -122,7 +122,7 @@ namespace Resonance.Enemies.Core
         #region Enemy-Specific State Transitions
 
         /// <summary>
-        /// Start revival process when physical health reaches 0
+        /// Start revival process when health health reaches 0
         /// </summary>
         public bool StartRevival()
         {
@@ -202,7 +202,7 @@ namespace Resonance.Enemies.Core
 
         public bool CanStartRevival()
         {
-            // Can start revival from normal state when physical health reaches 0
+            // Can start revival from normal state when health health reaches 0
             return IsInState("Normal");
         }
 

@@ -65,10 +65,10 @@ namespace Resonance.Player.Core
             // Horizontal movement (2D platform style)
             if (IsMoving)
             {
-                float speed = _stats.moveSpeed;
+                float speed = _stats.walkSpeed;
                 if (_isRunning)
                 {
-                    speed *= _stats.runSpeedMultiplier;
+                    speed = _stats.runSpeed;
                 }
 
                 // Apply movement speed modifier (for aiming state)
@@ -104,10 +104,10 @@ namespace Resonance.Player.Core
 
         public float GetMovementSpeed()
         {
-            float speed = _stats.moveSpeed;
+            float speed = _stats.walkSpeed;
             if (_isRunning)
             {
-                speed *= _stats.runSpeedMultiplier;
+                speed = _stats.runSpeed;
             }
             speed *= _movementSpeedModifier;
             return speed;

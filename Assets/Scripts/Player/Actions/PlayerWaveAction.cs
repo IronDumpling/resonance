@@ -12,7 +12,7 @@ namespace Resonance.Player.Actions
     /// <summary>
     /// Player Wave Action - triggered by short press F when Core hitboxes are in core attack range
     /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, Core type EnemyHitbox with enabled collider in CoreAttackRange
-    /// Behavior: Player cannot move, is invulnerable to physical damage, consumes 1 CoreHealth slot
+    /// Behavior: Player cannot move, is invulnerable to health damage, consumes 1 CoreHealth slot
     /// End condition: Target Core hitbox collider becomes disabled or exits range
     /// </summary>
     public class PlayerWaveAction : IPlayerAction
@@ -174,7 +174,7 @@ namespace Resonance.Player.Actions
                 return false;
             }
                 
-            // Valid states for resonance: Reviving or physical death (not Normal/Attack states)
+            // Valid states for resonance: Reviving or health death (not Normal/Attack states)
             string enemyState = enemyController.CurrentState;
             bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
             

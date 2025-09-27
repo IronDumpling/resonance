@@ -11,7 +11,7 @@ namespace Resonance.Player.Actions
     /// <summary>
     /// Player Heal Action - triggered by holding F key when no Core hitboxes are in core attack range
     /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in CoreAttackRange
-    /// Behavior: Player cannot move, consumes 1 CoreHealth slot every 1s, restores PhysicalHealth
+    /// Behavior: Player cannot move, consumes 1 CoreHealth slot every 1s, restores Health
     /// End condition: Release F key, or interrupted by damage, or reach full health, or no more core health
     /// </summary>
     public class PlayerHealAction : IPlayerAction
@@ -60,10 +60,10 @@ namespace Resonance.Player.Actions
                 }
             }
 
-            // Must not be at full physical health (no point in recovering if already full)
-            if (player.Stats.PhysicalHealthPercentage >= 1.0f)
+            // Must not be at full health health (no point in recovering if already full)
+            if (player.Stats.HealthPercentage >= 1.0f)
             {
-                Debug.Log("PlayerHealAction: Cannot start - already at full physical health");
+                Debug.Log("PlayerHealAction: Cannot start - already at full health health");
                 return false;
             }
 
@@ -134,7 +134,7 @@ namespace Resonance.Player.Actions
             }
 
             // Check if at full health
-            if (player.Stats.PhysicalHealthPercentage >= 1.0f)
+            if (player.Stats.HealthPercentage >= 1.0f)
             {
                 Debug.Log("PlayerHealAction: Reached full health, ending action");
                 _isFinished = true;
@@ -195,7 +195,7 @@ namespace Resonance.Player.Actions
             // Play heal effect
             PlayHealEffect(player);
 
-            Debug.Log($"PlayerHealAction: Healed {healAmount:F1} physical health");
+            Debug.Log($"PlayerHealAction: Healed {healAmount:F1} health health");
         }
 
         /// <summary>

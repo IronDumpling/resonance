@@ -52,12 +52,12 @@ namespace Resonance.Interfaces
         /// <summary>
         /// 当前物理血量
         /// </summary>
-        float CurrentPhysicalHealth { get; }
+        float CurrentHealth { get; }
         
         /// <summary>
         /// 最大物理血量
         /// </summary>
-        float MaxPhysicalHealth { get; }
+        float MaxHealth { get; }
         
         /// <summary>
         /// 当前精神血量

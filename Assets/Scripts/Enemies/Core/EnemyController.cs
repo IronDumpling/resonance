@@ -4,6 +4,7 @@ using Resonance.Enemies;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.States;
 using Resonance.Core;
+using Resonance.Core.Data;
 using Resonance.Utilities;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -71,7 +72,7 @@ namespace Resonance.Enemies.Core
         private int _attacksLaunched = 0;
         
         // Dual Health Events
-        public System.Action<float, float> OnPhysicalHealthChanged; // current, max
+        public System.Action<float, float> OnHealthChanged; // current, max
         public System.Action<float, float> OnCoreHealthChanged; // current, max
         public System.Action OnPhysicalDeath; // Physical health reaches 0
         public System.Action OnTrueDeath; // Core health reaches 0
@@ -79,8 +80,8 @@ namespace Resonance.Enemies.Core
         public System.Action OnRevivalCompleted; // Revival completed
         
         // Health Tier Events
-        public System.Action<EnemyPhysicalHealthTier> OnPhysicalTierChanged;
-        public System.Action<EnemyCoreHealthTier> OnCoreTierChanged;
+        public System.Action<EnemyHealthTier> OnPhysicalTierChanged;
+        public System.Action<CrystalEnergyTier> OnCoreTierChanged;
         
         // Combat Events
         public System.Action<float> OnAttackLaunched; // damage dealt
@@ -129,12 +130,12 @@ namespace Resonance.Enemies.Core
         
         // Health Properties
         public bool IsAlive => _stats.IsAlive;
-        public bool IsCoreAlive => _stats.IsCoreAlive;
-        public bool IsInPhysicalDeathState => _stats.IsInPhysicalDeathState;
+        public bool IsCoreAlive => _stats.crystalCore.IsIntact;
+        public bool IsInPhysicalDeathState => _stats.IsDead;
         
         // Health Tier Properties
-        public EnemyPhysicalHealthTier PhysicalTier => _stats.physicalTier;
-        public EnemyCoreHealthTier CoreTier => _stats.coreTier;
+        public EnemyHealthTier HealthTier => _stats.healthTier;
+        public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         
         // Combat Properties
         public bool CanAttack => IsCoreAlive && HasPlayerTarget && 
@@ -190,7 +191,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            UpdateHealthRegeneration(deltaTime);
+            // UpdateHealthRegeneration(deltaTime);
             UpdateRevivalTimer(deltaTime);
             UpdatePlayerDetection();
             _actionController?.Update(deltaTime);
@@ -200,25 +201,23 @@ namespace Resonance.Enemies.Core
 
         #region Health System
 
-        private void UpdateHealthRegeneration(float deltaTime)
-        {
-            // Physical health regeneration (only when physically alive)
-            if (_stats.physicalHealthRegenRate > 0f && _stats.currentPhysicalHealth < _stats.maxPhysicalHealth && IsAlive)
-            {
-                _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, 
-                    _stats.currentPhysicalHealth + _stats.physicalHealthRegenRate * deltaTime);
-                OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
-            }
+        // private void UpdateHealthRegeneration(float deltaTime)
+        // {
+        //     // Physical health regeneration (only when healthly alive)
+        //     if (_stats.revivalRate > 0f && _stats.currentHealth < _stats.maxHealth && IsAlive)
+        //     {
+        //         _stats.RestoreHealth(_stats.revivalRate * deltaTime);
+        //         OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+        //     }
             
-            // Core health regeneration (only in normal state)
-            if (_stateMachine.IsInState("Normal") && _stats.coreHealthRegenRate > 0f && 
-                _stats.currentCoreHealth < _stats.maxCoreHealth)
-            {
-                _stats.currentCoreHealth = Mathf.Min(_stats.maxCoreHealth, 
-                    _stats.currentCoreHealth + _stats.coreHealthRegenRate * deltaTime);
-                OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
-            }
-        }
+        //     // Core health regeneration (only in normal state)
+        //     if (_stateMachine.IsInState("Normal") && _stats.revivalRate > 0f && 
+        //         _stats.crystalCore.CurrentEnergy < _stats.crystalCore.CurrentEnergyCapacity)
+        //     {
+        //         _stats.crystalCore.AddEnergy(_stats.revivalRate * deltaTime);
+        //         OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+        //     }
+        // }
 
         private void UpdateRevivalTimer(float deltaTime)
         {
@@ -242,26 +241,25 @@ namespace Resonance.Enemies.Core
                     return;
                 }
                 
-                // Revival progress - restore physical health
-                if (_stats.revivalRate > 0f && _stats.currentPhysicalHealth < _stats.maxPhysicalHealth)
+                // Revival progress - restore health health
+                if (_stats.revivalRate > 0f && _stats.currentHealth < _stats.maxHealth)
                 {
-                    var previousTier = _stats.physicalTier;
-                    _stats.currentPhysicalHealth = Mathf.Min(_stats.maxPhysicalHealth, 
-                    _stats.currentPhysicalHealth + _stats.revivalRate * deltaTime);
-                    _stats.UpdateHealthTiers();
+                    var previousTier = _stats.healthTier;
+                    _stats.RestoreHealth(_stats.revivalRate * deltaTime);
+                    _stats.UpdateHealthTier();
                     
-                    OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+                    OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
                     
-                    // Check for physical tier change during revival
-                    if (_stats.physicalTier != previousTier)
+                    // Check for health tier change during revival
+                    if (_stats.healthTier != previousTier)
                     {
-                        OnPhysicalTierChanged?.Invoke(_stats.physicalTier);
+                        OnPhysicalTierChanged?.Invoke(_stats.healthTier);
                     }
 
                     // Check if revival is complete
-                    if (_stats.currentPhysicalHealth >= _stats.maxPhysicalHealth)
+                    if (_stats.currentHealth >= _stats.maxHealth)
                     {
-                        Debug.Log("EnemyController: Revival completed without interruption - physical health restored to full");
+                        Debug.Log("EnemyController: Revival completed without interruption - health health restored to full");
                         CompleteRevival();
                     }
                 }
@@ -269,40 +267,37 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Take physical damage (affects physical health)
+        /// Take health damage (affects health health)
         /// Apply core health tier damage modifiers
         /// </summary>
         public void TakePhysicalDamage(float damage)
         {
             if (!IsCoreAlive) return;
-
-            // Apply core health tier damage modifier
-            float modifiedDamage = damage * _stats.GetPhysicalDamageMultiplier();
             
-            var previousTier = _stats.physicalTier;
-            _stats.currentPhysicalHealth = Mathf.Max(0f, _stats.currentPhysicalHealth - modifiedDamage);
-            _stats.UpdateHealthTiers();
+            var previousTier = _stats.healthTier;
+            _stats.TakeHealthDamage(damage);
+            _stats.UpdateHealthTier();
             
             _timesHit++;
-            _totalDamageTaken += modifiedDamage;
+            _totalDamageTaken += damage;
             
-            OnPhysicalHealthChanged?.Invoke(_stats.currentPhysicalHealth, _stats.maxPhysicalHealth);
+            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
             
-            // Check for physical tier change
-            if (_stats.physicalTier != previousTier)
+            // Check for health tier change
+            if (_stats.healthTier != previousTier)
             {
-                OnPhysicalTierChanged?.Invoke(_stats.physicalTier);
+                OnPhysicalTierChanged?.Invoke(_stats.healthTier);
             }
             
             // Notify action controller of damage taken
             _actionController?.OnEnemyDamageTaken();
 
-            if (_stats.currentPhysicalHealth <= 0f)
+            if (_stats.currentHealth <= 0f)
             {
                 HandlePhysicalDeath();
             }
             
-            Debug.Log($"EnemyController: Took {modifiedDamage:F1} physical damage (base: {damage:F1}, multiplier: {_stats.GetPhysicalDamageMultiplier():F1}), physical health: {_stats.currentPhysicalHealth:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} health damage, health health: {_stats.currentHealth:F1}");
         }
 
         /// <summary>
@@ -312,34 +307,34 @@ namespace Resonance.Enemies.Core
         {
             if (!IsCoreAlive) return;
 
-            var previousTier = _stats.coreTier;
-            _stats.currentCoreHealth = Mathf.Max(0f, _stats.currentCoreHealth - damage);
-            _stats.UpdateHealthTiers();
+            var previousTier = _stats.crystalCore.EnergyTier;
+            _stats.crystalCore.DamageCapacity(damage);
+            _stats.crystalCore.UpdateCalculatedValues();
             
             _timesHit++;
             _totalDamageTaken += damage;
             
-            OnCoreHealthChanged?.Invoke(_stats.currentCoreHealth, _stats.maxCoreHealth);
+            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
             
             // Check for core tier change
-            if (_stats.coreTier != previousTier)
+            if (_stats.crystalCore.EnergyTier != previousTier)
             {
-                OnCoreTierChanged?.Invoke(_stats.coreTier);
+                OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
             }
             
             // Notify action controller of damage taken
             _actionController?.OnEnemyDamageTaken();
 
-            if (_stats.currentCoreHealth <= 0f)
+            if (_stats.crystalCore.CurrentEnergy <= 0f)
             {
                 HandleTrueDeath();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} core damage, core health: {_stats.currentCoreHealth:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} core damage, core health: {_stats.crystalCore.CurrentEnergy:F1}");
         }
 
         /// <summary>
-        /// Handle physical death (physical health reaches 0)
+        /// Handle health death (health health reaches 0)
         /// Check core health to determine next state: Revival if core > 0, TrueDeath if core <= 0
         /// </summary>
         private void HandlePhysicalDeath()
@@ -457,7 +452,7 @@ namespace Resonance.Enemies.Core
                 // Create damage info for the attack
                 DamageInfo damageInfo = new DamageInfo(
                     amount: damage,
-                    type: DamageType.Physical, 
+                    type: DamageType.Health, 
                     sourcePosition: _patrolCenter,
                     sourceObject: null, 
                     description: "Enemy attack"
@@ -553,29 +548,16 @@ namespace Resonance.Enemies.Core
                 return false;
             }
 
-            // Apply core health tier damage modifier
-            float modifiedDamage = damageInfo.amount * _stats.GetPhysicalDamageMultiplier();
-            
-            // Create modified damage info
-            DamageInfo modifiedDamageInfo = new DamageInfo(
-                amount: modifiedDamage,
-                type: damageInfo.type,
-                sourcePosition: damageInfo.sourcePosition,
-                sourceObject: damageInfo.sourceObject,
-                description: damageInfo.description,
-                physicalRatio: damageInfo.physicalRatio
-            );
-
             // Apply damage
-            target.TakeDamage(modifiedDamageInfo);
+            target.TakeDamage(damageInfo);
             
             // Track this hit
             _currentAttackHits.Add(target);
             
             // Update statistics
-            _totalDamageDealt += modifiedDamage;
+            _totalDamageDealt += damageInfo.amount;
             
-            Debug.Log($"EnemyController: Applied {modifiedDamage:F1} damage to target (base: {damageInfo.amount:F1}, multiplier: {_stats.GetPhysicalDamageMultiplier():F1})");
+            Debug.Log($"EnemyController: Applied {damageInfo.amount:F1} damage to target");
             return true;
         }
 
@@ -824,8 +806,8 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public string GetStats()
         {
-            return $"Physical Health: {_stats.currentPhysicalHealth:F1}/{_stats.maxPhysicalHealth}, " +
-                   $"Core Health: {_stats.currentCoreHealth:F1}/{_stats.maxCoreHealth}, " +
+            return $"Physical Health: {_stats.currentHealth:F1}/{_stats.maxHealth}, " +
+                   $"Core Health: {_stats.crystalCore.CurrentEnergy:F1}/{_stats.crystalCore.CurrentEnergyCapacity}, " +
                    $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken:F1}, " +
                    $"Attacks: {_attacksLaunched}, Damage Dealt: {_totalDamageDealt:F1}";
         }
@@ -850,7 +832,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void Shutdown()
         {
-            OnPhysicalHealthChanged = null;
+            OnHealthChanged = null;
             OnCoreHealthChanged = null;
             OnPhysicalDeath = null;
             OnTrueDeath = null;

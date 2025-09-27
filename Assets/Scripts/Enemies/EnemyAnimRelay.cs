@@ -123,7 +123,7 @@ namespace Resonance.Enemies
 
         /// <summary>
         /// Called by animation event when fall down animation finishes
-        /// Used to transition from physical death to revival state
+        /// Used to transition from health death to revival state
         /// </summary>
         public void OnFallDownFinished()
         {

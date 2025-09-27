@@ -703,8 +703,8 @@ MonoBehaviour:
   _attackDuration: 0.5
   _attackDamage: 20
   _attackCooldown: 3
-  _resonanceUI: {fileID: 0}
-  _resonanceUIText: {fileID: 0}
+  _resonanceUI: {fileID: 3918578343786169770}
+  _resonanceUIText: {fileID: 1199645490113563006}
   _showDebugInfo: 0
 --- !u!54 &1521937031837005921
 Rigidbody:

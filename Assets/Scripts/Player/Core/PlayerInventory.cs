@@ -12,8 +12,8 @@ namespace Resonance.Player.Core
     public enum ItemType
     {
         Consumable,    // 消耗品（弹药等）
-        Tool,          // 道具（钥匙等）- placeholder
-        Crystal,       // 晶体模块 - placeholder
+        Tool,          // 道具（钥匙等）
+        Module,       // 晶体模块
         Weapon         // 武器
     }
 
@@ -62,12 +62,14 @@ namespace Resonance.Player.Core
         public List<ItemSaveData> items;
         public List<int> equippedItemIDs;
         public int equippedWeaponID;
+        public Dictionary<string, int> ammoInventory; // 弹药库存
         
         public InventorySaveData()
         {
             items = new List<ItemSaveData>();
             equippedItemIDs = new List<int>();
             equippedWeaponID = -1;
+            ammoInventory = new Dictionary<string, int>();
         }
     }
 
@@ -150,15 +152,16 @@ namespace Resonance.Player.Core
         #endregion
 
         // Properties
-        public int MaxSlots => _maxSlots;
+        public int MaxSlots => _gridWidth * _gridHeight;
         public int UsedSlots => _items?.Count ?? 0;
-        public bool IsFull => UsedSlots >= _maxSlots;
+        public bool IsFull => UsedSlots >= MaxSlots;
 
-        public PlayerInventory(int maxSlots)
+        public PlayerInventory(int gridWidth, int gridHeight)
         {
-            _maxSlots = maxSlots;
+            _gridWidth = gridWidth;
+            _gridHeight = gridHeight;
             
-            // 初始化存储系统
+            // 初始化存储系统   
             _items = new List<InventoryItem>();
             _equippedItemIDs = new List<int>();
             
@@ -433,6 +436,204 @@ namespace Resonance.Player.Core
 
         #endregion
 
+        #region 弹药管理 - Ammo Management
+        
+        // 弹药库存 - 使用Dictionary存储弹药类型和数量
+        private Dictionary<string, int> _ammoInventory = new Dictionary<string, int>();
+        
+        // 弹药事件
+        public System.Action<string, int> OnAmmoAdded; // ammoType, amount added
+        public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
+        
+        /// <summary>
+        /// 添加弹药到库存
+        /// </summary>
+        /// <param name="ammoType">弹药类型</param>
+        /// <param name="amount">数量</param>
+        /// <returns>是否成功添加</returns>
+        public bool AddAmmo(string ammoType, int amount)
+        {
+            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+            {
+                Debug.LogWarning($"PlayerInventory: Invalid ammo parameters - type: {ammoType}, amount: {amount}");
+                return false;
+            }
+            
+            int oldAmount = _ammoInventory.GetValueOrDefault(ammoType, 0);
+            int newAmount = oldAmount + amount;
+            _ammoInventory[ammoType] = newAmount;
+            
+            Debug.Log($"PlayerInventory: Added {amount} {ammoType} ammo. Total: {newAmount}");
+            
+            // 触发事件
+            OnAmmoAdded?.Invoke(ammoType, amount);
+            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+            OnInventoryChanged?.Invoke();
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// 消耗弹药
+        /// </summary>
+        /// <param name="ammoType">弹药类型</param>
+        /// <param name="amount">消耗数量</param>
+        /// <returns>是否成功消耗</returns>
+        public bool ConsumeAmmo(string ammoType, int amount)
+        {
+            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+                return false;
+            
+            int oldAmount = _ammoInventory.GetValueOrDefault(ammoType, 0);
+            if (oldAmount < amount)
+            {
+                Debug.LogWarning($"PlayerInventory: Not enough {ammoType} ammo - need {amount}, have {oldAmount}");
+                return false;
+            }
+                
+            int newAmount = oldAmount - amount;
+            _ammoInventory[ammoType] = newAmount;
+            
+            Debug.Log($"PlayerInventory: Consumed {amount} {ammoType} ammo. Remaining: {newAmount}");
+            
+            // 触发事件
+            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+            OnInventoryChanged?.Invoke();
+            return true;
+        }
+        
+        /// <summary>
+        /// 检查是否有足够的弹药
+        /// </summary>
+        /// <param name="ammoType">弹药类型</param>
+        /// <param name="amount">需要的数量</param>
+        /// <returns>是否有足够弹药</returns>
+        public bool HasAmmo(string ammoType, int amount = 1)
+        {
+            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+                return false;
+                
+            return _ammoInventory.GetValueOrDefault(ammoType, 0) >= amount;
+        }
+        
+        /// <summary>
+        /// 获取指定类型弹药的数量
+        /// </summary>
+        /// <param name="ammoType">弹药类型</param>
+        /// <returns>弹药数量</returns>
+        public int GetAmmoCount(string ammoType)
+        {
+            if (string.IsNullOrEmpty(ammoType))
+                return 0;
+                
+            return _ammoInventory.GetValueOrDefault(ammoType, 0);
+        }
+        
+        /// <summary>
+        /// 设置弹药数量（用于测试或特殊情况）
+        /// </summary>
+        /// <param name="ammoType">弹药类型</param>
+        /// <param name="count">新的数量</param>
+        public void SetAmmoCount(string ammoType, int count)
+        {
+            if (string.IsNullOrEmpty(ammoType))
+                return;
+            
+            int oldAmount = _ammoInventory.GetValueOrDefault(ammoType, 0);
+            int newAmount = Mathf.Max(0, count);
+            _ammoInventory[ammoType] = newAmount;
+            
+            Debug.Log($"PlayerInventory: Set {ammoType} ammo to {newAmount}");
+            
+            // 触发事件（如果数量有变化）
+            if (oldAmount != newAmount)
+            {
+                OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
+                OnInventoryChanged?.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// 获取所有弹药类型和数量
+        /// </summary>
+        /// <returns>弹药字典的副本</returns>
+        public Dictionary<string, int> GetAllAmmo()
+        {
+            return new Dictionary<string, int>(_ammoInventory);
+        }
+        
+        /// <summary>
+        /// 获取所有有库存的弹药类型
+        /// </summary>
+        /// <returns>弹药类型列表</returns>
+        public List<string> GetAvailableAmmoTypes()
+        {
+            var types = new List<string>();
+            
+            foreach (var kvp in _ammoInventory)
+            {
+                if (kvp.Value > 0)
+                {
+                    types.Add(kvp.Key);
+                }
+            }
+            
+            return types;
+        }
+        
+        /// <summary>
+        /// 检查是否有任何弹药
+        /// </summary>
+        /// <returns>是否有弹药</returns>
+        public bool HasAnyAmmo()
+        {
+            foreach (var kvp in _ammoInventory)
+            {
+                if (kvp.Value > 0)
+                    return true;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// 获取总弹药数量
+        /// </summary>
+        /// <returns>所有类型弹药的总数</returns>
+        public int GetTotalAmmoCount()
+        {
+            int total = 0;
+            foreach (var kvp in _ammoInventory)
+            {
+                total += kvp.Value;
+            }
+            
+            return total;
+        }
+        
+        /// <summary>
+        /// 清空所有弹药（用于测试或特殊事件）
+        /// </summary>
+        public void ClearAllAmmo()
+        {
+            var oldAmmo = new Dictionary<string, int>(_ammoInventory);
+            _ammoInventory.Clear();
+            
+            // 触发每种弹药的变化事件
+            foreach (var kvp in oldAmmo)
+            {
+                if (kvp.Value > 0)
+                {
+                    OnAmmoChanged?.Invoke(kvp.Key, kvp.Value, 0);
+                }
+            }
+            
+            OnInventoryChanged?.Invoke();
+            Debug.Log("PlayerInventory: All ammo cleared");
+        }
+
+        #endregion
+
         #region Equipment System
 
         public bool EquipItem(int itemID)
@@ -502,7 +703,8 @@ namespace Resonance.Player.Core
                     customData = item.CustomData
                 }).ToList(),
                 equippedItemIDs = new List<int>(_equippedItemIDs),
-                equippedWeaponID = _equippedWeaponID
+                equippedWeaponID = _equippedWeaponID,
+                ammoInventory = new Dictionary<string, int>(_ammoInventory) // 保存弹药库存
             };
         }
         
@@ -513,6 +715,7 @@ namespace Resonance.Player.Core
         {
             _items.Clear();
             _equippedItemIDs.Clear();
+            _ammoInventory.Clear();
             
             if (saveData?.items != null)
             {
@@ -538,8 +741,20 @@ namespace Resonance.Player.Core
             
             _equippedWeaponID = saveData?.equippedWeaponID ?? -1;
             
+            // 加载弹药库存
+            if (saveData?.ammoInventory != null)
+            {
+                foreach (var kvp in saveData.ammoInventory)
+                {
+                    if (!string.IsNullOrEmpty(kvp.Key) && kvp.Value >= 0)
+                    {
+                        _ammoInventory[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+            
             OnInventoryChanged?.Invoke();
-            Debug.Log($"PlayerInventory: Loaded {_items.Count} items from save data");
+            Debug.Log($"PlayerInventory: Loaded {_items.Count} items and {_ammoInventory.Count} ammo types from save data");
         }
 
 

@@ -151,7 +151,7 @@ namespace Resonance.Player.Core
 
         public bool Respawn()
         {
-            // Can respawn from physical death or true death (through external systems)
+            // Can respawn from health death or true death (through external systems)
             if (IsInState("Death"))
             {
                 return ChangeState("Normal");

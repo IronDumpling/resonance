@@ -117,7 +117,7 @@ namespace Resonance.Enemies
             }
 
             // Validate base stats
-            if (!_baseStats.ValidateData())
+            if (!_baseStats.ValidateConfig())
             {
                 Debug.LogError("EnemyMonoBehaviour: BaseStats validation failed!");
                 return;
@@ -323,7 +323,7 @@ namespace Resonance.Enemies
             _enemyController = new EnemyController(_baseStats, transform.position, transform);
 
             // Subscribe to enemy events
-            _enemyController.OnPhysicalHealthChanged += HandlePhysicalHealthChanged;
+            _enemyController.OnHealthChanged += HandleHealthChanged;
             _enemyController.OnCoreHealthChanged += HandleCoreHealthChanged;
             _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
             _enemyController.OnTrueDeath += HandleTrueDeath;
@@ -777,7 +777,7 @@ namespace Resonance.Enemies
 
             switch (damageInfo.type)
             {
-                case DamageType.Physical:
+                case DamageType.Health:
                     _enemyController.TakePhysicalDamage(damageInfo.amount);
                     break;
                     
@@ -786,9 +786,9 @@ namespace Resonance.Enemies
                     break;
                     
                 case DamageType.Mixed:
-                    float physicalDamage = damageInfo.amount * damageInfo.physicalRatio;
-                    float coreDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
-                    _enemyController.TakePhysicalDamage(physicalDamage);
+                    float healthDamage = damageInfo.amount * damageInfo.healthRatio;
+                    float coreDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
+                    _enemyController.TakePhysicalDamage(healthDamage);
                     _enemyController.TakeCoreDamage(coreDamage);
                     break;
             }
@@ -805,8 +805,8 @@ namespace Resonance.Enemies
             if (IsInitialized)
             {
                 _enemyController.TakePhysicalDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Physical, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Physical, damageSource));
+                ShowDamageEffect(new DamageInfo(damage, DamageType.Health, damageSource));
+                PlayHitAudio(new DamageInfo(damage, DamageType.Health, damageSource));
             }
         }
 
@@ -827,10 +827,10 @@ namespace Resonance.Enemies
         public bool IsAlive => IsInitialized && _enemyController.IsAlive;
         public bool IsCoreAlive => IsInitialized && _enemyController.IsCoreAlive;
         public bool IsInDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
-        public float CurrentPhysicalHealth => IsInitialized ? _enemyController.Stats.currentPhysicalHealth : 0f;
-        public float MaxPhysicalHealth => IsInitialized ? _enemyController.Stats.maxPhysicalHealth : 0f;
-        public float CurrentCoreHealth => IsInitialized ? _enemyController.Stats.currentCoreHealth : 0f;
-        public float MaxCoreHealth => IsInitialized ? _enemyController.Stats.maxCoreHealth : 0f;
+        public float CurrentHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
+        public float MaxHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
+        public float CurrentCoreHealth => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergy : 0f;
+        public float MaxCoreHealth => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
 
         #endregion
 
@@ -881,7 +881,7 @@ namespace Resonance.Enemies
 
         #region Event Handlers
 
-        private void HandlePhysicalHealthChanged(float current, float max)
+        private void HandleHealthChanged(float current, float max)
         {
             // Health UI updates would go here
         }
@@ -893,11 +893,11 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - checking core health for state transition");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} health death - checking core health for state transition");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
             
-            // Trigger physical death animation
+            // Trigger health death animation
             if (_animator != null && _animator.isActiveAndEnabled)
             {
                 _animator.SetTrigger("PhysicalDeath");
@@ -1051,13 +1051,14 @@ namespace Resonance.Enemies
         #region Public Utility Methods
 
         /// <summary>
-        /// Reset enemy to full health (for testing)
+        /// Reset enemy to full health
         /// </summary>
         public void ResetEnemy()
         {
             if (!IsInitialized) return;
 
-            _enemyController.Stats.RestoreToFullHealth();
+            _enemyController.Stats.FullRestore();
+            _enemyController.Stats.crystalCore.FullRepair();
             _enemyController.StateMachine.ChangeState("Normal");
             SetMaterial(_normalMaterial);
             
@@ -1074,14 +1075,13 @@ namespace Resonance.Enemies
         }
 
         /// <summary>
-        /// Force enemy to enter specific state (for testing)
+        /// Force enemy to enter specific state
         /// </summary>
         public void ForceState(string stateName)
         {
             if (!IsInitialized) return;
             _enemyController.StateMachine.ChangeState(stateName);
         }
-
 
         #endregion
 
@@ -1241,8 +1241,8 @@ namespace Resonance.Enemies
                 stateInfo += $" ({_enemyController.StateMachine.GetNormalSubState()})";
             }
             
-            Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentPhysicalHealth:F1}/{stats.maxPhysicalHealth}, " +
-                     $"Core: {stats.currentCoreHealth:F1}/{stats.maxCoreHealth}, {stateInfo}");
+            Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentHealth:F1}/{stats.maxHealth}, " +
+                     $"Core: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.CurrentEnergyCapacity}, {stateInfo}");
         }
 
         void OnDrawGizmos()
@@ -1258,18 +1258,18 @@ namespace Resonance.Enemies
             Gizmos.color = Color.red;
             Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float physicalPercentage = _enemyController.Stats.PhysicalHealthPercentage;
+            float healthPercentage = _enemyController.Stats.HealthPercentage;
             Gizmos.color = Color.green;
-            Vector3 physicalBarSize = new Vector3(barWidth * physicalPercentage, barHeight * 0.5f, 0.1f);
-            Vector3 physicalBarPosition = barPosition + Vector3.left * (barWidth * (1f - physicalPercentage) * 0.5f);
-            Gizmos.DrawCube(physicalBarPosition, physicalBarSize);
+            Vector3 healthBarSize = new Vector3(barWidth * healthPercentage, barHeight * 0.5f, 0.1f);
+            Vector3 healthBarPosition = barPosition + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
+            Gizmos.DrawCube(healthBarPosition, healthBarSize);
             
             // Core health (top bar)
             Vector3 coreBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
             Gizmos.color = Color.blue;
             Gizmos.DrawCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float corePercentage = _enemyController.Stats.CoreHealthPercentage;
+            float corePercentage = _enemyController.Stats.crystalCore.EnergyPercentage;
             Gizmos.color = Color.cyan;
             Vector3 coreBarSize = new Vector3(barWidth * corePercentage, barHeight * 0.5f, 0.1f);
             Vector3 coreBarPosition = coreBarCenter + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);

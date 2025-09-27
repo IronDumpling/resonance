@@ -5,7 +5,7 @@ using Resonance.Items.Core;
 
 namespace Resonance.Items
 {
-    [CreateAssetMenu(fileName = "New Info Data", menuName = "Wave/Items/Info Data", order = 3)]
+    [CreateAssetMenu(fileName = "New Info Data", menuName = "Resonance/Items/Info Data", order = 3)]
     public class InfoDataAsset : ScriptableObject, IInfoable
     {
         [Header("Info Display")]

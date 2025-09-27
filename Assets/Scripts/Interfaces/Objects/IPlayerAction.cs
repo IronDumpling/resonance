@@ -19,7 +19,7 @@ namespace Resonance.Interfaces.Objects
         bool BlocksMovement { get; }
 
         /// <summary>
-        /// Whether this action provides invulnerability to physical damage
+        /// Whether this action provides invulnerability to health damage
         /// </summary>
         bool ProvidesInvulnerability { get; }
 

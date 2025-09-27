@@ -23,7 +23,7 @@ namespace Resonance.Enemies.States
 
         public void Enter()
         {
-            Debug.Log("EnemyState: Entered Reviving state - physical health recovering");
+            Debug.Log("EnemyState: Entered Reviving state - health health recovering");
             
             _revivalTimer = 0f;
             
@@ -57,7 +57,7 @@ namespace Resonance.Enemies.States
             if (_revivalTimer > _enemyController.Stats.revivalDuration * 2f)
             {
                 Debug.LogWarning("EnemyRevivingState: Revival taking too long, forcing completion");
-                _enemyController.Stats.RestorePhysicalHealth();
+                _enemyController.Stats.FullRestore();
             }
         }
 
@@ -72,7 +72,7 @@ namespace Resonance.Enemies.States
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to:
-            // - Normal (when physical health is restored and core health > 0)
+            // - Normal (when health health is restored and core health > 0)
             // - TrueDeath (when core health reaches 0)
             return newState.Name == "Normal" || newState.Name == "TrueDeath";
         }
@@ -82,8 +82,8 @@ namespace Resonance.Enemies.States
         /// </summary>
         public float GetRevivalProgress()
         {
-            if (_enemyController.Stats.maxPhysicalHealth <= 0f) return 0f;
-            return _enemyController.Stats.currentPhysicalHealth / _enemyController.Stats.maxPhysicalHealth;
+            if (_enemyController.Stats.maxHealth <= 0f) return 0f;
+            return _enemyController.Stats.currentHealth / _enemyController.Stats.maxHealth;
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Resonance.Enemies.States
         {
             if (_enemyController.Stats.revivalRate <= 0f) return float.MaxValue;
             
-            float healthRemaining = _enemyController.Stats.maxPhysicalHealth - _enemyController.Stats.currentPhysicalHealth;
+            float healthRemaining = _enemyController.Stats.maxHealth - _enemyController.Stats.currentHealth;
             return healthRemaining / _enemyController.Stats.revivalRate;
         }
     }

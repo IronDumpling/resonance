@@ -1,517 +1,483 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Resonance.Core.Data;
 
 namespace Resonance.Player.Data
 {
     /// <summary>
-    /// Base player statistics and configuration data.
-    /// This defines the baseline stats for the player character.
+    /// 玩家基础属性配置
+    /// 定义玩家角色的基准属性数据
     /// </summary>
-    [CreateAssetMenu(fileName = "PlayerBaseStats", menuName = "Wave/Player/Base Stats")]
+    [CreateAssetMenu(fileName = "PlayerBaseStats", menuName = "Resonance/Player/Base Stats")]
     public class PlayerBaseStats : ScriptableObject
     {
-        [Header("Physical Health")]
-        [SerializeField] private float _maxPhysicalHealth = 100f;
-        [SerializeField] private float _physicalHealthRegenRate = 0f; // Physical health per second
-        
-        [Header("Core Health")]
-        [SerializeField] private float _maxCoreHealth = 50f;
-        [SerializeField] private float _coreHealthDecayRate = 1f; // Core health decay per second when in core mode
-        [SerializeField] private float _coreHealthRegenRate = 0f; // Core health regen per second in normal state
+        [Header("生存属性 - Survival Attributes")]
+        [Tooltip("最大生命值")]
+        [SerializeField] private float _maxHealth = 100f;
+        [Tooltip("最大韧性值")]
+        [SerializeField] private float _maxResilience = 100f;
+        [Tooltip("眩晕阈值")]
+        [SerializeField] private float _stunThreshold = 10f;
+        [Tooltip("无敌时间")]
+        [SerializeField] private float _invulnerabilityTime = 1f;
 
-        [Header("Movement")]
-        [SerializeField] private float _moveSpeed = 5f;
-        [SerializeField] private float _runSpeedMultiplier = 1.5f;
+        [Header("晶核属性 - Crystal Core Attributes")]
+        [Tooltip("晶核配置")]
+        [SerializeField] private CrystalCoreConfig _crystalCoreConfig;
+        [Tooltip("每格晶核能量恢复的生命值")]
+        [SerializeField] private float _healthRestoreValue = 30f;
 
-        [Header("Combat")]
-        [SerializeField] private float _attackDamage = 25f;
-        [SerializeField] private float _attackCooldown = 0.5f;
-        [SerializeField] private float _invulnerabilityTime = 1f; // After taking damage
+        [Header("移动属性 - Movement Attributes")]
+        [Tooltip("行走速度")]
+        [SerializeField] private float _walkSpeed = 3f;
+        [Tooltip("奔跑速度")]
+        [SerializeField] private float _runSpeed = 5f;
+        [Tooltip("瞄准移动速度")]
+        [SerializeField] private float _aimMoveSpeed = 2f;
+        [Tooltip("换弹移动速度")]
+        [SerializeField] private float _reloadMoveSpeed = 2.5f;
 
-        [Header("Inventory")]
-        [SerializeField] private int _maxInventorySlots = 20;
+        [Header("装备属性 - Equipment Attributes")]
+        [Tooltip("背包初始格子数（宽）")]
+        [SerializeField] private int _inventoryGridWidth = 5;
+        [Tooltip("背包初始格子数（高）")]
+        [SerializeField] private int _inventoryGridHeight = 5;
+        [Tooltip("模块槽位数量")]
+        [SerializeField] private int _moduleSlots = 3;
 
-        [Header("Core Health Slots")]
-        [SerializeField] private int _coreHealthSlots = 3;  // Fixed to 3 slots
-        [SerializeField] private float _coreAttackRange = 1.5f;
-
-        [Header("Interaction")]
+        [Header("交互属性 - Interaction Attributes")]
+        [Tooltip("交互范围")]
         [SerializeField] private float _interactionRange = 1.5f;
+        [Tooltip("交互层级")]
         [SerializeField] private LayerMask _interactionLayerMask = 1 << 7; // Layer 7 (Interactable)
-
-        [Header("Physical Health Tiers")]
-        [SerializeField] private float _healthyThreshold = 0.7f;   // 70%
-        [SerializeField] private float _woundedThreshold = 0.3f;   // 30%
-
-        [Header("Ammo Inventory")]
-        [SerializeField] private AmmoInventoryConfig _defaultAmmoInventory;
-
-        // Dual Health Properties
-        public float MaxPhysicalHealth => _maxPhysicalHealth;
-        public float PhysicalHealthRegenRate => _physicalHealthRegenRate;
-        public float MaxCoreHealth => _maxCoreHealth;
-        public float CoreHealthDecayRate => _coreHealthDecayRate;
-        public float CoreHealthRegenRate => _coreHealthRegenRate;
+        [Tooltip("晶核交互层级")]
+        [SerializeField] private LayerMask _coreInteractionLayerMask = 1 << 8; // Layer 8 (Core Interactable)
         
-        // Other Properties
-        public float MoveSpeed => _moveSpeed;
-        public float RunSpeedMultiplier => _runSpeedMultiplier;
-        public float AttackDamage => _attackDamage;
-        public float AttackCooldown => _attackCooldown;
+        // 生存属性访问器
+        public float MaxHealth => _maxHealth;
+        public float MaxResilience => _maxResilience;
+        public float StunThreshold => _stunThreshold;
         public float InvulnerabilityTime => _invulnerabilityTime;
-        public int MaxInventorySlots => _maxInventorySlots;
 
-        // Core Health Slots Properties
-        public int CoreHealthSlots => _coreHealthSlots;
-        public float CoreAttackRange => _coreAttackRange;
+        // 晶核属性访问器
+        public CrystalCoreConfig CrystalCoreConfig => _crystalCoreConfig;
+        public float HealthRestoreValue => _healthRestoreValue;
 
-        // Interaction Properties
+        // 移动属性访问器
+        public float WalkSpeed => _walkSpeed;
+        public float RunSpeed => _runSpeed;
+        public float AimMoveSpeed => _aimMoveSpeed;
+        public float ReloadMoveSpeed => _reloadMoveSpeed;
+
+        // 装备属性访问器
+        public int InventoryGridWidth => _inventoryGridWidth;
+        public int InventoryGridHeight => _inventoryGridHeight;
+        public int ModuleSlots => _moduleSlots;
+
+        // 交互属性访问器
         public float InteractionRange => _interactionRange;
         public LayerMask InteractionLayerMask => _interactionLayerMask;
-
-        // Physical Health Tier Properties
-        public float HealthyThreshold => _healthyThreshold;
-        public float WoundedThreshold => _woundedThreshold;
-
-        // Ammo Inventory Properties
-        public AmmoInventoryConfig DefaultAmmoInventory => _defaultAmmoInventory;
+        public LayerMask CoreInteractionLayerMask => _coreInteractionLayerMask;
 
         /// <summary>
-        /// Create a runtime copy of these stats that can be modified
+        /// 创建运行时属性实例
         /// </summary>
+        /// <returns>可修改的运行时属性</returns>
         public PlayerRuntimeStats CreateRuntimeStats()
         {
             return new PlayerRuntimeStats(this);
         }
+
+        /// <summary>
+        /// 验证配置数据
+        /// </summary>
+        /// <returns>是否有效</returns>
+        public bool ValidateConfig()
+        {
+            if (_maxHealth <= 0f)
+            {
+                Debug.LogError($"PlayerBaseStats: {name} has invalid maxHealth: {_maxHealth}");
+                return false;
+            }
+
+            if (_maxResilience <= 0f)
+            {
+                Debug.LogError($"PlayerBaseStats: {name} has invalid maxResilience: {_maxResilience}");
+                return false;
+            }
+
+            if (_stunThreshold < 0f || _stunThreshold >= _maxResilience)
+            {
+                Debug.LogError($"PlayerBaseStats: {name} has invalid stunThreshold: {_stunThreshold} (should be 0 <= stunThreshold < maxResilience)");
+                return false;
+            }
+
+            if (_crystalCoreConfig == null)
+            {
+                Debug.LogError($"PlayerBaseStats: {name} has no crystal core config assigned");
+                return false;
+            }
+
+            if (!_crystalCoreConfig.ValidateConfig())
+            {
+                Debug.LogError($"PlayerBaseStats: {name} has invalid crystal core config");
+                return false;
+            }
+
+            return true;
+        }
+
+        #region Unity Editor
+
+        void OnValidate()
+        {
+            // 确保数值在合理范围内
+            _maxHealth = Mathf.Max(1f, _maxHealth);
+            _maxResilience = Mathf.Max(1f, _maxResilience);
+            _stunThreshold = Mathf.Clamp(_stunThreshold, 0f, _maxResilience - 1f);
+            _invulnerabilityTime = Mathf.Max(0f, _invulnerabilityTime);
+            _healthRestoreValue = Mathf.Max(0f, _healthRestoreValue);
+
+            // 移动速度验证
+            _walkSpeed = Mathf.Max(0.1f, _walkSpeed);
+            _runSpeed = Mathf.Max(_walkSpeed, _runSpeed);
+            _aimMoveSpeed = Mathf.Max(0.1f, _aimMoveSpeed);
+            _reloadMoveSpeed = Mathf.Max(0.1f, _reloadMoveSpeed);
+
+            // 背包格子验证
+            _inventoryGridWidth = Mathf.Max(1, _inventoryGridWidth);
+            _inventoryGridHeight = Mathf.Max(1, _inventoryGridHeight);
+            _moduleSlots = Mathf.Max(0, _moduleSlots);
+
+            // 交互范围验证
+            _interactionRange = Mathf.Max(0.1f, _interactionRange);
+        }
+
+        #endregion
     }
 
     /// <summary>
-    /// Runtime player stats that can be modified during gameplay.
-    /// These are the actual values used during play and can be affected by
-    /// items, buffs, progression, etc.
+    /// 玩家运行时属性
+    /// 游戏过程中可修改的实际属性值，会受到装备、增益等影响
     /// </summary>
     [System.Serializable]
     public class PlayerRuntimeStats
     {
-        [Header("Current Physical Health")]
-        public float currentPhysicalHealth;
-        public float maxPhysicalHealth;
-        public float physicalHealthRegenRate;
-        
-        [Header("Current Core Health")]
-        public float currentCoreHealth;
-        public float maxCoreHealth;
-        public float coreHealthDecayRate;
-        public float coreHealthRegenRate;
-
-        [Header("Current Movement")]
-        public float moveSpeed;
-        public float runSpeedMultiplier;
-
-        [Header("Current Combat")]
-        public float attackDamage;
-        public float attackCooldown;
+        [Header("生存属性 - Survival Attributes")]
+        public float currentHealth;
+        public float maxHealth;
+        public float currentResilience;
+        public float maxResilience;
+        public float stunThreshold;
+        public float resilienceRegenRate;
         public float invulnerabilityTime;
 
-        [Header("Current Inventory")]
-        public int maxInventorySlots;
+        [Header("晶核属性 - Crystal Core Attributes")]
+        public CrystalCore crystalCore;
+        public float healthRestoreValue;
 
-        [Header("Health Tiers")]
-        public CoreHealthTier coreTier;
-        public PhysicalHealthTier physicalTier;
-        public int coreHealthSlots;
-        public float slotValue; // 每个slot的数值
+        [Header("移动属性 - Movement Attributes")]
+        public float walkSpeed;
+        public float runSpeed;
+        public float aimMoveSpeed;
+        public float reloadMoveSpeed;
 
-        [Header("Ammo Inventory")]
-        public PlayerAmmoInventory ammoInventory;
+        [Header("装备属性 - Equipment Attributes")]
+        public int inventoryGridWidth;
+        public int inventoryGridHeight;
+        public int moduleSlots;
+
+        [Header("交互属性 - Interaction Attributes")]
+        public float interactionRange;
+        public LayerMask interactionLayerMask;
+        public LayerMask coreInteractionLayerMask;
+
+        [Header("状态等级 - Status Tiers")]
+        public HealthTier healthTier;
+        public ResilienceState resilienceState;
+
+        // 事件系统
+        public System.Action<float, float> OnHealthChanged; // current, max
+        public System.Action<float, float> OnResilienceChanged; // current, max
+        public System.Action<HealthTier> OnHealthTierChanged;
+        public System.Action<ResilienceState> OnResilienceStateChanged;
+
+        // 属性访问器
+        public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
+        public float ResiliencePercentage => maxResilience > 0 ? currentResilience / maxResilience : 0f;
+        public bool IsAlive => currentHealth > 0f && crystalCore.IsIntact;
+        public bool IsDead => currentHealth <= 0f && crystalCore.IsDestroyed;
+        public bool IsStunned => resilienceState == ResilienceState.Stunned;
+        public bool CanUseHealthRestore => crystalCore != null && crystalCore.CanConsumeSlot();
 
         public PlayerRuntimeStats(PlayerBaseStats baseStats)
         {
-            // Copy dual health stats to runtime stats
-            maxPhysicalHealth = baseStats.MaxPhysicalHealth;
-            currentPhysicalHealth = maxPhysicalHealth; // Start at full physical health
-            physicalHealthRegenRate = baseStats.PhysicalHealthRegenRate;
-            
-            maxCoreHealth = baseStats.MaxCoreHealth;
-            currentCoreHealth = maxCoreHealth; // Start at full core health
-            coreHealthDecayRate = baseStats.CoreHealthDecayRate;
-            coreHealthRegenRate = baseStats.CoreHealthRegenRate;
-            
-            moveSpeed = baseStats.MoveSpeed;
-            runSpeedMultiplier = baseStats.RunSpeedMultiplier;
-            
-            attackDamage = baseStats.AttackDamage;
-            attackCooldown = baseStats.AttackCooldown;
+            // 复制生存属性
+            maxHealth = baseStats.MaxHealth;
+            currentHealth = maxHealth; // 开始时满生命值
+            maxResilience = baseStats.MaxResilience;
+            currentResilience = maxResilience; // 开始时满韧性值
+            stunThreshold = baseStats.StunThreshold;
             invulnerabilityTime = baseStats.InvulnerabilityTime;
+
+            // 复制晶核属性
+            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig);
+            healthRestoreValue = baseStats.HealthRestoreValue;
             
-            maxInventorySlots = baseStats.MaxInventorySlots;
-
-            // Initialize health tiers
-            coreHealthSlots = baseStats.CoreHealthSlots;
-            slotValue = maxCoreHealth / coreHealthSlots;
-            UpdateHealthTiers();
-
-            // Initialize ammo inventory
-            ammoInventory = new PlayerAmmoInventory(baseStats.DefaultAmmoInventory);
-        }
-
-        /// <summary>
-        /// Restore all health to maximum (used at save points)
-        /// </summary>
-        public void RestoreToFullHealth()
-        {
-            currentPhysicalHealth = maxPhysicalHealth;
-            currentCoreHealth = maxCoreHealth;
-        }
-
-        /// <summary>
-        /// Restore only physical health to maximum
-        /// </summary>
-        public void RestorePhysicalHealth()
-        {
-            currentPhysicalHealth = maxPhysicalHealth;
-        }
-
-        /// <summary>
-        /// Restore only core health to maximum
-        /// </summary>
-        public void RestoreCoreHealth()
-        {
-            currentCoreHealth = maxCoreHealth;
-        }
-
-        /// <summary>
-        /// Check if player is physically alive (physical health > 0)
-        /// </summary>
-        public bool IsAlive => currentPhysicalHealth > 0f;
-
-        /// <summary>
-        /// Check if player is in death state (physical health = 0)
-        /// </summary>
-        public bool IsInDeathState => currentPhysicalHealth <= 0f;
-
-        /// <summary>
-        /// Get physical health percentage (0-1)
-        /// </summary>
-        public float PhysicalHealthPercentage => maxPhysicalHealth > 0 ? currentPhysicalHealth / maxPhysicalHealth : 0f;
-
-        /// <summary>
-        /// Check if player is corely alive (core health > 0)
-        /// </summary>
-        public bool IsCoreAlive => currentCoreHealth > 0f;
-
-        /// <summary>
-        /// Get core health percentage (0-1)
-        /// </summary>
-        public float CoreHealthPercentage => maxCoreHealth > 0 ? currentCoreHealth / maxCoreHealth : 0f;
-        
-        /// <summary>
-        /// Update health tiers based on current health values
-        /// </summary>
-        public void UpdateHealthTiers()
-        {
-            // Update slot value in case core health max changed
-            slotValue = maxCoreHealth / coreHealthSlots;
+            // 复制移动属性
+            walkSpeed = baseStats.WalkSpeed;
+            runSpeed = baseStats.RunSpeed;
+            aimMoveSpeed = baseStats.AimMoveSpeed;
+            reloadMoveSpeed = baseStats.ReloadMoveSpeed;
             
-            // Core Tier calculation
-            if (currentCoreHealth <= 0f)
-                coreTier = CoreHealthTier.Empty;
-            else if (currentCoreHealth <= slotValue)
-                coreTier = CoreHealthTier.Low;
-            else
-                coreTier = CoreHealthTier.High;
-                
-            // Physical Tier calculation  
-            float physicalPercent = PhysicalHealthPercentage;
-            if (physicalPercent > 0.7f)
-                physicalTier = PhysicalHealthTier.Healthy;
-            else if (physicalPercent > 0.3f)
-                physicalTier = PhysicalHealthTier.Wounded;
-            else
-                physicalTier = PhysicalHealthTier.Critical;
+            // 复制装备属性
+            inventoryGridWidth = baseStats.InventoryGridWidth;
+            inventoryGridHeight = baseStats.InventoryGridHeight;
+            moduleSlots = baseStats.ModuleSlots;
+            
+            // 复制交互属性
+            interactionRange = baseStats.InteractionRange;
+            interactionLayerMask = baseStats.InteractionLayerMask;
+            coreInteractionLayerMask = baseStats.CoreInteractionLayerMask;
+
+            // 初始化状态等级
+            UpdateHealthTier();
+            UpdateResilienceState();
         }
 
         /// <summary>
-        /// Check if player can consume one core health slot
+        /// 更新生命等级
         /// </summary>
-        public bool CanConsumeSlot() => currentCoreHealth >= slotValue;
-
-        /// <summary>
-        /// Consume one core health slot (precise slot value)
-        /// </summary>
-        /// <returns>True if successful, false if insufficient core health</returns>
-        public bool ConsumeSlot()
+        public void UpdateHealthTier()
         {
-            if (!CanConsumeSlot()) return false;
-            
-            currentCoreHealth = Mathf.Max(0f, currentCoreHealth - slotValue);
-            UpdateHealthTiers();
-            return true;
-        }
+            var previousTier = healthTier;
+            healthTier = HealthTierHelper.CalculateHealthTier(HealthPercentage);
+            resilienceRegenRate = HealthTierHelper.GetResilienceRegenRate(healthTier);
 
-        /// <summary>
-        /// Get current core health in slot units
-        /// </summary>
-        public float GetCoreHealthInSlots() => slotValue > 0 ? currentCoreHealth / slotValue : 0f;
-    }
-
-    /// <summary>
-    /// Configuration for default ammo inventory setup
-    /// </summary>
-    [System.Serializable]
-    public class AmmoInventoryConfig
-    {
-        [Header("Default Ammo Types")]
-        public List<string> ammoTypes = new List<string> { "Pisto" };
-        
-        [Header("Default Ammo Counts")]
-        public List<int> ammoCounts = new List<int> { 6 };
-        
-        /// <summary>
-        /// Get default ammo as dictionary for easy initialization
-        /// </summary>
-        public Dictionary<string, int> GetDefaultAmmo()
-        {
-            var result = new Dictionary<string, int>();
-            
-            for (int i = 0; i < ammoTypes.Count && i < ammoCounts.Count; i++)
+            if (previousTier != healthTier)
             {
-                if (!string.IsNullOrEmpty(ammoTypes[i]))
-                {
-                    result[ammoTypes[i]] = Mathf.Max(0, ammoCounts[i]);
-                }
-            }
-            
-            return result;
-        }
-    }
-
-    /// <summary>
-    /// Player's ammo inventory system
-    /// Manages different types of ammunition and their quantities
-    /// Simple two-layer structure: PlayerAmmoInventory -> Dictionary<string, int>
-    /// Serialization handled by save system, not direct Unity serialization
-    /// </summary>
-    public class PlayerAmmoInventory
-    {
-        // Single source of truth - runtime dictionary
-        private Dictionary<string, int> _ammoCount = new Dictionary<string, int>();
-        
-        // Events for ammo changes
-        public System.Action<string, int> OnAmmoAdded; // ammoType, amount added
-        public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
-
-        public PlayerAmmoInventory()
-        {
-            _ammoCount = new Dictionary<string, int>();
-        }
-
-        public PlayerAmmoInventory(AmmoInventoryConfig config)
-        {
-            _ammoCount = new Dictionary<string, int>();
-            
-            if (config != null)
-            {
-                var defaultAmmo = config.GetDefaultAmmo();
-                foreach (var kvp in defaultAmmo)
-                {
-                    _ammoCount[kvp.Key] = kvp.Value;
-                }
+                OnHealthTierChanged?.Invoke(healthTier);
+                Debug.Log($"PlayerRuntimeStats: Health tier changed to {healthTier}");
             }
         }
 
         /// <summary>
-        /// Check if player has enough ammo of specified type
+        /// 更新韧性状态
         /// </summary>
-        /// <param name="ammoType">Type of ammo to check</param>
-        /// <param name="amount">Amount needed (default: 1)</param>
-        /// <returns>True if player has enough ammo</returns>
-        public bool HasAmmo(string ammoType, int amount = 1)
+        public void UpdateResilienceState()
         {
-            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
-                return false;
-                
-            return _ammoCount.GetValueOrDefault(ammoType, 0) >= amount;
-        }
+            var previousState = resilienceState;
+            resilienceState = HealthTierHelper.CalculateResilienceState(currentResilience, stunThreshold);
 
-        /// <summary>
-        /// Consume specified amount of ammo
-        /// </summary>
-        /// <param name="ammoType">Type of ammo to consume</param>
-        /// <param name="amount">Amount to consume</param>
-        /// <returns>True if successful, false if insufficient ammo</returns>
-        public bool ConsumeAmmo(string ammoType, int amount)
-        {
-            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
-                return false;
-            
-            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
-            if (oldAmount < amount)
-                return false;
-                
-            int newAmount = oldAmount - amount;
-            _ammoCount[ammoType] = newAmount;
-            
-            Debug.Log($"PlayerAmmoInventory: Consumed {amount} {ammoType} ammo. Remaining: {newAmount}");
-            
-            // Trigger events
-            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
-            return true;
-        }
-
-        /// <summary>
-        /// Add ammo to inventory
-        /// </summary>
-        /// <param name="ammoType">Type of ammo to add</param>
-        /// <param name="amount">Amount to add</param>
-        public void AddAmmo(string ammoType, int amount)
-        {
-            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
-                return;
-            
-            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
-            int newAmount = oldAmount + amount;
-            _ammoCount[ammoType] = newAmount;
-            
-            Debug.Log($"PlayerAmmoInventory: Added {amount} {ammoType} ammo. Total: {newAmount}");
-            
-            // Trigger events
-            OnAmmoAdded?.Invoke(ammoType, amount);
-            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
-        }
-
-        /// <summary>
-        /// Get current count of specific ammo type
-        /// </summary>
-        /// <param name="ammoType">Type of ammo to check</param>
-        /// <returns>Current count</returns>
-        public int GetAmmoCount(string ammoType)
-        {
-            if (string.IsNullOrEmpty(ammoType))
-                return 0;
-                
-            return _ammoCount.GetValueOrDefault(ammoType, 0);
-        }
-
-        /// <summary>
-        /// Get all ammo types and their counts
-        /// </summary>
-        /// <returns>Dictionary of ammo types and counts</returns>
-        public Dictionary<string, int> GetAllAmmo()
-        {
-            return new Dictionary<string, int>(_ammoCount);
-        }
-
-        /// <summary>
-        /// Get list of all available ammo types
-        /// </summary>
-        /// <returns>List of ammo type names</returns>
-        public List<string> GetAvailableAmmoTypes()
-        {
-            var types = new List<string>();
-            
-            foreach (var kvp in _ammoCount)
+            if (previousState != resilienceState)
             {
-                if (kvp.Value > 0)
-                {
-                    types.Add(kvp.Key);
-                }
+                OnResilienceStateChanged?.Invoke(resilienceState);
+                Debug.Log($"PlayerRuntimeStats: Resilience state changed to {resilienceState}");
             }
-            
-            return types;
         }
 
         /// <summary>
-        /// Check if inventory has any ammo at all
+        /// 受到生命伤害
         /// </summary>
-        /// <returns>True if any ammo is available</returns>
-        public bool HasAnyAmmo()
+        /// <param name="damage">伤害值</param>
+        /// <returns>实际造成的伤害</returns>
+        public float TakeHealthDamage(float damage)
         {
-            foreach (var kvp in _ammoCount)
+            if (damage <= 0f || !IsAlive) return 0f;
+
+            float previousHealth = currentHealth;
+            currentHealth = Mathf.Max(0f, currentHealth - damage);
+            float actualDamage = previousHealth - currentHealth;
+
+            if (actualDamage > 0f)
             {
-                if (kvp.Value > 0)
-                    return true;
+                UpdateHealthTier();
+                OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                Debug.Log($"PlayerRuntimeStats: Took {actualDamage} health damage. Current: {currentHealth}/{maxHealth}");
             }
-            
+
+            return actualDamage;
+        }
+
+        /// <summary>
+        /// 受到韧性伤害（硬直）
+        /// </summary>
+        /// <param name="damage">韧性伤害值</param>
+        /// <returns>实际造成的韧性损失</returns>
+        public float TakeResilienceDamage(float damage)
+        {
+            if (damage <= 0f) return 0f;
+
+            float previousResilience = currentResilience;
+            currentResilience = Mathf.Max(0f, currentResilience - damage);
+            float actualDamage = previousResilience - currentResilience;
+
+            if (actualDamage > 0f)
+            {
+                UpdateResilienceState();
+                OnResilienceChanged?.Invoke(currentResilience, maxResilience);
+                Debug.Log($"PlayerRuntimeStats: Took {actualDamage} resilience damage. Current: {currentResilience}/{maxResilience}");
+            }
+
+            return actualDamage;
+        }
+
+        /// <summary>
+        /// 恢复生命值
+        /// </summary>
+        /// <param name="amount">恢复量</param>
+        /// <returns>实际恢复的量</returns>
+        public float RestoreHealth(float amount)
+        {
+            if (amount <= 0f) return 0f;
+
+            float previousHealth = currentHealth;
+            currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+            float actualRestore = currentHealth - previousHealth;
+
+            if (actualRestore > 0f)
+            {
+                UpdateHealthTier();
+                OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                Debug.Log($"PlayerRuntimeStats: Restored {actualRestore} health. Current: {currentHealth}/{maxHealth}");
+            }
+
+            return actualRestore;
+        }
+
+        /// <summary>
+        /// 使用晶核能量恢复生命值
+        /// </summary>
+        /// <returns>是否成功使用</returns>
+        public bool UseHealthRestore()
+        {
+            if (crystalCore == null || !crystalCore.CanConsumeSlot()) return false;
+
+            if (crystalCore.ConsumeEnergySlot())
+            {
+                RestoreHealth(healthRestoreValue);
+                Debug.Log($"PlayerRuntimeStats: Used crystal core energy to restore {healthRestoreValue} health");
+                return true;
+            }
+
             return false;
         }
 
         /// <summary>
-        /// Get total ammo count across all types
+        /// 更新韧性值（自然恢复）
         /// </summary>
-        /// <returns>Total ammo count</returns>
-        public int GetTotalAmmoCount()
+        /// <param name="deltaTime">时间间隔</param>
+        public void UpdateResilience(float deltaTime)
         {
-            int total = 0;
-            foreach (var kvp in _ammoCount)
-            {
-                total += kvp.Value;
-            }
+            if (resilienceRegenRate <= 0f || currentResilience >= maxResilience) return;
+
+            float previousResilience = currentResilience;
+            currentResilience = Mathf.Min(currentResilience + resilienceRegenRate * deltaTime, maxResilience);
             
-            return total;
+            if (currentResilience != previousResilience)
+            {
+                UpdateResilienceState();
+                OnResilienceChanged?.Invoke(currentResilience, maxResilience);
+            }
         }
 
         /// <summary>
-        /// Clear all ammo (for testing or special events)
+        /// 完全恢复生命和韧性（存档点使用）
         /// </summary>
-        public void ClearAllAmmo()
+        public void FullRestore()
         {
-            _ammoCount.Clear();
-            Debug.Log("PlayerAmmoInventory: All ammo cleared");
+            currentHealth = maxHealth;
+            currentResilience = maxResilience;
+            crystalCore?.FullRepair();
+
+            UpdateHealthTier();
+            UpdateResilienceState();
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            OnResilienceChanged?.Invoke(currentResilience, maxResilience);
+
+            Debug.Log("PlayerRuntimeStats: Full restore completed");
         }
 
         /// <summary>
-        /// Set ammo count for a specific type (for testing or special events)
+        /// 获取保存数据
         /// </summary>
-        /// <param name="ammoType">Type of ammo</param>
-        /// <param name="count">New count</param>
-        public void SetAmmoCount(string ammoType, int count)
+        /// <returns>运行时属性保存数据</returns>
+        public PlayerRuntimeStatsSaveData GetSaveData()
         {
-            if (string.IsNullOrEmpty(ammoType))
+            return new PlayerRuntimeStatsSaveData
+            {
+                currentHealth = this.currentHealth,
+                currentResilience = this.currentResilience,
+                crystalCoreSaveData = crystalCore?.GetSaveData(),
+                inventoryGridWidth = this.inventoryGridWidth,
+                inventoryGridHeight = this.inventoryGridHeight
+            };
+        }
+
+        /// <summary>
+        /// 从保存数据加载
+        /// </summary>
+        /// <param name="saveData">保存数据</param>
+        public void LoadFromSaveData(PlayerRuntimeStatsSaveData saveData)
+        {
+            if (saveData == null)
+            {
+                Debug.LogWarning("PlayerRuntimeStats: Cannot load from null save data");
                 return;
-            
-            int oldAmount = _ammoCount.GetValueOrDefault(ammoType, 0);
-            int newAmount = Mathf.Max(0, count);
-            _ammoCount[ammoType] = newAmount;
-            
-            Debug.Log($"PlayerAmmoInventory: Set {ammoType} ammo to {newAmount}");
-            
-            // Trigger events if amount actually changed
-            if (oldAmount != newAmount)
-            {
-                OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
             }
+
+            currentHealth = Mathf.Clamp(saveData.currentHealth, 0f, maxHealth);
+            currentResilience = Mathf.Clamp(saveData.currentResilience, 0f, maxResilience);
+
+            if (saveData.crystalCoreSaveData != null && crystalCore != null)
+            {
+                crystalCore.LoadFromSaveData(saveData.crystalCoreSaveData);
+            }
+
+            // 可升级属性
+            if (saveData.inventoryGridWidth > 0) inventoryGridWidth = saveData.inventoryGridWidth;
+            if (saveData.inventoryGridHeight > 0) inventoryGridHeight = saveData.inventoryGridHeight;
+
+            UpdateHealthTier();
+            UpdateResilienceState();
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            OnResilienceChanged?.Invoke(currentResilience, maxResilience);
+
+            Debug.Log($"PlayerRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}, Resilience: {currentResilience}/{maxResilience}");
         }
 
         /// <summary>
-        /// Load ammo data from save system
+        /// 清理事件订阅
         /// </summary>
-        /// <param name="ammoData">Dictionary of ammo type to count</param>
-        public void LoadFromSaveData(Dictionary<string, int> ammoData)
+        public void Cleanup()
         {
-            _ammoCount.Clear();
-            
-            if (ammoData != null)
-            {
-                foreach (var kvp in ammoData)
-                {
-                    if (!string.IsNullOrEmpty(kvp.Key))
-                    {
-                        _ammoCount[kvp.Key] = Mathf.Max(0, kvp.Value);
-                    }
-                }
-            }
-            
-            Debug.Log($"PlayerAmmoInventory: Loaded {_ammoCount.Count} ammo types from save data");
+            OnHealthChanged = null;
+            OnResilienceChanged = null;
+            OnHealthTierChanged = null;
+            OnResilienceStateChanged = null;
+            crystalCore?.Cleanup();
         }
+    }
 
-        /// <summary>
-        /// Get ammo data for save system
-        /// </summary>
-        /// <returns>Dictionary of ammo type to count for serialization</returns>
-        public Dictionary<string, int> GetSaveData()
+    /// <summary>
+    /// 玩家运行时属性保存数据结构
+    /// </summary>
+    [System.Serializable]
+    public class PlayerRuntimeStatsSaveData
+    {
+        public float currentHealth;
+        public float currentResilience;
+        public CrystalCoreSaveData crystalCoreSaveData;
+        public int inventoryGridWidth;
+        public int inventoryGridHeight;
+
+        public PlayerRuntimeStatsSaveData()
         {
-            return new Dictionary<string, int>(_ammoCount);
+            currentHealth = 100f;
+            currentResilience = 100f;
+            crystalCoreSaveData = null;
+            inventoryGridWidth = 5;
+            inventoryGridHeight = 5;
         }
     }
 }

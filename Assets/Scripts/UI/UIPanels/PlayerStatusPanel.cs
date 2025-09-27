@@ -12,14 +12,14 @@ namespace Resonance.UI
 {
     /// <summary>
     /// PlayerStatusPanel displays the player's status and health information.
-    /// It displays player's physical health and core health.
+    /// It displays player's health health and core health.
     /// It also displays the current weapon equipped, and it's ammo count.
     /// </summary>
     public class PlayerStatusPanel : UIPanel
     {
         [Header("UI References")]
         [SerializeField] private GameObject _weaponPanel;
-        [SerializeField] private GameObject _physicalHealthPanel;
+        [SerializeField] private GameObject _healthPanel;
         [SerializeField] private GameObject _coreHealthPanel;
         
         [Header("Weapon UI")]
@@ -27,7 +27,7 @@ namespace Resonance.UI
         [SerializeField] private TextMeshProUGUI _ammoCount;
         
         [Header("Physical Health UI")]
-        [SerializeField] private Image _physicalHealthValue;
+        [SerializeField] private Image _healthValue;
         
         [Header("Core Health UI")]
         [SerializeField] private Image _coreHealthBar;
@@ -79,8 +79,8 @@ namespace Resonance.UI
             // Auto-find panels if not assigned
             if (_weaponPanel == null)
                 _weaponPanel = FindChildGameObject("Weapon");
-            if (_physicalHealthPanel == null)
-                _physicalHealthPanel = FindChildGameObject("PhysicalHealth");
+            if (_healthPanel == null)
+                _healthPanel = FindChildGameObject("Health");
             if (_coreHealthPanel == null)
                 _coreHealthPanel = FindChildGameObject("CoreHealth");
             
@@ -90,9 +90,9 @@ namespace Resonance.UI
             if (_ammoCount == null && _weaponPanel != null)
                 _ammoCount = FindChildComponent<TextMeshProUGUI>(_weaponPanel, "AmmoCount");
             
-            // Auto-find physical health UI components
-            if (_physicalHealthValue == null && _physicalHealthPanel != null)
-                _physicalHealthValue = FindChildComponent<Image>(_physicalHealthPanel, "Value");
+            // Auto-find health health UI components
+            if (_healthValue == null && _healthPanel != null)
+                _healthValue = FindChildComponent<Image>(_healthPanel, "Value");
             
             // Auto-find core health UI components
             if (_coreHealthBar == null && _coreHealthPanel != null)
@@ -103,13 +103,13 @@ namespace Resonance.UI
 
         private void LoadHealthSprites()
         {
-            // Load physical health sprites from Resources
+            // Load health health sprites from Resources
             if (_healthyHealthSprite == null)
-                _healthyHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/healthy_health");
+                _healthyHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/healthy_health");
             if (_woundedHealthSprite == null)
-                _woundedHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/wounded_health");
+                _woundedHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/wounded_health");
             if (_criticalHealthSprite == null)
-                _criticalHealthSprite = Resources.Load<Sprite>("Art/Sprites/PhysicalHealth/critical_health");
+                _criticalHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/critical_health");
             
             // Log warnings if sprites couldn't be loaded
             if (_healthyHealthSprite == null)
@@ -185,7 +185,7 @@ namespace Resonance.UI
             if (_playerController == null) return;
             
             // Subscribe to dual health events
-            _playerController.OnPhysicalHealthChanged += OnPhysicalHealthChanged;
+            _playerController.OnHealthChanged += OnHealthChanged;
             _playerController.OnCoreHealthChanged += OnCoreHealthChanged;
             
             // Subscribe to weapon events
@@ -197,9 +197,9 @@ namespace Resonance.UI
             }
             
             // Subscribe to ammo inventory events
-            if (_playerController.Stats?.ammoInventory != null)
+            if (_playerController.Inventory != null)
             {
-                _playerController.Stats.ammoInventory.OnAmmoChanged += OnBackupAmmoChanged;
+                _playerController.Inventory.OnAmmoChanged += OnBackupAmmoChanged;
             }
         }
 
@@ -207,13 +207,13 @@ namespace Resonance.UI
         {
             if (_playerController != null)
             {
-                _playerController.OnPhysicalHealthChanged -= OnPhysicalHealthChanged;
+                _playerController.OnHealthChanged -= OnHealthChanged;
                 _playerController.OnCoreHealthChanged -= OnCoreHealthChanged;
                 
                 // Unsubscribe from ammo inventory events
-                if (_playerController.Stats?.ammoInventory != null)
+                if (_playerController.Inventory != null)
                 {
-                    _playerController.Stats.ammoInventory.OnAmmoChanged -= OnBackupAmmoChanged;
+                    _playerController.Inventory.OnAmmoChanged -= OnBackupAmmoChanged;
                 }
             }
             
@@ -233,9 +233,9 @@ namespace Resonance.UI
 
         #region Event Handlers
 
-        private void OnPhysicalHealthChanged(float currentHealth, float maxHealth)
+        private void OnHealthChanged(float currentHealth, float maxHealth)
         {
-            UpdatePhysicalHealthUI(currentHealth, maxHealth);
+            UpdateHealthUI(currentHealth, maxHealth);
         }
 
         private void OnCoreHealthChanged(float currentHealth, float maxHealth)
@@ -277,7 +277,7 @@ namespace Resonance.UI
             if (!_isInitialized) return;
             
             UpdateWeaponUI();
-            UpdatePhysicalHealthUI();
+            UpdateHealthUI();
             UpdateCoreHealthUI();
         }
 
@@ -316,7 +316,7 @@ namespace Resonance.UI
             if (hasWeapon)
             {
                 int currentAmmo = _weaponManager.CurrentAmmo;
-                int backupAmmo = _playerController.Stats.ammoInventory.GetAmmoCount(_weaponManager.AmmoType);
+                int backupAmmo = _playerController.Inventory?.GetAmmoCount(_weaponManager.AmmoType) ?? 0;
                 _ammoCount.text = $"{currentAmmo}/{backupAmmo}";
             }
             else
@@ -325,16 +325,16 @@ namespace Resonance.UI
             }
         }
 
-        private void UpdatePhysicalHealthUI(float currentHealth = -1, float maxHealth = -1)
+        private void UpdateHealthUI(float currentHealth = -1, float maxHealth = -1)
         {
-            if (_physicalHealthValue == null || _playerController == null) return;
+            if (_healthValue == null || _playerController == null) return;
             
             // Get current values if not provided
             if (currentHealth < 0 || maxHealth < 0)
             {
                 var stats = _playerController.Stats;
-                currentHealth = stats.currentPhysicalHealth;
-                maxHealth = stats.maxPhysicalHealth;
+                currentHealth = stats.currentHealth;
+                maxHealth = stats.maxHealth;
             }
             
             // Calculate health percentage
@@ -352,7 +352,7 @@ namespace Resonance.UI
             // Update the image
             if (healthSprite != null)
             {
-                _physicalHealthValue.sprite = healthSprite;
+                _healthValue.sprite = healthSprite;
             }
         }
 
@@ -364,8 +364,8 @@ namespace Resonance.UI
             if (currentHealth < 0 || maxHealth < 0)
             {
                 var stats = _playerController.Stats;
-                currentHealth = stats.currentCoreHealth;
-                maxHealth = stats.maxCoreHealth;
+                currentHealth = stats.crystalCore.CurrentEnergy;
+                maxHealth = stats.crystalCore.CurrentEnergyCapacity;
             }
             
             // Calculate health percentage

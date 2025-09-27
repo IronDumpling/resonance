@@ -30,7 +30,7 @@ namespace Resonance.Enemies
     public class EnemyHitbox : MonoBehaviour
     {
         public EnemyHitboxType type;
-        public float physicalMultiplier = 2f;     // 打到时对物理部分的倍率
+        public float healthMultiplier = 2f;     // 打到时对物理部分的倍率
         public float coreMultiplier   = 2f;     // 打到时对精神部分的倍率
         
         [Range(0,1)] public float convertPhysicalToCore = 0f; // 例如核心被打时，把物理伤害按比例转为精神
@@ -258,28 +258,28 @@ namespace Resonance.Enemies
                 d.amount,
                 d.type,
                 d.sourcePosition,
-                d.physicalRatio,
+                d.healthRatio,
                 d.sourceObject,
                 d.description
             );
 
             switch (modifiedDamage.type)
             {
-                case DamageType.Physical:
+                case DamageType.Health:
                     if (convertPhysicalToCore > 0f && type == EnemyHitboxType.Core) 
                     {
-                        // Convert some physical damage to core
+                        // Convert some health damage to core
                         modifiedDamage.type = DamageType.Mixed;
-                        modifiedDamage.physicalRatio = Mathf.Clamp01(1f - convertPhysicalToCore);
+                        modifiedDamage.healthRatio = Mathf.Clamp01(1f - convertPhysicalToCore);
                         
                         // Apply multipliers to both parts
-                        float physPart = modifiedDamage.amount * modifiedDamage.physicalRatio * physicalMultiplier;
-                        float mentPart = modifiedDamage.amount * (1f - modifiedDamage.physicalRatio) * coreMultiplier;
+                        float physPart = modifiedDamage.amount * modifiedDamage.healthRatio * healthMultiplier;
+                        float mentPart = modifiedDamage.amount * (1f - modifiedDamage.healthRatio) * coreMultiplier;
                         modifiedDamage.amount = physPart + mentPart;
                     } 
                     else 
                     {
-                        modifiedDamage.amount *= physicalMultiplier;
+                        modifiedDamage.amount *= healthMultiplier;
                     }
                     break;
                     
@@ -288,9 +288,9 @@ namespace Resonance.Enemies
                     break;
                     
                 case DamageType.Mixed:
-                    // Apply multipliers separately to physical and core portions
-                    float physDamage = modifiedDamage.amount * modifiedDamage.physicalRatio * physicalMultiplier;
-                    float mentDamage = modifiedDamage.amount * (1f - modifiedDamage.physicalRatio) * coreMultiplier;
+                    // Apply multipliers separately to health and core portions
+                    float physDamage = modifiedDamage.amount * modifiedDamage.healthRatio * healthMultiplier;
+                    float mentDamage = modifiedDamage.amount * (1f - modifiedDamage.healthRatio) * coreMultiplier;
                     modifiedDamage.amount = physDamage + mentDamage;
                     break;
             }

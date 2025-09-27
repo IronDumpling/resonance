@@ -35,7 +35,7 @@ namespace Resonance.Player.Actions
             // Check basic conditions
             if (!playerController.IsAlive)
             {
-                Debug.Log("PlayerReloadAction: Cannot reload - player not physically alive");
+                Debug.Log("PlayerReloadAction: Cannot reload - player not healthly alive");
                 return false;
             }
 
@@ -78,9 +78,9 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            // Check if player has compatible ammo
+            // Check if player has compatible ammo in inventory
             string weaponAmmoType = currentGun.ammoType;
-            int playerAmmoCount = playerController.Stats.ammoInventory.GetAmmoCount(weaponAmmoType);
+            int playerAmmoCount = playerController.Inventory?.GetAmmoCount(weaponAmmoType) ?? 0;
             
             if (playerAmmoCount <= 0)
             {
@@ -104,7 +104,7 @@ namespace Resonance.Player.Actions
             var currentGun = playerController.WeaponManager.CurrentGun;
             _ammoType = currentGun.ammoType;
             _ammoNeeded = currentGun.maxAmmo - currentGun.CurrentAmmo;
-            _playerAmmoAvailable = playerController.Stats.ammoInventory.GetAmmoCount(_ammoType);
+            _playerAmmoAvailable = playerController.Inventory?.GetAmmoCount(_ammoType) ?? 0;
 
             Debug.Log($"PlayerReloadAction: Started reload - need {_ammoNeeded} {_ammoType} ammo, player has {_playerAmmoAvailable}");
 
@@ -150,7 +150,14 @@ namespace Resonance.Player.Actions
             if (!_isActive) return;
 
             var currentGun = playerController.WeaponManager.CurrentGun;
-            var ammoInventory = playerController.Stats.ammoInventory;
+            var inventory = playerController.Inventory;
+
+            if (inventory == null)
+            {
+                Debug.LogError("PlayerReloadAction: Player inventory is null, cannot complete reload");
+                Cancel(playerController);
+                return;
+            }
 
             // Calculate actual ammo transfer
             int ammoToTransfer;
@@ -159,19 +166,19 @@ namespace Resonance.Player.Actions
                 // Player has enough ammo to fill weapon completely
                 ammoToTransfer = _ammoNeeded;
                 currentGun.SetCurrentAmmo(currentGun.maxAmmo);
-                ammoInventory.ConsumeAmmo(_ammoType, _ammoNeeded);
+                inventory.ConsumeAmmo(_ammoType, _ammoNeeded);
             }
             else
             {
                 // Player doesn't have enough ammo, transfer all available
                 ammoToTransfer = _playerAmmoAvailable;
                 currentGun.SetCurrentAmmo(currentGun.CurrentAmmo + _playerAmmoAvailable);
-                ammoInventory.ConsumeAmmo(_ammoType, _playerAmmoAvailable);
+                inventory.ConsumeAmmo(_ammoType, _playerAmmoAvailable);
             }
 
             Debug.Log($"PlayerReloadAction: Reload completed - transferred {ammoToTransfer} {_ammoType} ammo");
             Debug.Log($"PlayerReloadAction: Weapon ammo: {currentGun.CurrentAmmo}/{currentGun.maxAmmo}");
-            Debug.Log($"PlayerReloadAction: Player {_ammoType} ammo remaining: {ammoInventory.GetAmmoCount(_ammoType)}");
+            Debug.Log($"PlayerReloadAction: Player {_ammoType} ammo remaining: {inventory.GetAmmoCount(_ammoType)}");
 
             // Play reload complete audio
             PlayReloadCompleteAudio(playerController);

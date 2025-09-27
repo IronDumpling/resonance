@@ -278,7 +278,7 @@ namespace Resonance.Player
             }
 
             // Initialize with player controller and range from base stats
-            float coreAttackRange = _baseStats?.CoreAttackRange ?? 1.5f;
+            float coreAttackRange = _baseStats?.InteractionRange ?? 1.5f;
             _coreAttackTrigger.Initialize(_playerController, coreAttackRange);
 
             // Subscribe to events for debugging
@@ -886,7 +886,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Take physical damage (affects physical health)
+        /// Take health damage (affects health health)
         /// </summary>
         public void TakePhysicalDamage(float damage)
         {
@@ -908,7 +908,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Heal physical health
+        /// Heal health health
         /// </summary>
         public void HealPhysical(float amount)
         {
@@ -946,10 +946,10 @@ namespace Resonance.Player
             // CoreAttackTrigger debug info
             string coreAttackInfo = GetCoreAttackRangeDebugInfo();
             
-            Debug.Log($"Physical Health: {stats.currentPhysicalHealth}/{stats.maxPhysicalHealth}, " +
-                     $"Core Health: {stats.currentCoreHealth}/{stats.maxCoreHealth}, " +
-                     $"Core Tier: {_playerController.CoreTier}, Physical Tier: {_playerController.PhysicalTier}, " +
-                     $"Slots: {_playerController.CoreHealthInSlots:F1}/{stats.coreHealthSlots}, " +
+            Debug.Log($"Physical Health: {stats.currentHealth}/{stats.maxHealth}, " +
+                     $"Core Health: {stats.crystalCore.CurrentEnergy}/{stats.crystalCore.CurrentEnergyCapacity}, " +
+                     $"Core Tier: {_playerController.Stats.crystalCore.EnergyTier}, Physical Tier: {_playerController.Stats.healthTier}, " +
+                     $"Slots: {_playerController.Stats.crystalCore.GetEnergyInSlots():F1}/{stats.crystalCore.MaxSlots}, " +
                      $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
                      $"{edgeInfo}, {coreAttackInfo}");
@@ -998,7 +998,7 @@ namespace Resonance.Player
 
             switch (damageInfo.type)
             {
-                case DamageType.Physical:
+                case DamageType.Health:
                     _playerController.TakePhysicalDamage(damageInfo.amount);
                     break;
                     
@@ -1007,9 +1007,9 @@ namespace Resonance.Player
                     break;
                     
                 case DamageType.Mixed:
-                    float physicalDamage = damageInfo.amount * damageInfo.physicalRatio;
-                    float coreDamage = damageInfo.amount * (1f - damageInfo.physicalRatio);
-                    _playerController.TakePhysicalDamage(physicalDamage);
+                    float healthDamage = damageInfo.amount * damageInfo.healthRatio;
+                    float coreDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
+                    _playerController.TakePhysicalDamage(healthDamage);
                     _playerController.TakeCoreDamage(coreDamage);
                     break;
             }
@@ -1018,7 +1018,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Take physical damage
+        /// Take health damage
         /// </summary>
         public void TakePhysicalDamage(float damage, Vector3 damageSource)
         {
@@ -1044,7 +1044,7 @@ namespace Resonance.Player
         #region Health Properties
 
         /// <summary>
-        /// Is physically alive (physical health > 0)
+        /// Is healthly alive (health health > 0)
         /// </summary>
         public bool IsAlive => IsInitialized && _playerController.IsAlive;
 
@@ -1054,29 +1054,29 @@ namespace Resonance.Player
         public bool IsCoreAlive => IsInitialized && _playerController.IsCoreAlive;
 
         /// <summary>
-        /// Is in death state (physical health = 0 but core health > 0)
+        /// Is in death state (health health = 0 but core health > 0)
         /// </summary>
         public bool IsInDeathState => IsInitialized && _playerController.IsInDeathState;
 
         /// <summary>
-        /// Current physical health
+        /// Current health health
         /// </summary>
-        public float CurrentPhysicalHealth => IsInitialized ? _playerController.Stats.currentPhysicalHealth : 0f;
+        public float CurrentHealth => IsInitialized ? _playerController.Stats.currentHealth : 0f;
 
         /// <summary>
-        /// Max physical health
+        /// Max health health
         /// </summary>
-        public float MaxPhysicalHealth => IsInitialized ? _playerController.Stats.maxPhysicalHealth : 0f;
+        public float MaxHealth => IsInitialized ? _playerController.Stats.maxHealth : 0f;
 
         /// <summary>
         /// Current core health
         /// </summary>
-        public float CurrentCoreHealth => IsInitialized ? _playerController.Stats.currentCoreHealth : 0f;
+        public float CurrentCoreHealth => IsInitialized ? _playerController.Stats.crystalCore.CurrentEnergy : 0f;
 
         /// <summary>
         /// Max core health
         /// </summary>
-        public float MaxCoreHealth => IsInitialized ? _playerController.Stats.maxCoreHealth : 0f;
+        public float MaxCoreHealth => IsInitialized ? _playerController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
 
         #endregion
 

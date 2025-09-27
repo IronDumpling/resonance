@@ -5,8 +5,8 @@ using Resonance.Enemies.Core;
 namespace Resonance.Enemies.Actions
 {
     /// <summary>
-    /// Enemy revive action - handles the revival process when physical health reaches 0
-    /// Only executed in Reviving state, restores physical health over time
+    /// Enemy revive action - handles the revival process when health health reaches 0
+    /// Only executed in Reviving state, restores health health over time
     /// </summary>
     public class EnemyReviveAction : IEnemyAction
     {
@@ -53,13 +53,10 @@ namespace Resonance.Enemies.Actions
                 return;
             }
             
-            // Revival is handled by EnemyController.UpdateRevivalTimer()
-            // This action mainly serves as a state indicator and behavior controller
-            
-            // Check if revival is complete (physical health restored)
+            // Check if revival is complete (health health restored)
             if (enemy.IsAlive)
             {
-                Debug.Log("EnemyReviveAction: Revival completed - physical health restored");
+                Debug.Log("EnemyReviveAction: Revival completed - health health restored");
                 _isFinished = true;
                 return;
             }
@@ -68,7 +65,7 @@ namespace Resonance.Enemies.Actions
             if (_reviveTimer > enemy.Stats.revivalDuration * 3f)
             {
                 Debug.LogWarning("EnemyReviveAction: Revival timeout - forcing completion");
-                enemy.Stats.RestorePhysicalHealth();
+                enemy.Stats.FullRestore();
                 _isFinished = true;
                 return;
             }
@@ -92,8 +89,8 @@ namespace Resonance.Enemies.Actions
         /// </summary>
         public float GetRevivalProgress(EnemyController enemy)
         {
-            if (enemy.Stats.maxPhysicalHealth <= 0f) return 0f;
-            return enemy.Stats.currentPhysicalHealth / enemy.Stats.maxPhysicalHealth;
+            if (enemy.Stats.maxHealth <= 0f) return 0f;
+            return enemy.Stats.currentHealth / enemy.Stats.maxHealth;
         }
 
         /// <summary>
@@ -111,7 +108,7 @@ namespace Resonance.Enemies.Actions
         {
             if (enemy.Stats.revivalRate <= 0f) return float.MaxValue;
             
-            float healthRemaining = enemy.Stats.maxPhysicalHealth - enemy.Stats.currentPhysicalHealth;
+            float healthRemaining = enemy.Stats.maxHealth - enemy.Stats.currentHealth;
             return healthRemaining / enemy.Stats.revivalRate;
         }
     }

@@ -9,7 +9,7 @@ namespace Resonance.Items
     /// Gun数据的ScriptableObject资产
     /// 用于在Unity Editor中创建和编辑Gun配置
     /// </summary>
-    [CreateAssetMenu(fileName = "New Gun Data", menuName = "Wave/Items/Gun Data", order = 1)]
+    [CreateAssetMenu(fileName = "New Gun Data", menuName = "Resonance/Items/Gun Data", order = 1)]
     public class GunDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]
@@ -31,11 +31,11 @@ namespace Resonance.Items
         
         [Header("Damage Type")]
         [Tooltip("Type of damage this weapon deals")]
-        public DamageType damageType = DamageType.Physical;
+        public DamageType damageType = DamageType.Health;
         
-        [Tooltip("For Mixed damage type: ratio of physical damage (0-1). 1.0 = all physical, 0.0 = all core")]
+        [Tooltip("For Mixed damage type: ratio of health damage (0-1). 1.0 = all health, 0.0 = all core")]
         [Range(0f, 1f)]
-        public float physicalDamageRatio = 0.5f;
+        public float healthDamageRatio = 0.5f;
         
         [Header("Visual")]
         public Sprite weaponIcon;
@@ -167,7 +167,7 @@ namespace Resonance.Items
                 amount: damage,
                 type: damageType,
                 sourcePosition: sourcePosition,
-                physicalRatio: damageType == DamageType.Mixed ? physicalDamageRatio : (damageType == DamageType.Physical ? 1.0f : 0.0f),
+                healthRatio: damageType == DamageType.Mixed ? healthDamageRatio : (damageType == DamageType.Health ? 1.0f : 0.0f),
                 sourceObject: sourceObject,
                 description: $"{weaponName} shot"
             );
@@ -181,10 +181,11 @@ namespace Resonance.Items
         {
             return damageType switch
             {
-                DamageType.Physical => "物理伤害 - 影响物理血量",
-                DamageType.Core => "精神伤害 - 影响精神血量",
-                DamageType.Mixed => $"混合伤害 - 物理{physicalDamageRatio:P0}/精神{(1-physicalDamageRatio):P0}",
-                _ => "未知伤害类型"
+                DamageType.Health => "Health",
+                DamageType.Resilience => "Resilience",
+                DamageType.Core => "Core",
+                DamageType.Mixed => $"Mixed Damage - Health{healthDamageRatio:P0}/Resilience{(1-healthDamageRatio):P0}",
+                _ => "Unknown Damage Type"
             };
         }
 
@@ -206,7 +207,7 @@ namespace Resonance.Items
             copy.range = this.range;
             copy.fireRate = this.fireRate;
             copy.damageType = this.damageType;
-            copy.physicalDamageRatio = this.physicalDamageRatio;
+            copy.healthDamageRatio = this.healthDamageRatio;
             copy.weaponIcon = this.weaponIcon;
             copy.gridWidth = this.gridWidth;
             copy.gridHeight = this.gridHeight;

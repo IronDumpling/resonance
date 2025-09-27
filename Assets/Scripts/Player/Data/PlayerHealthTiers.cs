@@ -1,24 +1,116 @@
+using Resonance.Core.Data;
+
 namespace Resonance.Player.Data
 {
     /// <summary>
-    /// Core health tier based on slot consumption
-    /// Core health is divided into N slots (currently 3)
+    /// 玩家生命值等级
+    /// 基于生命值百分比阈值，影响韧性恢复速度
     /// </summary>
-    public enum CoreHealthTier
+    public enum HealthTier
     {
-        High,   // > 1 slot
-        Low,    // ≤ 1 slot, > 0  
-        Empty   // = 0
+        Healthy,    // 80-100% - 健康状态，韧性恢复+10
+        Injured,    // 60-80% - 轻伤状态，韧性恢复+8
+        Wounded,    // 30-60% - 重伤状态，韧性恢复+3
+        Critical    // 0-30% - 濒死状态，韧性恢复+2
     }
 
     /// <summary>
-    /// Physical health tier based on percentage thresholds
-    /// Used for UI display and movement speed modifiers
+    /// 玩家韧性状态
+    /// 基于当前韧性值
     /// </summary>
-    public enum PhysicalHealthTier
+    public enum ResilienceState
     {
-        Healthy,    // > 70% (normal_health sprite)
-        Wounded,    // > 30%, ≤ 70% (median_health sprite)
-        Critical    // ≥ 0%, ≤ 30% (bad_health sprite)
+        Normal,     // 韧性值 > 眩晕阈值
+        Stunned     // 韧性值 <= 眩晕阈值
+    }
+
+    /// <summary>
+    /// 健康等级辅助类
+    /// 提供健康等级相关的计算和配置
+    /// </summary>
+    public static class HealthTierHelper
+    {
+        // 健康等级阈值
+        public const float HEALTHY_THRESHOLD = 0.8f;     // 80%
+        public const float INJURED_THRESHOLD = 0.6f;     // 60%
+        public const float WOUNDED_THRESHOLD = 0.3f;     // 30%
+        
+        // 韧性恢复速率
+        public const float HEALTHY_RESILIENCE_REGEN = 10f;
+        public const float INJURED_RESILIENCE_REGEN = 8f;
+        public const float WOUNDED_RESILIENCE_REGEN = 3f;
+        public const float CRITICAL_RESILIENCE_REGEN = 2f;
+
+        /// <summary>
+        /// 根据生命值百分比计算健康等级
+        /// </summary>
+        /// <param name="healthPercentage">生命值百分比 (0-1)</param>
+        /// <returns>健康等级</returns>
+        public static HealthTier CalculateHealthTier(float healthPercentage)
+        {
+            if (healthPercentage >= HEALTHY_THRESHOLD)
+                return HealthTier.Healthy;
+            else if (healthPercentage >= INJURED_THRESHOLD)
+                return HealthTier.Injured;
+            else if (healthPercentage >= WOUNDED_THRESHOLD)
+                return HealthTier.Wounded;
+            else
+                return HealthTier.Critical;
+        }
+
+        /// <summary>
+        /// 获取指定健康等级的韧性恢复速率
+        /// </summary>
+        /// <param name="tier">健康等级</param>
+        /// <returns>韧性恢复速率</returns>
+        public static float GetResilienceRegenRate(HealthTier tier)
+        {
+            switch (tier)
+            {
+                case HealthTier.Healthy:
+                    return HEALTHY_RESILIENCE_REGEN;
+                case HealthTier.Injured:
+                    return INJURED_RESILIENCE_REGEN;
+                case HealthTier.Wounded:
+                    return WOUNDED_RESILIENCE_REGEN;
+                case HealthTier.Critical:
+                    return CRITICAL_RESILIENCE_REGEN;
+                default:
+                    return CRITICAL_RESILIENCE_REGEN;
+            }
+        }
+
+        /// <summary>
+        /// 计算韧性状态
+        /// </summary>
+        /// <param name="currentResilience">当前韧性值</param>
+        /// <param name="stunThreshold">眩晕阈值</param>
+        /// <returns>韧性状态</returns>
+        public static ResilienceState CalculateResilienceState(float currentResilience, float stunThreshold)
+        {
+            return currentResilience > stunThreshold ? ResilienceState.Normal : ResilienceState.Stunned;
+        }
+
+        /// <summary>
+        /// 获取健康等级的描述文本
+        /// </summary>
+        /// <param name="tier">健康等级</param>
+        /// <returns>描述文本</returns>
+        public static string GetHealthTierDescription(HealthTier tier)
+        {
+            switch (tier)
+            {
+                case HealthTier.Healthy:
+                    return "Healthy";
+                case HealthTier.Injured:
+                    return "Injured";
+                case HealthTier.Wounded:
+                    return "Wounded";
+                case HealthTier.Critical:
+                    return "Critical";
+                default:
+                    return "Unknown";
+            }
+        }
     }
 }

@@ -49,7 +49,7 @@ namespace Resonance.Player.Actions
             // Must be in Normal state (not in other actions or death states)
             if (player.CurrentState != "Normal") return false;
 
-            // Must be physically alive to interact
+            // Must be healthly alive to interact
             if (!player.IsAlive) return false;
 
             // Find a valid interactable object in range
