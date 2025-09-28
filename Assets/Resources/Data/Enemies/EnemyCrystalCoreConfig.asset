@@ -15,7 +15,7 @@ MonoBehaviour:
   defaultPattern: 
   maxEnergyCapacity: 60
   energyPerSlot: 20
-  startWithFullEnergy: 0
+  startWithFullEnergy: 1
   canUpgradeCapacity: 1
   capacityUpgradeStep: 20
   maxUpgradeableCapacity: 200
