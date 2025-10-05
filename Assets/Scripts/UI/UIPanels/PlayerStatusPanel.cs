@@ -6,6 +6,7 @@ using Resonance.Core;
 using Resonance.Interfaces.Services;
 using Resonance.Player;
 using Resonance.Player.Core;
+using Resonance.Player.Data;
 using Resonance.Items;
 using Resonance.Utilities;
 
@@ -129,11 +130,11 @@ namespace Resonance.UI
             if (_coreEnergyLockedValue == null && _coreEnergyPanel != null)
                 _coreEnergyLockedValue = FindChildComponent<Image>(_coreEnergyPanel, "LockedValue");
             if (_coreSlotsContainer == null && _coreEnergyPanel != null)
-                _coreSlotsContainer = FindChildGameObject(_coreEnergyPanel, "Slots");
+                _coreSlotsContainer = FindChildGameObject(_coreEnergyPanel, "SlotContainer");
             
             // Load divider prefab if not assigned
             if (_dividerPrefab == null)
-                _dividerPrefab = Resources.Load<GameObject>("Prefabs/UIs/Divider");
+                _dividerPrefab = Resources.Load<GameObject>("Prefabs/UIs/SlotDivider");
         }
 
         private void LoadHealthSprites()
@@ -404,26 +405,34 @@ namespace Resonance.UI
         private void UpdateHealthUI(float currentHealth = -1, float maxHealth = -1)
         {
             if (_healthValue == null || _playerController == null) return;
+
+            var stats = _playerController.Stats;
             
             // Get current values if not provided
             if (currentHealth < 0 || maxHealth < 0)
             {
-                var stats = _playerController.Stats;
                 currentHealth = stats.currentHealth;
                 maxHealth = stats.maxHealth;
             }
             
-            // Calculate health percentage
-            float healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0f;
-            
             // Determine which sprite to use based on health percentage
             Sprite healthSprite = null;
-            if (healthPercentage > 0.7f)
-                healthSprite = _healthyHealthSprite;
-            else if (healthPercentage > 0.3f)
-                healthSprite = _woundedHealthSprite;
-            else
-                healthSprite = _criticalHealthSprite;
+
+            switch (stats.healthTier)
+            {
+                case HealthTier.Healthy:
+                    healthSprite = _healthyHealthSprite;
+                    break;
+                case HealthTier.Injured:
+                    healthSprite = _injuredHealthSprite;
+                    break;
+                case HealthTier.Wounded:
+                    healthSprite = _woundedHealthSprite;
+                    break;
+                case HealthTier.Critical:
+                    healthSprite = _criticalHealthSprite;
+                    break;
+            }
             
             // Update the image
             if (healthSprite != null)

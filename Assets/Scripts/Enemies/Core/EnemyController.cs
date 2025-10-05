@@ -528,7 +528,7 @@ namespace Resonance.Enemies.Core
             // Check if we've already hit this target in the current attack
             if (_currentAttackHits.Contains(target))
             {
-                Debug.Log("EnemyController: Target already hit in current attack, skipping");
+                // Debug.Log("EnemyController: Target already hit in current attack, skipping");
                 return false;
             }
 

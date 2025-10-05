@@ -567,7 +567,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6357326252301174586}
   m_Layer: 5
-  m_Name: Slots
+  m_Name: SlotContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

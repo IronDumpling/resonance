@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3655794931121687043}
   - component: {fileID: 1062836486923409622}
   m_Layer: 5
-  m_Name: Divider
+  m_Name: SlotDivider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

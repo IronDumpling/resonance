@@ -1254,7 +1254,7 @@ namespace Resonance.Enemies
             float barWidth = 2f;
             float barHeight = 0.2f;
             
-            // Physical health (bottom bar)
+            // health (bottom bar)
             Gizmos.color = Color.red;
             Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
@@ -1264,7 +1264,7 @@ namespace Resonance.Enemies
             Vector3 healthBarPosition = barPosition + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
             Gizmos.DrawCube(healthBarPosition, healthBarSize);
             
-            // Core health (top bar)
+            // core energy (top bar)
             Vector3 coreBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
             Gizmos.color = Color.blue;
             Gizmos.DrawCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
