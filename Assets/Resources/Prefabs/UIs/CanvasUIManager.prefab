@@ -46,6 +46,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _autoDiscoverPanels: 1
   _manualPanels: []
-  _prefabResourcePaths:
-  - Prefabs/UIs/LoadingPanel
+  _prefabResourcePaths: []
   _uiRoot: {fileID: 8642219602593282508}

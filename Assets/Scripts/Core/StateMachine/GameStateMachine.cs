@@ -40,7 +40,6 @@ namespace Resonance.Core.StateMachine
             _stateMachine.AddState(new InitializingState());
             _stateMachine.AddState(new MainMenuState());
             _stateMachine.AddState(new GameplayState());
-            _stateMachine.AddState(new PausedState());
 
             // Start with initializing state
             _stateMachine.ChangeState("Initializing");
