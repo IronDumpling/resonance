@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections.Generic;
 using Resonance.Core;
 using Resonance.Interfaces.Services;
 using Resonance.Player;
@@ -11,16 +12,23 @@ using Resonance.Utilities;
 namespace Resonance.UI
 {
     /// <summary>
-    /// PlayerStatusPanel displays the player's status and health information.
-    /// It displays player's health health and core health.
-    /// It also displays the current weapon equipped, and it's ammo count.
+    /// PlayerStatusPanel displays the player's comprehensive status information.
+    /// It displays player's health, resilience, core energy with dynamic slots,
+    /// and the current weapon equipped with its ammo count.
+    /// 
+    /// UI Structure:
+    /// - Health: Shows current health with different sprites based on health tier
+    /// - Resilience: Shows current resilience as a fill bar
+    /// - CoreEnergy: Shows current energy, locked capacity, and dynamic slot dividers
+    /// - Weapon: Shows weapon icon and ammo count (current/backup)
     /// </summary>
     public class PlayerStatusPanel : UIPanel
     {
         [Header("UI References")]
         [SerializeField] private GameObject _weaponPanel;
         [SerializeField] private GameObject _healthPanel;
-        [SerializeField] private GameObject _coreHealthPanel;
+        [SerializeField] private GameObject _resiliencePanel;
+        [SerializeField] private GameObject _coreEnergyPanel;
         
         [Header("Weapon UI")]
         [SerializeField] private Image _weaponIcon;
@@ -29,9 +37,18 @@ namespace Resonance.UI
         [Header("Physical Health UI")]
         [SerializeField] private Image _healthValue;
         
-        [Header("Core Health UI")]
-        [SerializeField] private Image _coreHealthBar;
-        [SerializeField] private Image _coreHealthValue;
+        [Header("Resilience UI")]
+        [SerializeField] private Image _resilienceBackground;
+        [SerializeField] private Image _resilienceValue;
+        
+        [Header("Core Energy UI")]
+        [SerializeField] private Image _coreEnergyBackground;
+        [SerializeField] private Image _coreEnergyCurrentValue;
+        [SerializeField] private Image _coreEnergyLockedValue;
+        [SerializeField] private GameObject _coreSlotsContainer;
+        
+        [Header("Dynamic UI Prefabs")]
+        [SerializeField] private GameObject _dividerPrefab;
         
         [Header("Physical Health Sprites")]
         [SerializeField] private Sprite _healthyHealthSprite;
@@ -46,6 +63,8 @@ namespace Resonance.UI
         
         // State tracking
         private bool _isInitialized = false;
+        private List<GameObject> _dynamicDividers = new List<GameObject>();
+        private int _lastMaxSlots = -1;
 
         protected override void Awake()
         {
@@ -81,8 +100,10 @@ namespace Resonance.UI
                 _weaponPanel = FindChildGameObject("Weapon");
             if (_healthPanel == null)
                 _healthPanel = FindChildGameObject("Health");
-            if (_coreHealthPanel == null)
-                _coreHealthPanel = FindChildGameObject("CoreHealth");
+            if (_resiliencePanel == null)
+                _resiliencePanel = FindChildGameObject("Resilience");
+            if (_coreEnergyPanel == null)
+                _coreEnergyPanel = FindChildGameObject("CoreEnergy");
             
             // Auto-find weapon UI components
             if (_weaponIcon == null && _weaponPanel != null)
@@ -90,15 +111,29 @@ namespace Resonance.UI
             if (_ammoCount == null && _weaponPanel != null)
                 _ammoCount = FindChildComponent<TextMeshProUGUI>(_weaponPanel, "AmmoCount");
             
-            // Auto-find health health UI components
+            // Auto-find health UI components
             if (_healthValue == null && _healthPanel != null)
                 _healthValue = FindChildComponent<Image>(_healthPanel, "Value");
             
-            // Auto-find core health UI components
-            if (_coreHealthBar == null && _coreHealthPanel != null)
-                _coreHealthBar = FindChildComponent<Image>(_coreHealthPanel, "Bar");
-            if (_coreHealthValue == null && _coreHealthPanel != null)
-                _coreHealthValue = FindChildComponent<Image>(_coreHealthPanel, "Value");
+            // Auto-find resilience UI components
+            if (_resilienceBackground == null && _resiliencePanel != null)
+                _resilienceBackground = FindChildComponent<Image>(_resiliencePanel, "Background");
+            if (_resilienceValue == null && _resiliencePanel != null)
+                _resilienceValue = FindChildComponent<Image>(_resiliencePanel, "Value");
+            
+            // Auto-find core energy UI components
+            if (_coreEnergyBackground == null && _coreEnergyPanel != null)
+                _coreEnergyBackground = FindChildComponent<Image>(_coreEnergyPanel, "Background");
+            if (_coreEnergyCurrentValue == null && _coreEnergyPanel != null)
+                _coreEnergyCurrentValue = FindChildComponent<Image>(_coreEnergyPanel, "CurrentValue");
+            if (_coreEnergyLockedValue == null && _coreEnergyPanel != null)
+                _coreEnergyLockedValue = FindChildComponent<Image>(_coreEnergyPanel, "LockedValue");
+            if (_coreSlotsContainer == null && _coreEnergyPanel != null)
+                _coreSlotsContainer = FindChildGameObject(_coreEnergyPanel, "Slots");
+            
+            // Load divider prefab if not assigned
+            if (_dividerPrefab == null)
+                _dividerPrefab = Resources.Load<GameObject>("Prefabs/UIs/Divider");
         }
 
         private void LoadHealthSprites()
@@ -188,9 +223,21 @@ namespace Resonance.UI
         {
             if (_playerController == null) return;
             
-            // Subscribe to dual health events
+            // Subscribe to health events
             _playerController.OnHealthChanged += OnHealthChanged;
-            _playerController.OnCoreHealthChanged += OnCoreHealthChanged;
+            
+            // Subscribe to resilience events from stats
+            if (_playerController.Stats != null)
+            {
+                _playerController.Stats.OnResilienceChanged += OnResilienceChanged;
+            }
+            
+            // Subscribe to crystal core events
+            if (_playerController.Stats?.crystalCore != null)
+            {
+                _playerController.Stats.crystalCore.OnEnergyChanged += OnCoreEnergyChanged;
+                _playerController.Stats.crystalCore.OnCapacityChanged += OnCoreCapacityChanged;
+            }
             
             // Subscribe to weapon events
             if (_weaponManager != null)
@@ -212,7 +259,19 @@ namespace Resonance.UI
             if (_playerController != null)
             {
                 _playerController.OnHealthChanged -= OnHealthChanged;
-                _playerController.OnCoreHealthChanged -= OnCoreHealthChanged;
+                
+                // Unsubscribe from resilience events from stats
+                if (_playerController.Stats != null)
+                {
+                    _playerController.Stats.OnResilienceChanged -= OnResilienceChanged;
+                }
+                
+                // Unsubscribe from crystal core events
+                if (_playerController.Stats?.crystalCore != null)
+                {
+                    _playerController.Stats.crystalCore.OnEnergyChanged -= OnCoreEnergyChanged;
+                    _playerController.Stats.crystalCore.OnCapacityChanged -= OnCoreCapacityChanged;
+                }
                 
                 // Unsubscribe from ammo inventory events
                 if (_playerController.Inventory != null)
@@ -242,9 +301,20 @@ namespace Resonance.UI
             UpdateHealthUI(currentHealth, maxHealth);
         }
 
-        private void OnCoreHealthChanged(float currentHealth, float maxHealth)
+        private void OnResilienceChanged(float currentResilience, float maxResilience)
         {
-            UpdateCoreHealthUI(currentHealth, maxHealth);
+            UpdateResilienceUI(currentResilience, maxResilience);
+        }
+
+        private void OnCoreEnergyChanged(float currentEnergy, float maxEnergy)
+        {
+            UpdateCoreEnergyUI();
+        }
+        
+        private void OnCoreCapacityChanged(float currentCapacity, float maxCapacity)
+        {
+            UpdateCoreEnergyUI();
+            UpdateCoreSlotsUI();
         }
 
         private void OnWeaponEquipped(GunDataAsset gunData)
@@ -282,7 +352,9 @@ namespace Resonance.UI
             
             UpdateWeaponUI();
             UpdateHealthUI();
-            UpdateCoreHealthUI();
+            UpdateResilienceUI();
+            UpdateCoreEnergyUI();
+            UpdateCoreSlotsUI();
         }
 
         private void UpdateWeaponUI()
@@ -360,23 +432,116 @@ namespace Resonance.UI
             }
         }
 
-        private void UpdateCoreHealthUI(float currentHealth = -1, float maxHealth = -1)
+        private void UpdateCoreEnergyUI(float currentEnergy = -1, float maxEnergy = -1)
         {
-            if (_coreHealthValue == null || _playerController == null) return;
+            if (_playerController?.Stats?.crystalCore == null) return;
+            
+            var crystalCore = _playerController.Stats.crystalCore;
             
             // Get current values if not provided
-            if (currentHealth < 0 || maxHealth < 0)
+            if (currentEnergy < 0 || maxEnergy < 0)
             {
-                var stats = _playerController.Stats;
-                currentHealth = stats.crystalCore.CurrentEnergy;
-                maxHealth = stats.crystalCore.CurrentEnergyCapacity;
+                currentEnergy = crystalCore.CurrentEnergy;
+                maxEnergy = crystalCore.MaxEnergyCapacity;
             }
             
-            // Calculate health percentage
-            float healthPercentage = maxHealth > 0 ? currentHealth / maxHealth : 0f;
+            float currentCapacity = crystalCore.CurrentEnergyCapacity;
             
-            // Update fill amount
-            _coreHealthValue.fillAmount = healthPercentage;
+            // Update background (represents max capacity)
+            if (_coreEnergyBackground != null)
+            {
+                // Background always shows the full max capacity
+                _coreEnergyBackground.fillAmount = 1f;
+            }
+            
+            // Update current value (shows current energy as fill amount)
+            if (_coreEnergyCurrentValue != null)
+            {
+                float energyPercentage = maxEnergy > 0 ? currentEnergy / maxEnergy : 0f;
+                _coreEnergyCurrentValue.fillAmount = energyPercentage;
+            }
+            
+            // Update locked value (shows locked capacity)
+            if (_coreEnergyLockedValue != null)
+            {
+                float lockedCapacity = maxEnergy - currentCapacity;
+                float lockedPercentage = maxEnergy > 0 ? lockedCapacity / maxEnergy : 0f;
+                _coreEnergyLockedValue.fillAmount = lockedPercentage;
+            }
+        }
+        
+        private void UpdateCoreSlotsUI()
+        {
+            if (_playerController?.Stats?.crystalCore == null || _coreSlotsContainer == null) return;
+            
+            var crystalCore = _playerController.Stats.crystalCore;
+            int maxSlots = crystalCore.MaxSlots;
+            
+            // Only update if slot count changed
+            if (_lastMaxSlots == maxSlots) return;
+            _lastMaxSlots = maxSlots;
+            
+            // Clear existing dynamic dividers
+            foreach (var divider in _dynamicDividers)
+            {
+                if (divider != null)
+                    DestroyImmediate(divider);
+            }
+            _dynamicDividers.Clear();
+            
+            // Generate dividers (maxSlots - 1 dividers between slots)
+            int dividersNeeded = Mathf.Max(0, maxSlots - 1);
+            
+            if (_dividerPrefab != null && dividersNeeded > 0)
+            {
+                // Calculate positions for equal distribution
+                RectTransform containerRect = _coreSlotsContainer.GetComponent<RectTransform>();
+                float containerWidth = containerRect.rect.width;
+                float spacing = containerWidth / maxSlots;
+                
+                for (int i = 0; i < dividersNeeded; i++)
+                {
+                    GameObject divider = Instantiate(_dividerPrefab, _coreSlotsContainer.transform);
+                    divider.name = $"Divider_{i + 1}";
+                    
+                    // Position divider
+                    RectTransform dividerRect = divider.GetComponent<RectTransform>();
+                    if (dividerRect != null)
+                    {
+                        // Position at slot boundaries
+                        float xPos = spacing * (i + 1);
+                        dividerRect.anchoredPosition = new Vector2(xPos, 0);
+                    }
+                    
+                    _dynamicDividers.Add(divider);
+                }
+            }
+        }
+        
+        private void UpdateResilienceUI(float currentResilience = -1, float maxResilience = -1)
+        {
+            if (_playerController == null) return;
+            
+            // Get current values if not provided
+            if (currentResilience < 0 || maxResilience < 0)
+            {
+                var stats = _playerController.Stats;
+                currentResilience = stats.currentResilience;
+                maxResilience = stats.maxResilience;
+            }
+            
+            // Update background (always full)
+            if (_resilienceBackground != null)
+            {
+                _resilienceBackground.fillAmount = 1f;
+            }
+            
+            // Update value (shows current resilience as fill amount)
+            if (_resilienceValue != null)
+            {
+                float resiliencePercentage = maxResilience > 0 ? currentResilience / maxResilience : 0f;
+                _resilienceValue.fillAmount = resiliencePercentage;
+            }
         }
 
         #endregion
@@ -396,6 +561,16 @@ namespace Resonance.UI
                 child = panel.Find(childName);
                 if (child != null) return child.gameObject;
             }
+            
+            return null;
+        }
+        
+        private GameObject FindChildGameObject(GameObject parent, string childName)
+        {
+            if (parent == null) return null;
+            
+            Transform child = parent.transform.Find(childName);
+            if (child != null) return child.gameObject;
             
             return null;
         }
