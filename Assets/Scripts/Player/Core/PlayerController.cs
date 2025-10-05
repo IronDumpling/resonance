@@ -73,6 +73,7 @@ namespace Resonance.Player.Core
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
         public bool IsAiming => CurrentState == "Aiming";
+        public bool IsStunned => CurrentState == "Stun";
         public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
         public ActionController ActionController => _actionController;
@@ -424,6 +425,7 @@ namespace Resonance.Player.Core
         public bool CanShoot()
         {
             return IsAlive && 
+                   !IsStunned && // Cannot shoot while stunned
                    _stateMachine.CanShoot() && 
                    Time.time >= _lastAttackTime && 
                    !(_actionController?.IsBlocking ?? false); // Actions can block shooting
@@ -432,6 +434,7 @@ namespace Resonance.Player.Core
         public bool CanReload()
         {
             return IsAlive && 
+                   !IsStunned && // Cannot reload while stunned
                    _stateMachine.CanReload() &&
                    !IsAiming &&
                    !(_actionController?.IsActive ?? false); // Cannot reload while another action is active
