@@ -16,10 +16,10 @@ namespace Resonance.UI
         [SerializeField] protected UILayer _layer = UILayer.Menu;
         [SerializeField] protected bool _hideOnStart = true;
 
-        [Header("UI Components")]
-        [SerializeField] protected CanvasGroup _mainCanvasGroup;
-        [SerializeField] protected GameObject[] _uiComponents; // Child UI elements to manage
-        [SerializeField] protected CanvasGroup[] _componentCanvasGroups; // Individual canvas groups for fine control
+        // UI Components
+        private CanvasGroup _mainCanvasGroup;
+        private GameObject[] _uiComponents; // Child UI elements to manage
+        private CanvasGroup[] _componentCanvasGroups; // Individual canvas groups for fine control
 
         public string PanelName => _panelName;
         public UILayer Layer => _layer;
@@ -70,27 +70,6 @@ namespace Resonance.UI
                 }
                 
                 _uiComponents = foundComponents.ToArray();
-                Debug.Log($"UIPanel {_panelName}: Auto-discovered {_uiComponents.Length} UI components");
-            }
-
-            // Auto-discover canvas groups from components
-            if (_componentCanvasGroups == null || _componentCanvasGroups.Length == 0)
-            {
-                var foundCanvasGroups = new System.Collections.Generic.List<CanvasGroup>();
-                
-                foreach (var component in _uiComponents)
-                {
-                    if (component != null)
-                    {
-                        var canvasGroup = component.GetComponent<CanvasGroup>();
-                        if (canvasGroup != null)
-                        {
-                            foundCanvasGroups.Add(canvasGroup);
-                        }
-                    }
-                }
-                
-                _componentCanvasGroups = foundCanvasGroups.ToArray();
             }
         }
 
@@ -157,76 +136,10 @@ namespace Resonance.UI
                 return;
             }
 
-            // Secondary method: Control individual component canvas groups
-            if (_componentCanvasGroups != null && _componentCanvasGroups.Length > 0)
-            {
-                foreach (var canvasGroup in _componentCanvasGroups)
-                {
-                    if (canvasGroup != null)
-                    {
-                        canvasGroup.alpha = visible ? 1f : 0f;
-                        canvasGroup.interactable = visible;
-                        canvasGroup.blocksRaycasts = visible;
-                    }
-                }
-                return;
-            }
-
-            // Fallback method: Control individual UI components (less efficient)
-            if (_uiComponents != null && _uiComponents.Length > 0)
-            {
-                Debug.LogWarning($"UIPanel {_panelName}: Using SetActive() fallback. Consider adding a CanvasGroup for better performance.");
-                foreach (var component in _uiComponents)
-                {
-                    if (component != null)
-                    {
-                        component.SetActive(visible);
-                    }
-                }
-                return;
-            }
-
-            // Last resort: Control entire GameObject (avoid this for UI panels)
-            Debug.LogWarning($"UIPanel {_panelName}: Using GameObject.SetActive() as last resort. This may cause performance issues and break the 'no destroy' principle.");
+            // Fallback method: Control entire GameObject
+            // This should rarely happen since we auto-create CanvasGroup above
+            Debug.LogWarning($"UIPanel {_panelName}: No CanvasGroup found, using GameObject.SetActive() as fallback.");
             gameObject.SetActive(visible);
-        }
-
-        // Public methods for managing individual UI components
-        public void ShowComponent(int componentIndex)
-        {
-            if (_uiComponents != null && componentIndex >= 0 && componentIndex < _uiComponents.Length)
-            {
-                if (_uiComponents[componentIndex] != null)
-                {
-                    _uiComponents[componentIndex].SetActive(true);
-                }
-            }
-        }
-
-        public void HideComponent(int componentIndex)
-        {
-            if (_uiComponents != null && componentIndex >= 0 && componentIndex < _uiComponents.Length)
-            {
-                if (_uiComponents[componentIndex] != null)
-                {
-                    _uiComponents[componentIndex].SetActive(false);
-                }
-            }
-        }
-
-        public GameObject GetComponent(int componentIndex)
-        {
-            if (_uiComponents != null && componentIndex >= 0 && componentIndex < _uiComponents.Length)
-            {
-                return _uiComponents[componentIndex];
-            }
-            return null;
-        }
-
-        public T GetUIComponent<T>(int componentIndex) where T : Component
-        {
-            var component = GetComponent(componentIndex);
-            return component?.GetComponent<T>();
         }
 
         // Override these methods in derived classes for custom behavior

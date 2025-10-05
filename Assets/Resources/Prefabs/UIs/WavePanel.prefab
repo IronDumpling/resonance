@@ -148,7 +148,7 @@ GameObject:
   - component: {fileID: 7551045582858049625}
   - component: {fileID: 2742545895486462097}
   - component: {fileID: 2721692996668308013}
-  - component: {fileID: 5913303637366283664}
+  - component: {fileID: 6625808775426769637}
   m_Layer: 5
   m_Name: WavePanel
   m_TagString: Untagged
@@ -239,7 +239,7 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &5913303637366283664
+--- !u!114 &6625808775426769637
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -248,18 +248,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 2743820636045403311}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f34173e86a07210498a067cf9b98a6b3, type: 3}
+  m_Script: {fileID: 11500000, guid: 81632bf5fe062934f829d608f296c0af, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  _panelName: ResonancePanel
-  _layer: 10
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.UI.WavePanel
+  _panelName: WavePanel
+  _layer: 20
   _hideOnStart: 1
-  _mainCanvasGroup: {fileID: 0}
-  _uiComponents: []
-  _componentCanvasGroups: []
   _qteValueText: {fileID: 2084281936436514468}
   _instructionText: {fileID: 3396357682942226585}
-  _baseMentalDamage: 50
+  _baseCoreDamage: 25
   _maxDamageMultiplier: 3
   _damageScaleFactor: 10
 --- !u!1 &7138257995133733552
