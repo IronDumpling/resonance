@@ -32,8 +32,7 @@ namespace Resonance.Enemies
         public EnemyHitboxType type;
         public float healthMultiplier = 2f;     // 打到时对物理部分的倍率
         public float coreMultiplier   = 2f;     // 打到时对精神部分的倍率
-        
-        [Range(0,1)] public float convertPhysicalToCore = 0f; // 例如核心被打时，把物理伤害按比例转为精神
+        public float resilienceMultiplier = 2f;     // 打到时对韧性部分的倍率
         
         public float poiseBonus = 0f;             // 额外韧性值
         public GameObject hitVFX; 
@@ -269,32 +268,23 @@ namespace Resonance.Enemies
             switch (modifiedDamage.type)
             {
                 case DamageType.Health:
-                    if (convertPhysicalToCore > 0f && type == EnemyHitboxType.Core) 
-                    {
-                        // Convert some health damage to core
-                        modifiedDamage.type = DamageType.Mixed;
-                        modifiedDamage.healthRatio = Mathf.Clamp01(1f - convertPhysicalToCore);
-                        
-                        // Apply multipliers to both parts
-                        float physPart = modifiedDamage.amount * modifiedDamage.healthRatio * healthMultiplier;
-                        float mentPart = modifiedDamage.amount * (1f - modifiedDamage.healthRatio) * coreMultiplier;
-                        modifiedDamage.amount = physPart + mentPart;
-                    } 
-                    else 
-                    {
+                    if (type != EnemyHitboxType.Core)  
                         modifiedDamage.amount *= healthMultiplier;
-                    }
                     break;
                     
                 case DamageType.Core:
                     modifiedDamage.amount *= coreMultiplier;
                     break;
                     
+                case DamageType.Resilience:
+                    modifiedDamage.amount *= resilienceMultiplier;
+                    break;
+                    
                 case DamageType.Mixed:
-                    // Apply multipliers separately to health and core portions
-                    float physDamage = modifiedDamage.amount * modifiedDamage.healthRatio * healthMultiplier;
-                    float mentDamage = modifiedDamage.amount * (1f - modifiedDamage.healthRatio) * coreMultiplier;
-                    modifiedDamage.amount = physDamage + mentDamage;
+                    // Apply multipliers separately to health and resilience portions
+                    float healthDamage = modifiedDamage.amount * modifiedDamage.healthRatio * healthMultiplier;
+                    float resilienceDamage = modifiedDamage.amount * (1f - modifiedDamage.healthRatio) * resilienceMultiplier;
+                    modifiedDamage.amount = healthDamage + resilienceDamage;
                     break;
             }
 

@@ -778,18 +778,22 @@ namespace Resonance.Enemies
             switch (damageInfo.type)
             {
                 case DamageType.Health:
-                    _enemyController.TakePhysicalDamage(damageInfo.amount);
+                    _enemyController.TakeHealthDamage(damageInfo.amount);
                     break;
                     
                 case DamageType.Core:
                     _enemyController.TakeCoreDamage(damageInfo.amount);
                     break;
+
+                case DamageType.Resilience:
+                    _enemyController.TakeResilienceDamage(damageInfo.amount);
+                    break;
                     
                 case DamageType.Mixed:
                     float healthDamage = damageInfo.amount * damageInfo.healthRatio;
-                    float coreDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
-                    _enemyController.TakePhysicalDamage(healthDamage);
-                    _enemyController.TakeCoreDamage(coreDamage);
+                    float resilienceDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
+                    _enemyController.TakeHealthDamage(healthDamage);
+                    _enemyController.TakeResilienceDamage(resilienceDamage);
                     break;
             }
 
@@ -800,11 +804,11 @@ namespace Resonance.Enemies
             Debug.Log($"EnemyMonoBehaviour: Took {damageInfo.amount} {damageInfo.type} damage");
         }
 
-        public void TakePhysicalDamage(float damage, Vector3 damageSource)
+        public void TakeHealthDamage(float damage, Vector3 damageSource)
         {
             if (IsInitialized)
             {
-                _enemyController.TakePhysicalDamage(damage);
+                _enemyController.TakeHealthDamage(damage);
                 ShowDamageEffect(new DamageInfo(damage, DamageType.Health, damageSource));
                 PlayHitAudio(new DamageInfo(damage, DamageType.Health, damageSource));
             }

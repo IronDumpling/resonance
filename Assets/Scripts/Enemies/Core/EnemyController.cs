@@ -12,8 +12,8 @@ using Resonance.Interfaces.Services;
 namespace Resonance.Enemies.Core
 {
     /// <summary>
-    /// Enemy核心控制器，管理敌人状态和行为
-    /// 这是一个Non-MonoBehaviour类，处理敌人逻辑
+    /// Enemy Controller, manages enemy state and behavior
+    /// This is a Non-MonoBehaviour class, handling enemy logic
     /// </summary>
     public class EnemyController : IPausable
     {
@@ -254,7 +254,7 @@ namespace Resonance.Enemies.Core
         /// Take health damage (affects health health)
         /// Apply core health tier damage modifiers
         /// </summary>
-        public void TakePhysicalDamage(float damage)
+        public void TakeHealthDamage(float damage)
         {
             if (!IsCoreAlive) return;
             
@@ -285,7 +285,7 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Take core damage (affects core health)
+        /// Take core damage (affects core capacity)
         /// </summary>
         public void TakeCoreDamage(float damage)
         {
@@ -309,12 +309,24 @@ namespace Resonance.Enemies.Core
             // Notify action controller of damage taken
             _actionController?.OnEnemyDamageTaken();
 
-            if (_stats.crystalCore.CurrentEnergy <= 0f)
+            if (_stats.crystalCore.CurrentEnergyCapacity <= 0f)
             {
                 HandleTrueDeath();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} core damage, core health: {_stats.crystalCore.CurrentEnergy:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} core damage, core capacity: {_stats.crystalCore.CurrentEnergyCapacity:F1}");
+        }
+
+        /// <summary>
+        /// Take resilience damage
+        /// </summary>
+        public void TakeResilienceDamage(float damage)
+        {
+            if (!IsCoreAlive) return;
+
+            _stats.TakeResilienceDamage(damage);
+            
+            Debug.Log($"EnemyController: Took {damage:F1} resilience damage, resilience: {_stats.currentResilience:F1}");
         }
 
         /// <summary>
@@ -406,51 +418,6 @@ namespace Resonance.Enemies.Core
             Debug.Log($"EnemyController: Attack process started - damage will be dealt through hitbox");
             
             return true;
-        }
-
-        /// <summary>
-        /// Deal damage to the player target with specified damage amount
-        /// </summary>
-        private bool DealDamageToPlayer(float damage)
-        {
-            if (!HasPlayerTarget || _playerTarget == null)
-            {
-                Debug.LogWarning("EnemyController: No player target for damage dealing");
-                return false;
-            }
-
-            // Try to find IDamageable component on player
-            IDamageable playerDamageable = _playerTarget.GetComponent<IDamageable>();
-            if (playerDamageable == null)
-            {
-                // Try to find it on parent or children
-                playerDamageable = _playerTarget.GetComponentInParent<IDamageable>();
-                if (playerDamageable == null)
-                {
-                    playerDamageable = _playerTarget.GetComponentInChildren<IDamageable>();
-                }
-            }
-
-            if (playerDamageable != null)
-            {
-                // Create damage info for the attack
-                DamageInfo damageInfo = new DamageInfo(
-                    amount: damage,
-                    type: DamageType.Health, 
-                    sourcePosition: _patrolCenter,
-                    sourceObject: null, 
-                    description: "Enemy attack"
-                );
-
-                playerDamageable.TakeDamage(damageInfo);
-                Debug.Log($"EnemyController: Dealt {damage:F1} damage to player at {_playerTarget.position}");
-                return true;
-            }
-            else
-            {
-                Debug.LogError($"EnemyController: Player target {_playerTarget.name} has no IDamageable component!");
-                return false;
-            }
         }
 
         /// <summary>

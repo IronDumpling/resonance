@@ -160,17 +160,17 @@ namespace Resonance.Enemies
                     case EnemyHitboxType.Head:
                         newHitbox.healthMultiplier = 2f;
                         newHitbox.coreMultiplier = 0f;
-                        newHitbox.convertPhysicalToCore = 0f;
+                        newHitbox.resilienceMultiplier = 2f;
                         break;
                     case EnemyHitboxType.Body:
                         newHitbox.healthMultiplier = 1f;
                         newHitbox.coreMultiplier = 0f;
-                        newHitbox.convertPhysicalToCore = 0f;
+                        newHitbox.resilienceMultiplier = 1f;
                         break;
                     case EnemyHitboxType.Core:
                         newHitbox.healthMultiplier = 0f;
                         newHitbox.coreMultiplier = 1.5f;
-                        newHitbox.convertPhysicalToCore = 0f; 
+                        newHitbox.resilienceMultiplier = 0f; 
                         break;
                 }
                 

@@ -27,7 +27,7 @@ namespace Resonance.Player.States
             _playerController.Movement.MovementSpeedModifier = 0f;
             
             // Trigger death logic
-            // This should trigger game over screen, save system, etc.
+            GameManager.Instance.StateMachine.ChangeState("OutGame");
         }
 
         public void Update()
@@ -43,9 +43,8 @@ namespace Resonance.Player.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Death is terminal - can only exit through external systems (save loading, restart)
-            // In practice, this should rarely be called as true death triggers game over
-            return newState.Name == "Normal";
+            // Death is terminal - can only exit through external systems
+            return false;
         }
     }
 }

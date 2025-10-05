@@ -888,11 +888,11 @@ namespace Resonance.Player
         /// <summary>
         /// Take health damage
         /// </summary>
-        public void TakePhysicalDamage(float damage)
+        public void TakeHealthDamage(float damage)
         {
             if (IsInitialized)
             {
-                _playerController.TakePhysicalDamage(damage);
+                _playerController.TakeHealthDamage(damage);
             }
         }
 
@@ -999,18 +999,22 @@ namespace Resonance.Player
             switch (damageInfo.type)
             {
                 case DamageType.Health:
-                    _playerController.TakePhysicalDamage(damageInfo.amount);
+                    _playerController.TakeHealthDamage(damageInfo.amount);
                     break;
                     
                 case DamageType.Core:
                     _playerController.TakeCoreDamage(damageInfo.amount);
                     break;
+
+                case DamageType.Resilience:
+                    _playerController.TakeResilienceDamage(damageInfo.amount);
+                    break;
                     
                 case DamageType.Mixed:
                     float healthDamage = damageInfo.amount * damageInfo.healthRatio;
-                    float coreDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
-                    _playerController.TakePhysicalDamage(healthDamage);
-                    _playerController.TakeCoreDamage(coreDamage);
+                    float resilienceDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
+                    _playerController.TakeHealthDamage(healthDamage);
+                    _playerController.TakeResilienceDamage(resilienceDamage);
                     break;
             }
             
@@ -1020,11 +1024,11 @@ namespace Resonance.Player
         /// <summary>
         /// Take health damage
         /// </summary>
-        public void TakePhysicalDamage(float damage, Vector3 damageSource)
+        public void TakeHealthDamage(float damage, Vector3 damageSource)
         {
             if (IsInitialized)
             {
-                _playerController.TakePhysicalDamage(damage);
+                _playerController.TakeHealthDamage(damage);
             }
         }
 

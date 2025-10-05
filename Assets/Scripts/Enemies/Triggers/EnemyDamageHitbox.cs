@@ -215,8 +215,9 @@ namespace Resonance.Enemies
             // Create damage info
             DamageInfo damageInfo = new DamageInfo(
                 amount: _enemyController.AttackDamageValue,
-                type: DamageType.Health,
+                type: DamageType.Mixed,
                 sourcePosition: transform.position,
+                healthRatio: 0.5f,
                 sourceObject: gameObject,
                 description: "Enemy melee attack"
             );

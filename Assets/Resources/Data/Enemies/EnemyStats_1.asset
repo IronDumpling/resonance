@@ -22,7 +22,7 @@ MonoBehaviour:
   revivalDelay: 2
   revivalDuration: 5
   revivalRate: 10
-  normalDamage: 20
+  normalDamage: 40
   coreDamage: 10
   attackCooldown: 2
   attackRange: 1.5

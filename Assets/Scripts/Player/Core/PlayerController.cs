@@ -173,7 +173,7 @@ namespace Resonance.Player.Core
         /// <summary>
         /// Take health damage (affects health health)
         /// </summary>
-        public void TakePhysicalDamage(float damage)
+        public void TakeHealthDamage(float damage)
         {
             if (_isInvulnerable || !IsCoreAlive) return;
 
@@ -215,7 +215,7 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Take core damage (affects core health)
+        /// Take core damage (affects core capacity)
         /// </summary>
         public void TakeCoreDamage(float damage)
         {
@@ -236,14 +236,26 @@ namespace Resonance.Player.Core
 
             OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
 
-            if (_stats.crystalCore.CurrentEnergy <= 0f && _stats.currentHealth <= 0f)
+            if (_stats.crystalCore.CurrentEnergyCapacity <= 0f)
             {
                 HandleDeath();
             }
             else
             {
-                Debug.Log($"PlayerController: Took {damage} core damage, core health: {_stats.crystalCore.CurrentEnergy}");
+                Debug.Log($"PlayerController: Took {damage} core damage, core capacity: {_stats.crystalCore.CurrentEnergyCapacity}");
             }
+        }
+
+        /// <summary>
+        /// Take resilience damage
+        /// </summary>
+        public void TakeResilienceDamage(float damage)
+        {
+            if (!IsCoreAlive) return;
+
+            _stats.TakeResilienceDamage(damage);
+            
+            Debug.Log($"PlayerController: Took {damage} resilience damage, resilience: {_stats.currentResilience}");
         }
 
         /// <summary>

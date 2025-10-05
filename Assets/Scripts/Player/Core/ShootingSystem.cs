@@ -467,17 +467,17 @@ namespace Resonance.Player.Core
         private float ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource, GunDataAsset gunData = null)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
-            float actualDamage = 0f; // 初始化实际伤害为0
+            float actualDamage = 0f; // Initialize actual damage to 0
             
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
-            // 首先检查是否命中了弱点
+            // First check if it hit a weakpoint
             EnemyHitbox weakpointHitbox = hitObject.GetComponent<EnemyHitbox>();
             if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
             {
                 Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
                 
-                // 创建伤害信息
+                // Create damage info
                 DamageInfo damageInfo;
                 if (gunData != null)
                 {
@@ -488,7 +488,7 @@ namespace Resonance.Player.Core
                     damageInfo = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
                 }
                 
-                // 让弱点处理伤害修改和应用，并获取实际伤害
+                // Let the weakpoint handle damage modification and application, and get the actual damage
                 actualDamage = weakpointHitbox.ProcessDamageHit(damageInfo);
                 
                 // 播放音效和触发事件
@@ -497,7 +497,7 @@ namespace Resonance.Player.Core
                 return actualDamage;
             }
             
-            // 如果不是弱点，按原有逻辑处理IDamageable和IDestructible
+            // If it's not a weakpoint, process IDamageable and IDestructible
             IDamageable damageable = hitObject.GetComponent<IDamageable>();
             IDestructible destructible = hitObject.GetComponent<IDestructible>();
             
@@ -505,7 +505,7 @@ namespace Resonance.Player.Core
             GameObject damageableObject = hitObject;
             GameObject destructibleObject = hitObject;
             
-            // 如果在命中对象上找到了组件，更新GameObject引用
+            // If a component is found on the hit object, update the GameObject reference
             if (damageable != null)
             {
                 damageableObject = (damageable as MonoBehaviour)?.gameObject ?? hitObject;
@@ -535,7 +535,7 @@ namespace Resonance.Player.Core
                 }
             }
             
-            // 处理可受伤害的对象
+            // Process damageable objects
             if (damageable != null)
             {
                 Debug.Log($"ShootingSystem: Found IDamageable on {damageableObject.name}, dealing {damage} damage");
@@ -544,12 +544,12 @@ namespace Resonance.Player.Core
                 {
                     DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
                     damageable.TakeDamage(damageInfo);
-                    actualDamage = damageInfo.amount; // 使用伤害信息中的伤害值
+                    actualDamage = damageInfo.amount; // Use the damage info amount
                     Debug.Log($"ShootingSystem: Dealt {actualDamage} {gunData.damageType} damage to {damageableObject.name}");
                 }
                 else
                 {
-                    // 如果没有武器数据，创建默认的物理伤害
+                    // If there is no weapon data, create default physical damage
                     DamageInfo defaultDamage = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
                     damageable.TakeDamage(defaultDamage);
                     actualDamage = damage;
@@ -561,23 +561,23 @@ namespace Resonance.Player.Core
                 return actualDamage;
             }
 
-            // 处理可破坏的对象
+            // Process destructible objects
             if (destructible != null)
             {
                 Debug.Log($"ShootingSystem: Found IDestructible on {destructibleObject.name}, dealing {damage} damage");
                 destructible.TakeDamage(damage, damageSource);
-                actualDamage = damage; // 破坏物体受到完整伤害
+                actualDamage = damage; // The destructible object takes full damage
                 PlayHitAudio(hitInfo.point, destructibleObject);
                 OnHit?.Invoke(hitInfo.point, destructibleObject, actualDamage);
                 Debug.Log($"ShootingSystem: Dealt {actualDamage} damage to destructible {destructibleObject.name}");
                 return actualDamage;
             }
 
-            // 如果不是可受伤害或可破坏的对象，仍然触发命中事件（用于音效、粒子效果等）
+            // If it's not a damageable or destructible object, still trigger the hit event (for audio, particle effects, etc.)
             PlayHitAudio(hitInfo.point, hitObject);
             OnHit?.Invoke(hitInfo.point, hitObject, 0f);
             Debug.Log($"ShootingSystem: Hit non-damageable object {hitObject.name} - no damage dealt");
-            return 0f; // 没有造成伤害
+            return 0f; // No damage dealt
         }
 
         #endregion

@@ -34,21 +34,7 @@ namespace Resonance.Enemies.Actions
             bool hasTarget = enemy.HasPlayerTarget;
             bool inRange = enemy.IsPlayerInAttackRange();
             
-            // Break down CanAttack for detailed debugging
-            // bool isCorelyAlive = enemy.IsCoreAlive;
-            // bool hasPlayerTargetForAttack = enemy.HasPlayerTarget;
-            // float currentTime = Time.time;
-            // float lastAttackTime = enemy.LastAttackTime;
-            // float attackCooldown = enemy.AttackCooldownValue;
-            // bool cooldownPassed = currentTime >= (lastAttackTime + attackCooldown);
-            
             bool result = canAttack && hasTarget && inRange;
-            
-            // Optional: Keep minimal logging for important events
-            // if (!result && !cooldownPassed)
-            // {
-                // Debug.Log($"EnemyAttackAction: Attack on cooldown - {(lastAttackTime + attackCooldown - currentTime):F1}s remaining");
-            // }
             
             return result;
         }
