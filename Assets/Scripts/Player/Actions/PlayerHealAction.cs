@@ -46,6 +46,13 @@ namespace Resonance.Player.Actions
             // Must be in Normal state (not in other actions or death states)
             if (player.CurrentState != "Normal") return false;
 
+            // Must not be moving (healing requires standing still)
+            if (player.Movement.IsMoving)
+            {
+                Debug.Log("PlayerHealAction: Cannot start - player is moving (must stand still to heal)");
+                return false;
+            }
+
             // Must have at least 1 core health slot available
             if (!player.CanConsumeSlot) return false;
 
@@ -89,6 +96,10 @@ namespace Resonance.Player.Actions
             _actionStartTime = Time.time;
             _lastSlotConsumedTime = Time.time;
 
+            // Force player to stop moving during healing
+            player.Movement.SetMovementInput(Vector2.zero);
+            Debug.Log("PlayerHealAction: Forced player to stop moving for healing");
+
             // Play recover start effects
             PlayHealStartEffects(player);
 
@@ -103,6 +114,12 @@ namespace Resonance.Player.Actions
         public void Update(PlayerController player, float deltaTime)
         {
             if (!_isActive || _isFinished) return;
+
+            // Continuously ensure player doesn't move during healing
+            if (player.Movement.IsMoving)
+            {
+                player.Movement.SetMovementInput(Vector2.zero);
+            }
 
             float currentTime = Time.time;
             float timeSinceLastConsumption = currentTime - _lastSlotConsumedTime;
@@ -252,7 +269,10 @@ namespace Resonance.Player.Actions
             // Stop effects
             StopHealEffects(player);
 
-            Debug.Log("PlayerHealAction: Cleaned up");
+            // Note: Movement input will be automatically restored by the input system
+            // when the action ends, so no need to explicitly restore it here
+
+            Debug.Log("PlayerHealAction: Cleaned up - movement input will be restored by input system");
         }
 
         /// <summary>
