@@ -144,7 +144,8 @@ namespace Resonance.Enemies
         /// Called by ShootingSystem when this collider is hit
         /// </summary>
         /// <param name="damageInfo">Original damage information</param>
-        public void ProcessDamageHit(DamageInfo damageInfo)
+        /// <returns>Actual damage dealt after weakpoint modifications</returns>
+        public float ProcessDamageHit(DamageInfo damageInfo)
         {
             if (!_isInitialized || _enemyMono == null)
             {
@@ -152,7 +153,7 @@ namespace Resonance.Enemies
                 {
                     Debug.LogWarning($"EnemyHitbox: Cannot process damage - not initialized or no enemy reference");
                 }
-                return;
+                return 0f; // No damage dealt
             }
 
             if (_debugMode)
@@ -173,6 +174,8 @@ namespace Resonance.Enemies
             {
                 Debug.Log($"EnemyHitbox: Applied modified damage {modifiedDamage.amount} {modifiedDamage.type} to {_enemyMono.name}");
             }
+            
+            return modifiedDamage.amount;
         }
 
         /// <summary>
@@ -251,7 +254,7 @@ namespace Resonance.Enemies
         /// <param name="d">Original damage info</param>
         /// <param name="hitPoint">Hit point position</param>
         /// <returns>Modified damage info</returns>
-        public DamageInfo ModifyDamage(DamageInfo d, Vector3 hitPoint)
+        private DamageInfo ModifyDamage(DamageInfo d, Vector3 hitPoint)
         {
             // Create a copy to avoid modifying the original
             DamageInfo modifiedDamage = new DamageInfo(
@@ -317,7 +320,7 @@ namespace Resonance.Enemies
         /// Play hit visual and audio effects
         /// </summary>
         /// <param name="at">Effect position</param>
-        public void PlayHitFX(Vector3 at)
+        private void PlayHitFX(Vector3 at)
         {
             if (hitVFX) 
             {

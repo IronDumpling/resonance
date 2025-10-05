@@ -886,7 +886,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Take health damage (affects health health)
+        /// Take health damage
         /// </summary>
         public void TakePhysicalDamage(float damage)
         {
@@ -897,7 +897,7 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Take core damage (affects core health)
+        /// Decrease core energy
         /// </summary>
         public void TakeCoreDamage(float damage)
         {
@@ -908,24 +908,24 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Heal health health
+        /// Heal health
         /// </summary>
-        public void HealPhysical(float amount)
+        public void HealHealth(float amount)
         {
             if (IsInitialized)
             {
-                _playerController.HealPhysical(amount);
+                _playerController.HealHealth(amount);
             }
         }
 
         /// <summary>
-        /// Heal core health
+        /// Gain core energy
         /// </summary>
-        public void HealCore(float amount)
+        public void GainCoreEnergy(float amount)
         {
             if (IsInitialized)
             {
-                _playerController.HealCore(amount);
+                _playerController.GainCoreEnergy(amount);
             }
         }
 

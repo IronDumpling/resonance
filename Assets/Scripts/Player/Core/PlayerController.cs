@@ -148,7 +148,6 @@ namespace Resonance.Player.Core
         public void Update(float deltaTime)
         {
             UpdateInvulnerability(deltaTime);
-            // UpdateHealthRegeneration(deltaTime);
             _movement.Update(deltaTime);
             _stateMachine?.Update();
             _actionController.Update(deltaTime);
@@ -156,6 +155,9 @@ namespace Resonance.Player.Core
 
         #region Health System
 
+        /// <summary>
+        /// Update invulnerability timer
+        /// </summary>
         private void UpdateInvulnerability(float deltaTime)
         {
             if (_isInvulnerable)
@@ -167,23 +169,6 @@ namespace Resonance.Player.Core
                 }
             }
         }
-
-        // private void UpdateHealthRegeneration(float deltaTime)
-        // {
-        //     // Physical health regeneration (only when healthly alive)
-        //     if (_stats.healthRegenRate > 0f && _stats.currentHealth < _stats.maxHealth && IsAlive)
-        //     {
-        //         _stats.RestoreHealth(_stats.healthRegenRate * deltaTime);
-        //         OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-        //     }
-            
-        //     if (_stats.revivalRate > 0f && _stats.crystalCore.CurrentEnergy < _stats.crystalCore.CurrentEnergyCapacity)
-        //     {
-        //         // Core health regenerates in normal state
-        //         _stats.crystalCore.AddEnergy(_stats.revivalRate * deltaTime);
-        //         OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
-        //     }
-        // }
 
         /// <summary>
         /// Take health damage (affects health health)
@@ -264,7 +249,7 @@ namespace Resonance.Player.Core
         /// <summary>
         /// Heal health health
         /// </summary>
-        public void HealPhysical(float amount)
+        public void HealHealth(float amount)
         {
             if (!IsCoreAlive) return;
 
@@ -286,9 +271,9 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Heal core health
+        /// Gain core energy
         /// </summary>
-        public void HealCore(float amount)
+        public void GainCoreEnergy(float amount)
         {
             if (!IsCoreAlive) return;
 
@@ -306,7 +291,7 @@ namespace Resonance.Player.Core
             }
 
             OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
-            Debug.Log($"PlayerController: Healed {amount} core health, current: {_stats.crystalCore.CurrentEnergy}");
+            Debug.Log($"PlayerController: Gained {amount} core energy, current: {_stats.crystalCore.CurrentEnergy}");
         }
 
         /// <summary>
@@ -438,12 +423,12 @@ namespace Resonance.Player.Core
             {
                 result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun);
                 
-                // Core health recovery: 10 health damage = 2 core health recovery
-                if (result.success && result.hasHit && result.damage > 0)
+                // Core energy gain: 10 health damage = 2 core energy gain
+                if (result.success && result.hasHit && result.actualDamage > 0)
                 {
-                    float coreRecovery = result.damage * 0.2f; // 10 damage = 2 recovery
-                    HealCore(coreRecovery);
-                    Debug.Log($"PlayerController: Recovered {coreRecovery} core health from dealing {result.damage} damage");
+                    float coreGain = result.actualDamage * 0.2f; // 10 damage = 2 gain
+                    GainCoreEnergy(coreGain);
+                    Debug.Log($"PlayerController: Gained {coreGain} core energy from dealing {result.actualDamage} actual damage (base: {result.damage})");
                 }
             }
             

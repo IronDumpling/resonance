@@ -109,34 +109,34 @@ namespace Resonance.Player.Core
 
             _totalShots++;
 
-            // 阶段1：获取鼠标射线的目标点
+            // Step 1: Get the target point from the mouse raycast
             Vector3 targetPoint = GetMouseTargetPoint();
             
-            // 阶段2：从玩家向目标点射击
+            // Step 2: Shoot from the player to the target point
             Vector3 shootDirection = (targetPoint - shootOrigin).normalized;
             
-            // 执行射线检测
+            // Step 3: Perform raycast detection
             RaycastHit hitInfo;
             bool hasHit = Physics.Raycast(shootOrigin, shootDirection, out hitInfo, gunData.range, _targetLayerMask);
             
             Vector3 endPoint = hasHit ? hitInfo.point : targetPoint;
             
-            // 调试信息
+            // Debug information
             Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {targetPoint}, direction: {shootDirection}, range: {gunData.range}, layerMask: {_targetLayerMask}");
             
-            // 显示射击线条
+            // Show shooting line
             if (_showShootingLine)
             {
                 ShowShootingLine(shootOrigin, endPoint);
             }
             
-            // 播放射击音效
+            // Play shooting audio
             PlayShootingAudio(shootOrigin, gunData);
             
-            // 触发射击事件
+            // Trigger shooting event
             OnShoot?.Invoke(shootOrigin, gunData.damage);
             
-            // 创建射击结果
+            // Create shooting result
             ShootingResult result = new ShootingResult
             {
                 success = true,
@@ -146,6 +146,7 @@ namespace Resonance.Player.Core
                 direction = shootDirection,
                 range = gunData.range,
                 damage = gunData.damage,
+                actualDamage = 0f, // Updated in ProcessHit
                 mouseTargetPoint = targetPoint
             };
 
@@ -156,11 +157,11 @@ namespace Resonance.Player.Core
                 result.hitNormal = hitInfo.normal;
                 result.hitDistance = hitInfo.distance;
                 
-                // 处理伤害
-                ProcessHit(hitInfo, gunData.damage, shootOrigin, gunData);
+                // Process damage and get actual damage dealt
+                result.actualDamage = ProcessHit(hitInfo, gunData.damage, shootOrigin, gunData);
                 _hits++;
                 
-                Debug.Log($"ShootingSystem: Hit {hitInfo.collider.name} at distance {hitInfo.distance:F2}m for {gunData.damage} damage");
+                Debug.Log($"ShootingSystem: Hit {hitInfo.collider.name} at distance {hitInfo.distance:F2}m for {result.actualDamage} actual damage (base: {gunData.damage})");
             }
             else
             {
@@ -172,7 +173,7 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 设置目标检测层
+        /// Set target detection layer
         /// </summary>
         /// <param name="layerMask">层遮罩</param>
         public void SetTargetLayerMask(LayerMask layerMask)
@@ -462,9 +463,11 @@ namespace Resonance.Player.Core
         /// <param name="hitInfo">射线命中信息</param>
         /// <param name="damage">伤害值</param>
         /// <param name="damageSource">伤害来源</param>
-        private void ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource, GunDataAsset gunData = null)
+        /// <returns>实际造成的伤害值</returns>
+        private float ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource, GunDataAsset gunData = null)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
+            float actualDamage = 0f; // 初始化实际伤害为0
             
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
@@ -485,13 +488,13 @@ namespace Resonance.Player.Core
                     damageInfo = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
                 }
                 
-                // 让弱点处理伤害修改和应用
-                weakpointHitbox.ProcessDamageHit(damageInfo);
+                // 让弱点处理伤害修改和应用，并获取实际伤害
+                actualDamage = weakpointHitbox.ProcessDamageHit(damageInfo);
                 
                 // 播放音效和触发事件
                 PlayHitAudio(hitInfo.point, hitObject);
-                OnHit?.Invoke(hitInfo.point, hitObject, damage);
-                return;
+                OnHit?.Invoke(hitInfo.point, hitObject, actualDamage);
+                return actualDamage;
             }
             
             // 如果不是弱点，按原有逻辑处理IDamageable和IDestructible
@@ -541,19 +544,21 @@ namespace Resonance.Player.Core
                 {
                     DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
                     damageable.TakeDamage(damageInfo);
-                    Debug.Log($"ShootingSystem: Dealt {damage} {gunData.damageType} damage to {damageableObject.name}");
+                    actualDamage = damageInfo.amount; // 使用伤害信息中的伤害值
+                    Debug.Log($"ShootingSystem: Dealt {actualDamage} {gunData.damageType} damage to {damageableObject.name}");
                 }
                 else
                 {
                     // 如果没有武器数据，创建默认的物理伤害
                     DamageInfo defaultDamage = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
                     damageable.TakeDamage(defaultDamage);
-                    Debug.Log($"ShootingSystem: Dealt {damage} default health damage to {damageableObject.name}");
+                    actualDamage = damage;
+                    Debug.Log($"ShootingSystem: Dealt {actualDamage} default health damage to {damageableObject.name}");
                 }
                 
                 PlayHitAudio(hitInfo.point, damageableObject);
-                OnHit?.Invoke(hitInfo.point, damageableObject, damage);
-                return;
+                OnHit?.Invoke(hitInfo.point, damageableObject, actualDamage);
+                return actualDamage;
             }
 
             // 处理可破坏的对象
@@ -561,16 +566,18 @@ namespace Resonance.Player.Core
             {
                 Debug.Log($"ShootingSystem: Found IDestructible on {destructibleObject.name}, dealing {damage} damage");
                 destructible.TakeDamage(damage, damageSource);
+                actualDamage = damage; // 破坏物体受到完整伤害
                 PlayHitAudio(hitInfo.point, destructibleObject);
-                OnHit?.Invoke(hitInfo.point, destructibleObject, damage);
-                Debug.Log($"ShootingSystem: Dealt {damage} damage to destructible {destructibleObject.name}");
-                return;
+                OnHit?.Invoke(hitInfo.point, destructibleObject, actualDamage);
+                Debug.Log($"ShootingSystem: Dealt {actualDamage} damage to destructible {destructibleObject.name}");
+                return actualDamage;
             }
 
             // 如果不是可受伤害或可破坏的对象，仍然触发命中事件（用于音效、粒子效果等）
             PlayHitAudio(hitInfo.point, hitObject);
             OnHit?.Invoke(hitInfo.point, hitObject, 0f);
             Debug.Log($"ShootingSystem: Hit non-damageable object {hitObject.name} - no damage dealt");
+            return 0f; // 没有造成伤害
         }
 
         #endregion
@@ -697,7 +704,8 @@ namespace Resonance.Player.Core
         public Vector3 endPosition;   // 射击结束位置
         public Vector3 direction;     // 射击方向
         public float range;           // 射击距离
-        public float damage;          // 伤害值
+        public float damage;          // 武器基础伤害值
+        public float actualDamage;    // 实际造成的伤害值
         public Vector3 mouseTargetPoint; // 鼠标指向的目标点（阶段1结果）
         
         // 命中信息（如果hasHit为true）

@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Enemies.Core;
+using Resonance.Enemies;
 
-namespace Resonance.Enemies
+namespace Resonance.Enemies.Core
 {
     /// <summary>
     /// Enemy animation event relay - receives animation events and forwards them to the enemy controller

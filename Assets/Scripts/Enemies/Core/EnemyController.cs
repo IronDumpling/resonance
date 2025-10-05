@@ -191,7 +191,6 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            // UpdateHealthRegeneration(deltaTime);
             UpdateRevivalTimer(deltaTime);
             UpdatePlayerDetection();
             _actionController?.Update(deltaTime);
@@ -201,24 +200,9 @@ namespace Resonance.Enemies.Core
 
         #region Health System
 
-        // private void UpdateHealthRegeneration(float deltaTime)
-        // {
-        //     // Physical health regeneration (only when healthly alive)
-        //     if (_stats.revivalRate > 0f && _stats.currentHealth < _stats.maxHealth && IsAlive)
-        //     {
-        //         _stats.RestoreHealth(_stats.revivalRate * deltaTime);
-        //         OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-        //     }
-            
-        //     // Core health regeneration (only in normal state)
-        //     if (_stateMachine.IsInState("Normal") && _stats.revivalRate > 0f && 
-        //         _stats.crystalCore.CurrentEnergy < _stats.crystalCore.CurrentEnergyCapacity)
-        //     {
-        //         _stats.crystalCore.AddEnergy(_stats.revivalRate * deltaTime);
-        //         OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
-        //     }
-        // }
-
+        /// <summary>
+        /// Update revival timer
+        /// </summary>
         private void UpdateRevivalTimer(float deltaTime)
         {
             if (_stateMachine.IsInState("Reviving"))
@@ -297,7 +281,7 @@ namespace Resonance.Enemies.Core
                 HandlePhysicalDeath();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} health damage, health health: {_stats.currentHealth:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} health damage, current health: {_stats.currentHealth:F1}");
         }
 
         /// <summary>

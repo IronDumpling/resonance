@@ -190,7 +190,7 @@ namespace Resonance.Player.Actions
             float healAmount = HEAL_AMOUNT_PER_CONSUMPTION;
 
             // Heal the player
-            player.HealPhysical(healAmount);
+            player.HealHealth(healAmount);
 
             // Play heal effect
             PlayHealEffect(player);
