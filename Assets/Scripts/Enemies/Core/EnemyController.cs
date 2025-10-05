@@ -192,6 +192,7 @@ namespace Resonance.Enemies.Core
         public void Update(float deltaTime)
         {
             UpdateRevivalTimer(deltaTime);
+            _stats.UpdateResilience(deltaTime);
             UpdatePlayerDetection();
             _actionController?.Update(deltaTime);
             _movement?.Update(deltaTime);

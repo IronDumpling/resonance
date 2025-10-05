@@ -22,7 +22,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("最大生命值")]
         public float maxHealth = 100f;
         [Tooltip("最大韧性值")]
-        public float maxResilience = 100f;
+        public float maxResilience = 50f;
         [Tooltip("眩晕阈值")]
         public float stunThreshold = 10f;
         

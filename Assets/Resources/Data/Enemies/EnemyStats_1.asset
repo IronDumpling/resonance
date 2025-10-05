@@ -15,7 +15,7 @@ MonoBehaviour:
   enemyName: Basic Enemy
   enemyDescription: A basic enemy
   maxHealth: 100
-  maxResilience: 100
+  maxResilience: 50
   stunThreshold: 10
   crystalCoreConfig: {fileID: 11400000, guid: 4a3be431e36760b4f86a5f8d78d79497, type: 2}
   corePattern: Enemy_Basic

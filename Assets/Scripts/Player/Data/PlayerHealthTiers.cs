@@ -36,10 +36,14 @@ namespace Resonance.Player.Data
         public const float WOUNDED_THRESHOLD = 0.3f;     // 30%
         
         // 韧性恢复速率
-        public const float HEALTHY_RESILIENCE_REGEN = 10f;
-        public const float INJURED_RESILIENCE_REGEN = 8f;
-        public const float WOUNDED_RESILIENCE_REGEN = 3f;
-        public const float CRITICAL_RESILIENCE_REGEN = 2f;
+        public const float HEALTHY_RESILIENCE_REGEN = 3f;
+        public const float INJURED_RESILIENCE_REGEN = 1f;
+        public const float WOUNDED_RESILIENCE_REGEN = 0.5f;
+        public const float CRITICAL_RESILIENCE_REGEN = 0.1f;
+
+        // 移动速度修正系数
+        public const float WOUNDED_SPEED_MULTIPLIER = 0.7f;    // 重伤时移动速度70%
+        public const float CRITICAL_SPEED_MULTIPLIER = 0.4f;   // 濒死时移动速度40%
 
         /// <summary>
         /// 根据生命值百分比计算健康等级
@@ -110,6 +114,28 @@ namespace Resonance.Player.Data
                     return "Critical";
                 default:
                     return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// 获取指定健康等级的移动速度修正系数
+        /// </summary>
+        /// <param name="tier">健康等级</param>
+        /// <returns>移动速度修正系数</returns>
+        public static float GetSpeedMultiplier(HealthTier tier)
+        {
+            switch (tier)
+            {
+                case HealthTier.Healthy:
+                    return 1.0f;
+                case HealthTier.Injured:
+                    return 1.0f;
+                case HealthTier.Wounded:
+                    return WOUNDED_SPEED_MULTIPLIER;
+                case HealthTier.Critical:
+                    return CRITICAL_SPEED_MULTIPLIER;
+                default:
+                    return CRITICAL_SPEED_MULTIPLIER;
             }
         }
     }

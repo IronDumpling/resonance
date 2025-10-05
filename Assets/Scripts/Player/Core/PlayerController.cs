@@ -148,6 +148,7 @@ namespace Resonance.Player.Core
         public void Update(float deltaTime)
         {
             UpdateInvulnerability(deltaTime);
+            _stats.UpdateResilience(deltaTime);
             _movement.Update(deltaTime);
             _stateMachine?.Update();
             _actionController.Update(deltaTime);
@@ -254,7 +255,7 @@ namespace Resonance.Player.Core
             if (!IsCoreAlive) return;
 
             _stats.TakeResilienceDamage(damage);
-            
+
             Debug.Log($"PlayerController: Took {damage} resilience damage, resilience: {_stats.currentResilience}");
         }
 
