@@ -13,7 +13,7 @@ namespace Resonance.Core.StateMachine.States
 
         public void Enter()
         {
-            Debug.Log("State: Entering MainMenu");
+            Debug.Log("State: Entering MainMenu substate");
             
             _uiService = ServiceRegistry.Get<IUIService>();
             if (_uiService != null)
@@ -56,7 +56,7 @@ namespace Resonance.Core.StateMachine.States
                 _hasShownUI = true;
                 
                 // 显示主菜单UI
-                _uiService?.ShowPanelsForState("MainMenu");
+                _uiService?.ShowPanelsForState("OutGame/MainMenu");
                 
                 // 取消订阅，避免重复处理
                 _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
@@ -70,7 +70,7 @@ namespace Resonance.Core.StateMachine.States
 
         public void Exit()
         {
-            Debug.Log("State: Exiting MainMenu");
+            Debug.Log("State: Exiting MainMenu substate");
             
             // 清理事件订阅
             if (_uiService != null)
@@ -84,7 +84,8 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            return newState.Name == "Gameplay";
+            // Can transition to LoadProgress substate or other OutGame substates
+            return newState.Name == "LoadProgress";
         }
     }
 }

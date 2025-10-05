@@ -5,7 +5,7 @@ using Resonance.Utilities;
 
 namespace Resonance.UI
 {
-    public class LoadPanel : UIPanel
+    public class SaveProgressPanel : UIPanel
     {
 
     }

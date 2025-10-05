@@ -31,8 +31,8 @@ namespace Resonance.Core.StateMachine.States
                     loadSceneService?.State == SystemState.Running &&
                     uiService?.State == SystemState.Running)
                 {
-                    Debug.Log("InitializingState: All services initialized, transitioning to MainMenu");
-                    GameManager.Instance.StateMachine.ChangeState("MainMenu");
+                    Debug.Log("InitializingState: All services initialized, transitioning to OutGame");
+                    GameManager.Instance.StateMachine.ChangeState("OutGame");
                 }
             }
         }
@@ -44,7 +44,7 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            return newState.Name == "MainMenu";
+            return newState.Name == "OutGame";
         }
     }
 }

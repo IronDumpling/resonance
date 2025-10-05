@@ -45,11 +45,12 @@ namespace Resonance.Core.GlobalServices
         private void SetupDefaultStatePanels()
         {
             // Configure which Canvas UI panels should be shown for each game state
-            SetStatePanels("MainMenu", "MainMenuPanel");
-            SetStatePanels("Gameplay", "PlayerStatusPanel"); // WavePanel moved to substate
-            SetStatePanels("Gameplay/Wave", "WavePanel"); // WavePanel only in Wave substate
-            SetStatePanels("Gameplay/InfoReading", "InfoPanel"); // InfoPanel only in InfoReading substate
-            SetStatePanels("Paused", "PauseMenuPanel");
+            SetStatePanels("OutGame/MainMenu", "MainMenuPanel");
+            SetStatePanels("OutGame/LoadProgress", "LoadProgressPanel");
+
+            SetStatePanels("Gameplay", "PlayerStatusPanel"); 
+            SetStatePanels("Gameplay/Wave", "WavePanel"); 
+            SetStatePanels("Gameplay/InfoReading", "InfoPanel");
         }
 
         public void RegisterPanel(IUIPanel panel)

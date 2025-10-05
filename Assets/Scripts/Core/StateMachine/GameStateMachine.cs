@@ -38,7 +38,7 @@ namespace Resonance.Core.StateMachine
         {
             // Add basic game states
             _stateMachine.AddState(new InitializingState());
-            _stateMachine.AddState(new MainMenuState());
+            _stateMachine.AddState(new OutGameState());
             _stateMachine.AddState(new GameplayState());
 
             // Start with initializing state

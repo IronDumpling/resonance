@@ -108,7 +108,7 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            return newState.Name == "Paused" || newState.Name == "MainMenu";
+            return newState.Name == "OutGame";
         }
         
         /// <summary>

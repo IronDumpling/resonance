@@ -86,7 +86,7 @@ namespace Resonance.Core.StateMachine.States
         public bool CanTransitionTo(IState newState)
         {
             // Can only transition back to Normal or Paused state
-            return newState.Name == "Normal" || newState.Name == "Paused";
+            return newState.Name == "Normal";
         }
 
         /// <summary>

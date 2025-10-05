@@ -92,9 +92,9 @@ GameObject:
   - component: {fileID: 2022248635751137611}
   - component: {fileID: 5279864897055601469}
   - component: {fileID: 8953521196829865869}
-  - component: {fileID: 735748114845440200}
+  - component: {fileID: 3926884455142385265}
   m_Layer: 5
-  m_Name: SavePanel
+  m_Name: SaveProgressPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -183,7 +183,7 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &735748114845440200
+--- !u!114 &3926884455142385265
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -192,15 +192,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 6053900862342859998}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bbd2036a85a22249b28fe12076129a8, type: 3}
+  m_Script: {fileID: 11500000, guid: b4fe15f5087845c41a6679b7113ef7df, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Resonance.UI.SavePanel
-  _panelName: SavePanel
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.UI.SaveProgressPanel
+  _panelName: SaveProgressPanel
   _layer: 20
   _hideOnStart: 1
-  _mainCanvasGroup: {fileID: 0}
-  _uiComponents: []
-  _componentCanvasGroups: []
 --- !u!1 &8894292657009657902
 GameObject:
   m_ObjectHideFlags: 0

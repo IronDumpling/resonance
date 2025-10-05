@@ -264,7 +264,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: '_prefabResourcePaths.Array.data[2]'
-      value: Prefabs/UIs/SavePanel
+      value: Prefabs/UIs/SaveProgressPanel
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: '_prefabResourcePaths.Array.data[3]'
