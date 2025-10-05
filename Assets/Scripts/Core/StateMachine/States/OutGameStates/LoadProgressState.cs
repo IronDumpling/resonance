@@ -46,8 +46,9 @@ namespace Resonance.Core.StateMachine.States
         
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition to MainMenu substate or other OutGame substates
-            return newState.Name == "MainMenu";
+            // Within OutGameState substate machine, allow transitions to all other substates
+            // This includes: MainMenu, LoadProgress, or any future OutGame substates
+            return true;
         }
         
         /// <summary>

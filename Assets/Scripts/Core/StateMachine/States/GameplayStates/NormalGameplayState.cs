@@ -34,8 +34,9 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition to Wave substate
-            return newState.Name == "Wave" || newState.Name == "InfoReading";
+            // Within GameplayState substate machine, allow transitions to all other substates
+            // This includes: Normal, Wave, InfoReading, or any future Gameplay substates
+            return true;
         }
     }
 }

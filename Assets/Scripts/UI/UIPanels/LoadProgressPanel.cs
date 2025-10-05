@@ -1,12 +1,147 @@
-using Resonance.UI;
+using UnityEngine;
+using UnityEngine.UI;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
 using Resonance.Utilities;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.UI
 {
     public class LoadProgressPanel : UIPanel
     {
+        [Header("Save Slot Buttons")]
+        [SerializeField] private Button _saveSlot1Button;
+        [SerializeField] private Button _saveSlot2Button;
+        [SerializeField] private Button _saveSlot3Button;
+        [SerializeField] private Button _saveSlot4Button;
 
+        [Header("Services")]
+        private ISceneTransitionService _sceneService;
+        private GameManager _gameManager;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            
+            // Set panel configuration
+            _panelName = "LoadProgressPanel";
+            _layer = UILayer.Menu;
+        }
+
+        protected override void Start()
+        {
+            base.Start();
+            
+            // Get services
+            _sceneService = ServiceRegistry.Get<ISceneTransitionService>();
+            _gameManager = GameManager.Instance;
+
+            SetupButtonEvents();
+        }
+
+        private void SetupButtonEvents()
+        {
+            // Auto-find buttons if not assigned
+            if (_saveSlot1Button == null)
+                _saveSlot1Button = FindButtonByName("SaveSlot1");
+            if (_saveSlot2Button == null)
+                _saveSlot2Button = FindButtonByName("SaveSlot2");
+            if (_saveSlot3Button == null)
+                _saveSlot3Button = FindButtonByName("SaveSlot3");
+            if (_saveSlot4Button == null)
+                _saveSlot4Button = FindButtonByName("SaveSlot4");
+
+            // Setup events
+            if (_saveSlot1Button != null)
+                _saveSlot1Button.onClick.AddListener(OnSaveSlot1Clicked);
+            if (_saveSlot2Button != null)
+                _saveSlot2Button.onClick.AddListener(OnSaveSlot2Clicked);
+            if (_saveSlot3Button != null)
+                _saveSlot3Button.onClick.AddListener(OnSaveSlot3Clicked);
+            if (_saveSlot4Button != null)
+                _saveSlot4Button.onClick.AddListener(OnSaveSlot4Clicked);
+        }
+
+        private Button FindButtonByName(params string[] possibleNames)
+        {
+            foreach (string name in possibleNames)
+            {
+                var found = transform.Find(name);
+                if (found != null)
+                {
+                    var button = found.GetComponent<Button>();
+                    if (button != null) return button;
+                }
+
+                // Search in children
+                Button[] buttons = GetComponentsInChildren<Button>();
+                foreach (var btn in buttons)
+                {
+                    if (btn.name.ToLower().Contains(name.ToLower()))
+                        return btn;
+                }
+            }
+            return null;
+        }
+
+        private void OnSaveSlot1Clicked()
+        {
+            Debug.Log("LoadProgressPanel: Save Slot 1 clicked");
+
+            if (_gameManager != null && _gameManager.StateMachine != null)
+            {
+                bool success = _gameManager.StateMachine.ChangeState("Gameplay");
+                if (success)
+                {
+                    Debug.Log("MainMenu: Successfully switched to Gameplay state");
+                    
+                    // Then load the gameplay scene
+                    if (_sceneService != null)
+                    {
+                        _sceneService.LoadScene("Level_01");
+                    }
+                    else
+                    {
+                        Debug.LogError("MainMenu: SceneTransitionService not found");
+                    }
+                }
+                else
+                {
+                    Debug.LogError("MainMenu: Failed to switch to Gameplay state");
+                }
+            }
+            else
+            {
+                Debug.LogError("MainMenu: GameManager or StateMachine not found");
+            }
+        }
+
+        private void OnSaveSlot2Clicked()
+        {
+            Debug.Log("LoadProgressPanel: Save Slot 2 clicked");
+        }
+
+        private void OnSaveSlot3Clicked()
+        {
+            Debug.Log("LoadProgressPanel: Save Slot 3 clicked");
+        }
+
+        private void OnSaveSlot4Clicked()
+        {
+            Debug.Log("LoadProgressPanel: Save Slot 4 clicked");
+        }
+
+        protected override void OnCleanup()
+        {
+            base.OnCleanup();
+
+            if (_saveSlot1Button != null)
+                _saveSlot1Button.onClick.RemoveAllListeners();
+            if (_saveSlot2Button != null)
+                _saveSlot2Button.onClick.RemoveAllListeners();
+            if (_saveSlot3Button != null)
+                _saveSlot3Button.onClick.RemoveAllListeners();
+            if (_saveSlot4Button != null)
+                _saveSlot4Button.onClick.RemoveAllListeners();
+        }
     }
 }

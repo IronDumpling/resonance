@@ -38,8 +38,28 @@ namespace Resonance.Core.StateMachine
         {
             // Add basic game states
             _stateMachine.AddState(new InitializingState());
-            _stateMachine.AddState(new OutGameState());
-            _stateMachine.AddState(new GameplayState());
+            
+            // Create OutGameState and set up its substate machine
+            var outGameState = new OutGameState();
+            _stateMachine.AddState(outGameState);
+            
+            // Get the substate machine from OutGameState and register it
+            var outGameSubStateMachine = outGameState.GetSubStateMachine();
+            if (outGameSubStateMachine != null)
+            {
+                _stateMachine.AddSubStateMachine("OutGame", outGameSubStateMachine);
+            }
+            
+            // Create GameplayState and set up its substate machine
+            var gameplayState = new GameplayState();
+            _stateMachine.AddState(gameplayState);
+            
+            // Get the substate machine from GameplayState and register it
+            var gameplaySubStateMachine = gameplayState.GetSubStateMachine();
+            if (gameplaySubStateMachine != null)
+            {
+                _stateMachine.AddSubStateMachine("Gameplay", gameplaySubStateMachine);
+            }
 
             // Start with initializing state
             _stateMachine.ChangeState("Initializing");

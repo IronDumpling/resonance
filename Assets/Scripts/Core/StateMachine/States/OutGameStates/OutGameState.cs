@@ -85,33 +85,31 @@ namespace Resonance.Core.StateMachine.States
         }
         
         /// <summary>
-        /// Change to MainMenu substate
-        /// </summary>
-        public void ChangeToMainMenu()
-        {
-            if (_subStateMachine != null)
-            {
-                _subStateMachine.ChangeState("MainMenu");
-            }
-        }
-        
-        /// <summary>
-        /// Change to LoadProgress substate
-        /// </summary>
-        public void ChangeToLoadProgress()
-        {
-            if (_subStateMachine != null)
-            {
-                _subStateMachine.ChangeState("LoadProgress");
-            }
-        }
-        
-        /// <summary>
         /// Get current substate name for debugging
         /// </summary>
         public string GetCurrentSubstateName()
         {
             return _subStateMachine?.CurrentState?.Name ?? "None";
+        }
+        
+        /// <summary>
+        /// Get the substate machine for registration with parent state machine
+        /// </summary>
+        public BaseStateMachine GetSubStateMachine()
+        {
+            return _subStateMachine;
+        }
+        
+        /// <summary>
+        /// Change to a specific substate within OutGameState
+        /// </summary>
+        public bool ChangeSubState(string subStateName)
+        {
+            if (_subStateMachine != null)
+            {
+                return _subStateMachine.ChangeState(subStateName);
+            }
+            return false;
         }
     }
 }

@@ -113,8 +113,9 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can only transition back to normal gameplay state
-            return newState.Name == "Normal";
+            // Within GameplayState substate machine, allow transitions to all other substates
+            // This includes: Normal, Wave, InfoReading, or any future Gameplay substates
+            return true;
         }
 
         /// <summary>

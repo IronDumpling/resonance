@@ -265,6 +265,26 @@ namespace Resonance.Core.StateMachine.States
         }
         
         /// <summary>
+        /// Get the substate machine for registration with parent state machine
+        /// </summary>
+        public BaseStateMachine GetSubStateMachine()
+        {
+            return _subStateMachine;
+        }
+        
+        /// <summary>
+        /// Change to a specific substate within GameplayState
+        /// </summary>
+        public bool ChangeSubState(string subStateName)
+        {
+            if (_subStateMachine != null)
+            {
+                return _subStateMachine.ChangeState(subStateName);
+            }
+            return false;
+        }
+        
+        /// <summary>
         /// Force refresh of gameplay UI (useful after scene transitions)
         /// </summary>
         public void RefreshGameplayUI()

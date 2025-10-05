@@ -432,7 +432,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6870222560847081201, guid: 7274f3586da333c4daa254d68c056764, type: 3}
       propertyPath: m_Name
-      value: SaveSlot 1
+      value: SaveSlot1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -534,7 +534,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6870222560847081201, guid: 7274f3586da333c4daa254d68c056764, type: 3}
       propertyPath: m_Name
-      value: SaveSlot 2
+      value: SaveSlot2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -636,7 +636,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6870222560847081201, guid: 7274f3586da333c4daa254d68c056764, type: 3}
       propertyPath: m_Name
-      value: SaveSlot 4
+      value: SaveSlot4
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -738,7 +738,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6870222560847081201, guid: 7274f3586da333c4daa254d68c056764, type: 3}
       propertyPath: m_Name
-      value: SaveSlot 3
+      value: SaveSlot3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

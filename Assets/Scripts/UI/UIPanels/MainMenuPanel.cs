@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
+using Resonance.Core.StateMachine.States;
 
 namespace Resonance.UI
 {
@@ -16,9 +17,8 @@ namespace Resonance.UI
         [SerializeField] private Button _startGameButton;
         [SerializeField] private Button _settingsButton;
         [SerializeField] private Button _quitButton;
-        
+
         [Header("Services")]
-        private ISceneTransitionService _sceneService;
         private GameManager _gameManager;
         
         protected override void Awake()
@@ -35,7 +35,6 @@ namespace Resonance.UI
             base.Start();
             
             // Get services
-            _sceneService = ServiceRegistry.Get<ISceneTransitionService>();
             _gameManager = GameManager.Instance;
             
             // Setup button events
@@ -87,27 +86,25 @@ namespace Resonance.UI
         {
             Debug.Log("MainMenu: Start Game clicked");
             
-            // Directly switch to Gameplay state first
+            // Get the current OutGameState and change its substate
             if (_gameManager != null && _gameManager.StateMachine != null)
             {
-                bool success = _gameManager.StateMachine.ChangeState("Gameplay");
-                if (success)
+                var outGameState = _gameManager.StateMachine.GetState<OutGameState>("OutGame");
+                if (outGameState != null)
                 {
-                    Debug.Log("MainMenu: Successfully switched to Gameplay state");
-                    
-                    // Then load the gameplay scene
-                    if (_sceneService != null)
+                    bool success = outGameState.ChangeSubState("LoadProgress");
+                    if (success)
                     {
-                        _sceneService.LoadScene("Level_01");
+                        Debug.Log("MainMenu: Successfully switched to LoadProgress substate");
                     }
                     else
                     {
-                        Debug.LogError("MainMenu: SceneTransitionService not found");
+                        Debug.LogError("MainMenu: Failed to switch to LoadProgress substate");
                     }
                 }
                 else
                 {
-                    Debug.LogError("MainMenu: Failed to switch to Gameplay state");
+                    Debug.LogError("MainMenu: OutGameState not found");
                 }
             }
             else
