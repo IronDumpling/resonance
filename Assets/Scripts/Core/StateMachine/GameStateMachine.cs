@@ -39,27 +39,11 @@ namespace Resonance.Core.StateMachine
             // Add basic game states
             _stateMachine.AddState(new InitializingState());
             
-            // Create OutGameState and set up its substate machine
-            var outGameState = new OutGameState();
-            _stateMachine.AddState(outGameState);
+            // Create OutGameState
+            _stateMachine.AddState(new OutGameState());
             
-            // Get the substate machine from OutGameState and register it
-            var outGameSubStateMachine = outGameState.GetSubStateMachine();
-            if (outGameSubStateMachine != null)
-            {
-                _stateMachine.AddSubStateMachine("OutGame", outGameSubStateMachine);
-            }
-            
-            // Create GameplayState and set up its substate machine
-            var gameplayState = new GameplayState();
-            _stateMachine.AddState(gameplayState);
-            
-            // Get the substate machine from GameplayState and register it
-            var gameplaySubStateMachine = gameplayState.GetSubStateMachine();
-            if (gameplaySubStateMachine != null)
-            {
-                _stateMachine.AddSubStateMachine("Gameplay", gameplaySubStateMachine);
-            }
+            // Create GameplayState 
+            _stateMachine.AddState(new GameplayState());
 
             // Start with initializing state
             _stateMachine.ChangeState("Initializing");
@@ -73,21 +57,41 @@ namespace Resonance.Core.StateMachine
             }
         }
 
-        public bool ChangeState(string statePath)
+        /// <summary>
+        /// Change to a top-level game state (Initializing, OutGame, Gameplay)
+        /// This method only handles transitions between first-level states
+        /// </summary>
+        /// <param name="stateName">Name of the top-level state</param>
+        /// <returns>True if state change was successful</returns>
+        public bool ChangeState(string stateName)
         {
-            return _stateMachine?.ChangeState(statePath) ?? false;
+            if (!_isInitialized)
+            {
+                Debug.LogError("GameStateMachine: Cannot change state before initialization");
+                return false;
+            }
+
+            // Only allow top-level state names
+            if (stateName != "Initializing" && stateName != "OutGame" && stateName != "Gameplay")
+            {
+                Debug.LogError($"GameStateMachine: '{stateName}' is not a valid top-level state. Use ChangeSubState for substates.");
+                return false;
+            }
+
+            return _stateMachine?.ChangeState(stateName) ?? false;
         }
 
+        /// <summary>
+        /// Get the current full state path (e.g., "OutGame/MainMenu" or "Gameplay/Normal")
+        /// </summary>
         public string GetCurrentStatePath()
         {
             return _stateMachine?.CurrentStatePath ?? "";
         }
 
-        public bool ChangeState(IState state)
-        {
-            return _stateMachine?.ChangeState(state) ?? false;
-        }
-
+        /// <summary>
+        /// Get a specific top-level state by name (for advanced usage)
+        /// </summary>
         public T GetState<T>(string stateName) where T : class, IState
         {
             return _stateMachine?.GetState<T>(stateName);

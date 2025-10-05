@@ -89,10 +89,11 @@ namespace Resonance.UI
 
             if (_gameManager != null && _gameManager.StateMachine != null)
             {
+                // Change to Gameplay top-level state
                 bool success = _gameManager.StateMachine.ChangeState("Gameplay");
                 if (success)
                 {
-                    Debug.Log("MainMenu: Successfully switched to Gameplay state");
+                    Debug.Log("LoadProgressPanel: Successfully switched to Gameplay state");
                     
                     // Then load the gameplay scene
                     if (_sceneService != null)
@@ -101,17 +102,17 @@ namespace Resonance.UI
                     }
                     else
                     {
-                        Debug.LogError("MainMenu: SceneTransitionService not found");
+                        Debug.LogError("LoadProgressPanel: SceneTransitionService not found");
                     }
                 }
                 else
                 {
-                    Debug.LogError("MainMenu: Failed to switch to Gameplay state");
+                    Debug.LogError("LoadProgressPanel: Failed to switch to Gameplay state");
                 }
             }
             else
             {
-                Debug.LogError("MainMenu: GameManager or StateMachine not found");
+                Debug.LogError("LoadProgressPanel: GameManager or StateMachine not found");
             }
         }
 

@@ -1,9 +1,9 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
-using Resonance.Core.StateMachine.States;
 
 namespace Resonance.UI
 {
@@ -17,6 +17,9 @@ namespace Resonance.UI
         [SerializeField] private Button _startGameButton;
         [SerializeField] private Button _settingsButton;
         [SerializeField] private Button _quitButton;
+
+        // Events for UI interactions (decoupled from state machine)
+        public static event Action OnStartGameRequested;
 
         [Header("Services")]
         private GameManager _gameManager;
@@ -84,33 +87,10 @@ namespace Resonance.UI
 
         private void OnStartGameClicked()
         {
-            Debug.Log("MainMenu: Start Game clicked");
+            Debug.Log("MainMenuPanel: Start Game button clicked");
             
-            // Get the current OutGameState and change its substate
-            if (_gameManager != null && _gameManager.StateMachine != null)
-            {
-                var outGameState = _gameManager.StateMachine.GetState<OutGameState>("OutGame");
-                if (outGameState != null)
-                {
-                    bool success = outGameState.ChangeSubState("LoadProgress");
-                    if (success)
-                    {
-                        Debug.Log("MainMenu: Successfully switched to LoadProgress substate");
-                    }
-                    else
-                    {
-                        Debug.LogError("MainMenu: Failed to switch to LoadProgress substate");
-                    }
-                }
-                else
-                {
-                    Debug.LogError("MainMenu: OutGameState not found");
-                }
-            }
-            else
-            {
-                Debug.LogError("MainMenu: GameManager or StateMachine not found");
-            }
+            // Trigger event for state transition (decoupled from state machine)
+            OnStartGameRequested?.Invoke();
         }
 
         private void OnSettingsClicked()

@@ -34,9 +34,11 @@ namespace Resonance.Core.StateMachine.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Within GameplayState substate machine, allow transitions to all other substates
-            // This includes: Normal, Wave, InfoReading, or any future Gameplay substates
-            return true;
+            if (newState.Name == "OutGame" || newState.Name == "Gameplay" || newState.Name == "Initializing")
+            {
+                return false; // Cannot transition to parent-level states
+            }
+            return true; // Allow all same-level substates
         }
     }
 }

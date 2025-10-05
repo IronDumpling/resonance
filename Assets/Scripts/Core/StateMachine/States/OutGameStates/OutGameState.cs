@@ -2,6 +2,7 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
+using Resonance.UI;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -29,6 +30,10 @@ namespace Resonance.Core.StateMachine.States
             
             // Initialize substate machine
             SetupSubStateMachine();
+            
+            // Subscribe to UI events for substate transitions
+            MainMenuPanel.OnStartGameRequested += OnStartGameRequested;
+            Debug.Log("OutGameState: Subscribed to MainMenuPanel events");
         }
         
         public void Update()
@@ -46,6 +51,10 @@ namespace Resonance.Core.StateMachine.States
             {
                 _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
             }
+            
+            // Unsubscribe from UI events
+            MainMenuPanel.OnStartGameRequested -= OnStartGameRequested;
+            Debug.Log("OutGameState: Unsubscribed from MainMenuPanel events");
             
             // Clear substate machine
             _subStateMachine?.Clear();
@@ -81,7 +90,29 @@ namespace Resonance.Core.StateMachine.States
         private void OnSceneUIPanelsReady(string sceneName)
         {
             Debug.Log($"OutGameState: Scene {sceneName} UI panels are ready");
-            // Forward to current substate if needed
+        }
+        
+        /// <summary>
+        /// Handle start game request from MainMenuPanel
+        /// </summary>
+        private void OnStartGameRequested()
+        {
+            Debug.Log("OutGameState: Start game requested, transitioning to LoadProgress substate");
+            
+            if (_subStateMachine == null)
+            {
+                Debug.LogError("OutGameState: SubStateMachine is null, cannot transition to LoadProgress");
+                return;
+            }
+            
+            // Transition to LoadProgress substate
+            if (!_subStateMachine.ChangeState("LoadProgress"))
+            {
+                Debug.LogError("OutGameState: Failed to transition to LoadProgress substate");
+                return;
+            }
+            
+            Debug.Log("OutGameState: Successfully transitioned to LoadProgress substate");
         }
         
         /// <summary>
@@ -90,26 +121,6 @@ namespace Resonance.Core.StateMachine.States
         public string GetCurrentSubstateName()
         {
             return _subStateMachine?.CurrentState?.Name ?? "None";
-        }
-        
-        /// <summary>
-        /// Get the substate machine for registration with parent state machine
-        /// </summary>
-        public BaseStateMachine GetSubStateMachine()
-        {
-            return _subStateMachine;
-        }
-        
-        /// <summary>
-        /// Change to a specific substate within OutGameState
-        /// </summary>
-        public bool ChangeSubState(string subStateName)
-        {
-            if (_subStateMachine != null)
-            {
-                return _subStateMachine.ChangeState(subStateName);
-            }
-            return false;
         }
     }
 }

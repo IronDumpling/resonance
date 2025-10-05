@@ -46,9 +46,11 @@ namespace Resonance.Core.StateMachine.States
         
         public bool CanTransitionTo(IState newState)
         {
-            // Within OutGameState substate machine, allow transitions to all other substates
-            // This includes: MainMenu, LoadProgress, or any future OutGame substates
-            return true;
+            if (newState.Name == "OutGame" || newState.Name == "Gameplay" || newState.Name == "Initializing")
+            {
+                return false; // Cannot transition to parent-level states
+            }
+            return true; // Allow all same-level substates
         }
         
         /// <summary>
