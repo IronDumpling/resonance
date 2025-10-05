@@ -73,7 +73,7 @@ namespace Resonance.Enemies.Core
         
         // Dual Health Events
         public System.Action<float, float> OnHealthChanged; // current, max
-        public System.Action<float, float> OnCoreHealthChanged; // current, max
+        public System.Action<float, float> OnCoreEnergyChanged; // current, max
         public System.Action OnPhysicalDeath; // Physical health reaches 0
         public System.Action OnTrueDeath; // Core health reaches 0
         public System.Action OnRevivalStarted; // Revival process started
@@ -299,7 +299,7 @@ namespace Resonance.Enemies.Core
             _timesHit++;
             _totalDamageTaken += damage;
             
-            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
             
             // Check for core tier change
             if (_stats.crystalCore.EnergyTier != previousTier)
@@ -785,7 +785,7 @@ namespace Resonance.Enemies.Core
         public void Shutdown()
         {
             OnHealthChanged = null;
-            OnCoreHealthChanged = null;
+            OnCoreEnergyChanged = null;
             OnPhysicalDeath = null;
             OnTrueDeath = null;
             OnRevivalStarted = null;

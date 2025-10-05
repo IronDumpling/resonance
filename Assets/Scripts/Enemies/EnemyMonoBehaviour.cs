@@ -324,7 +324,7 @@ namespace Resonance.Enemies
 
             // Subscribe to enemy events
             _enemyController.OnHealthChanged += HandleHealthChanged;
-            _enemyController.OnCoreHealthChanged += HandleCoreHealthChanged;
+            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
             _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
             _enemyController.OnTrueDeath += HandleTrueDeath;
             _enemyController.OnRevivalStarted += HandleRevivalStarted;

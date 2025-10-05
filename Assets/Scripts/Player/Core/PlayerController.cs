@@ -33,10 +33,6 @@ namespace Resonance.Player.Core
         private IAudioService _audioService;
         private GameObject _playerGameObject; // For 3D audio positioning
 
-        // Progression
-        private List<string> _unlockedAbilities;
-        private Dictionary<string, float> _gameVariables;
-
         // Combat State
         private bool _isInvulnerable = false;
         private float _invulnerabilityTimer = 0f;
@@ -44,7 +40,7 @@ namespace Resonance.Player.Core
 
         // Dual Health Events
         public System.Action<float, float> OnHealthChanged; // current, max
-        public System.Action<float, float> OnCoreHealthChanged; // current, max
+        public System.Action<float, float> OnCoreEnergyChanged; // current, max
         public System.Action OnDeath; // Health reaches 0
         
         // Health Tier Events
@@ -61,8 +57,6 @@ namespace Resonance.Player.Core
         public PlayerMovement Movement => _movement;
         public WeaponManager WeaponManager => _weaponManager;
         public ShootingSystem ShootingSystem => _shootingSystem;
-        public List<string> UnlockedAbilities => _unlockedAbilities;
-        public Dictionary<string, float> GameVariables => _gameVariables;
         public bool IsInvulnerable => _isInvulnerable;
         
         // Dual Health Properties
@@ -120,11 +114,11 @@ namespace Resonance.Player.Core
             _movement = new PlayerMovement(_stats);
             _weaponManager = new WeaponManager();
             
-            // 设置WeaponManager与PlayerInventory的双向同步
+            // Set PlayerController reference for PlayerMovement (for state-based speed calculation)
+            _movement.SetPlayerController(this);
+            
+            // Set WeaponManager and PlayerInventory bidirectional synchronization
             _weaponManager.SetInventoryReference(_inventory);
-
-            _unlockedAbilities = new List<string>();
-            _gameVariables = new Dictionary<string, float>();
 
             // Initialize state machine
             _stateMachine = new PlayerStateMachine(this);
@@ -235,7 +229,7 @@ namespace Resonance.Player.Core
                 Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier}");
             }
 
-            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
 
             if (_stats.crystalCore.CurrentEnergyCapacity <= 0f)
             {
@@ -303,7 +297,7 @@ namespace Resonance.Player.Core
                 Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier}");
             }
 
-            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
             Debug.Log($"PlayerController: Gained {amount} core energy, current: {_stats.crystalCore.CurrentEnergy}");
         }
 
@@ -331,7 +325,7 @@ namespace Resonance.Player.Core
             _stats.FullRestore();
             _stats.crystalCore.FullRepair();
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
             Debug.Log("PlayerController: All health restored to full");
         }
 
@@ -351,7 +345,7 @@ namespace Resonance.Player.Core
         public void RestoreCoreHealth()
         {
             _stats.crystalCore.FullRepair();
-            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
             Debug.Log("PlayerController: Core health restored to full");
         }
 
@@ -500,7 +494,7 @@ namespace Resonance.Player.Core
 
             // Notify UI of dual health changes
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-            OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
         }
 
         public PlayerSaveData CreateSaveData(string savePointID, Vector3 position, Vector3 rotation)
@@ -524,20 +518,6 @@ namespace Resonance.Player.Core
             saveData.weaponManager = _weaponManager.GetSaveData();
             Debug.Log($"PlayerController: Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
             return saveData;
-        }
-
-        #endregion
-
-        #region Variables
-
-        public void SetGameVariable(string varName, float value)
-        {
-            _gameVariables[varName] = value;
-        }
-
-        public float GetGameVariable(string varName)
-        {
-            return _gameVariables.TryGetValue(varName, out float value) ? value : 0f;
         }
 
         #endregion
@@ -599,41 +579,6 @@ namespace Resonance.Player.Core
             return _actionController?.IsActive ?? false;
         }
 
-        #endregion
-
-        #region Core Health Slot Management
-        
-        /// <summary>
-        /// Consume one core health slot for actions
-        /// </summary>
-        /// <returns>True if successful, false if insufficient core health</returns>
-        public bool ConsumeSlot()
-        {
-            var oldCoreTier = _stats.crystalCore.EnergyTier;
-            bool success = _stats.crystalCore.ConsumeEnergySlot();
-            
-            if (success)
-            {
-                // Fire events
-                OnCoreHealthChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
-                
-                if (oldCoreTier != _stats.crystalCore.EnergyTier)
-                {
-                    OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
-                    Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier} after slot consumption");
-                }
-                
-                Debug.Log($"PlayerController: Consumed 1 slot ({_stats.crystalCore.EnergyPerSlot} core health)." +
-                $"Remaining: {_stats.crystalCore.CurrentEnergy}/{_stats.crystalCore.CurrentEnergyCapacity} ({_stats.crystalCore.GetEnergyInSlots():F1} slots)");
-            }
-            
-            return success;
-        }
-
-        #endregion
-
-        #region Action Registration
-
         /// <summary>
         /// Register all available player actions with the ActionController
         /// </summary>
@@ -650,37 +595,33 @@ namespace Resonance.Player.Core
 
         #endregion
 
-        #region Cleanup
-
+        #region Core Energy Slot Management
+        
         /// <summary>
-        /// Cleanup the player controller when it's being destroyed
+        /// Consume one core energy slot for actions
         /// </summary>
-        public void Cleanup()
+        /// <returns>True if successful, false if insufficient core energy</returns>
+        public bool ConsumeSlot()
         {
-            // Cleanup action controller
-            _actionController?.Cleanup();
-
-            // Cleanup state machine
-            _stateMachine?.Shutdown();
-
-            // Clear events
-            OnHealthChanged = null;
-            OnCoreHealthChanged = null;
-            OnDeath = null;
-            OnCoreTierChanged = null;
-            OnHealthTierChanged = null;
-            OnStateChanged = null;
-            OnShoot = null;
-
-            // Unregister from SelectivePauseService
-            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
-            if (pauseService != null)
+            var oldCoreTier = _stats.crystalCore.EnergyTier;
+            bool success = _stats.crystalCore.ConsumeEnergySlot();
+            
+            if (success)
             {
-                pauseService.UnregisterPausable(this);
-                Debug.Log("PlayerController: Unregistered from SelectivePauseService");
+                // Fire events
+                OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+                
+                if (oldCoreTier != _stats.crystalCore.EnergyTier)
+                {
+                    OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
+                    Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier} after slot consumption");
+                }
+                
+                Debug.Log($"PlayerController: Consumed 1 slot ({_stats.crystalCore.EnergyPerSlot} core energy)." +
+                $"Remaining: {_stats.crystalCore.CurrentEnergy}/{_stats.crystalCore.CurrentEnergyCapacity} ({_stats.crystalCore.GetEnergyInSlots():F1} slots)");
             }
-
-            Debug.Log("PlayerController: Cleaned up");
+            
+            return success;
         }
 
         #endregion
@@ -721,6 +662,41 @@ namespace Resonance.Player.Core
             
             _isPaused = false;
             Debug.Log("PlayerController: Resumed");
+        }
+
+        #endregion
+
+        #region Cleanup
+
+        /// <summary>
+        /// Cleanup the player controller when it's being destroyed
+        /// </summary>
+        public void Cleanup()
+        {
+            // Cleanup action controller
+            _actionController?.Cleanup();
+
+            // Cleanup state machine
+            _stateMachine?.Shutdown();
+
+            // Clear events
+            OnHealthChanged = null;
+            OnCoreEnergyChanged = null;
+            OnDeath = null;
+            OnCoreTierChanged = null;
+            OnHealthTierChanged = null;
+            OnStateChanged = null;
+            OnShoot = null;
+
+            // Unregister from SelectivePauseService
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.UnregisterPausable(this);
+                Debug.Log("PlayerController: Unregistered from SelectivePauseService");
+            }
+
+            Debug.Log("PlayerController: Cleaned up");
         }
 
         #endregion
