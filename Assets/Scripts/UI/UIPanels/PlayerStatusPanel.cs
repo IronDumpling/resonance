@@ -35,6 +35,7 @@ namespace Resonance.UI
         
         [Header("Physical Health Sprites")]
         [SerializeField] private Sprite _healthyHealthSprite;
+        [SerializeField] private Sprite _injuredHealthSprite;
         [SerializeField] private Sprite _woundedHealthSprite;
         [SerializeField] private Sprite _criticalHealthSprite;
         
@@ -55,7 +56,6 @@ namespace Resonance.UI
             _layer = UILayer.Game;
             _hideOnStart = false; // Player status should be visible by default
             
-            // Force correct scale and visibility (override prefab settings)
             transform.localScale = Vector3.one;
             gameObject.SetActive(true);
         }
@@ -105,15 +105,19 @@ namespace Resonance.UI
         {
             // Load health health sprites from Resources
             if (_healthyHealthSprite == null)
-                _healthyHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/healthy_health");
+                _healthyHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/healthy");
+            if (_injuredHealthSprite == null)
+                _injuredHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/injured");
             if (_woundedHealthSprite == null)
-                _woundedHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/wounded_health");
+                _woundedHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/wounded");
             if (_criticalHealthSprite == null)
-                _criticalHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/critical_health");
+                _criticalHealthSprite = Resources.Load<Sprite>("Art/Sprites/Health/critical");
             
             // Log warnings if sprites couldn't be loaded
             if (_healthyHealthSprite == null)
                 Debug.LogWarning("PlayerStatusPanel: Could not load healthy_health sprite from Resources");
+            if (_injuredHealthSprite == null)
+                Debug.LogWarning("PlayerStatusPanel: Could not load injured_health sprite from Resources");
             if (_woundedHealthSprite == null)
                 Debug.LogWarning("PlayerStatusPanel: Could not load wounded_health sprite from Resources");
             if (_criticalHealthSprite == null)
@@ -294,12 +298,12 @@ namespace Resonance.UI
                 if (hasWeapon && currentGun != null && currentGun.weaponIcon != null)
                 {
                     _weaponIcon.sprite = currentGun.weaponIcon;
-                    _weaponIcon.color = Color.white; // Make sure it's visible
+                    _weaponIcon.color = Color.white;
                 }
                 else
                 {
-                    _weaponIcon.sprite = null;
-                    _weaponIcon.color = Color.clear; // Hide if no weapon
+                    _weaponIcon.sprite = Resources.Load<Sprite>("Art/Sprites/WeaponIcon/empty_icon");
+                    _weaponIcon.color = Color.white;
                 }
             }
             
