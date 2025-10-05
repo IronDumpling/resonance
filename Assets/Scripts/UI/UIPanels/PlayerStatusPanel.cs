@@ -551,6 +551,16 @@ namespace Resonance.UI
                 float resiliencePercentage = maxResilience > 0 ? currentResilience / maxResilience : 0f;
                 _resilienceValue.fillAmount = resiliencePercentage;
             }
+
+            switch (_playerController.Stats.resilienceState)
+            {
+                case ResilienceState.Stunned:
+                    _resilienceValue.sprite = Resources.Load<Sprite>("Art/Sprites/Resilience/stun_resilience");
+                    break;
+                case ResilienceState.Normal:
+                    _resilienceValue.sprite = Resources.Load<Sprite>("Art/Sprites/Resilience/normal_resilience");
+                    break;
+            }
         }
 
         #endregion

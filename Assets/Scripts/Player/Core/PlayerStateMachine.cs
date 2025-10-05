@@ -50,6 +50,7 @@ namespace Resonance.Player.Core
             // Add player states
             _stateMachine.AddState(new PlayerNormalState(_playerController));
             _stateMachine.AddState(new PlayerAimingState(_playerController));
+            _stateMachine.AddState(new PlayerStunState(_playerController));
             _stateMachine.AddState(new PlayerDeathState(_playerController));
             // Start with normal state
             _stateMachine.ChangeState("Normal");
@@ -149,6 +150,26 @@ namespace Resonance.Player.Core
             return false;
         }
 
+        public bool EnterStun()
+        {
+            // Can enter stun from any state
+            if (IsInState("Normal") || IsInState("Aiming"))
+            {
+                return ChangeState("Stun");
+            }
+            return false;
+        }
+
+        public bool ExitStun()
+        {
+            // Can exit stun from any state
+            if (IsInState("Stun"))
+            {
+                return ChangeState("Normal");
+            }
+            return false;
+        }
+
         public bool Respawn()
         {
             // Can respawn from health death or true death (through external systems)
@@ -191,6 +212,11 @@ namespace Resonance.Player.Core
         public bool IsDead()
         {
             return IsInState("Death");
+        }
+
+        public bool IsStunned()
+        {
+            return IsInState("Stun");
         }
 
         public bool IsInActiveState()

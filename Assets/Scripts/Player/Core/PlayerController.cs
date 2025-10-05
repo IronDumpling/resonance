@@ -142,7 +142,7 @@ namespace Resonance.Player.Core
         public void Update(float deltaTime)
         {
             UpdateInvulnerability(deltaTime);
-            _stats.UpdateResilience(deltaTime);
+            UpdateResilience(deltaTime);
             _movement.Update(deltaTime);
             _stateMachine?.Update();
             _actionController.Update(deltaTime);
@@ -162,6 +162,26 @@ namespace Resonance.Player.Core
                 {
                     _isInvulnerable = false;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Update resilience
+        /// </summary>
+        private void UpdateResilience(float deltaTime)
+        {
+            _stats.UpdateResilience(deltaTime);
+
+            // Empty resilience -> enter stun
+            if (_stats.currentResilience <= 0.1f && CurrentState != "Stun" && CurrentState != "Death")
+            {
+                HandleStun();
+            }
+            
+            // Resilience > stun threshold -> exit stun
+            if (_stats.currentResilience > _stats.stunThreshold && CurrentState == "Stun" && CurrentState != "Death")
+            {
+                HandleStunEnd();
             }
         }
 
@@ -315,6 +335,22 @@ namespace Resonance.Player.Core
             Debug.Log("PlayerController: Death - game over");
             OnDeath?.Invoke();
             _stateMachine?.EnterDeath();
+        }
+
+        /// <summary>
+        /// Handle stun (resilience reaches stun threshold)
+        /// </summary>
+        private void HandleStun()
+        {
+            _stateMachine?.EnterStun();
+        }
+
+        /// <summary>
+        /// Handle stun end (resilience reaches normal threshold)
+        /// </summary>
+        private void HandleStunEnd()
+        {
+            _stateMachine?.ExitStun();
         }
 
         /// <summary>

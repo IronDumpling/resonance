@@ -44,7 +44,7 @@ namespace Resonance.Player.States
         public bool CanTransitionTo(IState newState)
         {
             // Death is terminal - can only exit through external systems
-            return false;
+            return newState.Name == "Normal";
         }
     }
 }

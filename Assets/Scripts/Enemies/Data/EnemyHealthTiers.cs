@@ -48,10 +48,10 @@ namespace Resonance.Enemies.Data
         public const float WOUNDED_THRESHOLD = 0.3f;     // 30%
         
         // 韧性恢复速率（与玩家相同）
-        public const float HEALTHY_RESILIENCE_REGEN = 3f;   
-        public const float INJURED_RESILIENCE_REGEN = 1f;
-        public const float WOUNDED_RESILIENCE_REGEN = 0.5f;
-        public const float CRITICAL_RESILIENCE_REGEN = 0.1f;
+        public const float HEALTHY_RESILIENCE_REGEN = 2f;   
+        public const float INJURED_RESILIENCE_REGEN = 1.2f;
+        public const float WOUNDED_RESILIENCE_REGEN = 0.8f;
+        public const float CRITICAL_RESILIENCE_REGEN = 0.3f;
 
         // 移动速度修正系数
         public const float WOUNDED_SPEED_MULTIPLIER = 0.7f;    // 重伤时移动速度70%

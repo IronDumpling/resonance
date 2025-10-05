@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PlayerBaseStats
   m_EditorClassIdentifier: 
   _maxHealth: 100
-  _maxResilience: 50
-  _stunThreshold: 10
+  _maxResilience: 40
+  _stunThreshold: 5
   _invulnerabilityTime: 1
   _crystalCoreConfig: {fileID: 11400000, guid: 453a00548ef9b1947971284857e7ed8b, type: 2}
   _healthRestoreValue: 30
