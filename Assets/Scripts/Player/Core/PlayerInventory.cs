@@ -13,7 +13,7 @@ namespace Resonance.Player.Core
     {
         Consumable,    // 消耗品（弹药等）
         Tool,          // 道具（钥匙等）
-        Module,       // 晶体模块
+        Module,        // 晶体模块
         Weapon         // 武器
     }
 

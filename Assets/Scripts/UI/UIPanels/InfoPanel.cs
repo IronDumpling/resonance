@@ -2,9 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Interfaces.Services;
 using Resonance.Core.StateMachine.States;
 
 namespace Resonance.UI
@@ -131,7 +131,7 @@ namespace Resonance.UI
         /// <summary>
         /// Close the info panel and return to normal gameplay
         /// </summary>
-        public void CloseInfoPanel()
+        private void CloseInfoPanel()
         {
             Debug.Log("InfoPanel: Closing info panel");
             

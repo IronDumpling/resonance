@@ -51,6 +51,7 @@ namespace Resonance.Core.GlobalServices
             SetStatePanels("Gameplay", "PlayerStatusPanel"); 
             SetStatePanels("Gameplay/Wave", "WavePanel"); 
             SetStatePanels("Gameplay/InfoReading", "InfoPanel");
+            SetStatePanels("Gameplay/Inventory", "InventoryPanel");
         }
 
         public void RegisterPanel(IUIPanel panel)

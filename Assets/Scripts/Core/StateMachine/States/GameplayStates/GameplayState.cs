@@ -20,6 +20,7 @@ namespace Resonance.Core.StateMachine.States
         // Substates
         private WaveState _resonanceState;
         private InfoReadingState _infoReadingState;
+        private InventoryState _inventoryState;
 
         public void Enter()
         {
@@ -43,6 +44,23 @@ namespace Resonance.Core.StateMachine.States
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
             Debug.Log("GameplayState: Subscribed to InfoReadingState events");
+            
+            // Subscribe to InventoryState events
+            InventoryState.OnInventoryClosed += OnInventoryEnded;
+            Debug.Log("GameplayState: Subscribed to InventoryState events");
+            
+            // Subscribe to input events
+            var inputService = ServiceRegistry.Get<IInputService>();
+            if (inputService != null)
+            {
+                inputService.OnOpenInventory += OnOpenInventoryPressed;
+                inputService.OnCloseInventory += OnCloseInventoryPressed;
+                Debug.Log("GameplayState: Subscribed to inventory input events");
+            }
+            else
+            {
+                Debug.LogError("GameplayState: InputService not found, cannot subscribe to inventory events");
+            }
             
             // Reset UI state for new gameplay session
             Debug.Log("GameplayState: Reset _hasShownUI flag for new gameplay session");
@@ -100,6 +118,19 @@ namespace Resonance.Core.StateMachine.States
             InfoReadingState.OnInfoReadingEnded -= OnInfoReadingEnded;
             Debug.Log("GameplayState: Unsubscribed from InfoReadingState events");
             
+            // Unsubscribe from InventoryState events
+            InventoryState.OnInventoryClosed -= OnInventoryEnded;
+            Debug.Log("GameplayState: Unsubscribed from InventoryState events");
+            
+            // Unsubscribe from input events
+            var inputService = ServiceRegistry.Get<IInputService>();
+            if (inputService != null)
+            {
+                inputService.OnOpenInventory -= OnOpenInventoryPressed;
+                inputService.OnCloseInventory -= OnCloseInventoryPressed;
+                Debug.Log("GameplayState: Unsubscribed from inventory input events");
+            }
+            
             // Cleanup substate machine
             _subStateMachine?.Clear();
             _subStateMachine = null;
@@ -129,9 +160,13 @@ namespace Resonance.Core.StateMachine.States
             _infoReadingState = new InfoReadingState();
             _subStateMachine.AddState(_infoReadingState);
             
+            // Create and add InventoryState
+            _inventoryState = new InventoryState();
+            _subStateMachine.AddState(_inventoryState);
+            
             // Start with normal gameplay
             _subStateMachine.ChangeState("Normal");
-            Debug.Log("GameplayState: Initialized substate machine with Normal, Wave, and InfoReading states");
+            Debug.Log("GameplayState: Initialized substate machine with Normal, Wave, InfoReading, and Inventory states");
         }
         
         /// <summary>
@@ -202,27 +237,7 @@ namespace Resonance.Core.StateMachine.States
             // Cleanup target reference
             _currentWaveTarget = null;
         }
-        
-        /// <summary>
-        /// Handle info reading ended event
-        /// </summary>
-        private void OnInfoReadingEnded()
-        {
-            Debug.Log("GameplayState: Info reading ended");
-            
-            // Transition back to Normal substate
-            if (_subStateMachine != null && !_subStateMachine.ChangeState("Normal"))
-            {
-                Debug.LogError("GameplayState: Failed to transition back to Normal substate from InfoReading");
-                // Force state reset as fallback
-                SetupSubStateMachine();
-            }
-            else
-            {
-                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from InfoReading");
-            }
-        }
-        
+
         /// <summary>
         /// Start info reading session
         /// </summary>
@@ -254,6 +269,101 @@ namespace Resonance.Core.StateMachine.States
             }
             
             Debug.Log("GameplayState: Successfully transitioned to InfoReading substate");
+        }
+        
+        /// <summary>
+        /// Handle info reading ended event
+        /// </summary>
+        private void OnInfoReadingEnded()
+        {
+            Debug.Log("GameplayState: Info reading ended");
+            
+            // Transition back to Normal substate
+            if (_subStateMachine != null && !_subStateMachine.ChangeState("Normal"))
+            {
+                Debug.LogError("GameplayState: Failed to transition back to Normal substate from InfoReading");
+                // Force state reset as fallback
+                SetupSubStateMachine();
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from InfoReading");
+            }
+        }
+
+        /// <summary>
+        /// Start inventory session
+        /// </summary>
+        public void StartInventory()
+        {
+            Debug.Log("GameplayState: Starting inventory");
+
+            // Transition to Inventory substate
+            if (_subStateMachine != null && !_subStateMachine.ChangeState("Inventory"))
+            {
+                Debug.LogError("GameplayState: Failed to transition to Inventory substate");
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned to Inventory substate");
+            }
+        }
+
+        /// <summary>
+        /// Handle inventory ended event
+        /// </summary>
+        private void OnInventoryEnded()
+        {
+            Debug.Log("GameplayState: Inventory ended");
+
+            // Transition back to Normal substate
+            if (_subStateMachine != null && !_subStateMachine.ChangeState("Normal"))
+            {
+                Debug.LogError("GameplayState: Failed to transition back to Normal substate from Inventory");
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from Inventory");
+            }
+        }
+
+        /// <summary>
+        /// Handle open inventory input (Player map Tab key)
+        /// </summary>
+        private void OnOpenInventoryPressed()
+        {
+            Debug.Log("GameplayState: Open inventory pressed (Player map)");
+            
+            // Only open if not already in inventory
+            if (_subStateMachine != null && _subStateMachine.CurrentState?.Name != "Inventory")
+            {
+                Debug.Log("GameplayState: Opening inventory");
+                StartInventory();
+            }
+            else
+            {
+                Debug.Log("GameplayState: Already in inventory, ignoring open request");
+            }
+        }
+
+        /// <summary>
+        /// Handle close inventory input (Inventory map Tab key)
+        /// </summary>
+        private void OnCloseInventoryPressed()
+        {
+            Debug.Log("GameplayState: Close inventory pressed (Inventory map)");
+            
+            // Only close if currently in inventory
+            if (_subStateMachine != null && _subStateMachine.CurrentState?.Name == "Inventory")
+            {
+                Debug.Log("GameplayState: Closing inventory");
+                // Trigger the close via InventoryState
+                InventoryState.TriggerInventoryClose();
+            }
+            else
+            {
+                Debug.Log("GameplayState: Not in inventory, ignoring close request");
+            }
         }
         
         /// <summary>
