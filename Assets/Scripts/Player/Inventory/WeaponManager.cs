@@ -4,13 +4,14 @@ using Resonance.Interfaces.Services;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Player.Data;
+using Resonance.Player.Core;
 
-namespace Resonance.Player.Core
+namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// 管理玩家武器状态的系统
-    /// 负责检测玩家是否携带武器，以及当前武器的状态
-    /// 与PlayerInventory双向同步
+    /// System to manage player weapon state
+    /// Responsible for detecting if the player is carrying a weapon, and the current weapon's state
+    /// Synchronized with PlayerInventory bidirectionally
     /// </summary>
     public class WeaponManager
     {

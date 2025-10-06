@@ -2,43 +2,44 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Resonance.Player.Data;
+using Resonance.Player.Core;
 using Resonance.Items;
 
-namespace Resonance.Player.Core
+namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// 物品类型枚举
+    /// Item type enum
     /// </summary>
     public enum ItemType
     {
-        Consumable,    // 消耗品（弹药等）
-        Tool,          // 道具（钥匙等）
-        Module,        // 晶体模块
-        Weapon         // 武器
+        Consumable,    // Ammo, etc.
+        Tool,          // Key, etc.
+        Module,        // Wave Module
+        Weapon         // Pistol, etc.
     }
 
     /// <summary>
-    /// 扩展的物品数据结构
-    /// 支持不同类型物品的统一管理
+    /// Extended item data structure
+    /// Supports unified management of different types of items
     /// </summary>
     [System.Serializable]
     public class InventoryItem
     {
-        // 基础属性
+        // Basic properties
         public int ItemID { get; set; }
         public ItemType ItemType { get; set; }
         public int Quantity { get; set; }
         public float Durability { get; set; }
         
-        // 格子系统属性（预留）
-        public int GridWidth { get; set; }   // 物品占用格子宽度
-        public int GridHeight { get; set; }  // 物品占用格子高度
-        public Vector2Int GridPosition { get; set; } // 在格子中的位置（-1,-1表示未放置）
+        // Grid system properties (reserved)
+        public int GridWidth { get; set; }   // Item occupied grid width
+        public int GridHeight { get; set; }  // Item occupied grid height
+        public Vector2Int GridPosition { get; set; } // Position in the grid (-1,-1 means not placed)
         
-        // 武器特有属性
-        public string AssetPath { get; set; }     // ScriptableObject资源路径
-        public int CurrentAmmo { get; set; }      // 当前弹药数
-        public Dictionary<string, object> CustomData { get; set; } // 自定义数据
+        // Weapon specific properties
+        public string AssetPath { get; set; }     // ScriptableObject resource path
+        public int CurrentAmmo { get; set; }      // Current ammo count
+        public Dictionary<string, object> CustomData { get; set; } // Custom data
         
         public InventoryItem(int itemID, ItemType itemType, int quantity = 1, float durability = 1f)
         {
@@ -48,13 +49,13 @@ namespace Resonance.Player.Core
             Durability = durability;
             GridWidth = 1;
             GridHeight = 1;
-            GridPosition = new Vector2Int(-1, -1); // 未放置状态
+            GridPosition = new Vector2Int(-1, -1); // Not placed state
             CustomData = new Dictionary<string, object>();
         }
     }
 
     /// <summary>
-    /// 统一背包系统的保存数据结构
+    /// Unified save data structure for inventory system
     /// </summary>
     [System.Serializable]
     public class InventorySaveData

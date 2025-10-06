@@ -7,6 +7,7 @@ using Resonance.Interfaces.Services;
 using Resonance.Player;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
+using Resonance.Player.Inventory;
 using Resonance.Items;
 using Resonance.Utilities;
 

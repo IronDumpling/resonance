@@ -9,6 +9,7 @@ using Resonance.Interfaces.Services;
 using Resonance.Player;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
+using Resonance.Player.Inventory;
 using Resonance.Core.StateMachine.States;
 using System.Linq;
 using System.Collections.Generic;

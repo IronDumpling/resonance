@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Player.Core;
+using Resonance.Player.Inventory;
 using System.Collections.Generic;
 using System.Linq;
 

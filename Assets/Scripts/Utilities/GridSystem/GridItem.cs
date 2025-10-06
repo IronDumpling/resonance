@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Player.Core;
+using Resonance.Player.Inventory;
 
 namespace Resonance.Utilities
 {
