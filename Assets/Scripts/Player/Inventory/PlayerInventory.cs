@@ -143,14 +143,12 @@ namespace Resonance.Player.Inventory
     public class InventorySaveData
     {
         public List<ItemSaveData> items;
-        public List<int> equippedItemIDs;
         public int equippedWeaponID;
         public Dictionary<string, int> ammoInventory; // 弹药库存
         
         public InventorySaveData()
         {
             items = new List<ItemSaveData>();
-            equippedItemIDs = new List<int>();
             equippedWeaponID = -1;
             ammoInventory = new Dictionary<string, int>();
         }
@@ -192,35 +190,27 @@ namespace Resonance.Player.Inventory
         // Occupancy mapping (each cell position → item ID occupying it)
         private Dictionary<Vector2Int, int> _cellOccupancy;
 
+        // Legacy system compatibility (will be phased out)
         private List<InventoryItem> _items;
         private int _equippedWeaponID;
-        private List<int> _equippedItemIDs;
+        private Dictionary<string, int> _ammoInventory;
         
         #endregion
         
         #region Event system - Data Change Events
         
         public System.Action OnInventoryChanged; // General change event
-
-        public System.Action<int, ItemType> OnItemAdded;
-        public System.Action<int, ItemType> OnItemRemoved;
-        public System.Action<int, ItemType> OnItemMoved;
-        public System.Action<int, ItemType> OnItemRotated;
-        public System.Action<int, ItemType> OnItemQuantityChanged;
-
-        public System.Action<int> OnWeaponEquipped;
-        public System.Action OnWeaponUnequipped;
-        public System.Action<int> OnItemEquipped;
-        public System.Action<int> OnItemUnequipped;
         
         // Grid operation events
         public System.Action<GridCellData, Vector2Int> OnItemAddedToGrid;
         public System.Action<GridCellData, Vector2Int> OnItemRemovedFromGrid;
         public System.Action<GridCellData, Vector2Int, Vector2Int> OnItemMovedInGrid; // item, oldPos, newPos
         public System.Action<GridCellData, int> OnItemRotatedInGrid; // item, newRotation
+        public System.Action<GridCellData, int> OnItemQuantityChanged; // item, newQuantity
         
-        // Equipped status events (for WeaponManager to listen)
-        public System.Action<int, bool> OnItemEquipStatusChanged; // itemID, isEquipped
+        // Weapon-specific events (for WeaponManager)
+        public System.Action<int> OnWeaponEquipped; // weaponID
+        public System.Action OnWeaponUnequipped;
         
         #endregion
         
@@ -245,6 +235,11 @@ namespace Resonance.Player.Inventory
             _gridCells = new GridCellData[_gridWidth, _gridHeight];
             _itemsById = new Dictionary<int, GridCellData>();
             _cellOccupancy = new Dictionary<Vector2Int, int>();
+            
+            // Initialize legacy system
+            _items = new List<InventoryItem>();
+            _equippedWeaponID = -1;
+            _ammoInventory = new Dictionary<string, int>();
             
             Debug.Log($"PlayerInventory: Initialized with {_gridWidth}x{_gridHeight} grid");
         }
@@ -422,31 +417,10 @@ namespace Resonance.Player.Inventory
             }
             
             // Trigger event
-            OnItemQuantityChanged?.Invoke(itemID, itemData.ItemType);
+            OnItemQuantityChanged?.Invoke(itemData, newQuantity);
             OnInventoryChanged?.Invoke();
             
             Debug.Log($"PlayerInventory: Updated {itemData.ItemName} quantity to {newQuantity}");
-            return true;
-        }
-        
-        /// <summary>
-        /// Update item equipped status
-        /// </summary>
-        public bool SetItemEquipStatus(int itemID, bool isEquipped)
-        {
-            if (!_itemsById.TryGetValue(itemID, out var itemData))
-            {
-                Debug.LogWarning($"PlayerInventory: Item {itemID} not found");
-                return false;
-            }
-            
-            itemData.IsEquipped = isEquipped;
-            
-            // Trigger event
-            OnItemEquipStatusChanged?.Invoke(itemID, isEquipped);
-            OnInventoryChanged?.Invoke();
-            
-            Debug.Log($"PlayerInventory: Set {itemData.ItemName} equipped status to {isEquipped}");
             return true;
         }
         
@@ -668,7 +642,6 @@ namespace Resonance.Player.Inventory
             Debug.Log($"PlayerInventory: Created weapon item: {weaponItem.ItemID}, AssetPath: {weaponItem.AssetPath}");
             
             _items.Add(weaponItem);
-            OnItemAdded?.Invoke(weaponID, ItemType.Weapon);
             OnInventoryChanged?.Invoke();
             
             Debug.Log($"PlayerInventory: Added weapon {weaponAsset.weaponName} to inventory");
@@ -696,13 +669,8 @@ namespace Resonance.Player.Inventory
             }
             
             _equippedWeaponID = weaponID;
-            if (!_equippedItemIDs.Contains(weaponID))
-            {
-                _equippedItemIDs.Add(weaponID);
-            }
             
             OnWeaponEquipped?.Invoke(weaponID);
-            OnItemEquipped?.Invoke(weaponID); // Backward compatibility
             Debug.Log($"PlayerInventory: Equipped weapon {weaponID}");
             return true;
         }
@@ -714,12 +682,10 @@ namespace Resonance.Player.Inventory
         {
             if (_equippedWeaponID == -1) return;
             
-            _equippedItemIDs.Remove(_equippedWeaponID);
             int oldWeaponID = _equippedWeaponID;
             _equippedWeaponID = -1;
             
             OnWeaponUnequipped?.Invoke();
-            OnItemUnequipped?.Invoke(oldWeaponID); // Backward compatibility
             Debug.Log("PlayerInventory: Unequipped current weapon");
         }
         
@@ -818,7 +784,6 @@ namespace Resonance.Player.Inventory
                 Debug.Log($"PlayerInventory: Added new consumable {itemID} x{quantity}");
             }
 
-            OnItemAdded?.Invoke(itemID, ItemType.Consumable);
             OnInventoryChanged?.Invoke();
             return true;
         }
@@ -845,15 +810,8 @@ namespace Resonance.Player.Inventory
             if (item.Quantity <= 0)
             {
                 _items.Remove(item);
-                
-                // 卸下如果已装备
-                if (_equippedItemIDs.Contains(itemID))
-                {
-                    UnequipItem(itemID);
-                }
             }
 
-            OnItemRemoved?.Invoke(itemID, ItemType.Consumable);
             OnInventoryChanged?.Invoke();
             Debug.Log($"PlayerInventory: Removed {quantity} of consumable {itemID}");
             return true;
@@ -887,12 +845,9 @@ namespace Resonance.Player.Inventory
 
         #endregion
 
-        #region 弹药管理 - Ammo Management
+        #region 弹药管理 - Ammo Management (Legacy - Use ConsumableManager)
         
-        // 弹药库存 - 使用Dictionary存储弹药类型和数量
-        private Dictionary<string, int> _ammoInventory = new Dictionary<string, int>();
-        
-        // 弹药事件
+        // 弹药事件 (for backward compatibility)
         public System.Action<string, int> OnAmmoAdded; // ammoType, amount added
         public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
         
@@ -1085,54 +1040,6 @@ namespace Resonance.Player.Inventory
 
         #endregion
 
-        #region Equipment System
-
-        public bool EquipItem(int itemID)
-        {
-            // if (!HasItem(itemID))
-            // {
-            //     Debug.LogWarning($"PlayerInventory: Cannot equip item {itemID} - not in inventory");
-            //     return false;
-            // }
-
-            if (_equippedItemIDs.Contains(itemID))
-            {
-                Debug.LogWarning($"PlayerInventory: Item {itemID} already equipped");
-                return false;
-            }
-
-            _equippedItemIDs.Add(itemID);
-            OnItemEquipped?.Invoke(itemID);
-            Debug.Log($"PlayerInventory: Equipped item {itemID}");
-            return true;
-        }
-
-        public bool UnequipItem(int itemID)
-        {
-            if (!_equippedItemIDs.Contains(itemID))
-            {
-                Debug.LogWarning($"PlayerInventory: Cannot unequip item {itemID} - not equipped");
-                return false;
-            }
-
-            _equippedItemIDs.Remove(itemID);
-            OnItemUnequipped?.Invoke(itemID);
-            Debug.Log($"PlayerInventory: Unequipped item {itemID}");
-            return true;
-        }
-
-        public bool IsItemEquipped(int itemID)
-        {
-            return _equippedItemIDs.Contains(itemID);
-        }
-
-        public List<int> GetEquippedItemIDs()
-        {
-            return new List<int>(_equippedItemIDs);
-        }
-
-        #endregion
-
         #region Save/Load System
 
         /// <summary>
@@ -1153,7 +1060,6 @@ namespace Resonance.Player.Inventory
                     assetPath = item.AssetPath,
                     customData = item.CustomData
                 }).ToList(),
-                equippedItemIDs = new List<int>(_equippedItemIDs),
                 equippedWeaponID = _equippedWeaponID,
                 ammoInventory = new Dictionary<string, int>(_ammoInventory) // 保存弹药库存
             };
@@ -1165,7 +1071,6 @@ namespace Resonance.Player.Inventory
         public void LoadFromSaveData(InventorySaveData saveData)
         {
             _items.Clear();
-            _equippedItemIDs.Clear();
             _ammoInventory.Clear();
             
             if (saveData?.items != null)
@@ -1183,11 +1088,6 @@ namespace Resonance.Player.Inventory
                     
                     _items.Add(item);
                 }
-            }
-            
-            if (saveData?.equippedItemIDs != null)
-            {
-                _equippedItemIDs.AddRange(saveData.equippedItemIDs);
             }
             
             _equippedWeaponID = saveData?.equippedWeaponID ?? -1;

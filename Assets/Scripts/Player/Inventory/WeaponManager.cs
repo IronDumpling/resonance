@@ -3,192 +3,248 @@ using Resonance.Items;
 using Resonance.Interfaces.Services;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Player.Data;
-using Resonance.Player.Core;
 
 namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// System to manage player weapon state
-    /// Responsible for detecting if the player is carrying a weapon, and the current weapon's state
-    /// Synchronized with PlayerInventory bidirectionally
+    /// WeaponManager - Pure business logic layer for weapon management
+    /// Responsibilities: equip/unequip weapons, shoot, reload
+    /// Data is read from PlayerInventory, not stored here
     /// </summary>
     public class WeaponManager
     {
-        // 当前装备的武器
-        private GunDataAsset _currentGun;
-        
-        // 与PlayerInventory的同步引用
         private PlayerInventory _inventory;
         
-        // 事件
+        // Current equipped weapon ID (not the asset itself)
+        private int _equippedWeaponID = -1;
+        
+        // Cached weapon data (loaded from inventory)
+        private GunDataAsset _cachedWeaponAsset;
+        
+        // Events
         public System.Action<GunDataAsset> OnWeaponEquipped;
         public System.Action OnWeaponUnequipped;
         public System.Action<int> OnAmmoChanged;
 
-        // 属性
-        public bool HasEquippedWeapon => _currentGun != null;
-        public GunDataAsset CurrentGun => _currentGun;
-        public int CurrentAmmo => _currentGun?.CurrentAmmo ?? 0;
-        public int MaxAmmo => _currentGun?.maxAmmo ?? 0;
-        public string AmmoType => _currentGun?.ammoType ?? "None";
+        // Properties
+        public bool HasEquippedWeapon => _equippedWeaponID != -1 && _cachedWeaponAsset != null;
+        public GunDataAsset CurrentGun => _cachedWeaponAsset;
+        public int CurrentAmmo => _cachedWeaponAsset?.CurrentAmmo ?? 0;
+        public int MaxAmmo => _cachedWeaponAsset?.maxAmmo ?? 0;
+        public string AmmoType => _cachedWeaponAsset?.ammoType ?? "None";
+        public int EquippedWeaponID => _equippedWeaponID;
         
-        /// <summary>
-        /// 设置PlayerInventory引用以实现双向同步
-        /// </summary>
-        /// <param name="inventory">PlayerInventory实例</param>
-        public void SetInventoryReference(PlayerInventory inventory)
+        public WeaponManager(PlayerInventory inventory)
         {
             _inventory = inventory;
-            Debug.Log("WeaponManager: Inventory reference set for synchronization");
+            
+            // Listen to inventory events
+            _inventory.OnWeaponEquipped += OnInventoryWeaponEquipped;
+            _inventory.OnWeaponUnequipped += OnInventoryWeaponUnequipped;
+            
+            Debug.Log("WeaponManager: Initialized with pure logic layer");
         }
-
+        
+        #region Weapon Equip/Unequip
+        
         /// <summary>
-        /// 装备武器（与PlayerInventory同步）
+        /// Equip weapon by ID (weapon must already be in inventory grid)
         /// </summary>
-        /// <param name="gunData">武器数据</param>
-        /// <param name="syncWithInventory">是否与背包同步（默认true）</param>
-        public void EquipWeapon(GunDataAsset gunData, bool syncWithInventory = true)
+        public bool EquipWeapon(int weaponItemID)
         {
-            if (gunData == null)
+            // Check if weapon exists in inventory
+            var weaponData = _inventory.GetItemByID(weaponItemID);
+            if (weaponData == null || weaponData.ItemType != ItemType.Weapon)
             {
-                Debug.LogWarning("WeaponManager: Trying to equip null weapon");
-                return;
-            }
-
-            // 如果已有武器，先卸下
-            if (_currentGun != null)
-            {
-                Debug.Log($"WeaponManager: Unequipping current weapon: {_currentGun.weaponName}");
-                UnequipWeapon(syncWithInventory);
-            }
-
-            _currentGun = gunData;
-            Debug.Log($"WeaponManager: Set current gun to {_currentGun.weaponName}");
-            
-            // 与PlayerInventory同步
-            if (syncWithInventory && _inventory != null)
-            {
-                int weaponID = gunData.GetInstanceID();
-                Debug.Log($"WeaponManager: Syncing with inventory. WeaponID: {weaponID}, Inventory: {_inventory != null}");
-                
-                // 确保武器在背包中
-                if (!_inventory.HasWeapon(weaponID))
-                {
-                    bool added = _inventory.AddWeapon(gunData);
-                    Debug.Log($"WeaponManager: AddWeapon result: {added}");
-                }
-                else
-                {
-                    Debug.Log($"WeaponManager: Weapon already in inventory");
-                }
-                
-                // 装备武器
-                bool equipped = _inventory.EquipWeapon(weaponID);
-                Debug.Log($"WeaponManager: EquipWeapon result: {equipped}");
-            }
-            else
-            {
-                Debug.LogWarning($"WeaponManager: Skipping inventory sync. syncWithInventory: {syncWithInventory}, inventory: {_inventory != null}");
+                Debug.LogWarning($"WeaponManager: Weapon {weaponItemID} not found in inventory or not a weapon");
+                return false;
             }
             
-            // Play weapon equip audio based on weapon type
-            PlayWeaponEquipAudio(_currentGun);
+            // Unequip current weapon first
+            if (_equippedWeaponID != -1)
+            {
+                UnequipWeapon();
+            }
             
-            OnWeaponEquipped?.Invoke(_currentGun);
-            OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
-
-            Debug.Log($"WeaponManager: Equipped weapon {_currentGun.weaponName} with {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} ammo (HasEquippedWeapon: {HasEquippedWeapon})");
+            // Load weapon asset from inventory data
+            _cachedWeaponAsset = LoadWeaponAssetFromData(weaponData);
+            if (_cachedWeaponAsset == null)
+            {
+                Debug.LogError($"WeaponManager: Failed to load weapon asset for {weaponData.ItemName}");
+                return false;
+            }
+            
+            _equippedWeaponID = weaponItemID;
+            
+            // Update inventory
+            _inventory.EquipWeapon(_equippedWeaponID);
+            
+            // Play equip audio
+            PlayWeaponEquipAudio(_cachedWeaponAsset);
+            
+            // Trigger events
+            OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
+            OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
+            
+            Debug.Log($"WeaponManager: Equipped weapon {_cachedWeaponAsset.weaponName} (ID: {weaponItemID})");
+            return true;
         }
-
+        
         /// <summary>
-        /// 卸下武器（与PlayerInventory同步）
+        /// Unequip current weapon
         /// </summary>
-        /// <param name="syncWithInventory">是否与背包同步（默认true）</param>
-        public void UnequipWeapon(bool syncWithInventory = true)
+        public void UnequipWeapon()
         {
-            if (_currentGun == null) return;
-
-            Debug.Log($"WeaponManager: Unequipped weapon {_currentGun.weaponName}");
+            if (_equippedWeaponID == -1) return;
             
-            // 与PlayerInventory同步
-            if (syncWithInventory && _inventory != null)
-            {
-                _inventory.UnequipCurrentWeapon();
-            }
+            Debug.Log($"WeaponManager: Unequipping weapon (ID: {_equippedWeaponID})");
             
-            _currentGun = null;
+            // Update inventory
+            _inventory.UnequipCurrentWeapon();
+            
+            _equippedWeaponID = -1;
+            _cachedWeaponAsset = null;
+            
+            // Trigger events
             OnWeaponUnequipped?.Invoke();
             OnAmmoChanged?.Invoke(0);
         }
-
+        
+        #endregion
+        
+        #region Combat Actions
+        
         /// <summary>
-        /// 检查是否可以射击
+        /// Check if can shoot
         /// </summary>
-        /// <returns>是否可以射击</returns>
         public bool CanShoot()
         {
-            return HasEquippedWeapon && _currentGun.HasAmmo();
+            return HasEquippedWeapon && _cachedWeaponAsset.HasAmmo();
         }
-
+        
         /// <summary>
-        /// 消耗一发子弹（与PlayerInventory同步）
+        /// Consume one bullet
         /// </summary>
-        /// <returns>是否成功消耗</returns>
         public bool ConsumeAmmo()
         {
             if (!HasEquippedWeapon) return false;
-
-            bool consumed = _currentGun.ConsumeAmmo();
+            
+            bool consumed = _cachedWeaponAsset.ConsumeAmmo();
             if (consumed)
             {
-                // 与PlayerInventory同步弹药数量
-                if (_inventory != null)
-                {
-                    int weaponID = _currentGun.GetInstanceID();
-                    _inventory.UpdateWeaponAmmo(weaponID, _currentGun.CurrentAmmo);
-                }
+                // Sync ammo count to inventory
+                _inventory.UpdateWeaponAmmo(_equippedWeaponID, _cachedWeaponAsset.CurrentAmmo);
                 
-                OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
-                Debug.Log($"WeaponManager: Ammo consumed. Remaining: {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo}");
+                OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
+                Debug.Log($"WeaponManager: Ammo consumed. Remaining: {_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo}");
             }
             
             return consumed;
         }
-
+        
         /// <summary>
-        /// 重新装填（恢复满弹药）
+        /// Reload weapon (restore full ammo)
         /// </summary>
         public void Reload()
         {
-            if (_currentGun == null) return;
-
-            _currentGun.ResetAmmo();
-            OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
-
-            Debug.Log($"WeaponManager: Reloaded. Ammo: {_currentGun.CurrentAmmo}/{_currentGun.maxAmmo}");
+            if (_cachedWeaponAsset == null) return;
+            
+            _cachedWeaponAsset.ResetAmmo();
+            OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
+            
+            Debug.Log($"WeaponManager: Reloaded. Ammo: {_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo}");
         }
-
+        
+        #endregion
+        
+        #region Info & Query
+        
         /// <summary>
-        /// 获取武器信息（用于调试和UI显示）
+        /// Get weapon info (for debug and UI display)
         /// </summary>
-        /// <returns>武器信息字符串</returns>
         public string GetWeaponInfo()
         {
             if (!HasEquippedWeapon) return "No Weapon";
             
-            return $"{_currentGun.weaponName} ({_currentGun.CurrentAmmo}/{_currentGun.maxAmmo} {_currentGun.ammoType})";
+            return $"{_cachedWeaponAsset.weaponName} ({_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo} {_cachedWeaponAsset.ammoType})";
         }
-
+        
+        #endregion
+        
+        #region Event Handlers
+        
+        private void OnInventoryWeaponEquipped(int weaponID)
+        {
+            // Inventory notifies us that a weapon was equipped
+            // This is for synchronization when equipping from UI
+            Debug.Log($"WeaponManager: Received OnWeaponEquipped from inventory: {weaponID}");
+        }
+        
+        private void OnInventoryWeaponUnequipped()
+        {
+            // Inventory notifies us that weapon was unequipped
+            Debug.Log("WeaponManager: Received OnWeaponUnequipped from inventory");
+        }
+        
+        #endregion
+        
+        #region Helper Methods
+        
         /// <summary>
-        /// 播放武器装备音效
+        /// Load weapon asset from GridCellData
         /// </summary>
-        /// <param name="gunData">武器数据</param>
+        private GunDataAsset LoadWeaponAssetFromData(GridCellData weaponData)
+        {
+            // Try to get from CustomData first
+            if (weaponData.CustomData.ContainsKey("originalAsset") && 
+                weaponData.CustomData["originalAsset"] is GunDataAsset originalAsset)
+            {
+                return originalAsset;
+            }
+            
+            // Try to load from AssetPath
+            if (!string.IsNullOrEmpty(weaponData.AssetPath))
+            {
+                return LoadAssetFromPath<GunDataAsset>(weaponData.AssetPath);
+            }
+            
+            Debug.LogError($"WeaponManager: Cannot load weapon asset for {weaponData.ItemName}");
+            return null;
+        }
+        
+        /// <summary>
+        /// Load ScriptableObject from path
+        /// </summary>
+        private T LoadAssetFromPath<T>(string path) where T : ScriptableObject
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            
+            #if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
+            #else
+            // Load from Resources at runtime
+            string resourcePath = path;
+            if (path.StartsWith("Assets/Resources/"))
+            {
+                resourcePath = path.Substring("Assets/Resources/".Length);
+            }
+            if (resourcePath.EndsWith(".asset"))
+            {
+                resourcePath = resourcePath.Substring(0, resourcePath.Length - ".asset".Length);
+            }
+            
+            return Resources.Load<T>(resourcePath);
+            #endif
+        }
+        
+        /// <summary>
+        /// Play weapon equip audio based on weapon type
+        /// </summary>
         private void PlayWeaponEquipAudio(GunDataAsset gunData)
         {
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService == null) return;
-
+            
             AudioClipType audioClipType = AudioClipType.PistoArming;
             
             if (gunData.ammoType == "Pisto")
@@ -203,27 +259,29 @@ namespace Resonance.Player.Inventory
             audioService.PlaySFX2D(audioClipType, 0.8f, 1f);
             Debug.Log($"WeaponManager: Played equip audio for {gunData.weaponName}");
         }
-
+        
+        #endregion
+        
         #region Save/Load System
         
         /// <summary>
-        /// 获取武器管理器的保存数据
+        /// Get save data
         /// </summary>
         public WeaponManagerSaveData GetSaveData()
         {
             return new WeaponManagerSaveData
             {
-                equippedWeaponID = _currentGun?.GetInstanceID() ?? -1,
-                weaponName = _currentGun?.weaponName ?? "",
-                currentAmmo = _currentGun?.CurrentAmmo ?? 0,
-                maxAmmo = _currentGun?.maxAmmo ?? 0,
-                ammoType = _currentGun?.ammoType ?? "",
-                assetPath = _currentGun != null ? GetAssetPath(_currentGun) : ""
+                equippedWeaponID = _equippedWeaponID,
+                weaponName = _cachedWeaponAsset?.weaponName ?? "",
+                currentAmmo = _cachedWeaponAsset?.CurrentAmmo ?? 0,
+                maxAmmo = _cachedWeaponAsset?.maxAmmo ?? 0,
+                ammoType = _cachedWeaponAsset?.ammoType ?? "",
+                assetPath = _cachedWeaponAsset != null ? GetAssetPath(_cachedWeaponAsset) : ""
             };
         }
         
         /// <summary>
-        /// 从保存数据加载武器状态
+        /// Load from save data
         /// </summary>
         public void LoadFromSaveData(WeaponManagerSaveData saveData)
         {
@@ -231,42 +289,40 @@ namespace Resonance.Player.Inventory
             
             if (saveData == null || saveData.equippedWeaponID == -1)
             {
-                Debug.Log($"WeaponManager: No weapon to load. SaveData: {saveData != null}, WeaponID: {saveData?.equippedWeaponID}");
-                _currentGun = null;
+                Debug.Log($"WeaponManager: No weapon to load");
+                _equippedWeaponID = -1;
+                _cachedWeaponAsset = null;
                 return;
             }
             
-            Debug.Log($"WeaponManager: Looking for weapon ID: {saveData.equippedWeaponID}, weapon name: {saveData.weaponName}");
+            Debug.Log($"WeaponManager: Loading weapon ID: {saveData.equippedWeaponID}");
             
-            // 从PlayerInventory获取武器
-            if (_inventory != null)
+            // Get weapon from PlayerInventory
+            var weaponData = _inventory.GetItemByID(saveData.equippedWeaponID);
+            if (weaponData != null && weaponData.ItemType == ItemType.Weapon)
             {
-                Debug.Log($"WeaponManager: Getting weapon from inventory...");
-                var weapon = _inventory.GetEquippedWeapon();
-                if (weapon != null && weapon.GetInstanceID() == saveData.equippedWeaponID)
+                _cachedWeaponAsset = LoadWeaponAssetFromData(weaponData);
+                if (_cachedWeaponAsset != null)
                 {
-                    _currentGun = weapon;
-                    // 恢复弹药状态
-                    _currentGun.SetCurrentAmmo(saveData.currentAmmo);
+                    _equippedWeaponID = saveData.equippedWeaponID;
                     
-                    OnWeaponEquipped?.Invoke(_currentGun);
-                    OnAmmoChanged?.Invoke(_currentGun.CurrentAmmo);
+                    // Restore ammo state
+                    _cachedWeaponAsset.SetCurrentAmmo(saveData.currentAmmo);
                     
-                    Debug.Log($"WeaponManager: Loaded weapon {_currentGun.weaponName} from save data with {_currentGun.CurrentAmmo} ammo");
-                }
-                else
-                {
-                    Debug.LogWarning($"WeaponManager: Weapon not found in inventory. Weapon: {weapon != null}, ID match: {weapon?.GetInstanceID() == saveData.equippedWeaponID}");
+                    OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
+                    OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
+                    
+                    Debug.Log($"WeaponManager: Loaded weapon {_cachedWeaponAsset.weaponName} with {_cachedWeaponAsset.CurrentAmmo} ammo");
                 }
             }
             else
             {
-                Debug.LogError("WeaponManager: Inventory is null, cannot load weapon");
+                Debug.LogWarning($"WeaponManager: Weapon {saveData.equippedWeaponID} not found in inventory");
             }
         }
         
         /// <summary>
-        /// 获取ScriptableObject的资源路径
+        /// Get ScriptableObject asset path
         /// </summary>
         private string GetAssetPath(ScriptableObject asset)
         {
@@ -280,41 +336,52 @@ namespace Resonance.Player.Inventory
         }
         
         #endregion
-
+        
+        #region Cleanup
+        
         /// <summary>
-        /// 清理资源
+        /// Cleanup resources
         /// </summary>
         public void Cleanup()
         {
+            // Unsubscribe from inventory events
+            if (_inventory != null)
+            {
+                _inventory.OnWeaponEquipped -= OnInventoryWeaponEquipped;
+                _inventory.OnWeaponUnequipped -= OnInventoryWeaponUnequipped;
+            }
+            
             OnWeaponEquipped = null;
             OnWeaponUnequipped = null;
             OnAmmoChanged = null;
-            _currentGun = null;
+            _cachedWeaponAsset = null;
             _inventory = null;
         }
+        
+        #endregion
     }
-
+    
     /// <summary>
-    /// WeaponManager的保存数据结构
+    /// WeaponManager save data structure
     /// </summary>
     [System.Serializable]
-        public class WeaponManagerSaveData
+    public class WeaponManagerSaveData
+    {
+        public int equippedWeaponID;
+        public string weaponName;
+        public int currentAmmo;
+        public int maxAmmo;
+        public string ammoType;
+        public string assetPath;
+        
+        public WeaponManagerSaveData()
         {
-            public int equippedWeaponID;
-            public string weaponName;
-            public int currentAmmo;
-            public int maxAmmo;
-            public string ammoType;
-            public string assetPath;
-            
-            public WeaponManagerSaveData()
-            {
-                equippedWeaponID = -1;
-                weaponName = "";
-                currentAmmo = 0;
-                maxAmmo = 0;
-                ammoType = "";
-                assetPath = "";
-            }
+            equippedWeaponID = -1;
+            weaponName = "";
+            currentAmmo = 0;
+            maxAmmo = 0;
+            ammoType = "";
+            assetPath = "";
         }
+    }
 }

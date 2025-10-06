@@ -197,9 +197,9 @@ namespace Resonance.UI
         {
             if (_playerInventory == null) return;
             
-            // Subscribe to inventory events
-            _playerInventory.OnItemAdded += OnInventoryItemAdded;
-            _playerInventory.OnItemRemoved += OnInventoryItemRemoved;
+            // Subscribe to inventory grid events
+            _playerInventory.OnItemAddedToGrid += OnInventoryItemAddedToGrid;
+            _playerInventory.OnItemRemovedFromGrid += OnInventoryItemRemovedFromGrid;
             _playerInventory.OnInventoryChanged += OnInventoryChanged;
         }
 
@@ -207,8 +207,8 @@ namespace Resonance.UI
         {
             if (_playerInventory != null)
             {
-                _playerInventory.OnItemAdded -= OnInventoryItemAdded;
-                _playerInventory.OnItemRemoved -= OnInventoryItemRemoved;
+                _playerInventory.OnItemAddedToGrid -= OnInventoryItemAddedToGrid;
+                _playerInventory.OnItemRemovedFromGrid -= OnInventoryItemRemovedFromGrid;
                 _playerInventory.OnInventoryChanged -= OnInventoryChanged;
             }
             
@@ -265,18 +265,18 @@ namespace Resonance.UI
             SyncGridToInventory();
         }
 
-        private void OnInventoryItemAdded(int itemID, ItemType itemType)
+        private void OnInventoryItemAddedToGrid(GridCellData itemData, Vector2Int position)
         {
-            Debug.Log($"InventoryPanel: Inventory item added - ID: {itemID}, Type: {itemType}");
+            Debug.Log($"InventoryPanel: Inventory item added to grid - ID: {itemData.ItemID}, Name: {itemData.ItemName}, Position: {position}");
             // Add item to grid if it's not already there
-            AddInventoryItemToGrid(itemID, itemType);
+            AddInventoryItemToGrid(itemData.ItemID, itemData.ItemType);
         }
 
-        private void OnInventoryItemRemoved(int itemID, ItemType itemType)
+        private void OnInventoryItemRemovedFromGrid(GridCellData itemData, Vector2Int position)
         {
-            Debug.Log($"InventoryPanel: Inventory item removed - ID: {itemID}, Type: {itemType}");
+            Debug.Log($"InventoryPanel: Inventory item removed from grid - ID: {itemData.ItemID}, Name: {itemData.ItemName}, Position: {position}");
             // Remove item from grid
-            RemoveInventoryItemFromGrid(itemID);
+            RemoveInventoryItemFromGrid(itemData.ItemID);
         }
 
         private void OnInventoryChanged()
@@ -298,45 +298,55 @@ namespace Resonance.UI
             _gridSystem.ClearAllItems();
             _inventoryItems.Clear();
             
-            // Load weapons
-            var weapons = _playerInventory.GetAllWeapons();
-            foreach (var weaponItem in weapons)
+            // Load all items from the new grid-based inventory
+            var allItems = _playerInventory.GetAllItems();
+            foreach (var gridCellData in allItems)
             {
-                AddInventoryItemToGrid(weaponItem.ItemID, ItemType.Weapon);
+                // Convert GridCellData to GridItem for UI display
+                var gridItem = ConvertToGridItem(gridCellData);
+                if (gridItem != null)
+                {
+                    // Place item at its stored position
+                    if (_gridSystem.PlaceItem(gridItem, gridCellData.GridPosition))
+                    {
+                        _inventoryItems[gridCellData.ItemID] = gridItem;
+                        Debug.Log($"InventoryPanel: Loaded item {gridItem.itemName} at {gridCellData.GridPosition}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.itemName} at {gridCellData.GridPosition}");
+                    }
+                }
             }
             
-            // Load consumables
-            var consumables = _playerInventory.GetAllConsumables();
-            foreach (var consumableItem in consumables)
-            {
-                AddInventoryItemToGrid(consumableItem.ItemID, ItemType.Consumable);
-            }
-            
-            Debug.Log($"InventoryPanel: Loaded {_inventoryItems.Count} items to grid");
+            Debug.Log($"InventoryPanel: Loaded {_inventoryItems.Count} items to grid from PlayerInventory");
         }
 
         private void AddInventoryItemToGrid(int itemID, ItemType itemType)
         {
             if (_gridSystem == null || _inventoryItems.ContainsKey(itemID)) return;
             
-            // Create GridItem from inventory data
-            GridItem gridItem = CreateGridItemFromInventory(itemID, itemType);
+            // Get item data from PlayerInventory
+            var gridCellData = _playerInventory.GetItemByID(itemID);
+            if (gridCellData == null)
+            {
+                Debug.LogWarning($"InventoryPanel: Item {itemID} not found in PlayerInventory");
+                return;
+            }
+            
+            // Convert to GridItem for UI display
+            GridItem gridItem = ConvertToGridItem(gridCellData);
             if (gridItem == null) return;
             
-            // Find empty space for the item
-            Vector2Int emptySpace = _gridSystem.FindEmptySpace(gridItem.CurrentWidth, gridItem.CurrentHeight);
-            if (emptySpace.x >= 0 && emptySpace.y >= 0)
+            // Place item at its stored position
+            if (_gridSystem.PlaceItem(gridItem, gridCellData.GridPosition))
             {
-                // Place item in grid
-                if (_gridSystem.PlaceItem(gridItem, emptySpace))
-                {
-                    _inventoryItems[itemID] = gridItem;
-                    Debug.Log($"InventoryPanel: Added item {gridItem.itemName} to grid at {emptySpace}");
-                }
+                _inventoryItems[itemID] = gridItem;
+                Debug.Log($"InventoryPanel: Added item {gridItem.itemName} to grid at {gridCellData.GridPosition}");
             }
             else
             {
-                Debug.LogWarning($"InventoryPanel: No space for item {gridItem.itemName}");
+                Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.itemName} at {gridCellData.GridPosition}");
             }
         }
 
@@ -351,40 +361,41 @@ namespace Resonance.UI
             Debug.Log($"InventoryPanel: Removed item {gridItem.itemName} from grid");
         }
 
-        private GridItem CreateGridItemFromInventory(int itemID, ItemType itemType)
+        /// <summary>
+        /// Convert GridCellData to GridItem for UI display
+        /// </summary>
+        private GridItem ConvertToGridItem(GridCellData cellData)
         {
-            if (_playerInventory == null) return null;
+            if (cellData == null) return null;
             
-            switch (itemType)
+            var gridItem = new GridItem(
+                cellData.ItemID,
+                cellData.ItemName,
+                cellData.ItemType,
+                cellData.GridWidth,
+                cellData.GridHeight
+            );
+            
+            // Set position and rotation
+            gridItem.SetGridPosition(cellData.GridPosition);
+            if (cellData.Rotation == 90 || cellData.Rotation == 270)
             {
-                case ItemType.Weapon:
-                    var weaponItem = _playerInventory.GetAllWeapons().FirstOrDefault(w => w.ItemID == itemID);
-                    if (weaponItem != null)
-                    {
-                        return new GridItem(itemID, GetWeaponName(weaponItem), ItemType.Weapon, 
-                                           weaponItem.GridWidth, weaponItem.GridHeight);
-                    }
-                    break;
-                    
-                case ItemType.Consumable:
-                    var consumableItem = _playerInventory.GetAllConsumables().FirstOrDefault(c => c.ItemID == itemID);
-                    if (consumableItem != null)
-                    {
-                        return new GridItem(itemID, $"Consumable_{itemID}", ItemType.Consumable, 1, 1);
-                    }
-                    break;
+                gridItem.Rotate(); // Apply rotation if needed
             }
             
-            return null;
-        }
-
-        private string GetWeaponName(InventoryItem weaponItem)
-        {
-            if (weaponItem.CustomData.ContainsKey("weaponName"))
+            // Store additional data
+            gridItem.customData["quantity"] = cellData.Quantity;
+            gridItem.customData["maxStackSize"] = cellData.MaxStackSize;
+            
+            // For weapons, store ammo info
+            if (cellData.ItemType == ItemType.Weapon)
             {
-                return weaponItem.CustomData["weaponName"].ToString();
+                gridItem.customData["currentAmmo"] = cellData.CurrentAmmo;
+                gridItem.customData["maxAmmo"] = cellData.MaxAmmo;
+                gridItem.customData["ammoType"] = cellData.AmmoType;
             }
-            return $"Weapon_{weaponItem.ItemID}";
+            
+            return gridItem;
         }
 
         private void SyncGridToInventory()

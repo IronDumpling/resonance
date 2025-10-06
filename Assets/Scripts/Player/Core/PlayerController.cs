@@ -23,8 +23,11 @@ namespace Resonance.Player.Core
         private PlayerRuntimeStats _stats;
         private PlayerInventory _inventory;
         private PlayerMovement _movement;
-        private WeaponManager _weaponManager;
         private ShootingSystem _shootingSystem;
+
+        private WeaponManager _weaponManager;
+        private ConsumableManager _consumableManager;
+        private GridOperationManager _gridOperationManager;
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
@@ -58,6 +61,8 @@ namespace Resonance.Player.Core
         public PlayerMovement Movement => _movement;
         public WeaponManager WeaponManager => _weaponManager;
         public ShootingSystem ShootingSystem => _shootingSystem;
+        public ConsumableManager ConsumableManager => _consumableManager;
+        public GridOperationManager GridOperationManager => _gridOperationManager;
         public bool IsInvulnerable => _isInvulnerable;
         
         // Dual Health Properties
@@ -114,13 +119,14 @@ namespace Resonance.Player.Core
             _stats = baseStats.CreateRuntimeStats();
             _inventory = new PlayerInventory(_stats.inventoryGridWidth, _stats.inventoryGridHeight);
             _movement = new PlayerMovement(_stats);
-            _weaponManager = new WeaponManager();
+            
+            // Initialize inventory managers
+            _consumableManager = new ConsumableManager(_inventory);
+            _gridOperationManager = new GridOperationManager(_inventory, _consumableManager);
+            _weaponManager = new WeaponManager(_inventory);
             
             // Set PlayerController reference for PlayerMovement (for state-based speed calculation)
             _movement.SetPlayerController(this);
-            
-            // Set WeaponManager and PlayerInventory bidirectional synchronization
-            _weaponManager.SetInventoryReference(_inventory);
 
             // Initialize state machine
             _stateMachine = new PlayerStateMachine(this);
@@ -718,6 +724,11 @@ namespace Resonance.Player.Core
 
             // Cleanup state machine
             _stateMachine?.Shutdown();
+            
+            // Cleanup inventory managers
+            _consumableManager?.Cleanup();
+            _gridOperationManager?.Cleanup();
+            _weaponManager?.Cleanup();
 
             // Clear events
             OnHealthChanged = null;
