@@ -137,39 +137,6 @@ namespace Resonance.Player.Inventory
     }
 
     /// <summary>
-    /// Unified save data structure for inventory system
-    /// </summary>
-    [System.Serializable]
-    public class InventorySaveData
-    {
-        public List<ItemSaveData> items;
-        public int equippedWeaponID;
-        public Dictionary<string, int> ammoInventory; // 弹药库存
-        
-        public InventorySaveData()
-        {
-            items = new List<ItemSaveData>();
-            equippedWeaponID = -1;
-            ammoInventory = new Dictionary<string, int>();
-        }
-    }
-
-    /// <summary>
-    /// Save data for unified item
-    /// </summary>
-    [System.Serializable]
-    public class ItemSaveData
-    {
-        public int itemID;
-        public ItemType itemType;
-        public int quantity;
-        public float durability;
-        public Vector2Int gridPosition;
-        public int currentAmmo;
-        public string assetPath;
-        public Dictionary<string, object> customData;
-    }
-    /// <summary>
     /// Unified player inventory system - pure data layer
     /// Store all items in a grid, without handling business logic
     /// </summary>
@@ -655,6 +622,33 @@ namespace Resonance.Player.Inventory
         {
             Debug.Log($"PlayerInventory: EquipWeapon called for weaponID: {weaponID}");
             
+            // Check in new grid system first
+            if (_itemsById.TryGetValue(weaponID, out var weaponData))
+            {
+                if (weaponData.ItemType != ItemType.Weapon)
+                {
+                    Debug.LogWarning($"PlayerInventory: Item {weaponID} is not a weapon");
+                    return false;
+                }
+                
+                // Unequip current weapon
+                if (_equippedWeaponID != -1 && _equippedWeaponID != weaponID)
+                {
+                    Debug.Log($"PlayerInventory: Unequipping current weapon: {_equippedWeaponID}");
+                    UnequipCurrentWeapon();
+                }
+                
+                _equippedWeaponID = weaponID;
+                
+                // Set IsEquipped flag in grid system
+                weaponData.IsEquipped = true;
+                
+                OnWeaponEquipped?.Invoke(weaponID);
+                Debug.Log($"PlayerInventory: Equipped weapon {weaponID} (IsEquipped flag set)");
+                return true;
+            }
+            
+            // Legacy system fallback
             if (!HasWeapon(weaponID))
             {
                 Debug.LogWarning($"PlayerInventory: Cannot equip weapon {weaponID} - not in inventory");
@@ -671,7 +665,7 @@ namespace Resonance.Player.Inventory
             _equippedWeaponID = weaponID;
             
             OnWeaponEquipped?.Invoke(weaponID);
-            Debug.Log($"PlayerInventory: Equipped weapon {weaponID}");
+            Debug.Log($"PlayerInventory: Equipped weapon {weaponID} (legacy system)");
             return true;
         }
         
@@ -683,6 +677,14 @@ namespace Resonance.Player.Inventory
             if (_equippedWeaponID == -1) return;
             
             int oldWeaponID = _equippedWeaponID;
+            
+            // Clear IsEquipped flag in grid system
+            if (_itemsById.TryGetValue(oldWeaponID, out var weaponData))
+            {
+                weaponData.IsEquipped = false;
+                Debug.Log($"PlayerInventory: Cleared IsEquipped flag for weapon {oldWeaponID}");
+            }
+            
             _equippedWeaponID = -1;
             
             OnWeaponUnequipped?.Invoke();
@@ -1040,74 +1042,116 @@ namespace Resonance.Player.Inventory
 
         #endregion
 
-        #region Save/Load System
+        #region Save/Load System - Grid Based
 
         /// <summary>
-        /// Get save data
+        /// Get save data for grid-based inventory
         /// </summary>
-        public InventorySaveData GetSaveData()
+        public GridInventorySaveData GetSaveData()
         {
-            return new InventorySaveData
+            var saveData = new GridInventorySaveData
             {
-                items = _items.Select(item => new ItemSaveData
+                gridWidth = _gridWidth,
+                gridHeight = _gridHeight,
+                items = new List<GridCellSaveData>()
+            };
+            
+            foreach (var item in _itemsById.Values)
+            {
+                var cellSaveData = new GridCellSaveData
                 {
                     itemID = item.ItemID,
-                    itemType = item.ItemType,
+                    itemName = item.ItemName,
+                    itemType = item.ItemType.ToString(),
                     quantity = item.Quantity,
-                    durability = item.Durability,
+                    maxStackSize = item.MaxStackSize,
+                    gridWidth = item.GridWidth,
+                    gridHeight = item.GridHeight,
+                    rotation = item.Rotation,
                     gridPosition = item.GridPosition,
+                    isEquipped = item.IsEquipped,
                     currentAmmo = item.CurrentAmmo,
+                    ammoType = item.AmmoType,
+                    maxAmmo = item.MaxAmmo,
                     assetPath = item.AssetPath,
-                    customData = item.CustomData
-                }).ToList(),
-                equippedWeaponID = _equippedWeaponID,
-                ammoInventory = new Dictionary<string, int>(_ammoInventory) // 保存弹药库存
-            };
+                    durability = item.Durability,
+                    customData = SerializableDictionary.FromDictionary(item.CustomData)
+                };
+                
+                saveData.items.Add(cellSaveData);
+            }
+            
+            Debug.Log($"PlayerInventory: Saved {saveData.items.Count} items from grid inventory");
+            return saveData;
         }
         
         /// <summary>
-        /// Load from save data
+        /// Load from save data for grid-based inventory
         /// </summary>
-        public void LoadFromSaveData(InventorySaveData saveData)
+        public void LoadFromSaveData(GridInventorySaveData saveData)
         {
-            _items.Clear();
-            _ammoInventory.Clear();
-            
-            if (saveData?.items != null)
+            if (saveData == null)
             {
-                foreach (var itemData in saveData.items)
-                {
-                    var item = new InventoryItem(itemData.itemID, itemData.itemType, 
-                        itemData.quantity, itemData.durability)
-                    {
-                        GridPosition = itemData.gridPosition,
-                        CurrentAmmo = itemData.currentAmmo,
-                        AssetPath = itemData.assetPath,
-                        CustomData = itemData.customData ?? new Dictionary<string, object>()
-                    };
-                    
-                    _items.Add(item);
-                }
+                Debug.LogWarning("PlayerInventory: Cannot load from null save data");
+                return;
             }
             
-            _equippedWeaponID = saveData?.equippedWeaponID ?? -1;
+            // Clear current grid
+            _itemsById.Clear();
+            _cellOccupancy.Clear();
             
-            // 加载弹药库存
-            if (saveData?.ammoInventory != null)
+            // Verify grid size matches
+            if (saveData.gridWidth != _gridWidth || saveData.gridHeight != _gridHeight)
             {
-                foreach (var kvp in saveData.ammoInventory)
+                Debug.LogWarning($"PlayerInventory: Grid size mismatch! Save: {saveData.gridWidth}x{saveData.gridHeight}, Current: {_gridWidth}x{_gridHeight}");
+                // Could resize grid here if needed
+            }
+            
+            // Load all items
+            if (saveData.items != null)
+            {
+                foreach (var cellSaveData in saveData.items)
                 {
-                    if (!string.IsNullOrEmpty(kvp.Key) && kvp.Value >= 0)
+                    // Parse ItemType from string
+                    if (!System.Enum.TryParse<ItemType>(cellSaveData.itemType, out var itemType))
                     {
-                        _ammoInventory[kvp.Key] = kvp.Value;
+                        Debug.LogWarning($"PlayerInventory: Invalid item type '{cellSaveData.itemType}' for item {cellSaveData.itemID}");
+                        continue;
+                    }
+                    
+                    // Create GridCellData
+                    var gridCellData = new GridCellData
+                    {
+                        ItemID = cellSaveData.itemID,
+                        ItemName = cellSaveData.itemName,
+                        ItemType = itemType,
+                        Quantity = cellSaveData.quantity,
+                        MaxStackSize = cellSaveData.maxStackSize,
+                        GridWidth = cellSaveData.gridWidth,
+                        GridHeight = cellSaveData.gridHeight,
+                        Rotation = cellSaveData.rotation,
+                        GridPosition = cellSaveData.gridPosition,
+                        IsEquipped = cellSaveData.isEquipped,
+                        CurrentAmmo = cellSaveData.currentAmmo,
+                        AmmoType = cellSaveData.ammoType,
+                        MaxAmmo = cellSaveData.maxAmmo,
+                        AssetPath = cellSaveData.assetPath,
+                        Durability = cellSaveData.durability,
+                        CustomData = cellSaveData.customData.ToDictionary()
+                    };
+                    
+                    // Add to grid (without triggering events during load)
+                    bool added = AddItemToGrid(gridCellData, gridCellData.GridPosition, gridCellData.Rotation);
+                    if (!added)
+                    {
+                        Debug.LogWarning($"PlayerInventory: Failed to load item {gridCellData.ItemName} at {gridCellData.GridPosition}");
                     }
                 }
             }
             
             OnInventoryChanged?.Invoke();
-            Debug.Log($"PlayerInventory: Loaded {_items.Count} items and {_ammoInventory.Count} ammo types from save data");
+            Debug.Log($"PlayerInventory: Loaded {_itemsById.Count} items to grid inventory");
         }
-
 
         #endregion
         

@@ -309,10 +309,13 @@ namespace Resonance.Player.Inventory
                     // Restore ammo state
                     _cachedWeaponAsset.SetCurrentAmmo(saveData.currentAmmo);
                     
+                    // Set equipped status in inventory (this will set IsEquipped flag)
+                    _inventory.EquipWeapon(_equippedWeaponID);
+                    
                     OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
                     OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
                     
-                    Debug.Log($"WeaponManager: Loaded weapon {_cachedWeaponAsset.weaponName} with {_cachedWeaponAsset.CurrentAmmo} ammo");
+                    Debug.Log($"WeaponManager: Loaded and equipped weapon {_cachedWeaponAsset.weaponName} with {_cachedWeaponAsset.CurrentAmmo} ammo");
                 }
             }
             else

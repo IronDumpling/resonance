@@ -513,16 +513,16 @@ namespace Resonance.Player.Core
             _stats = saveData.stats;
             Debug.Log($"PlayerController: Loaded stats: Health {_stats.currentHealth}/{_stats.maxHealth}");
 
-            // Load inventory system
-            if (saveData.Inventory != null)
+            // Load grid inventory system
+            if (saveData.gridInventory != null)
             {
-                Debug.Log($"PlayerController: Loading inventory data: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
-                _inventory.LoadFromSaveData(saveData.Inventory);
-                Debug.Log($"PlayerController: Inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
+                Debug.Log($"PlayerController: Loading grid inventory data: {saveData.gridInventory.items.Count} items");
+                _inventory.LoadFromSaveData(saveData.gridInventory);
+                Debug.Log($"PlayerController: Grid inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
             }
             else
             {
-                Debug.LogWarning("PlayerController: No inventory data found in save data");
+                Debug.LogWarning("PlayerController: No grid inventory data found in save data");
             }
 
             // Load weapon manager state
@@ -556,9 +556,9 @@ namespace Resonance.Player.Core
                 stats = _stats
             };
 
-            // Save inventory system
-            saveData.Inventory = _inventory.GetSaveData();
-            Debug.Log($"PlayerController: Inventory saved: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
+            // Save grid inventory system
+            saveData.gridInventory = _inventory.GetSaveData();
+            Debug.Log($"PlayerController: Grid inventory saved: {saveData.gridInventory.items.Count} items");
             
             // Save weapon manager state
             saveData.weaponManager = _weaponManager.GetSaveData();
