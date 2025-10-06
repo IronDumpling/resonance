@@ -21,7 +21,7 @@ namespace Resonance.Core.StateMachine.States
 
         // Events
         public static event System.Action OnInventoryOpened;
-        public static event System.Action OnInventoryClosed;
+        // public static event System.Action OnInventoryClosed;
 
         public void Enter()
         {
@@ -96,7 +96,7 @@ namespace Resonance.Core.StateMachine.States
             }
 
             // Trigger events
-            OnInventoryClosed?.Invoke();
+            // OnInventoryClosed?.Invoke();
 
             Debug.Log("InventoryState: Inventory closed successfully");
         }
@@ -110,13 +110,5 @@ namespace Resonance.Core.StateMachine.States
             return true; // Allow all same-level substates
         }
 
-        /// <summary>
-        /// Static method: Trigger inventory closed event (for external use)
-        /// </summary>
-        public static void TriggerInventoryClose()
-        {
-            Debug.Log("InventoryState: External trigger for inventory close");
-            OnInventoryClosed?.Invoke();
-        }
     }
 }

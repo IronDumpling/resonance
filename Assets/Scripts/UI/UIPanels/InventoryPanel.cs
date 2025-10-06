@@ -24,9 +24,6 @@ namespace Resonance.UI
     /// </summary>
     public class InventoryPanel : UIPanel
     {
-        [Header("UI References")]
-        [SerializeField] private Button _closeButton;
-        
         [Header("Panel References")]
         [SerializeField] private GameObject _waveModulePanel;
         [SerializeField] private PlayerStatusPanel _playerStatusPanel;
@@ -91,10 +88,6 @@ namespace Resonance.UI
             if (_itemInfoPanel == null)
                 _itemInfoPanel = GetComponentInChildren<InfoPanel>();
             
-            // Auto-find close button
-            // if (_closeButton == null)
-                // _closeButton = FindChildComponent<Button>("CloseButton");
-            
             // Auto-find wave module components
             if (_waveModuleName == null && _waveModulePanel != null)
                 _waveModuleName = FindChildComponent<TextMeshProUGUI>(_waveModulePanel, "ModuleName");
@@ -106,15 +99,9 @@ namespace Resonance.UI
 
         private void SetupEventListeners()
         {
-            // Setup close button
-            if (_closeButton != null)
-            {
-                _closeButton.onClick.AddListener(OnCloseButtonClicked);
-            }
-            
             // Subscribe to InventoryState events
             InventoryState.OnInventoryOpened += OnInventoryOpened;
-            InventoryState.OnInventoryClosed += OnInventoryClosed;
+            // InventoryState.OnInventoryClosed += OnInventoryClosed;
             
             Debug.Log("InventoryPanel: Event listeners setup complete");
         }
@@ -543,9 +530,6 @@ namespace Resonance.UI
         private void CloseInventoryPanel()
         {
             Debug.Log("InventoryPanel: Closing inventory panel");
-            
-            // Trigger the inventory close event via static method
-            InventoryState.TriggerInventoryClose();
         }
 
         #endregion
@@ -587,15 +571,9 @@ namespace Resonance.UI
 
         private void CleanupEventListeners()
         {
-            // Cleanup close button
-            if (_closeButton != null)
-            {
-                _closeButton.onClick.RemoveListener(OnCloseButtonClicked);
-            }
-            
             // Unsubscribe from InventoryState events
             InventoryState.OnInventoryOpened -= OnInventoryOpened;
-            InventoryState.OnInventoryClosed -= OnInventoryClosed;
+            // InventoryState.OnInventoryClosed -= OnInventoryClosed;
             
             Debug.Log("InventoryPanel: Event listeners cleaned up");
         }

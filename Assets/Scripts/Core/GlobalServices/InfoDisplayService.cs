@@ -108,7 +108,7 @@ namespace Resonance.Core.GlobalServices
             Debug.Log($"InfoDisplayService: Starting info reading session for {infoAsset.infoName}");
 
             // Start info reading session
-            gameplayState.StartInfoReading(infoAsset);
+            gameplayState.OnInfoReadingStarted(infoAsset);
         }
     }
 }
