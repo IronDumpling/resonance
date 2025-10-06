@@ -820,13 +820,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.UI.InventoryPanel
   _panelName: InventoryPanel
-  _layer: 20
+  _layer: 10
   _hideOnStart: 1
-  _waveModulePanel: {fileID: 0}
+  _waveModulePanel: {fileID: 1617680430708693502}
   _playerStatusPanel: {fileID: 0}
   _inventoryGridPanel: {fileID: 0}
-  _gridSystem: {fileID: 0}
-  _gridSlotPrefab: {fileID: 0}
+  _gridSystem: {fileID: 9105550924298924834}
+  _gridSlotPrefab: {fileID: 2113098298717480440, guid: 576a8d4b152edb34d95919fd8c0b106b, type: 3}
   _itemInfoPanel: {fileID: 0}
   _waveModuleName: {fileID: 0}
   _waveModuleDescription: {fileID: 0}

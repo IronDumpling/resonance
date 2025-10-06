@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Resonance.Items;
 using Resonance.Player.Data;
 using Resonance.Player.Core;
-using Resonance.Items;
 
 namespace Resonance.Player.Inventory
 {
@@ -16,6 +16,88 @@ namespace Resonance.Player.Inventory
         Tool,          // Key, etc.
         Module,        // Wave Module
         Weapon         // Pistol, etc.
+    }
+    
+    /// <summary>
+    /// 格子单元数据 - 存储单个格子中的物品完整信息
+    /// 这是纯数据结构，不包含任何业务逻辑
+    /// </summary>
+    [System.Serializable]
+    public class GridCellData
+    {
+        // 基础信息
+        public int ItemID { get; set; }
+        public string ItemName { get; set; }
+        public ItemType ItemType { get; set; }
+        
+        // 堆叠信息
+        public int Quantity { get; set; }
+        public int MaxStackSize { get; set; }
+        
+        // 空间信息
+        public int GridWidth { get; set; }
+        public int GridHeight { get; set; }
+        public int Rotation { get; set; } // 0, 90, 180, 270
+        public Vector2Int GridPosition { get; set; } // 起始位置
+        
+        // 装备状态
+        public bool IsEquipped { get; set; }
+        
+        // 武器特有数据
+        public int CurrentAmmo { get; set; }
+        public string AmmoType { get; set; }
+        public int MaxAmmo { get; set; }
+        
+        // 额外数据
+        public string AssetPath { get; set; }
+        public float Durability { get; set; }
+        public Dictionary<string, object> CustomData { get; set; }
+        
+        public GridCellData()
+        {
+            CustomData = new Dictionary<string, object>();
+            GridPosition = new Vector2Int(-1, -1);
+            Quantity = 1;
+            MaxStackSize = 1;
+            Durability = 1f;
+        }
+        
+        /// <summary>
+        /// 计算当前宽度（考虑旋转）
+        /// </summary>
+        public int GetCurrentWidth()
+        {
+            return (Rotation == 90 || Rotation == 270) ? GridHeight : GridWidth;
+        }
+        
+        /// <summary>
+        /// 计算当前高度（考虑旋转）
+        /// </summary>
+        public int GetCurrentHeight()
+        {
+            return (Rotation == 90 || Rotation == 270) ? GridWidth : GridHeight;
+        }
+        
+        /// <summary>
+        /// 获取占用的所有格子位置
+        /// </summary>
+        public List<Vector2Int> GetOccupiedPositions()
+        {
+            var positions = new List<Vector2Int>();
+            if (GridPosition.x < 0 || GridPosition.y < 0) return positions;
+            
+            int width = GetCurrentWidth();
+            int height = GetCurrentHeight();
+            
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    positions.Add(new Vector2Int(GridPosition.x + x, GridPosition.y + y));
+                }
+            }
+            return positions;
+        }
     }
 
     /// <summary>
@@ -75,7 +157,7 @@ namespace Resonance.Player.Inventory
     }
 
     /// <summary>
-    /// 统一物品的保存数据
+    /// Save data for unified item
     /// </summary>
     [System.Serializable]
     public class ItemSaveData
@@ -90,90 +172,458 @@ namespace Resonance.Player.Inventory
         public Dictionary<string, object> customData;
     }
     /// <summary>
-    /// 统一的玩家背包系统
-    /// 管理所有类型的物品：消耗品、道具、晶体模块、武器
-    /// 分为逻辑存储层和格子系统层
+    /// Unified player inventory system - pure data layer
+    /// Store all items in a grid, without handling business logic
     /// </summary>
     public class PlayerInventory
     {
-        #region 逻辑存储层 - Logical Storage Layer
+        #region Core data storage - Grid-based Storage
         
-        // 统一物品存储
+        // Grid size
+        private int _gridWidth;
+        private int _gridHeight;
+        
+        // Grid data storage (2D array, each cell may be occupied by a part of an item)
+        private GridCellData[,] _gridCells;
+        
+        // Item quick lookup (itemID → item data)
+        private Dictionary<int, GridCellData> _itemsById;
+        
+        // Occupancy mapping (each cell position → item ID occupying it)
+        private Dictionary<Vector2Int, int> _cellOccupancy;
+
         private List<InventoryItem> _items;
+        private int _equippedWeaponID;
         private List<int> _equippedItemIDs;
         
-        // 当前装备的武器ID（与WeaponManager同步）
-        private int _equippedWeaponID = -1;
+        #endregion
         
-        // 容量限制
-        private int _maxSlots;
+        #region Event system - Data Change Events
+        
+        public System.Action OnInventoryChanged; // General change event
 
-        // 扩展事件系统
-        public System.Action OnInventoryChanged;
-        public System.Action<int> OnItemEquipped; // itemID (向后兼容)
-        public System.Action<int> OnItemUnequipped; // itemID (向后兼容)
-        public System.Action<int, ItemType> OnItemAdded; // itemID, itemType
-        public System.Action<int, ItemType> OnItemRemoved; // itemID, itemType
-        public System.Action<int> OnWeaponEquipped; // weaponID
+        public System.Action<int, ItemType> OnItemAdded;
+        public System.Action<int, ItemType> OnItemRemoved;
+        public System.Action<int, ItemType> OnItemMoved;
+        public System.Action<int, ItemType> OnItemRotated;
+        public System.Action<int, ItemType> OnItemQuantityChanged;
+
+        public System.Action<int> OnWeaponEquipped;
         public System.Action OnWeaponUnequipped;
+        public System.Action<int> OnItemEquipped;
+        public System.Action<int> OnItemUnequipped;
+        
+        // Grid operation events
+        public System.Action<GridCellData, Vector2Int> OnItemAddedToGrid;
+        public System.Action<GridCellData, Vector2Int> OnItemRemovedFromGrid;
+        public System.Action<GridCellData, Vector2Int, Vector2Int> OnItemMovedInGrid; // item, oldPos, newPos
+        public System.Action<GridCellData, int> OnItemRotatedInGrid; // item, newRotation
+        
+        // Equipped status events (for WeaponManager to listen)
+        public System.Action<int, bool> OnItemEquipStatusChanged; // itemID, isEquipped
         
         #endregion
         
-        #region 格子系统层 - Grid System Layer (预留)
+        #region Properties
         
-        // 格子系统相关字段（预留）
-        private int _gridWidth = 10;   // 背包格子宽度
-        private int _gridHeight = 6;   // 背包格子高度
-        private bool[,] _gridOccupied; // 格子占用状态
-        
-        // 格子系统方法（预留接口）
-        public bool CanPlaceItemAt(InventoryItem item, Vector2Int position) 
-        { 
-            // TODO: 实现格子放置逻辑
-            return true; 
-        }
-        
-        public bool PlaceItemAt(InventoryItem item, Vector2Int position) 
-        { 
-            // TODO: 实现格子放置逻辑
-            return true; 
-        }
-        
-        public void RemoveItemFromGrid(InventoryItem item) 
-        { 
-            // TODO: 实现格子移除逻辑
-        }
-        
-        public Vector2Int FindEmptySpace(int width, int height) 
-        { 
-            // TODO: 实现自动寻找空位逻辑
-            return Vector2Int.zero; 
-        }
-        
-        #endregion
-
-        // Properties
+        public int GridWidth => _gridWidth;
+        public int GridHeight => _gridHeight;
         public int MaxSlots => _gridWidth * _gridHeight;
-        public int UsedSlots => _items?.Count ?? 0;
-        public bool IsFull => UsedSlots >= MaxSlots;
+        public int UsedSlots => _itemsById.Count;
+        public bool IsFull => UsedSlots >= MaxSlots; // Simplified judgment
+        
+        #endregion
 
+        #region Initialization
+        
         public PlayerInventory(int gridWidth, int gridHeight)
         {
             _gridWidth = gridWidth;
             _gridHeight = gridHeight;
             
-            // 初始化存储系统   
-            _items = new List<InventoryItem>();
-            _equippedItemIDs = new List<int>();
+            // Initialize grid data
+            _gridCells = new GridCellData[_gridWidth, _gridHeight];
+            _itemsById = new Dictionary<int, GridCellData>();
+            _cellOccupancy = new Dictionary<Vector2Int, int>();
             
-            // 初始化格子系统（预留）
-            _gridOccupied = new bool[_gridWidth, _gridHeight];
+            Debug.Log($"PlayerInventory: Initialized with {_gridWidth}x{_gridHeight} grid");
         }
-
-        #region 武器管理 - Weapon Management
+        
+        #endregion
+        
+        #region Core Grid Operations
         
         /// <summary>
-        /// 添加武器到背包
+        /// Add item to grid
+        /// </summary>
+        public bool AddItemToGrid(GridCellData itemData, Vector2Int position, int rotation = 0)
+        {
+            if (itemData == null)
+            {
+                Debug.LogError("PlayerInventory: Cannot add null item");
+                return false;
+            }
+            
+            itemData.GridPosition = position;
+            itemData.Rotation = rotation;
+            
+            // Validate if can place
+            if (!CanPlaceItemAt(itemData, position))
+            {
+                Debug.LogWarning($"PlayerInventory: Cannot place {itemData.ItemName} at {position}");
+                return false;
+            }
+            
+            // Occupy grid
+            OccupyGridCells(itemData);
+            
+            // Add to dictionary
+            _itemsById[itemData.ItemID] = itemData;
+            
+            // Trigger event
+            OnItemAddedToGrid?.Invoke(itemData, position);
+            OnInventoryChanged?.Invoke();
+            
+            Debug.Log($"PlayerInventory: Added {itemData.ItemName} to grid at {position}, rotation: {rotation}");
+            return true;
+        }
+        
+        /// <summary>
+        /// Remove item from grid
+        /// </summary>
+        public bool RemoveItemFromGrid(int itemID)
+        {
+            if (!_itemsById.TryGetValue(itemID, out var itemData))
+            {
+                Debug.LogWarning($"PlayerInventory: Item {itemID} not found");
+                return false;
+            }
+            
+            Vector2Int oldPosition = itemData.GridPosition;
+            
+            // Clear occupancy
+            ClearGridCells(itemData);
+            
+            // Remove from dictionary
+            _itemsById.Remove(itemID);
+            
+            // Trigger event
+            OnItemRemovedFromGrid?.Invoke(itemData, oldPosition);
+            OnInventoryChanged?.Invoke();
+            
+            Debug.Log($"PlayerInventory: Removed {itemData.ItemName} from grid");
+            return true;
+        }
+        
+        /// <summary>
+        /// Move item in grid
+        /// </summary>
+        public bool MoveItemInGrid(int itemID, Vector2Int newPosition)
+        {
+            if (!_itemsById.TryGetValue(itemID, out var itemData))
+            {
+                Debug.LogWarning($"PlayerInventory: Item {itemID} not found");
+                return false;
+            }
+            
+            Vector2Int oldPosition = itemData.GridPosition;
+            
+            // Temporarily clear occupancy
+            ClearGridCells(itemData);
+            
+            // Update position
+            itemData.GridPosition = newPosition;
+            
+            // Validate new position
+            if (!CanPlaceItemAt(itemData, newPosition))
+            {
+                // Restore old position
+                itemData.GridPosition = oldPosition;
+                OccupyGridCells(itemData);
+                Debug.LogWarning($"PlayerInventory: Cannot move {itemData.ItemName} to {newPosition}");
+                return false;
+            }
+            
+            // Occupy new position
+            OccupyGridCells(itemData);
+            
+            // Trigger event
+            OnItemMovedInGrid?.Invoke(itemData, oldPosition, newPosition);
+            OnInventoryChanged?.Invoke();
+            
+            Debug.Log($"PlayerInventory: Moved {itemData.ItemName} from {oldPosition} to {newPosition}");
+            return true;
+        }
+        
+        /// <summary>
+        /// Rotate item in grid
+        /// </summary>
+        public bool RotateItemInGrid(int itemID)
+        {
+            if (!_itemsById.TryGetValue(itemID, out var itemData))
+            {
+                Debug.LogWarning($"PlayerInventory: Item {itemID} not found");
+                return false;
+            }
+            
+            int oldRotation = itemData.Rotation;
+            int newRotation = (oldRotation + 90) % 360;
+            
+            // Temporarily clear occupancy
+            ClearGridCells(itemData);
+            
+            // Update rotation
+            itemData.Rotation = newRotation;
+            
+            // 验证旋转后是否可以放置
+            if (!CanPlaceItemAt(itemData, itemData.GridPosition))
+            {
+                // 恢复旧旋转
+                itemData.Rotation = oldRotation;
+                OccupyGridCells(itemData);
+                Debug.LogWarning($"PlayerInventory: Cannot rotate {itemData.ItemName} at {itemData.GridPosition}");
+                return false;
+            }
+            
+            // Occupy new position
+            OccupyGridCells(itemData);
+            
+            // Trigger event
+            OnItemRotatedInGrid?.Invoke(itemData, newRotation);
+            OnInventoryChanged?.Invoke();
+            
+            Debug.Log($"PlayerInventory: Rotated {itemData.ItemName} from {oldRotation}° to {newRotation}°");
+            return true;
+        }
+        
+        /// <summary>
+        /// Update item quantity
+        /// </summary>
+        public bool UpdateItemQuantity(int itemID, int newQuantity)
+        {
+            if (!_itemsById.TryGetValue(itemID, out var itemData))
+            {
+                Debug.LogWarning($"PlayerInventory: Item {itemID} not found");
+                return false;
+            }
+            
+            if (newQuantity < 0 || newQuantity > itemData.MaxStackSize)
+            {
+                Debug.LogWarning($"PlayerInventory: Invalid quantity {newQuantity} for {itemData.ItemName}");
+                return false;
+            }
+            
+            itemData.Quantity = newQuantity;
+            
+            // If quantity is zero, remove item
+            if (newQuantity == 0)
+            {
+                return RemoveItemFromGrid(itemID);
+            }
+            
+            // Trigger event
+            OnItemQuantityChanged?.Invoke(itemID, itemData.ItemType);
+            OnInventoryChanged?.Invoke();
+            
+            Debug.Log($"PlayerInventory: Updated {itemData.ItemName} quantity to {newQuantity}");
+            return true;
+        }
+        
+        /// <summary>
+        /// Update item equipped status
+        /// </summary>
+        public bool SetItemEquipStatus(int itemID, bool isEquipped)
+        {
+            if (!_itemsById.TryGetValue(itemID, out var itemData))
+            {
+                Debug.LogWarning($"PlayerInventory: Item {itemID} not found");
+                return false;
+            }
+            
+            itemData.IsEquipped = isEquipped;
+            
+            // Trigger event
+            OnItemEquipStatusChanged?.Invoke(itemID, isEquipped);
+            OnInventoryChanged?.Invoke();
+            
+            Debug.Log($"PlayerInventory: Set {itemData.ItemName} equipped status to {isEquipped}");
+            return true;
+        }
+        
+        #endregion
+        
+        #region Query Methods
+        
+        /// <summary>
+        /// Get item at position
+        /// </summary>
+        public GridCellData GetItemAtPosition(Vector2Int position)
+        {
+            if (!IsValidPosition(position)) return null;
+            
+            if (_cellOccupancy.TryGetValue(position, out int itemID))
+            {
+                return _itemsById.GetValueOrDefault(itemID);
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// Get item by ID
+        /// </summary>
+        public GridCellData GetItemByID(int itemID)
+        {
+            return _itemsById.GetValueOrDefault(itemID);
+        }
+        
+        /// <summary>
+        /// Get all items
+        /// </summary>
+        public List<GridCellData> GetAllItems()
+        {
+            return new List<GridCellData>(_itemsById.Values);
+        }
+        
+        /// <summary>
+        /// Get all items by type
+        /// </summary>
+        public List<GridCellData> GetItemsByType(ItemType itemType)
+        {
+            return _itemsById.Values.Where(item => item.ItemType == itemType).ToList();
+        }
+        
+        /// <summary>
+        /// Check if has item
+        /// </summary>
+        public bool HasItem(int itemID)
+        {
+            return _itemsById.ContainsKey(itemID);
+        }
+        
+        /// <summary>
+        /// Find empty space
+        /// </summary>
+        public Vector2Int FindEmptySpace(int width, int height)
+        {
+            for (int y = 0; y <= _gridHeight - height; y++)
+            {
+                for (int x = 0; x <= _gridWidth - width; x++)
+                {
+                    Vector2Int testPos = new Vector2Int(x, y);
+                    bool canPlace = true;
+                    
+                    for (int dx = 0; dx < width; dx++)
+                    {
+                        for (int dy = 0; dy < height; dy++)
+                        {
+                            Vector2Int checkPos = new Vector2Int(x + dx, y + dy);
+                            if (_cellOccupancy.ContainsKey(checkPos))
+                            {
+                                canPlace = false;
+                                break;
+                            }
+                        }
+                        if (!canPlace) break;
+                    }
+                    
+                    if (canPlace)
+                    {
+                        return testPos;
+                    }
+                }
+            }
+            
+            return new Vector2Int(-1, -1); // No empty space
+        }
+        
+        #endregion
+        
+        #region Validation Methods
+        
+        /// <summary>
+        /// Validate if can place item
+        /// </summary>
+        public bool CanPlaceItemAt(GridCellData itemData, Vector2Int position)
+        {
+            if (itemData == null) return false;
+            
+            int width = itemData.GetCurrentWidth();
+            int height = itemData.GetCurrentHeight();
+            
+            // Check if out of bounds
+            if (!IsWithinBounds(position.x, position.y, width, height))
+            {
+                return false;
+            }
+            
+            // Check if occupied
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    Vector2Int checkPos = new Vector2Int(position.x + x, position.y + y);
+                    
+                    // If the position is occupied, and not occupied by itself, then cannot place
+                    if (_cellOccupancy.TryGetValue(checkPos, out int occupyingItemID))
+                    {
+                        if (occupyingItemID != itemData.ItemID)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            return true;
+        }
+        
+        private bool IsValidPosition(Vector2Int position)
+        {
+            return position.x >= 0 && position.x < _gridWidth &&
+                   position.y >= 0 && position.y < _gridHeight;
+        }
+        
+        private bool IsWithinBounds(int x, int y, int width, int height)
+        {
+            return x >= 0 && x + width <= _gridWidth &&
+                   y >= 0 && y + height <= _gridHeight;
+        }
+        
+        #endregion
+        
+        #region Internal Helper Methods
+        
+        /// <summary>
+        /// Occupy grid cells
+        /// </summary>
+        private void OccupyGridCells(GridCellData itemData)
+        {
+            var positions = itemData.GetOccupiedPositions();
+            foreach (var pos in positions)
+            {
+                _cellOccupancy[pos] = itemData.ItemID;
+            }
+        }
+        
+        /// <summary>
+        /// Clear grid cells occupancy
+        /// </summary>
+        private void ClearGridCells(GridCellData itemData)
+        {
+            var positions = itemData.GetOccupiedPositions();
+            foreach (var pos in positions)
+            {
+                _cellOccupancy.Remove(pos);
+            }
+        }
+        
+        #endregion
+
+        #region 武器管理 - Weapon Management (Deprecated - Use WeaponManager)
+        
+        /// <summary>
+        /// Add weapon to inventory
         /// </summary>
         public bool AddWeapon(GunDataAsset weaponAsset)
         {
@@ -186,21 +636,21 @@ namespace Resonance.Player.Inventory
             int weaponID = weaponAsset.GetInstanceID();
             Debug.Log($"🎒 [INVENTORY] AddWeapon called for {weaponAsset.weaponName} (ID: {weaponID})");
             
-            // 检查是否已存在
+            // Check if already exists
             if (HasWeapon(weaponID))
             {
                 Debug.LogWarning($"PlayerInventory: Weapon {weaponAsset.weaponName} already in inventory");
                 return false;
             }
             
-            // 检查背包空间
+            // Check if inventory is full
             if (IsFull)
             {
                 Debug.LogWarning("PlayerInventory: Cannot add weapon - inventory full");
                 return false;
             }
             
-            // 创建武器物品
+            // Create weapon item
             var weaponItem = new InventoryItem(weaponID, ItemType.Weapon, 1, 1f)
             {
                 AssetPath = GetAssetPath(weaponAsset),
@@ -209,13 +659,13 @@ namespace Resonance.Player.Inventory
                 GridHeight = weaponAsset.gridHeight
             };
             
-            // 武器特有数据
+            // Weapon specific data
             weaponItem.CustomData["weaponName"] = weaponAsset.weaponName;
             weaponItem.CustomData["ammoType"] = weaponAsset.ammoType;
             weaponItem.CustomData["maxAmmo"] = weaponAsset.maxAmmo;
-            weaponItem.CustomData["originalAsset"] = weaponAsset; // 保存原始引用
+            weaponItem.CustomData["originalAsset"] = weaponAsset; // Save original reference
             
-            Debug.Log($"🎒 [INVENTORY] Created weapon item: {weaponItem.ItemID}, AssetPath: {weaponItem.AssetPath}");
+            Debug.Log($"PlayerInventory: Created weapon item: {weaponItem.ItemID}, AssetPath: {weaponItem.AssetPath}");
             
             _items.Add(weaponItem);
             OnItemAdded?.Invoke(weaponID, ItemType.Weapon);
@@ -230,7 +680,7 @@ namespace Resonance.Player.Inventory
         /// </summary>
         public bool EquipWeapon(int weaponID)
         {
-            Debug.Log($"🎒 [INVENTORY] EquipWeapon called for weaponID: {weaponID}");
+            Debug.Log($"PlayerInventory: EquipWeapon called for weaponID: {weaponID}");
             
             if (!HasWeapon(weaponID))
             {
@@ -238,10 +688,10 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            // 卸下当前武器
+            // Unequip current weapon
             if (_equippedWeaponID != -1)
             {
-                Debug.Log($"🎒 [INVENTORY] Unequipping current weapon: {_equippedWeaponID}");
+                Debug.Log($"PlayerInventory: Unequipping current weapon: {_equippedWeaponID}");
                 UnequipCurrentWeapon();
             }
             
@@ -252,13 +702,13 @@ namespace Resonance.Player.Inventory
             }
             
             OnWeaponEquipped?.Invoke(weaponID);
-            OnItemEquipped?.Invoke(weaponID); // 向后兼容
+            OnItemEquipped?.Invoke(weaponID); // Backward compatibility
             Debug.Log($"PlayerInventory: Equipped weapon {weaponID}");
             return true;
         }
         
         /// <summary>
-        /// 卸下当前武器
+        /// Unequip current weapon
         /// </summary>
         public void UnequipCurrentWeapon()
         {
@@ -269,12 +719,12 @@ namespace Resonance.Player.Inventory
             _equippedWeaponID = -1;
             
             OnWeaponUnequipped?.Invoke();
-            OnItemUnequipped?.Invoke(oldWeaponID); // 向后兼容
+            OnItemUnequipped?.Invoke(oldWeaponID); // Backward compatibility
             Debug.Log("PlayerInventory: Unequipped current weapon");
         }
         
         /// <summary>
-        /// 获取当前装备的武器
+        /// Get current equipped weapon
         /// </summary>
         public GunDataAsset GetEquippedWeapon()
         {
@@ -764,7 +1214,7 @@ namespace Resonance.Player.Inventory
         #region Helper Methods
         
         /// <summary>
-        /// 获取ScriptableObject的资源路径
+        /// Get the resource path of the ScriptableObject
         /// </summary>
         private string GetAssetPath(ScriptableObject asset)
         {
@@ -778,7 +1228,7 @@ namespace Resonance.Player.Inventory
         }
         
         /// <summary>
-        /// 从路径加载ScriptableObject资源
+        /// load ScriptableObject from path
         /// </summary>
         private T LoadAssetFromPath<T>(string path) where T : ScriptableObject
         {
@@ -795,7 +1245,7 @@ namespace Resonance.Player.Inventory
             Debug.Log($"PlayerInventory: LoadAssetFromPath: Editor result: {asset?.name ?? "NULL"}");
             return asset;
             #else
-            // 运行时从Resources加载，需要去掉扩展名和Resources路径
+            // Load from Resources at runtime, need to remove extension and Resources path
             string resourcePath = path;
             if (path.StartsWith("Assets/Resources/"))
             {
