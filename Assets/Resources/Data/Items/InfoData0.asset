@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25991254f2e00c743af6470481d14d41, type: 3}
-  m_Name: InfoData3
+  m_Name: InfoData0
   m_EditorClassIdentifier: 
   _infoData:
-    name: 'Rule 3: Resonance'
-    content: The enemies only dies when you destory their core, press [F] quickly
-      to do so.
+    name: 'Rule 0: Manage Your Space'
+    content: "Always pay attention to the space in your bag. \nPress [Tab] to open
+      and close the bag."
     image: {fileID: 21300000, guid: fa345a051bde6bd43a39ecd5ab57a6c6, type: 3}
