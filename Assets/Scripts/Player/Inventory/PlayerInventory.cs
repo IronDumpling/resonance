@@ -246,6 +246,16 @@ namespace Resonance.Player.Inventory
             OnItemAddedToGrid?.Invoke(itemData, position);
             OnInventoryChanged?.Invoke();
             
+            // NEW: If this is ammo, trigger OnAmmoChanged for UI updates
+            if (itemData.ItemType == ItemType.Consumable && itemData.CustomData.ContainsKey("ammoType"))
+            {
+                string ammoType = itemData.CustomData["ammoType"].ToString();
+                int oldTotal = GetAmmoCount(ammoType) - itemData.Quantity; // Calculate old total
+                int newTotal = GetAmmoCount(ammoType);
+                OnAmmoChanged?.Invoke(ammoType, oldTotal, newTotal);
+                Debug.Log($"PlayerInventory: Ammo added - {ammoType}: {oldTotal} -> {newTotal}");
+            }
+            
             Debug.Log($"PlayerInventory: Added {itemData.ItemName} to grid at {position}, rotation: {rotation}");
             return true;
     }
@@ -263,6 +273,18 @@ namespace Resonance.Player.Inventory
             
             Vector2Int oldPosition = itemData.GridPosition;
             
+            // Store ammo info before removing (for event trigger)
+            bool isAmmo = itemData.ItemType == ItemType.Consumable && itemData.CustomData.ContainsKey("ammoType");
+            string ammoType = null;
+            int oldTotal = 0;
+            int removedQuantity = itemData.Quantity;
+            
+            if (isAmmo)
+            {
+                ammoType = itemData.CustomData["ammoType"].ToString();
+                oldTotal = GetAmmoCount(ammoType);
+            }
+            
             // Clear occupancy
             ClearGridCells(itemData);
             
@@ -272,6 +294,14 @@ namespace Resonance.Player.Inventory
             // Trigger event
             OnItemRemovedFromGrid?.Invoke(itemData, oldPosition);
             OnInventoryChanged?.Invoke();
+            
+            // If this was ammo, trigger OnAmmoChanged for UI updates
+            if (isAmmo)
+            {
+                int newTotal = GetAmmoCount(ammoType);
+                OnAmmoChanged?.Invoke(ammoType, oldTotal, newTotal);
+                Debug.Log($"PlayerInventory: Ammo removed - {ammoType}: {oldTotal} -> {newTotal}");
+            }
             
             Debug.Log($"PlayerInventory: Removed {itemData.ItemName} from grid");
             return true;
@@ -375,6 +405,7 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
+            int oldQuantity = itemData.Quantity;
             itemData.Quantity = newQuantity;
             
             // If quantity is zero, remove item
@@ -386,6 +417,16 @@ namespace Resonance.Player.Inventory
             // Trigger event
             OnItemQuantityChanged?.Invoke(itemData, newQuantity);
             OnInventoryChanged?.Invoke();
+            
+            // NEW: If this is ammo, trigger OnAmmoChanged for UI updates
+            if (itemData.ItemType == ItemType.Consumable && itemData.CustomData.ContainsKey("ammoType"))
+            {
+                string ammoType = itemData.CustomData["ammoType"].ToString();
+                int oldTotal = GetAmmoCount(ammoType) - newQuantity + oldQuantity; // Calculate old total
+                int newTotal = GetAmmoCount(ammoType);
+                OnAmmoChanged?.Invoke(ammoType, oldTotal, newTotal);
+                Debug.Log($"PlayerInventory: Ammo changed - {ammoType}: {oldTotal} -> {newTotal}");
+            }
             
             Debug.Log($"PlayerInventory: Updated {itemData.ItemName} quantity to {newQuantity}");
             return true; 
@@ -892,26 +933,45 @@ namespace Resonance.Player.Inventory
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
                 return false;
             
-            int oldAmount = _ammoInventory.GetValueOrDefault(ammoType, 0);
+            int oldAmount = GetAmmoCount(ammoType);
             if (oldAmount < amount)
             {
                 Debug.LogWarning($"PlayerInventory: Not enough {ammoType} ammo - need {amount}, have {oldAmount}");
                 return false;
             }
-                
-            int newAmount = oldAmount - amount;
-            _ammoInventory[ammoType] = newAmount;
             
+            // Find and consume ammo from grid system
+            var ammoItems = GetItemsByType(ItemType.Consumable)
+                .Where(item => item.CustomData.ContainsKey("ammoType") && 
+                              item.CustomData["ammoType"].ToString() == ammoType)
+                .OrderBy(item => item.Quantity) // Consume from smallest stacks first
+                .ToList();
+            
+            int remainingToConsume = amount;
+            
+            foreach (var ammoItem in ammoItems)
+            {
+                if (remainingToConsume <= 0) break;
+                
+                int consumeFromThis = Mathf.Min(remainingToConsume, ammoItem.Quantity);
+                int newQuantity = ammoItem.Quantity - consumeFromThis;
+                
+                // UpdateItemQuantity will auto-remove if quantity reaches 0
+                UpdateItemQuantity(ammoItem.ItemID, newQuantity);
+                remainingToConsume -= consumeFromThis;
+                
+                Debug.Log($"PlayerInventory: Consumed {consumeFromThis} {ammoType} from stack. New quantity: {newQuantity}");
+            }
+            
+            int newAmount = GetAmmoCount(ammoType);
             Debug.Log($"PlayerInventory: Consumed {amount} {ammoType} ammo. Remaining: {newAmount}");
             
-            // 触发事件
-            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
-            OnInventoryChanged?.Invoke();
+            // OnAmmoChanged is already triggered by UpdateItemQuantity
             return true;
         }
         
         /// <summary>
-        /// 检查是否有足够的弹药
+        /// Grid-base Has Ammo
         /// </summary>
         /// <param name="ammoType">弹药类型</param>
         /// <param name="amount">需要的数量</param>
@@ -920,12 +980,13 @@ namespace Resonance.Player.Inventory
         {
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
                 return false;
-                
-            return _ammoInventory.GetValueOrDefault(ammoType, 0) >= amount;
+            
+            // NEW: Check ammo from grid-based system
+            return GetAmmoCount(ammoType) >= amount;
         }
         
         /// <summary>
-        /// 获取指定类型弹药的数量
+        /// Grid-based Get Ammo Count
         /// </summary>
         /// <param name="ammoType">弹药类型</param>
         /// <returns>弹药数量</returns>
@@ -933,8 +994,16 @@ namespace Resonance.Player.Inventory
         {
             if (string.IsNullOrEmpty(ammoType))
                 return 0;
-                
-            return _ammoInventory.GetValueOrDefault(ammoType, 0);
+            
+            // NEW: Get ammo count from grid-based system
+            var consumableItems = GetItemsByType(ItemType.Consumable)
+                .Where(item => item.CustomData.ContainsKey("ammoType") && 
+                              item.CustomData["ammoType"].ToString() == ammoType);
+            
+            int totalCount = consumableItems.Sum(item => item.Quantity);
+            
+            Debug.Log($"PlayerInventory.GetAmmoCount: {ammoType} -> {totalCount} (from grid system)");
+            return totalCount;
         }
         
         /// <summary>
