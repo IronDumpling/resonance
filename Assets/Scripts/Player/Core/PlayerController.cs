@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Resonance.Player.Data;
 using Resonance.Player.States;
 using Resonance.Player.Actions;
+using Resonance.Player.Inventory;
 using Resonance.Core;
 using Resonance.Core.Data;
 using Resonance.Utilities;
@@ -22,8 +23,11 @@ namespace Resonance.Player.Core
         private PlayerRuntimeStats _stats;
         private PlayerInventory _inventory;
         private PlayerMovement _movement;
-        private WeaponManager _weaponManager;
         private ShootingSystem _shootingSystem;
+
+        private WeaponManager _weaponManager;
+        private ConsumableManager _consumableManager;
+        private GridOperationManager _gridOperationManager;
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
@@ -57,6 +61,8 @@ namespace Resonance.Player.Core
         public PlayerMovement Movement => _movement;
         public WeaponManager WeaponManager => _weaponManager;
         public ShootingSystem ShootingSystem => _shootingSystem;
+        public ConsumableManager ConsumableManager => _consumableManager;
+        public GridOperationManager GridOperationManager => _gridOperationManager;
         public bool IsInvulnerable => _isInvulnerable;
         
         // Dual Health Properties
@@ -113,13 +119,14 @@ namespace Resonance.Player.Core
             _stats = baseStats.CreateRuntimeStats();
             _inventory = new PlayerInventory(_stats.inventoryGridWidth, _stats.inventoryGridHeight);
             _movement = new PlayerMovement(_stats);
-            _weaponManager = new WeaponManager();
+            
+            // Initialize inventory managers
+            _consumableManager = new ConsumableManager(_inventory);
+            _gridOperationManager = new GridOperationManager(_inventory, _consumableManager);
+            _weaponManager = new WeaponManager(_inventory);
             
             // Set PlayerController reference for PlayerMovement (for state-based speed calculation)
             _movement.SetPlayerController(this);
-            
-            // Set WeaponManager and PlayerInventory bidirectional synchronization
-            _weaponManager.SetInventoryReference(_inventory);
 
             // Initialize state machine
             _stateMachine = new PlayerStateMachine(this);
@@ -506,16 +513,16 @@ namespace Resonance.Player.Core
             _stats = saveData.stats;
             Debug.Log($"PlayerController: Loaded stats: Health {_stats.currentHealth}/{_stats.maxHealth}");
 
-            // Load inventory system
-            if (saveData.Inventory != null)
+            // Load grid inventory system
+            if (saveData.gridInventory != null)
             {
-                Debug.Log($"PlayerController: Loading inventory data: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
-                _inventory.LoadFromSaveData(saveData.Inventory);
-                Debug.Log($"PlayerController: Inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
+                Debug.Log($"PlayerController: Loading grid inventory data: {saveData.gridInventory.items.Count} items");
+                _inventory.LoadFromSaveData(saveData.gridInventory);
+                Debug.Log($"PlayerController: Grid inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
             }
             else
             {
-                Debug.LogWarning("PlayerController: No inventory data found in save data");
+                Debug.LogWarning("PlayerController: No grid inventory data found in save data");
             }
 
             // Load weapon manager state
@@ -549,9 +556,9 @@ namespace Resonance.Player.Core
                 stats = _stats
             };
 
-            // Save inventory system
-            saveData.Inventory = _inventory.GetSaveData();
-            Debug.Log($"PlayerController: Inventory saved: {saveData.Inventory.items.Count} items, equipped weapon: {saveData.Inventory.equippedWeaponID}");
+            // Save grid inventory system
+            saveData.gridInventory = _inventory.GetSaveData();
+            Debug.Log($"PlayerController: Grid inventory saved: {saveData.gridInventory.items.Count} items");
             
             // Save weapon manager state
             saveData.weaponManager = _weaponManager.GetSaveData();
@@ -717,6 +724,11 @@ namespace Resonance.Player.Core
 
             // Cleanup state machine
             _stateMachine?.Shutdown();
+            
+            // Cleanup inventory managers
+            _consumableManager?.Cleanup();
+            _gridOperationManager?.Cleanup();
+            _weaponManager?.Cleanup();
 
             // Clear events
             OnHealthChanged = null;

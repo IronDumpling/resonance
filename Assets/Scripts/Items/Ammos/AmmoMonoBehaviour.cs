@@ -327,29 +327,36 @@ namespace Resonance.Items
                     var playerController = playerMono.Controller;
                     if (playerController != null)
                     {
-                        // 使用统一的PlayerInventory系统添加弹药
-                        var inventory = playerController.Inventory;
-                        if (inventory != null)
+                        /* ======= TODO Temporary Auto-Equip ====== */
+                        // 使用ConsumableManager添加弹药到inventory grid
+                        var consumableManager = playerController.ConsumableManager;
+                        if (consumableManager != null)
                         {
-                            // 直接添加弹药到弹药库存
-                            bool added = inventory.AddAmmo(_ammoDataAsset.ammoType, _ammoDataAsset.ammoCount);
+                            // 添加弹药 - ConsumableManager会自动处理堆叠逻辑
+                            bool added = consumableManager.AddAmmo(
+                                _ammoDataAsset.ammoType, 
+                                _ammoDataAsset.ammoName, 
+                                _ammoDataAsset.ammoCount
+                            );
+                            
                             if (added)
                             {
                                 Debug.Log($"AmmoMonoBehaviour: Successfully added {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo to inventory");
                                 
                                 // 显示当前库存状态
-                                int currentCount = inventory.GetAmmoCount(_ammoDataAsset.ammoType);
-                                Debug.Log($"AmmoMonoBehaviour: Player now has {currentCount} total {_ammoDataAsset.ammoType} ammo");
+                                int totalCount = consumableManager.GetTotalAmmoCount(_ammoDataAsset.ammoType);
+                                Debug.Log($"AmmoMonoBehaviour: Player now has {totalCount} total {_ammoDataAsset.ammoType} ammo");
                             }
                             else
                             {
-                                Debug.LogWarning($"AmmoMonoBehaviour: Failed to add {_ammoDataAsset.ammoType} ammo to inventory");
+                                Debug.LogWarning($"AmmoMonoBehaviour: Failed to add {_ammoDataAsset.ammoType} ammo to inventory (possibly no space)");
                             }
                         }
                         else
                         {
-                            Debug.LogError("AmmoMonoBehaviour: Player's inventory not found");
+                            Debug.LogError("AmmoMonoBehaviour: Player's ConsumableManager is null");
                         }
+                        /* ======= TODO Temporary Auto-Equip ====== */
                     }
                     else
                     {

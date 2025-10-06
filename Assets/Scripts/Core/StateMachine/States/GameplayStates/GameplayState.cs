@@ -20,6 +20,7 @@ namespace Resonance.Core.StateMachine.States
         // Substates
         private WaveState _resonanceState;
         private InfoReadingState _infoReadingState;
+        private InventoryState _inventoryState;
 
         public void Enter()
         {
@@ -43,6 +44,23 @@ namespace Resonance.Core.StateMachine.States
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
             Debug.Log("GameplayState: Subscribed to InfoReadingState events");
+            
+            // Subscribe to InventoryState events
+            InventoryState.OnInventoryEnded += OnInventoryEnded;
+            Debug.Log("GameplayState: Subscribed to InventoryState events");
+            
+            // Subscribe to input events
+            var inputService = ServiceRegistry.Get<IInputService>();
+            if (inputService != null)
+            {
+                inputService.OnOpenInventory += StartInventory;
+                inputService.OnCloseInventory += CloseInventory;
+                Debug.Log("GameplayState: Subscribed to inventory input events");
+            }
+            else
+            {
+                Debug.LogError("GameplayState: InputService not found, cannot subscribe to inventory events");
+            }
             
             // Reset UI state for new gameplay session
             Debug.Log("GameplayState: Reset _hasShownUI flag for new gameplay session");
@@ -100,6 +118,19 @@ namespace Resonance.Core.StateMachine.States
             InfoReadingState.OnInfoReadingEnded -= OnInfoReadingEnded;
             Debug.Log("GameplayState: Unsubscribed from InfoReadingState events");
             
+            // Unsubscribe from InventoryState events
+            InventoryState.OnInventoryEnded -= OnInventoryEnded;
+            Debug.Log("GameplayState: Unsubscribed from InventoryState events");
+            
+            // Unsubscribe from input events
+            var inputService = ServiceRegistry.Get<IInputService>();
+            if (inputService != null)
+            {
+                inputService.OnOpenInventory -= StartInventory;
+                inputService.OnCloseInventory -= CloseInventory;
+                Debug.Log("GameplayState: Unsubscribed from inventory input events");
+            }
+            
             // Cleanup substate machine
             _subStateMachine?.Clear();
             _subStateMachine = null;
@@ -129,9 +160,13 @@ namespace Resonance.Core.StateMachine.States
             _infoReadingState = new InfoReadingState();
             _subStateMachine.AddState(_infoReadingState);
             
+            // Create and add InventoryState
+            _inventoryState = new InventoryState();
+            _subStateMachine.AddState(_inventoryState);
+            
             // Start with normal gameplay
             _subStateMachine.ChangeState("Normal");
-            Debug.Log("GameplayState: Initialized substate machine with Normal, Wave, and InfoReading states");
+            Debug.Log("GameplayState: Initialized substate machine with Normal, Wave, InfoReading, and Inventory states");
         }
         
         /// <summary>
@@ -202,32 +237,12 @@ namespace Resonance.Core.StateMachine.States
             // Cleanup target reference
             _currentWaveTarget = null;
         }
-        
-        /// <summary>
-        /// Handle info reading ended event
-        /// </summary>
-        private void OnInfoReadingEnded()
-        {
-            Debug.Log("GameplayState: Info reading ended");
-            
-            // Transition back to Normal substate
-            if (_subStateMachine != null && !_subStateMachine.ChangeState("Normal"))
-            {
-                Debug.LogError("GameplayState: Failed to transition back to Normal substate from InfoReading");
-                // Force state reset as fallback
-                SetupSubStateMachine();
-            }
-            else
-            {
-                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from InfoReading");
-            }
-        }
-        
+
         /// <summary>
         /// Start info reading session
         /// </summary>
         /// <param name="infoData">The info data to read</param>
-        public void StartInfoReading(InfoDataAsset infoData)
+        public void OnInfoReadingStarted(InfoDataAsset infoData)
         {
             if (infoData == null)
             {
@@ -254,6 +269,98 @@ namespace Resonance.Core.StateMachine.States
             }
             
             Debug.Log("GameplayState: Successfully transitioned to InfoReading substate");
+        }
+        
+        /// <summary>
+        /// Handle info reading ended event
+        /// </summary>
+        private void OnInfoReadingEnded()
+        {
+            Debug.Log("GameplayState: Info reading ended");
+            
+            // Transition back to Normal substate
+            if (_subStateMachine != null && !_subStateMachine.ChangeState("Normal"))
+            {
+                Debug.LogError("GameplayState: Failed to transition back to Normal substate from InfoReading");
+                // Force state reset as fallback
+                SetupSubStateMachine();
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from InfoReading");
+            }
+        }
+
+        /// <summary>
+        /// Start inventory session (public method for multiple trigger points)
+        /// </summary>
+        public void StartInventory()
+        {
+            if (_subStateMachine == null)
+            {
+                Debug.LogError("GameplayState: SubStateMachine is null, cannot transition to Inventory");
+                return;
+            }
+            
+            // Prevent opening if already in inventory
+            if (_subStateMachine.CurrentState?.Name == "Inventory")
+            {
+                Debug.Log("GameplayState: Already in Inventory substate, ignoring");
+                return;
+            }
+
+            Debug.Log("GameplayState: Starting inventory");
+
+            // Transition to Inventory substate
+            if (!_subStateMachine.ChangeState("Inventory"))
+            {
+                Debug.LogError("GameplayState: Failed to transition to Inventory substate");
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned to Inventory substate");
+            }
+        }
+        
+        /// <summary>
+        /// Close inventory (called by input system)
+        /// </summary>
+        private void CloseInventory()
+        {
+            if (_subStateMachine == null)
+            {
+                Debug.LogError("GameplayState: SubStateMachine is null, cannot close inventory");
+                return;
+            }
+            
+            // Only close if currently in inventory
+            if (_subStateMachine.CurrentState?.Name != "Inventory")
+            {
+                Debug.Log("GameplayState: Not in Inventory substate, ignoring close request");
+                return;
+            }
+
+            Debug.Log("GameplayState: Closing inventory");
+
+            // Transition back to Normal substate
+            if (!_subStateMachine.ChangeState("Normal"))
+            {
+                Debug.LogError("GameplayState: Failed to transition back to Normal substate from Inventory");
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from Inventory");
+            }
+        }
+
+        /// <summary>
+        /// Handle inventory ended event (from InventoryState.OnInventoryEnded)
+        /// </summary>
+        private void OnInventoryEnded()
+        {
+            Debug.Log("GameplayState: Inventory ended event received");
+            // No action needed - state transition is already handled by CloseInventory()
+            // This event is here for future extensibility (e.g., save inventory changes)
         }
         
         /// <summary>

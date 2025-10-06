@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Player.Core;
+using Resonance.Player.Inventory;
 
 namespace Resonance.Player.Data
 {
@@ -21,12 +22,8 @@ namespace Resonance.Player.Data
         [Header("Player Stats")]
         public PlayerRuntimeStats stats;
 
-        [Header("Inventory")]
-        public List<ItemSaveData> inventory; // 向后兼容：传统物品
-        public List<int> equippedItemIDs; // IDs of currently equipped items
-        
-        [Header("Inventory System")]
-        public InventorySaveData Inventory; // 新的统一背包数据
+        [Header("Inventory System - Grid Based")]
+        public GridInventorySaveData gridInventory; // 新的Grid背包数据
         public WeaponManagerSaveData weaponManager; // 武器管理器数据
 
         [Header("Scene-specific Data")]
@@ -35,9 +32,7 @@ namespace Resonance.Player.Data
 
         public PlayerSaveData()
         {
-            inventory = new List<ItemSaveData>();
-            equippedItemIDs = new List<int>();
-            Inventory = new InventorySaveData();
+            gridInventory = new GridInventorySaveData();
             weaponManager = new WeaponManagerSaveData();
             collectedItems = new Dictionary<string, bool>();
             completedEvents = new Dictionary<string, bool>();
@@ -55,29 +50,104 @@ namespace Resonance.Player.Data
                 saveID = savePointID,
                 sceneName = sceneName,
                 saveTimestamp = Time.time,
-                Inventory = new InventorySaveData(),
+                gridInventory = new GridInventorySaveData(),
                 weaponManager = new WeaponManagerSaveData()
             };
         }
     }
 
     /// <summary>
-    /// Serializable item data for saving inventory state
+    /// Grid-based inventory save data structure
     /// </summary>
     [System.Serializable]
-    public class ItemSaveData
+    public class GridInventorySaveData
     {
-        public int itemID;
-        public int quantity;
-        public float durability;
-        public Dictionary<string, object> customData; // For special item properties
-
-        public ItemSaveData(int id, int qty, float dur = 1f)
+        public int gridWidth;
+        public int gridHeight;
+        public List<GridCellSaveData> items; // All items in the grid
+        
+        public GridInventorySaveData()
         {
-            itemID = id;
-            quantity = qty;
-            durability = dur;
-            customData = new Dictionary<string, object>();
+            items = new List<GridCellSaveData>();
+        }
+    }
+
+    /// <summary>
+    /// Save data for a single grid cell item
+    /// </summary>
+    [System.Serializable]
+    public class GridCellSaveData
+    {
+        // Basic info
+        public int itemID;
+        public string itemName;
+        public string itemType; // Store as string for serialization
+        
+        // Stack info
+        public int quantity;
+        public int maxStackSize;
+        
+        // Grid info
+        public int gridWidth;
+        public int gridHeight;
+        public int rotation;
+        public Vector2Int gridPosition;
+        
+        // Equip status
+        public bool isEquipped;
+        
+        // Weapon-specific data
+        public int currentAmmo;
+        public string ammoType;
+        public int maxAmmo;
+        
+        // Additional data
+        public string assetPath;
+        public float durability;
+        public SerializableDictionary customData; // Custom key-value pairs
+        
+        public GridCellSaveData()
+        {
+            customData = new SerializableDictionary();
+        }
+    }
+
+    /// <summary>
+    /// Simple serializable dictionary for custom data
+    /// </summary>
+    [System.Serializable]
+    public class SerializableDictionary
+    {
+        public List<string> keys = new List<string>();
+        public List<string> values = new List<string>();
+        
+        public void Add(string key, object value)
+        {
+            keys.Add(key);
+            values.Add(value?.ToString() ?? "");
+        }
+        
+        public Dictionary<string, object> ToDictionary()
+        {
+            var dict = new Dictionary<string, object>();
+            for (int i = 0; i < keys.Count && i < values.Count; i++)
+            {
+                dict[keys[i]] = values[i];
+            }
+            return dict;
+        }
+        
+        public static SerializableDictionary FromDictionary(Dictionary<string, object> dict)
+        {
+            var result = new SerializableDictionary();
+            if (dict != null)
+            {
+                foreach (var kvp in dict)
+                {
+                    result.Add(kvp.Key, kvp.Value);
+                }
+            }
+            return result;
         }
     }
 }

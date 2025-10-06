@@ -11,10 +11,14 @@ namespace Resonance.Core.GlobalServices
         private InputActionAsset _inputActions;
         private InputActionMap _playerMap;
         private InputActionMap _uiMap;
+        private InputActionMap _inventoryMap;
         private bool _isEnabled = true;
         
         // Wave mode control (Risk mitigation: Input conflict resolution)
         public bool IsWaveMode { get; set; } = false;
+        
+        // Inventory mode control
+        public bool IsInventoryMode { get; set; } = false;
 
         public int Priority => 10;
         public SystemState State { get; private set; } = SystemState.Uninitialized;
@@ -45,6 +49,13 @@ namespace Resonance.Core.GlobalServices
         public event Action<Vector2> OnLook;
         public event Action OnQTE; // QTE input (F key during Wave mode)
         public event Action OnReload; // Reload input (R key)
+        
+        // Inventory events
+        public event Action OnOpenInventory; // Open inventory (Player map Tab key)
+        public event Action OnCloseInventory; // Close inventory (Inventory map Tab key)
+        public event Action<Vector2> OnMoveItem; // Move selected item (WASD in inventory mode)
+        public event Action OnRotateItemLeft; // Rotate item left (Q key in inventory mode)
+        public event Action OnRotateItemRight; // Rotate item right (E key in inventory mode)
 
         public void Initialize()
         {
@@ -65,6 +76,7 @@ namespace Resonance.Core.GlobalServices
 
             _playerMap = _inputActions.FindActionMap("Player");
             _uiMap = _inputActions.FindActionMap("UI");
+            _inventoryMap = _inputActions.FindActionMap("Inventory");
             
             SetupInputCallbacks();
             EnablePlayerInput();
@@ -75,7 +87,7 @@ namespace Resonance.Core.GlobalServices
 
         private void SetupInputCallbacks()
         {
-            if (_playerMap == null) return;
+            if (_playerMap == null || _inventoryMap == null) return;
 
             // Player input callbacks
             _playerMap["Move"].performed += OnMovePerformed;
@@ -94,11 +106,19 @@ namespace Resonance.Core.GlobalServices
             _playerMap["Aim"].canceled += OnAimCanceled;
             
             _playerMap["Shoot"].performed += OnShootPerformed;
-            
             _playerMap["Look"].performed += OnLookPerformed;
+
+            _playerMap["OpenInventory"].performed += OnPlayerOpenInventoryPerformed;
             
             _playerMap["QTE"].performed += OnQTEPerformed;
             _playerMap["Reload"].performed += OnReloadPerformed;
+            
+            // Inventory input callbacks
+            _inventoryMap["CloseInventory"].performed += OnInventoryCloseInventoryPerformed;
+            _inventoryMap["MoveItem"].performed += OnMoveItemPerformed;
+            _inventoryMap["MoveItem"].canceled += OnMoveItemCanceled;
+            _inventoryMap["RotateItemLeft"].performed += OnRotateItemLeftPerformed;
+            _inventoryMap["RotateItemRight"].performed += OnRotateItemRightPerformed;
         }
 
         private void OnMovePerformed(InputAction.CallbackContext context)
@@ -192,6 +212,59 @@ namespace Resonance.Core.GlobalServices
             OnReload?.Invoke();
             Debug.Log("InputService: Reload press performed");
         }
+        
+        private void OnPlayerOpenInventoryPerformed(InputAction.CallbackContext context)
+        {
+            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
+            if (IsWaveMode) return;
+            
+            OnOpenInventory?.Invoke();
+            Debug.Log("InputService: Player map - Open inventory press performed");
+        }
+        
+        private void OnInventoryCloseInventoryPerformed(InputAction.CallbackContext context)
+        {
+            // Only trigger if in inventory mode
+            if (!IsInventoryMode) return;
+            
+            OnCloseInventory?.Invoke();
+            Debug.Log("InputService: Inventory map - Close inventory press performed");
+        }
+        
+        private void OnMoveItemPerformed(InputAction.CallbackContext context)
+        {
+            // Only trigger if in inventory mode
+            if (!IsInventoryMode) return;
+            
+            Vector2 moveInput = context.ReadValue<Vector2>();
+            OnMoveItem?.Invoke(moveInput);
+        }
+        
+        private void OnMoveItemCanceled(InputAction.CallbackContext context)
+        {
+            // Only trigger if in inventory mode
+            if (!IsInventoryMode) return;
+            
+            OnMoveItem?.Invoke(Vector2.zero);
+        }
+        
+        private void OnRotateItemLeftPerformed(InputAction.CallbackContext context)
+        {
+            // Only trigger if in inventory mode
+            if (!IsInventoryMode) return;
+            
+            OnRotateItemLeft?.Invoke();
+            Debug.Log("InputService: Rotate item left press performed");
+        }
+        
+        private void OnRotateItemRightPerformed(InputAction.CallbackContext context)
+        {
+            // Only trigger if in inventory mode
+            if (!IsInventoryMode) return;
+            
+            OnRotateItemRight?.Invoke();
+            Debug.Log("InputService: Rotate item right press performed");
+        }
 
         public void EnablePlayerInput()
         {
@@ -229,6 +302,24 @@ namespace Resonance.Core.GlobalServices
             }
         }
 
+        public void EnableInventoryInput()
+        {
+            if (_inventoryMap != null)
+            {
+                _inventoryMap.Enable();
+                Debug.Log("InputService: Inventory input enabled");
+            }
+        }
+
+        public void DisableInventoryInput()
+        {
+            if (_inventoryMap != null)
+            {
+                _inventoryMap.Disable();
+                Debug.Log("InputService: Inventory input disabled");
+            }
+        }
+
         public void Shutdown()
         {
             if (State == SystemState.Shutdown)
@@ -253,6 +344,11 @@ namespace Resonance.Core.GlobalServices
             OnLook = null;
             OnQTE = null;
             OnReload = null;
+            OnOpenInventory = null;
+            OnCloseInventory = null;
+            OnMoveItem = null;
+            OnRotateItemLeft = null;
+            OnRotateItemRight = null;
 
             State = SystemState.Shutdown;
         }

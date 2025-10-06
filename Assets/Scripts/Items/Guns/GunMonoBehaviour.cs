@@ -317,35 +317,79 @@ namespace Resonance.Items
                 var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
                 if (playerMono != null && playerMono.IsInitialized)
                 {
+                    /* ======= TODO Temporary Auto-Equip ====== */
                     var playerController = playerMono.Controller;
                     if (playerController != null)
                     {
-                        // 通过WeaponManager装备武器（自动同步到PlayerInventory）
+                        var inventory = playerController.Inventory;
                         var weaponManager = playerController.WeaponManager;
-                        if (weaponManager != null)
+                        
+                        if (inventory != null && weaponManager != null)
                         {
-                            // 装备武器 - 这会自动添加到PlayerInventory并装备
-                            weaponManager.EquipWeapon(gunCopy);
-                            
-                            // 验证装备是否成功
-                            if (weaponManager.HasEquippedWeapon)
+                            // Step 1: Create GridCellData for the weapon
+                            int weaponID = gunCopy.GetInstanceID();
+                            var weaponData = new Resonance.Player.Inventory.GridCellData
                             {
-                                Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} to player via new inventory system");
+                                ItemID = weaponID,
+                                ItemName = gunCopy.weaponName,
+                                ItemType = Resonance.Player.Inventory.ItemType.Weapon,
+                                GridWidth = gunCopy.gridWidth,
+                                GridHeight = gunCopy.gridHeight,
+                                CurrentAmmo = gunCopy.CurrentAmmo,
+                                AmmoType = gunCopy.ammoType,
+                                MaxAmmo = gunCopy.maxAmmo,
+                                AssetPath = GetAssetPath(_gunDataAsset), 
+                                Quantity = 1,
+                                MaxStackSize = 1,
+                                Durability = 1f
+                            };
+                            weaponData.CustomData["originalAsset"] = gunCopy;
+                            weaponData.CustomData["weaponName"] = gunCopy.weaponName;
+                            
+                            Debug.Log($"GunMonoBehaviour: Created weapon data with AssetPath: '{weaponData.AssetPath}'");
+                            
+                            // Step 2: Find empty space in inventory
+                            Vector2Int emptyPos = inventory.FindEmptySpace(weaponData.GridWidth, weaponData.GridHeight);
+                            if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                            {
+                                // Step 3: Add to inventory grid
+                                bool added = inventory.AddItemToGrid(weaponData, emptyPos);
+                                if (added)
+                                {
+                                    Debug.Log($"GunMonoBehaviour: Added {gunCopy.weaponName} to inventory at {emptyPos}");
+                                    
+                                    // Step 4: Equip weapon (TEMPORARY - auto equip on pickup)
+                                    // TODO: In future, let player manually equip from inventory panel
+                                    bool equipped = weaponManager.EquipWeapon(weaponID);
+                                    if (equipped)
+                                    {
+                                        Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} (TEMPORARY AUTO-EQUIP)");
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning($"GunMonoBehaviour: Added to inventory but failed to equip {gunCopy.weaponName}");
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.LogError($"GunMonoBehaviour: Failed to add {gunCopy.weaponName} to inventory");
+                                }
                             }
                             else
                             {
-                                Debug.LogWarning($"GunMonoBehaviour: Failed to equip {gunCopy.weaponName} to player");
+                                Debug.LogWarning($"GunMonoBehaviour: No space in inventory for {gunCopy.weaponName}");
                             }
                         }
                         else
                         {
-                            Debug.LogError("GunMonoBehaviour: Player's WeaponManager is null");
+                            Debug.LogError("GunMonoBehaviour: Player's Inventory or WeaponManager is null");
                         }
                     }
                     else
                     {
                         Debug.LogError("GunMonoBehaviour: Player's Controller is null");
                     }
+                    /* ======= TODO Temporary Auto-Equip ====== */
                 }
                 else
                 {
@@ -538,6 +582,19 @@ namespace Resonance.Items
 
             AudioClipType audioClipType = AudioClipType.PistoArming;
             _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.8f, 1f);
+        }
+
+        /// <summary>
+        /// 获取ScriptableObject的资源路径
+        /// </summary>
+        private string GetAssetPath(ScriptableObject asset)
+        {
+            if (asset == null) return "";
+            #if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.GetAssetPath(asset);
+            #else
+            return asset.name; // Runtime fallback
+            #endif
         }
 
         #endregion

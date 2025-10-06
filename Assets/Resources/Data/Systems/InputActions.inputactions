@@ -16,6 +16,15 @@
                     "initialStateCheck": true
                 },
                 {
+                    "name": "OpenInventory",
+                    "type": "Button",
+                    "id": "6fe7c8fb-bada-4921-8ec2-4654f1e3d5c2",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Run",
                     "type": "Button",
                     "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -28,7 +37,7 @@
                     "name": "Aim",
                     "type": "Button",
                     "id": "c5c0d2e1-f3d4-4d8e-9c7e-8f2a3b4c5d6e",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -155,6 +164,17 @@
                 },
                 {
                     "name": "",
+                    "id": "24028e62-450c-4142-afa0-6267e19532f7",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "OpenInventory",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "0d4f6b78-c1a4-4dbc-95ea-66f23504dc00",
                     "path": "<Mouse>/rightButton",
                     "interactions": "",
@@ -166,7 +186,7 @@
                 },
                 {
                     "name": "",
-                    "id": "90123456-7890-1234-2345-901234567890",
+                    "id": "753f14d1-790a-49cc-932e-52be942a2ab0",
                     "path": "<Keyboard>/leftShift",
                     "interactions": "",
                     "processors": "",
@@ -177,7 +197,7 @@
                 },
                 {
                     "name": "",
-                    "id": "01234567-8901-2345-3456-012345678901",
+                    "id": "8011e798-7009-4c8f-bba1-6ec8c1fcc673",
                     "path": "<Keyboard>/f",
                     "interactions": "",
                     "processors": "",
@@ -210,7 +230,7 @@
                 },
                 {
                     "name": "",
-                    "id": "12345678-9012-3456-4567-123456789012",
+                    "id": "83b05964-7324-486f-85ea-5e3f62f13647",
                     "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
@@ -221,7 +241,7 @@
                 },
                 {
                     "name": "",
-                    "id": "23456789-0123-4567-5678-234567890123",
+                    "id": "33f88026-dc7d-4e65-ac39-f747ae50bc76",
                     "path": "<Mouse>/delta",
                     "interactions": "",
                     "processors": "",
@@ -255,13 +275,145 @@
             ]
         },
         {
+            "name": "Inventory",
+            "id": "34567890-1234-5678-6789-345678901234",
+            "actions": [
+                {
+                    "name": "RotateItemLeft",
+                    "type": "Button",
+                    "id": "67890123-4567-8901-9012-678901234567",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RotateItemRight",
+                    "type": "Button",
+                    "id": "ad96a0f0-deae-4131-80b2-c299a1b45861",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "CloseInventory",
+                    "type": "Button",
+                    "id": "4c947a32-e126-4f5e-85e5-a36da97b464d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "MoveItem",
+                    "type": "Value",
+                    "id": "6d3097d4-4c76-4e82-9fa0-76787c82874f",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "45678901-2345-6789-7890-456789012345",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RotateItemLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "56789012-3456-7890-8901-567890123456",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RotateItemRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5f77045c-2d8f-4cca-b5cb-0c71a2d677ca",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CloseInventory",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "WASD",
+                    "id": "16c2a265-b5fd-41db-9a77-64277e0c2fb2",
+                    "path": "2DVector",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MoveItem",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "up",
+                    "id": "60e4f2fa-f0ac-42c7-b77d-0dff56b090b4",
+                    "path": "<Keyboard>/w",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "MoveItem",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "down",
+                    "id": "177c9b18-b2fa-4543-8c1d-31078277a06a",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "MoveItem",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "left",
+                    "id": "6cfa9b7e-6bae-4ce9-960c-27f63d96badd",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "MoveItem",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "right",
+                    "id": "0d658566-b80d-42bf-bc87-36da8fd273fe",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "MoveItem",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                }
+            ]
+        },
+        {
             "name": "UI",
-            "id": "23456789-0123-4567-5678-234567890123",
+            "id": "67890123-4567-8901-9012-678901234567",
             "actions": [
                 {
                     "name": "Navigate",
                     "type": "PassThrough",
-                    "id": "34567890-1234-5678-6789-345678901234",
+                    "id": "78901234-5678-9012-0123-789012345678",
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
@@ -270,7 +422,7 @@
                 {
                     "name": "Submit",
                     "type": "Button",
-                    "id": "45678901-2345-6789-7890-456789012345",
+                    "id": "89012345-6789-0123-1234-890123456789",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -279,7 +431,7 @@
                 {
                     "name": "Cancel",
                     "type": "Button",
-                    "id": "56789012-3456-7890-8901-567890123456",
+                    "id": "90123456-7890-1234-2345-901234567890",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -289,7 +441,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "67890123-4567-8901-9012-678901234567",
+                    "id": "01234567-8901-2345-3456-012345678901",
                     "path": "<Gamepad>/leftStick",
                     "interactions": "",
                     "processors": "",
@@ -300,7 +452,7 @@
                 },
                 {
                     "name": "",
-                    "id": "78901234-5678-9012-0123-789012345678",
+                    "id": "12345678-9012-3456-4567-123456789012",
                     "path": "<Keyboard>/enter",
                     "interactions": "",
                     "processors": "",
@@ -311,7 +463,7 @@
                 },
                 {
                     "name": "",
-                    "id": "89012345-6789-0123-1234-890123456789",
+                    "id": "23456789-0123-4567-5678-234567890123",
                     "path": "<Keyboard>/escape",
                     "interactions": "",
                     "processors": "",

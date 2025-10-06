@@ -305,7 +305,7 @@ namespace Resonance.Items
             Debug.Log($"InfoMonoBehaviour: Starting info reading session for {_infoDataAsset.infoName}");
 
             // Start the info reading session
-            gameplayState.StartInfoReading(_infoDataAsset);
+            gameplayState.OnInfoReadingStarted(_infoDataAsset);
 
             // Hide the interaction UI since we're now in reading mode
             HideInteractionUI();
