@@ -338,13 +338,15 @@ namespace Resonance.Items
                                 CurrentAmmo = gunCopy.CurrentAmmo,
                                 AmmoType = gunCopy.ammoType,
                                 MaxAmmo = gunCopy.maxAmmo,
-                                AssetPath = GetAssetPath(gunCopy),
+                                AssetPath = GetAssetPath(_gunDataAsset), 
                                 Quantity = 1,
                                 MaxStackSize = 1,
                                 Durability = 1f
                             };
                             weaponData.CustomData["originalAsset"] = gunCopy;
                             weaponData.CustomData["weaponName"] = gunCopy.weaponName;
+                            
+                            Debug.Log($"GunMonoBehaviour: Created weapon data with AssetPath: '{weaponData.AssetPath}'");
                             
                             // Step 2: Find empty space in inventory
                             Vector2Int emptyPos = inventory.FindEmptySpace(weaponData.GridWidth, weaponData.GridHeight);

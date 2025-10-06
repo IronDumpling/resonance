@@ -248,11 +248,11 @@ namespace Resonance.Player.Inventory
             
             Debug.Log($"PlayerInventory: Added {itemData.ItemName} to grid at {position}, rotation: {rotation}");
             return true;
-        }
-        
-        /// <summary>
+    }
+
+    /// <summary>
         /// Remove item from grid
-        /// </summary>
+    /// </summary>
         public bool RemoveItemFromGrid(int itemID)
         {
             if (!_itemsById.TryGetValue(itemID, out var itemData))
@@ -277,9 +277,9 @@ namespace Resonance.Player.Inventory
             return true;
         }
         
-        /// <summary>
+    /// <summary>
         /// Move item in grid
-        /// </summary>
+    /// </summary>
         public bool MoveItemInGrid(int itemID, Vector2Int newPosition)
         {
             if (!_itemsById.TryGetValue(itemID, out var itemData))
@@ -355,7 +355,7 @@ namespace Resonance.Player.Inventory
             OnInventoryChanged?.Invoke();
             
             Debug.Log($"PlayerInventory: Rotated {itemData.ItemName} from {oldRotation}° to {newRotation}°");
-            return true;
+            return true; 
         }
         
         /// <summary>
@@ -388,7 +388,7 @@ namespace Resonance.Player.Inventory
             OnInventoryChanged?.Invoke();
             
             Debug.Log($"PlayerInventory: Updated {itemData.ItemName} quantity to {newQuantity}");
-            return true;
+            return true; 
         }
         
         #endregion
@@ -445,8 +445,8 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Find empty space
         /// </summary>
-        public Vector2Int FindEmptySpace(int width, int height)
-        {
+        public Vector2Int FindEmptySpace(int width, int height) 
+        { 
             for (int y = 0; y <= _gridHeight - height; y++)
             {
                 for (int x = 0; x <= _gridWidth - width; x++)
@@ -479,7 +479,7 @@ namespace Resonance.Player.Inventory
         }
         
         #endregion
-        
+
         #region Validation Methods
         
         /// <summary>
@@ -1078,13 +1078,16 @@ namespace Resonance.Player.Inventory
                     customData = SerializableDictionary.FromDictionary(item.CustomData)
                 };
                 
+                // Note: originalAsset (GunDataAsset) cannot be serialized in customData
+                // It will need to be reloaded from Resources using AssetPath or name
+                
                 saveData.items.Add(cellSaveData);
             }
             
             Debug.Log($"PlayerInventory: Saved {saveData.items.Count} items from grid inventory");
             return saveData;
         }
-        
+
         /// <summary>
         /// Load from save data for grid-based inventory
         /// </summary>

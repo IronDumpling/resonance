@@ -195,17 +195,40 @@ namespace Resonance.Player.Inventory
         /// </summary>
         private GunDataAsset LoadWeaponAssetFromData(GridCellData weaponData)
         {
+            Debug.Log($"WeaponManager: LoadWeaponAssetFromData called for '{weaponData.ItemName}'");
+            Debug.Log($"WeaponManager: - AssetPath: '{weaponData.AssetPath}'");
+            Debug.Log($"WeaponManager: - CustomData keys: {string.Join(", ", weaponData.CustomData.Keys)}");
+            
             // Try to get from CustomData first
-            if (weaponData.CustomData.ContainsKey("originalAsset") && 
-                weaponData.CustomData["originalAsset"] is GunDataAsset originalAsset)
+            if (weaponData.CustomData.ContainsKey("originalAsset"))
             {
-                return originalAsset;
+                Debug.Log($"WeaponManager: Found 'originalAsset' in CustomData, type: {weaponData.CustomData["originalAsset"]?.GetType().Name ?? "null"}");
+                
+                if (weaponData.CustomData["originalAsset"] is GunDataAsset originalAsset)
+                {
+                    Debug.Log($"WeaponManager: Successfully retrieved GunDataAsset from CustomData: {originalAsset.weaponName}");
+                    return originalAsset;
+                }
             }
             
             // Try to load from AssetPath
             if (!string.IsNullOrEmpty(weaponData.AssetPath))
             {
-                return LoadAssetFromPath<GunDataAsset>(weaponData.AssetPath);
+                Debug.Log($"WeaponManager: Attempting to load from AssetPath: '{weaponData.AssetPath}'");
+                var asset = LoadAssetFromPath<GunDataAsset>(weaponData.AssetPath);
+                if (asset != null)
+                {
+                    Debug.Log($"WeaponManager: Successfully loaded weapon: {asset.weaponName}");
+                    return asset;
+                }
+                else
+                {
+                    Debug.LogError($"WeaponManager: LoadAssetFromPath returned null for path: '{weaponData.AssetPath}'");
+                }
+            }
+            else
+            {
+                Debug.LogError($"WeaponManager: AssetPath is null or empty for {weaponData.ItemName}");
             }
             
             Debug.LogError($"WeaponManager: Cannot load weapon asset for {weaponData.ItemName}");
@@ -217,12 +240,33 @@ namespace Resonance.Player.Inventory
         /// </summary>
         private T LoadAssetFromPath<T>(string path) where T : ScriptableObject
         {
-            if (string.IsNullOrEmpty(path)) return null;
+            if (string.IsNullOrEmpty(path))
+            {
+                Debug.LogWarning($"WeaponManager: LoadAssetFromPath called with empty path");
+                return null;
+            }
+            
+            Debug.Log($"WeaponManager: [EDITOR] Attempting to load asset from path: {path}");
             
             #if UNITY_EDITOR
-            return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null)
+            {
+                Debug.Log($"WeaponManager: [EDITOR] ✓ Successfully loaded '{asset.name}' from Editor AssetDatabase");
+                
+                // Store asset back to CustomData if possible (for next time)
+                // This won't help with serialization but good for in-editor session
+            }
+            else
+            {
+                Debug.LogError($"WeaponManager: [EDITOR] ✗ Failed to load from Editor path: {path}");
+            }
+            return asset;
             #else
-            // Load from Resources at runtime
+            // Runtime: try multiple approaches
+            T asset = null;
+            
+            // Approach 1: Standard Resources path conversion
             string resourcePath = path;
             if (path.StartsWith("Assets/Resources/"))
             {
@@ -233,7 +277,50 @@ namespace Resonance.Player.Inventory
                 resourcePath = resourcePath.Substring(0, resourcePath.Length - ".asset".Length);
             }
             
-            return Resources.Load<T>(resourcePath);
+            Debug.Log($"WeaponManager: Trying Resources path: {resourcePath}");
+            asset = Resources.Load<T>(resourcePath);
+            
+            // Approach 2: Try just the filename
+            if (asset == null)
+            {
+                string filename = System.IO.Path.GetFileNameWithoutExtension(path);
+                Debug.Log($"WeaponManager: Resources path failed, trying filename: {filename}");
+                asset = Resources.Load<T>(filename);
+            }
+            
+            // Approach 3: Try common prefixes
+            if (asset == null)
+            {
+                string filename = System.IO.Path.GetFileNameWithoutExtension(path);
+                string[] commonPaths = new string[]
+                {
+                    $"Data/Items/{filename}",
+                    $"Items/{filename}",
+                    $"Guns/{filename}"
+                };
+                
+                foreach (var tryPath in commonPaths)
+                {
+                    Debug.Log($"WeaponManager: Trying common path: {tryPath}");
+                    asset = Resources.Load<T>(tryPath);
+                    if (asset != null)
+                    {
+                        Debug.Log($"WeaponManager: Success with path: {tryPath}");
+                        break;
+                    }
+                }
+            }
+            
+            if (asset == null)
+            {
+                Debug.LogError($"WeaponManager: Failed to load asset from all attempted paths. Original path: {path}");
+            }
+            else
+            {
+                Debug.Log($"WeaponManager: Successfully loaded {asset.name} at runtime");
+            }
+            
+            return asset;
             #endif
         }
         
