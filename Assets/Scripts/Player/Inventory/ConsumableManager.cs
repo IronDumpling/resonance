@@ -41,8 +41,7 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            Debug.Log($"ConsumableManager: Adding {amount} {ammoType} ammo");
-            Debug.Log($"ConsumableManager: ammoIcon = {(ammoIcon != null ? ammoIcon.name : "NULL")}, itemPrefab = {(itemPrefab != null ? itemPrefab.name : "NULL")}");
+            Debug.Log($"ConsumableManager: Adding {amount} {ammoType} ammo (Icon={ammoIcon != null}, Prefab={itemPrefab != null})");
             
             // Find existing ammo of the same type
             var existingAmmo = _inventory.GetItemsByType(ItemType.Consumable)
@@ -282,8 +281,6 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            Debug.Log($"ConsumableManager: CreateNewAmmoStack - ammoIcon = {(ammoIcon != null ? ammoIcon.name : "NULL")}, itemPrefab = {(itemPrefab != null ? itemPrefab.name : "NULL")}");
-            
             // Create new ammo data
             var ammoData = new GridCellData
             {
@@ -296,13 +293,11 @@ namespace Resonance.Player.Inventory
                 GridHeight = 1,
                 GridPosition = emptyPos,
                 Rotation = 0,
-                ItemIcon = ammoIcon,      // ✅ 添加 ItemIcon
-                ItemPrefab = itemPrefab   // ✅ 添加 ItemPrefab
+                ItemIcon = ammoIcon,      
+                ItemPrefab = itemPrefab  
             };
             
             ammoData.CustomData["ammoType"] = ammoType;
-            
-            Debug.Log($"ConsumableManager: Created GridCellData - ItemIcon = {(ammoData.ItemIcon != null ? ammoData.ItemIcon.name : "NULL")}, ItemPrefab = {(ammoData.ItemPrefab != null ? ammoData.ItemPrefab.name : "NULL")}");
             
             // Add to inventory
             return _inventory.AddItemToGrid(ammoData, emptyPos);

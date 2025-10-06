@@ -819,6 +819,9 @@ namespace Resonance.Player.Inventory
                         CustomData = cellSaveData.customData.ToDictionary()
                     };
                     
+                    // Reload ItemPrefab and ItemIcon from AssetPath
+                    LoadVisualDataFromAssetPath(gridCellData, cellSaveData.assetPath);
+                    
                     // Add to grid (without triggering events during load)
                     bool added = AddItemToGrid(gridCellData, gridCellData.GridPosition, gridCellData.Rotation);
                     if (!added)
@@ -830,6 +833,101 @@ namespace Resonance.Player.Inventory
             
             OnInventoryChanged?.Invoke();
             Debug.Log($"PlayerInventory: Loaded {_itemsById.Count} items to grid inventory");
+        }
+        
+        /// <summary>
+        /// Load ItemPrefab and ItemIcon from AssetPath
+        /// </summary>
+        private void LoadVisualDataFromAssetPath(GridCellData gridCellData, string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                Debug.LogWarning($"PlayerInventory: No AssetPath for {gridCellData.ItemName}. Visual data cannot be loaded.");
+                return;
+            }
+            
+            Debug.Log($"PlayerInventory: Loading visual data from AssetPath: {assetPath}");
+            
+            // Convert Unity asset path to Resources path
+            string resourcesPath = ConvertToResourcesPath(assetPath);
+            
+            if (string.IsNullOrEmpty(resourcesPath))
+            {
+                Debug.LogWarning($"PlayerInventory: Failed to convert AssetPath to Resources path: {assetPath}");
+                return;
+            }
+            
+            Debug.Log($"PlayerInventory: Resources path: {resourcesPath}");
+
+
+            switch (gridCellData.ItemType)
+            {
+                case ItemType.Weapon:
+                    // Load GunDataAsset
+                    var gunData = Resources.Load<GunDataAsset>(resourcesPath);
+                    if (gunData != null)
+                    {
+                        gridCellData.ItemPrefab = gunData.itemPrefab;
+                        gridCellData.ItemIcon = gunData.weaponIcon;
+                        Debug.Log($"PlayerInventory: Loaded weapon visual data - ItemPrefab={(gunData.itemPrefab != null ? gunData.itemPrefab.name : "NULL")},"+
+                                $"ItemIcon={(gunData.weaponIcon != null ? gunData.weaponIcon.name : "NULL")}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"PlayerInventory: Failed to load GunDataAsset from Resources path: {resourcesPath}");
+                    }
+                    break;
+                case ItemType.Consumable:
+                    if (gridCellData.CustomData.ContainsKey("ammoType"))
+                    {
+                        var ammoData = Resources.Load<AmmoDataAsset>(resourcesPath);
+                        if (ammoData != null)
+                        {
+                            gridCellData.ItemPrefab = ammoData.itemPrefab;
+                            gridCellData.ItemIcon = ammoData.ammoIcon;
+                            Debug.Log($"PlayerInventory: Loaded ammo visual data - ItemPrefab={(ammoData.itemPrefab != null ? ammoData.itemPrefab.name : "NULL")},"+
+                                    $"ItemIcon={(ammoData.ammoIcon != null ? ammoData.ammoIcon.name : "NULL")}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"PlayerInventory: Failed to load AmmoDataAsset from Resources path: {resourcesPath}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"PlayerInventory: No ammo type found for {gridCellData.ItemName}");
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// Convert Unity asset path to Resources.Load compatible path
+        /// From: "Assets/Resources/Data/Items/PistoData.asset"
+        /// To: "Data/Items/PistoData"
+        /// </summary>
+        private string ConvertToResourcesPath(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath))
+                return "";
+            
+            // Remove "Assets/Resources/" prefix
+            const string resourcesPrefix = "Assets/Resources/";
+            if (assetPath.StartsWith(resourcesPrefix))
+            {
+                assetPath = assetPath.Substring(resourcesPrefix.Length);
+            }
+            
+            // Remove file extension
+            int lastDotIndex = assetPath.LastIndexOf('.');
+            if (lastDotIndex > 0)
+            {
+                assetPath = assetPath.Substring(0, lastDotIndex);
+            }
+            
+            return assetPath;
         }
 
         #endregion
