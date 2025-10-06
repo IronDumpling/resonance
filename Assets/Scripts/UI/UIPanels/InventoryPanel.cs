@@ -174,6 +174,8 @@ namespace Resonance.UI
 
         private void InitializeGridSystem()
         {
+            Debug.Log($"InventoryPanel: InitializeGridSystem called");
+            
             if (_gridSystem == null)
             {
                 Debug.LogError("InventoryPanel: GridSystem not found");
@@ -298,39 +300,72 @@ namespace Resonance.UI
 
         private void LoadInventoryItemsToGrid()
         {
-            if (_playerInventory == null || _gridSystem == null) return;
+            Debug.Log($"InventoryPanel: LoadInventoryItemsToGrid called");
+            
+            if (_playerInventory == null || _gridSystem == null) 
+            {
+                Debug.LogWarning($"InventoryPanel: Cannot load items - _playerInventory={(_playerInventory != null ? "EXISTS" : "NULL")},"+
+                                $"_gridSystem={(_gridSystem != null ? "EXISTS" : "NULL")}");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: GridSystem.IsInitialized = {_gridSystem.IsInitialized}");
+            
+            var allItems = _playerInventory.GetAllItems();
+            Debug.Log($"InventoryPanel: Total items in inventory: {allItems.Count}");
             
             // Clear existing grid items
             _gridSystem.ClearAllItems();
             _inventoryItems.Clear();
             
             // Load all items from the new grid-based inventory
-            var allItems = _playerInventory.GetAllItems();
+            Debug.Log($"InventoryPanel: About to load {allItems.Count} items from inventory");
             foreach (var gridCellData in allItems)
             {
+                Debug.Log($"InventoryPanel: Processing item: ID={gridCellData.ItemID}, Name={gridCellData.ItemName}, Position={gridCellData.GridPosition}");
+                
                 // Convert GridCellData to GridItem for UI display
                 var gridItem = ConvertToGridItem(gridCellData);
+                Debug.Log($"InventoryPanel: Converted to GridItem: {gridItem?.itemName ?? "NULL"}");
+                
                 if (gridItem != null)
                 {
                     // Place item at its stored position
+                    // This will create visuals since GridSystem is now initialized
+                    Debug.Log($"InventoryPanel: About to place item {gridItem.itemName} at {gridCellData.GridPosition}");
                     if (_gridSystem.PlaceItem(gridItem, gridCellData.GridPosition))
                     {
                         _inventoryItems[gridCellData.ItemID] = gridItem;
-                        Debug.Log($"InventoryPanel: Loaded item {gridItem.itemName} at {gridCellData.GridPosition}");
+                        Debug.Log($"InventoryPanel: Successfully placed item {gridItem.itemName} at {gridCellData.GridPosition}");
                     }
                     else
                     {
                         Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.itemName} at {gridCellData.GridPosition}");
                     }
                 }
+                else
+                {
+                    Debug.LogWarning($"InventoryPanel: Failed to convert GridCellData to GridItem for ID={gridCellData.ItemID}");
+                }
             }
             
-            Debug.Log($"InventoryPanel: Loaded {_inventoryItems.Count} items to grid from PlayerInventory");
+            Debug.Log($"InventoryPanel: Successfully loaded {_inventoryItems.Count} items to grid");
         }
 
         private void AddInventoryItemToGrid(int itemID, ItemType itemType)
         {
-            if (_gridSystem == null || _inventoryItems.ContainsKey(itemID)) return;
+            // If GridSystem not initialized yet, skip - items will be loaded when panel opens
+            if (_gridSystem == null || !_gridSystem.IsInitialized)
+            {
+                Debug.Log($"InventoryPanel: GridSystem not initialized yet. Item {itemID} will be loaded when inventory opens.");
+                return;
+            }
+            
+            if (_inventoryItems.ContainsKey(itemID))
+            {
+                Debug.LogWarning($"InventoryPanel: Item {itemID} already exists in grid");
+                return;
+            }
             
             // Get item data from PlayerInventory
             var gridCellData = _playerInventory.GetItemByID(itemID);
@@ -374,13 +409,20 @@ namespace Resonance.UI
         {
             if (cellData == null) return null;
             
+            Debug.Log($"InventoryPanel: ConvertToGridItem - ID={cellData.ItemID}, Name={cellData.ItemName}");
+            Debug.Log($"InventoryPanel: ItemPrefab from GridCellData = {(cellData.ItemPrefab != null ? cellData.ItemPrefab.name : "NULL")}");
+            Debug.Log($"InventoryPanel: ItemIcon from GridCellData = {(cellData.ItemIcon != null ? cellData.ItemIcon.name : "NULL")}");
+            
             var gridItem = new GridItem(
                 cellData.ItemID,
                 cellData.ItemName,
                 cellData.ItemType,
                 cellData.GridWidth,
-                cellData.GridHeight
+                cellData.GridHeight,
+                cellData.ItemPrefab
             );
+            
+            Debug.Log($"InventoryPanel: GridItem created - itemPrefab = {(gridItem.itemPrefab != null ? gridItem.itemPrefab.name : "NULL")}");
             
             // Set position and rotation
             gridItem.SetGridPosition(cellData.GridPosition);
@@ -556,7 +598,20 @@ namespace Resonance.UI
 
         protected override void OnShow()
         {
-            Debug.Log("InventoryPanel: Shown");
+            Debug.Log($"InventoryPanel: OnShow called");
+            
+            // Reload all items to ensure visuals are created (in case items were picked up before panel was initialized)
+            if (_isInitialized && _gridSystem != null && _gridSystem.IsInitialized)
+            {
+                Debug.Log($"InventoryPanel: All conditions met, reloading inventory items");
+                LoadInventoryItemsToGrid();
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryPanel: Cannot reload items - _isInitialized={_isInitialized}," +    
+                $"_gridSystem={(_gridSystem != null ? "EXISTS" : "NULL")}, _gridSystem.IsInitialized={(_gridSystem?.IsInitialized ?? false)}");
+            }
+            
             UpdateAllUI();
         }
 

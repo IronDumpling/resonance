@@ -25,7 +25,7 @@ namespace Resonance.Utilities
         public bool isRotated = false; // 是否旋转了90度
         
         [Header("Visual Properties")]
-        public GameObject itemPrefab; // Prefab instance to display in grid
+        public GameObject itemPrefab; 
         public Color itemColor = Color.white;
         public bool isSelected = false;
         public bool isDragging = false;
@@ -57,7 +57,7 @@ namespace Resonance.Utilities
             }
         }
         
-        public GridItem(int id, string name, ItemType type, int width = 1, int height = 1)
+        public GridItem(int id, string name, ItemType type, int width = 1, int height = 1, GameObject prefab = null)
         {
             itemID = id;
             itemName = name;
@@ -65,6 +65,7 @@ namespace Resonance.Utilities
             baseWidth = width;
             baseHeight = height;
             gridPosition = new Vector2Int(-1, -1);
+            itemPrefab = prefab;
             customData = new Dictionary<string, object>();
         }
         
@@ -138,7 +139,7 @@ namespace Resonance.Utilities
         /// <returns>克隆的物品</returns>
         public GridItem Clone()
         {
-            var clone = new GridItem(itemID, itemName, itemType, baseWidth, baseHeight)
+            var clone = new GridItem(itemID, itemName, itemType, baseWidth, baseHeight, itemPrefab)
             {
                 itemIcon = itemIcon,
                 gridPosition = gridPosition,
@@ -146,6 +147,7 @@ namespace Resonance.Utilities
                 itemColor = itemColor,
                 isSelected = false, // 克隆的物品默认不选中
                 isDragging = false,
+                itemPrefab = itemPrefab,
                 customData = new Dictionary<string, object>(customData)
             };
             

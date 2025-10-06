@@ -39,7 +39,7 @@ namespace Resonance.Items
         
         [Header("Visual")]
         public Sprite weaponIcon;
-        public GameObject itemPrefab; // Prefab to display in inventory grid
+        public GameObject itemPrefab;
         
         [Header("Inventory")]
         public int gridWidth = 2;
@@ -210,6 +210,7 @@ namespace Resonance.Items
             copy.damageType = this.damageType;
             copy.healthDamageRatio = this.healthDamageRatio;
             copy.weaponIcon = this.weaponIcon;
+            copy.itemPrefab = this.itemPrefab;
             copy.gridWidth = this.gridWidth;
             copy.gridHeight = this.gridHeight;
             
