@@ -20,8 +20,8 @@ namespace Resonance.Core.StateMachine.States
         private IInputService _inputService;
 
         // Events
-        public static event System.Action OnInventoryOpened;
-        // public static event System.Action OnInventoryClosed;
+        public static event System.Action OnInventoryStarted;
+        public static event System.Action OnInventoryEnded;
 
         public void Enter()
         {
@@ -59,7 +59,7 @@ namespace Resonance.Core.StateMachine.States
             _uiService?.ShowPanelsForState("Gameplay/Inventory");
 
             // Trigger events
-            OnInventoryOpened?.Invoke();
+            OnInventoryStarted?.Invoke();
 
             Debug.Log("InventoryState: Inventory opened successfully");
         }
@@ -94,9 +94,6 @@ namespace Resonance.Core.StateMachine.States
                 _inputService.DisableInventoryInput();
                 Debug.Log("InventoryState: Set inventory mode to false and disabled inventory input");
             }
-
-            // Trigger events
-            // OnInventoryClosed?.Invoke();
 
             Debug.Log("InventoryState: Inventory closed successfully");
         }

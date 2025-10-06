@@ -45,12 +45,16 @@ namespace Resonance.Core.StateMachine.States
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
             Debug.Log("GameplayState: Subscribed to InfoReadingState events");
             
+            // Subscribe to InventoryState events
+            InventoryState.OnInventoryEnded += OnInventoryEnded;
+            Debug.Log("GameplayState: Subscribed to InventoryState events");
+            
             // Subscribe to input events
             var inputService = ServiceRegistry.Get<IInputService>();
             if (inputService != null)
             {
-                inputService.OnOpenInventory += OnInventoryStarted;
-                inputService.OnCloseInventory += OnInventoryEnded;
+                inputService.OnOpenInventory += StartInventory;
+                inputService.OnCloseInventory += CloseInventory;
                 Debug.Log("GameplayState: Subscribed to inventory input events");
             }
             else
@@ -114,12 +118,16 @@ namespace Resonance.Core.StateMachine.States
             InfoReadingState.OnInfoReadingEnded -= OnInfoReadingEnded;
             Debug.Log("GameplayState: Unsubscribed from InfoReadingState events");
             
+            // Unsubscribe from InventoryState events
+            InventoryState.OnInventoryEnded -= OnInventoryEnded;
+            Debug.Log("GameplayState: Unsubscribed from InventoryState events");
+            
             // Unsubscribe from input events
             var inputService = ServiceRegistry.Get<IInputService>();
             if (inputService != null)
             {
-                inputService.OnOpenInventory -= OnInventoryStarted;
-                inputService.OnCloseInventory -= OnInventoryEnded;
+                inputService.OnOpenInventory -= StartInventory;
+                inputService.OnCloseInventory -= CloseInventory;
                 Debug.Log("GameplayState: Unsubscribed from inventory input events");
             }
             
@@ -284,51 +292,75 @@ namespace Resonance.Core.StateMachine.States
         }
 
         /// <summary>
-        /// Start inventory session
+        /// Start inventory session (public method for multiple trigger points)
         /// </summary>
-        public void OnInventoryStarted()
+        public void StartInventory()
         {
-            Debug.Log("GameplayState: Starting inventory");
-
-            // Transition to Inventory substate
-            if (_subStateMachine != null && _subStateMachine.CurrentState?.Name == "Inventory")
+            if (_subStateMachine == null)
             {
-                Debug.Log("GameplayState: Already in Inventory substate, ignoring new inventory start");
+                Debug.LogError("GameplayState: SubStateMachine is null, cannot transition to Inventory");
+                return;
+            }
+            
+            // Prevent opening if already in inventory
+            if (_subStateMachine.CurrentState?.Name == "Inventory")
+            {
+                Debug.Log("GameplayState: Already in Inventory substate, ignoring");
                 return;
             }
 
-            if (_subStateMachine.ChangeState("Inventory"))
+            Debug.Log("GameplayState: Starting inventory");
+
+            // Transition to Inventory substate
+            if (!_subStateMachine.ChangeState("Inventory"))
             {
-                Debug.Log("GameplayState: Successfully transitioned to Inventory substate");
+                Debug.LogError("GameplayState: Failed to transition to Inventory substate");
             }
             else
             {
-                Debug.LogError("GameplayState: Failed to transition to Inventory substate");
+                Debug.Log("GameplayState: Successfully transitioned to Inventory substate");
+            }
+        }
+        
+        /// <summary>
+        /// Close inventory (called by input system)
+        /// </summary>
+        private void CloseInventory()
+        {
+            if (_subStateMachine == null)
+            {
+                Debug.LogError("GameplayState: SubStateMachine is null, cannot close inventory");
+                return;
+            }
+            
+            // Only close if currently in inventory
+            if (_subStateMachine.CurrentState?.Name != "Inventory")
+            {
+                Debug.Log("GameplayState: Not in Inventory substate, ignoring close request");
+                return;
+            }
+
+            Debug.Log("GameplayState: Closing inventory");
+
+            // Transition back to Normal substate
+            if (!_subStateMachine.ChangeState("Normal"))
+            {
+                Debug.LogError("GameplayState: Failed to transition back to Normal substate from Inventory");
+            }
+            else
+            {
+                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from Inventory");
             }
         }
 
         /// <summary>
-        /// Handle inventory ended event
+        /// Handle inventory ended event (from InventoryState.OnInventoryEnded)
         /// </summary>
         private void OnInventoryEnded()
         {
-            Debug.Log("GameplayState: Inventory ended");
-
-            // Transition back to Normal substate
-            if (_subStateMachine != null && _subStateMachine.CurrentState?.Name == "Normal")
-            {
-                Debug.Log("GameplayState: Already in Normal substate, ignoring new inventory end");
-                return;
-            }
-
-            if (_subStateMachine.ChangeState("Normal"))
-            {
-                Debug.Log("GameplayState: Successfully transitioned back to Normal substate from Inventory");
-            }
-            else
-            {
-                Debug.LogError("GameplayState: Failed to transition back to Normal substate from Inventory");
-            }
+            Debug.Log("GameplayState: Inventory ended event received");
+            // No action needed - state transition is already handled by CloseInventory()
+            // This event is here for future extensibility (e.g., save inventory changes)
         }
         
         /// <summary>

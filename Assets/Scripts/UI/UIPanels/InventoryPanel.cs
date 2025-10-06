@@ -16,11 +16,11 @@ using System.Collections.Generic;
 namespace Resonance.UI
 {
     /// <summary>
-    /// InventoryPanel - 玩家背包系统的主面板
-    /// 包含三个主要部分：
-    /// 1. WaveModulePanel - 显示当前装备的CrystalModule和Wave Form
-    /// 2. PlayerStatusPanel - 显示玩家状态信息
-    /// 3. InventoryGridPanel - 包含Grid系统和物品信息面板
+    /// InventoryPanel - Player Inventory Panel
+    /// Contains three main parts:
+    /// 1. WaveModulePanel - Display the current equipped CrystalModule and Wave Form
+    /// 2. PlayerStatusPanel - Display player status information
+    /// 3. InventoryGridPanel - Contains GridSystem and ItemInfoPanel
     /// </summary>
     public class InventoryPanel : UIPanel
     {
@@ -100,8 +100,7 @@ namespace Resonance.UI
         private void SetupEventListeners()
         {
             // Subscribe to InventoryState events
-            InventoryState.OnInventoryOpened += OnInventoryOpened;
-            // InventoryState.OnInventoryClosed += OnInventoryClosed;
+            InventoryState.OnInventoryStarted += OnInventoryStarted;
             
             Debug.Log("InventoryPanel: Event listeners setup complete");
         }
@@ -228,26 +227,10 @@ namespace Resonance.UI
 
         #region Event Handlers
 
-        private void OnInventoryOpened()
+        private void OnInventoryStarted()
         {
-            Debug.Log("InventoryPanel: Inventory opened");
+            Debug.Log("InventoryPanel: Inventory started");
             UpdateAllUI();
-        }
-
-        private void OnInventoryClosed()
-        {
-            Debug.Log("InventoryPanel: Inventory closed");
-            // Clear selection when closing
-            if (_gridSystem != null)
-            {
-                _gridSystem.DeselectItem();
-            }
-        }
-
-        private void OnCloseButtonClicked()
-        {
-            Debug.Log("InventoryPanel: Close button clicked");
-            CloseInventoryPanel();
         }
 
         private void OnItemSelected(GridItem item)
@@ -525,15 +508,6 @@ namespace Resonance.UI
 
         #endregion
 
-        #region Public Methods
-
-        private void CloseInventoryPanel()
-        {
-            Debug.Log("InventoryPanel: Closing inventory panel");
-        }
-
-        #endregion
-
         #region UIPanel Overrides
 
         protected override void OnInitialize()
@@ -572,9 +546,8 @@ namespace Resonance.UI
         private void CleanupEventListeners()
         {
             // Unsubscribe from InventoryState events
-            InventoryState.OnInventoryOpened -= OnInventoryOpened;
-            // InventoryState.OnInventoryClosed -= OnInventoryClosed;
-            
+            InventoryState.OnInventoryStarted -= OnInventoryStarted;
+
             Debug.Log("InventoryPanel: Event listeners cleaned up");
         }
 
