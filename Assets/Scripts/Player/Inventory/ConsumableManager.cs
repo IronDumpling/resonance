@@ -54,9 +54,9 @@ namespace Resonance.Player.Inventory
             // Try to stack onto existing ammo
             foreach (var ammo in existingAmmo)
             {
-                if (ammo.Quantity < ammo.MaxStackSize)
+                if (ammo.Quantity < ammo.MaxStackQuantity)
                 {
-                    int canAdd = Mathf.Min(remainingAmount, ammo.MaxStackSize - ammo.Quantity);
+                    int canAdd = Mathf.Min(remainingAmount, ammo.MaxStackQuantity - ammo.Quantity);
                     int newQuantity = ammo.Quantity + canAdd;
                     
                     _inventory.UpdateItemQuantity(ammo.ItemID, newQuantity);
@@ -215,7 +215,7 @@ namespace Resonance.Player.Inventory
             
             // Calculate the total quantity after stacking
             int totalQuantity = sourceItem.Quantity + targetItem.Quantity;
-            int targetMaxStack = targetItem.MaxStackSize;
+            int targetMaxStack = targetItem.MaxStackQuantity;
             
             if (totalQuantity <= targetMaxStack)
             {
@@ -288,7 +288,7 @@ namespace Resonance.Player.Inventory
                 ItemName = ammoName,
                 ItemType = ItemType.Consumable,
                 Quantity = quantity,
-                MaxStackSize = DEFAULT_AMMO_STACK_SIZE,
+                MaxStackQuantity = DEFAULT_AMMO_STACK_SIZE,
                 GridWidth = 1,
                 GridHeight = 1,
                 GridPosition = emptyPos,

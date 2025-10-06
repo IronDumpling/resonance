@@ -429,9 +429,9 @@ namespace Resonance.UI
             gridItem.itemIcon = cellData.ItemIcon;
             gridItem.itemPrefab = cellData.ItemPrefab;
             
-            // Store additional data
-            gridItem.customData["quantity"] = cellData.Quantity;
-            gridItem.customData["maxStackSize"] = cellData.MaxStackSize;
+            // Set stack data
+            gridItem.quantity = cellData.Quantity;
+            gridItem.maxStackQuantity = cellData.MaxStackQuantity;
             
             // For weapons, store ammo info
             if (cellData.ItemType == ItemType.Weapon)

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 namespace Resonance.Utilities
 {
@@ -15,6 +16,7 @@ namespace Resonance.Utilities
         [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _button;
         [SerializeField] private Image _selectionOutline;
+        [SerializeField] private TextMeshProUGUI _quantityText;
         
         [Header("Visual Settings")]
         [SerializeField] private Color _normalColor = Color.white;
@@ -55,6 +57,12 @@ namespace Resonance.Utilities
             else
             {
                 Debug.LogWarning("GridItemVisual: Button component not found on prefab. Please add a Button component.");
+            }
+
+            // Get quantity text
+            if (_quantityText == null)
+            {
+                _quantityText = GetComponentInChildren<TextMeshProUGUI>();
             }
         }
         
@@ -117,6 +125,19 @@ namespace Resonance.Utilities
             else
             {
                 _rectTransform.localRotation = Quaternion.identity;
+            }
+
+            // Update quantity text
+            if (_quantityText != null)
+            {
+                if (_gridItem.Quantity == 1)
+                {
+                    _quantityText.text = "";
+                }
+                else
+                {
+                    _quantityText.text = _gridItem.Quantity.ToString();
+                }
             }
         }
         

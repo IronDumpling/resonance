@@ -342,7 +342,7 @@ namespace Resonance.Items
                                 ItemPrefab = gunCopy.itemPrefab,
                                 ItemIcon = gunCopy.weaponIcon, 
                                 Quantity = 1,
-                                MaxStackSize = 1,
+                                MaxStackQuantity = 1,
                                 Durability = 1f
                             };
                             weaponData.CustomData["originalAsset"] = gunCopy;

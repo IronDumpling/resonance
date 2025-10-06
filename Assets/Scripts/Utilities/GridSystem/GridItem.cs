@@ -18,11 +18,15 @@ namespace Resonance.Utilities
         public ItemType itemType;
         public Sprite itemIcon;
         
+        [Header("Stack Properties")]
+        public int quantity = 1;        // Current quantity (for stacking items)
+        public int maxStackQuantity = 1;    
+        
         [Header("Grid Properties")]
-        public int baseWidth = 1;   // 基础宽度（未旋转时）
-        public int baseHeight = 1;  // 基础高度（未旋转时）
-        public Vector2Int gridPosition = new Vector2Int(-1, -1); // 在网格中的位置
-        public bool isRotated = false; // 是否旋转了90度
+        public int baseWidth = 1;   
+        public int baseHeight = 1;  
+        public Vector2Int gridPosition = new Vector2Int(-1, -1); // Position in the grid
+        public bool isRotated = false; // Whether the item is rotated by 90 degrees
         
         [Header("Visual Properties")]
         public GameObject itemPrefab; 
@@ -37,6 +41,10 @@ namespace Resonance.Utilities
         public int CurrentWidth => isRotated ? baseHeight : baseWidth;
         public int CurrentHeight => isRotated ? baseWidth : baseHeight;
         public Vector2Int CurrentSize => new Vector2Int(CurrentWidth, CurrentHeight);
+        
+        // Convenience properties for accessing quantity
+        public int Quantity => quantity;
+        public int MaxStackQuantity => maxStackQuantity;
         
         // 占用区域
         public List<Vector2Int> OccupiedPositions

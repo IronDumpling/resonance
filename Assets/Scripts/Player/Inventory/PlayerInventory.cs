@@ -32,7 +32,7 @@ namespace Resonance.Player.Inventory
         
         // Stack information
         public int Quantity { get; set; }
-        public int MaxStackSize { get; set; }
+        public int MaxStackQuantity { get; set; }
         
         // Grid information
         public int GridWidth { get; set; }
@@ -64,7 +64,7 @@ namespace Resonance.Player.Inventory
             CustomData = new Dictionary<string, object>();
             GridPosition = new Vector2Int(-1, -1);
             Quantity = 1;
-            MaxStackSize = 1;
+            MaxStackQuantity = 1;
             Durability = 1f;
         }
 
@@ -365,7 +365,7 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            if (newQuantity < 0 || newQuantity > itemData.MaxStackSize)
+            if (newQuantity < 0 || newQuantity > itemData.MaxStackQuantity)
             {
                 Debug.LogWarning($"PlayerInventory: Invalid quantity {newQuantity} for {itemData.ItemName}");
                 return false;
@@ -740,7 +740,7 @@ namespace Resonance.Player.Inventory
                     itemName = item.ItemName,
                     itemType = item.ItemType.ToString(),
                     quantity = item.Quantity,
-                    maxStackSize = item.MaxStackSize,
+                    maxStackQuantity = item.MaxStackQuantity,
                     gridWidth = item.GridWidth,
                     gridHeight = item.GridHeight,
                     rotation = item.Rotation,
@@ -805,7 +805,7 @@ namespace Resonance.Player.Inventory
                         ItemName = cellSaveData.itemName,
                         ItemType = itemType,
                         Quantity = cellSaveData.quantity,
-                        MaxStackSize = cellSaveData.maxStackSize,
+                        MaxStackQuantity = cellSaveData.maxStackQuantity,
                         GridWidth = cellSaveData.gridWidth,
                         GridHeight = cellSaveData.gridHeight,
                         Rotation = cellSaveData.rotation,

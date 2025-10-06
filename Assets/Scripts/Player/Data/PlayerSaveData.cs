@@ -85,7 +85,7 @@ namespace Resonance.Player.Data
         
         // Stack info
         public int quantity;
-        public int maxStackSize;
+        public int maxStackQuantity;
         
         // Grid info
         public int gridWidth;
