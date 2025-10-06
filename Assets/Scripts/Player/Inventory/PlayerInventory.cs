@@ -17,7 +17,7 @@ namespace Resonance.Player.Inventory
         Module,        // Wave Module
         Weapon         // Pistol, etc.
     }
-    
+
     /// <summary>
     /// 格子单元数据 - 存储单个格子中的物品完整信息
     /// 这是纯数据结构，不包含任何业务逻辑
@@ -60,11 +60,11 @@ namespace Resonance.Player.Inventory
             Quantity = 1;
             MaxStackSize = 1;
             Durability = 1f;
-        }
-        
-        /// <summary>
+    }
+
+    /// <summary>
         /// 计算当前宽度（考虑旋转）
-        /// </summary>
+    /// </summary>
         public int GetCurrentWidth()
         {
             return (Rotation == 90 || Rotation == 270) ? GridHeight : GridWidth;
@@ -76,11 +76,11 @@ namespace Resonance.Player.Inventory
         public int GetCurrentHeight()
         {
             return (Rotation == 90 || Rotation == 270) ? GridWidth : GridHeight;
-        }
-        
-        /// <summary>
+    }
+
+    /// <summary>
         /// 获取占用的所有格子位置
-        /// </summary>
+    /// </summary>
         public List<Vector2Int> GetOccupiedPositions()
         {
             var positions = new List<Vector2Int>();
@@ -97,42 +97,6 @@ namespace Resonance.Player.Inventory
                 }
             }
             return positions;
-        }
-    }
-
-    /// <summary>
-    /// Extended item data structure
-    /// Supports unified management of different types of items
-    /// </summary>
-    [System.Serializable]
-    public class InventoryItem
-    {
-        // Basic properties
-        public int ItemID { get; set; }
-        public ItemType ItemType { get; set; }
-        public int Quantity { get; set; }
-        public float Durability { get; set; }
-        
-        // Grid system properties (reserved)
-        public int GridWidth { get; set; }   // Item occupied grid width
-        public int GridHeight { get; set; }  // Item occupied grid height
-        public Vector2Int GridPosition { get; set; } // Position in the grid (-1,-1 means not placed)
-        
-        // Weapon specific properties
-        public string AssetPath { get; set; }     // ScriptableObject resource path
-        public int CurrentAmmo { get; set; }      // Current ammo count
-        public Dictionary<string, object> CustomData { get; set; } // Custom data
-        
-        public InventoryItem(int itemID, ItemType itemType, int quantity = 1, float durability = 1f)
-        {
-            ItemID = itemID;
-            ItemType = itemType;
-            Quantity = quantity;
-            Durability = durability;
-            GridWidth = 1;
-            GridHeight = 1;
-            GridPosition = new Vector2Int(-1, -1); // Not placed state
-            CustomData = new Dictionary<string, object>();
         }
     }
 
@@ -157,10 +121,8 @@ namespace Resonance.Player.Inventory
         // Occupancy mapping (each cell position → item ID occupying it)
         private Dictionary<Vector2Int, int> _cellOccupancy;
 
-        // Legacy system compatibility (will be phased out)
-        private List<InventoryItem> _items;
+        // Equipped weapon tracking
         private int _equippedWeaponID;
-        private Dictionary<string, int> _ammoInventory;
         
         #endregion
         
@@ -203,10 +165,8 @@ namespace Resonance.Player.Inventory
             _itemsById = new Dictionary<int, GridCellData>();
             _cellOccupancy = new Dictionary<Vector2Int, int>();
             
-            // Initialize legacy system
-            _items = new List<InventoryItem>();
+            // Initialize equipped weapon tracking
             _equippedWeaponID = -1;
-            _ammoInventory = new Dictionary<string, int>();
             
             Debug.Log($"PlayerInventory: Initialized with {_gridWidth}x{_gridHeight} grid");
         }
@@ -257,9 +217,9 @@ namespace Resonance.Player.Inventory
             }
             
             Debug.Log($"PlayerInventory: Added {itemData.ItemName} to grid at {position}, rotation: {rotation}");
-            return true;
-    }
-
+            return true; 
+        }
+        
     /// <summary>
         /// Remove item from grid
     /// </summary>
@@ -304,12 +264,12 @@ namespace Resonance.Player.Inventory
             }
             
             Debug.Log($"PlayerInventory: Removed {itemData.ItemName} from grid");
-            return true;
+            return true; 
         }
         
-    /// <summary>
+        /// <summary>
         /// Move item in grid
-    /// </summary>
+        /// </summary>
         public bool MoveItemInGrid(int itemID, Vector2Int newPosition)
         {
             if (!_itemsById.TryGetValue(itemID, out var itemData))
@@ -385,7 +345,7 @@ namespace Resonance.Player.Inventory
             OnInventoryChanged?.Invoke();
             
             Debug.Log($"PlayerInventory: Rotated {itemData.ItemName} from {oldRotation}° to {newRotation}°");
-            return true; 
+            return true;
         }
         
         /// <summary>
@@ -429,7 +389,7 @@ namespace Resonance.Player.Inventory
             }
             
             Debug.Log($"PlayerInventory: Updated {itemData.ItemName} quantity to {newQuantity}");
-            return true; 
+            return true;
         }
         
         #endregion
@@ -602,111 +562,39 @@ namespace Resonance.Player.Inventory
         
         #endregion
 
-        #region 武器管理 - Weapon Management (Deprecated - Use WeaponManager)
+        #region Weapon Equipment Status
         
         /// <summary>
-        /// Add weapon to inventory
-        /// </summary>
-        public bool AddWeapon(GunDataAsset weaponAsset)
-        {
-            if (weaponAsset == null) 
-            {
-                Debug.LogError("PlayerInventory: Cannot add null weapon");
-                return false;
-            }
-            
-            int weaponID = weaponAsset.GetInstanceID();
-            Debug.Log($"🎒 [INVENTORY] AddWeapon called for {weaponAsset.weaponName} (ID: {weaponID})");
-            
-            // Check if already exists
-            if (HasWeapon(weaponID))
-            {
-                Debug.LogWarning($"PlayerInventory: Weapon {weaponAsset.weaponName} already in inventory");
-                return false;
-            }
-            
-            // Check if inventory is full
-            if (IsFull)
-            {
-                Debug.LogWarning("PlayerInventory: Cannot add weapon - inventory full");
-                return false;
-            }
-            
-            // Create weapon item
-            var weaponItem = new InventoryItem(weaponID, ItemType.Weapon, 1, 1f)
-            {
-                AssetPath = GetAssetPath(weaponAsset),
-                CurrentAmmo = weaponAsset.CurrentAmmo,
-                GridWidth = weaponAsset.gridWidth,
-                GridHeight = weaponAsset.gridHeight
-            };
-            
-            // Weapon specific data
-            weaponItem.CustomData["weaponName"] = weaponAsset.weaponName;
-            weaponItem.CustomData["ammoType"] = weaponAsset.ammoType;
-            weaponItem.CustomData["maxAmmo"] = weaponAsset.maxAmmo;
-            weaponItem.CustomData["originalAsset"] = weaponAsset; // Save original reference
-            
-            Debug.Log($"PlayerInventory: Created weapon item: {weaponItem.ItemID}, AssetPath: {weaponItem.AssetPath}");
-            
-            _items.Add(weaponItem);
-            OnInventoryChanged?.Invoke();
-            
-            Debug.Log($"PlayerInventory: Added weapon {weaponAsset.weaponName} to inventory");
-            return true;
-        }
-        
-        /// <summary>
-        /// 装备武器（与WeaponManager同步）
+        /// Equip weapon (sync with WeaponManager)
         /// </summary>
         public bool EquipWeapon(int weaponID)
         {
             Debug.Log($"PlayerInventory: EquipWeapon called for weaponID: {weaponID}");
             
-            // Check in new grid system first
-            if (_itemsById.TryGetValue(weaponID, out var weaponData))
-            {
-                if (weaponData.ItemType != ItemType.Weapon)
-                {
-                    Debug.LogWarning($"PlayerInventory: Item {weaponID} is not a weapon");
-                    return false;
-                }
-                
-                // Unequip current weapon
-                if (_equippedWeaponID != -1 && _equippedWeaponID != weaponID)
-                {
-                    Debug.Log($"PlayerInventory: Unequipping current weapon: {_equippedWeaponID}");
-                    UnequipCurrentWeapon();
-                }
-                
-                _equippedWeaponID = weaponID;
-                
-                // Set IsEquipped flag in grid system
-                weaponData.IsEquipped = true;
-                
-                OnWeaponEquipped?.Invoke(weaponID);
-                Debug.Log($"PlayerInventory: Equipped weapon {weaponID} (IsEquipped flag set)");
-                return true;
-            }
-            
-            // Legacy system fallback
-            if (!HasWeapon(weaponID))
+            if (!_itemsById.TryGetValue(weaponID, out var weaponData))
             {
                 Debug.LogWarning($"PlayerInventory: Cannot equip weapon {weaponID} - not in inventory");
                 return false;
             }
             
+            if (weaponData.ItemType != ItemType.Weapon)
+            {
+                Debug.LogWarning($"PlayerInventory: Item {weaponID} is not a weapon");
+                return false;
+            }
+            
             // Unequip current weapon
-            if (_equippedWeaponID != -1)
+            if (_equippedWeaponID != -1 && _equippedWeaponID != weaponID)
             {
                 Debug.Log($"PlayerInventory: Unequipping current weapon: {_equippedWeaponID}");
                 UnequipCurrentWeapon();
             }
             
             _equippedWeaponID = weaponID;
+            weaponData.IsEquipped = true;
             
             OnWeaponEquipped?.Invoke(weaponID);
-            Debug.Log($"PlayerInventory: Equipped weapon {weaponID} (legacy system)");
+            Debug.Log($"PlayerInventory: Equipped weapon {weaponID}");
             return true;
         }
         
@@ -732,195 +620,14 @@ namespace Resonance.Player.Inventory
             Debug.Log("PlayerInventory: Unequipped current weapon");
         }
         
-        /// <summary>
-        /// Get current equipped weapon
-        /// </summary>
-        public GunDataAsset GetEquippedWeapon()
-        {
-            if (_equippedWeaponID == -1)  return null;
-
-            for (int i = 0; i < _items.Count; i++)
-            {
-                var item = _items[i];
-            }
-            
-            var weaponItem = _items.FirstOrDefault(item => 
-                item.ItemID == _equippedWeaponID && item.ItemType == ItemType.Weapon);
-            
-            if (weaponItem == null) 
-            {
-                Debug.LogWarning($"PlayerInventory: Weapon not found! Looking for ID {_equippedWeaponID} with type Weapon");
-                return null;
-            }
-            
-            // 尝试从CustomData中获取原始GunDataAsset引用
-            if (weaponItem.CustomData.ContainsKey("originalAsset") && weaponItem.CustomData["originalAsset"] is GunDataAsset originalAsset)
-            {
-                return originalAsset;
-            }
-            
-            // 如果CustomData中没有，尝试从路径加载
-            var gunAsset = LoadAssetFromPath<GunDataAsset>(weaponItem.AssetPath);
-            
-            return gunAsset;
-        }
-        
-        /// <summary>
-        /// 更新武器弹药数量（由WeaponManager调用）
-        /// </summary>
-        public void UpdateWeaponAmmo(int weaponID, int currentAmmo)
-        {
-            var weaponItem = _items.FirstOrDefault(item => 
-                item.ItemID == weaponID && item.ItemType == ItemType.Weapon);
-            
-            if (weaponItem != null)
-            {
-                weaponItem.CurrentAmmo = currentAmmo;
-                Debug.Log($"PlayerInventory: Updated weapon {weaponID} ammo to {currentAmmo}");
-            }
-        }
-        
-        public bool HasWeapon(int weaponID) => _items.Any(item => 
-            item.ItemID == weaponID && item.ItemType == ItemType.Weapon);
-        
         public int GetEquippedWeaponID() => _equippedWeaponID;
         
-        /// <summary>
-        /// 获取所有拥有的武器
-        /// </summary>
-        public List<InventoryItem> GetAllWeapons()
-        {
-            return _items.Where(item => item.ItemType == ItemType.Weapon).ToList();
-        }
-        
         #endregion
 
-        #region 消耗品管理 - Consumable Management
+        #region 弹药管理 - Ammo Management
         
-        /// <summary>
-        /// 添加消耗品到背包
-        /// </summary>
-        public bool AddConsumable(int itemID, int quantity = 1)
-        {
-            // 检查是否已存在相同类型的消耗品
-            var existingItem = _items.FirstOrDefault(item => 
-                item.ItemID == itemID && item.ItemType == ItemType.Consumable);
-            
-            if (existingItem != null)
-            {
-                // 堆叠现有物品
-                existingItem.Quantity += quantity;
-                Debug.Log($"PlayerInventory: Added {quantity} consumable {itemID} (stacked)");
-            }
-            else
-            {
-                // 检查背包空间
-                if (IsFull)
-                {
-                    Debug.LogWarning("PlayerInventory: Cannot add consumable - inventory full");
-                    return false;
-                }
-
-                // 添加新物品
-                var newItem = new InventoryItem(itemID, ItemType.Consumable, quantity);
-                _items.Add(newItem);
-                Debug.Log($"PlayerInventory: Added new consumable {itemID} x{quantity}");
-            }
-
-            OnInventoryChanged?.Invoke();
-            return true;
-        }
-        
-        /// <summary>
-        /// 移除消耗品
-        /// </summary>
-        public bool RemoveConsumable(int itemID, int quantity = 1)
-        {
-            var item = _items.FirstOrDefault(i => i.ItemID == itemID && i.ItemType == ItemType.Consumable);
-            if (item == null)
-            {
-                Debug.LogWarning($"PlayerInventory: Cannot remove consumable {itemID} - not found");
-                return false;
-            }
-
-            if (item.Quantity < quantity)
-            {
-                Debug.LogWarning($"PlayerInventory: Cannot remove {quantity} of consumable {itemID} - only have {item.Quantity}");
-                return false;
-            }
-
-            item.Quantity -= quantity;
-            if (item.Quantity <= 0)
-            {
-                _items.Remove(item);
-            }
-
-            OnInventoryChanged?.Invoke();
-            Debug.Log($"PlayerInventory: Removed {quantity} of consumable {itemID}");
-            return true;
-        }
-        
-        /// <summary>
-        /// 检查是否有指定数量的消耗品
-        /// </summary>
-        public bool HasConsumable(int itemID, int quantity = 1)
-        {
-            var item = _items.FirstOrDefault(i => i.ItemID == itemID && i.ItemType == ItemType.Consumable);
-            return item != null && item.Quantity >= quantity;
-        }
-        
-        /// <summary>
-        /// 获取消耗品数量
-        /// </summary>
-        public int GetConsumableQuantity(int itemID)
-        {
-            var item = _items.FirstOrDefault(i => i.ItemID == itemID && i.ItemType == ItemType.Consumable);
-            return item?.Quantity ?? 0;
-        }
-        
-        /// <summary>
-        /// 获取所有消耗品
-        /// </summary>
-        public List<InventoryItem> GetAllConsumables()
-        {
-            return _items.Where(item => item.ItemType == ItemType.Consumable).ToList();
-        }
-
-        #endregion
-
-        #region 弹药管理 - Ammo Management (Legacy - Use ConsumableManager)
-        
-        // 弹药事件 (for backward compatibility)
-        public System.Action<string, int> OnAmmoAdded; // ammoType, amount added
+        // Ammo events
         public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
-        
-        /// <summary>
-        /// 添加弹药到库存
-        /// </summary>
-        /// <param name="ammoType">弹药类型</param>
-        /// <param name="amount">数量</param>
-        /// <returns>是否成功添加</returns>
-        public bool AddAmmo(string ammoType, int amount)
-        {
-            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
-            {
-                Debug.LogWarning($"PlayerInventory: Invalid ammo parameters - type: {ammoType}, amount: {amount}");
-                return false;
-            }
-            
-            int oldAmount = _ammoInventory.GetValueOrDefault(ammoType, 0);
-            int newAmount = oldAmount + amount;
-            _ammoInventory[ammoType] = newAmount;
-            
-            Debug.Log($"PlayerInventory: Added {amount} {ammoType} ammo. Total: {newAmount}");
-            
-            // 触发事件
-            OnAmmoAdded?.Invoke(ammoType, amount);
-            OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
-            OnInventoryChanged?.Invoke();
-            
-            return true;
-        }
         
         /// <summary>
         /// 消耗弹药
@@ -939,7 +646,7 @@ namespace Resonance.Player.Inventory
                 Debug.LogWarning($"PlayerInventory: Not enough {ammoType} ammo - need {amount}, have {oldAmount}");
                 return false;
             }
-            
+                
             // Find and consume ammo from grid system
             var ammoItems = GetItemsByType(ItemType.Consumable)
                 .Where(item => item.CustomData.ContainsKey("ammoType") && 
@@ -980,22 +687,19 @@ namespace Resonance.Player.Inventory
         {
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
                 return false;
-            
+                
             // NEW: Check ammo from grid-based system
             return GetAmmoCount(ammoType) >= amount;
         }
         
         /// <summary>
-        /// Grid-based Get Ammo Count
+        /// Get ammo count from grid system
         /// </summary>
-        /// <param name="ammoType">弹药类型</param>
-        /// <returns>弹药数量</returns>
         public int GetAmmoCount(string ammoType)
         {
             if (string.IsNullOrEmpty(ammoType))
                 return 0;
             
-            // NEW: Get ammo count from grid-based system
             var consumableItems = GetItemsByType(ItemType.Consumable)
                 .Where(item => item.CustomData.ContainsKey("ammoType") && 
                               item.CustomData["ammoType"].ToString() == ammoType);
@@ -1004,109 +708,6 @@ namespace Resonance.Player.Inventory
             
             Debug.Log($"PlayerInventory.GetAmmoCount: {ammoType} -> {totalCount} (from grid system)");
             return totalCount;
-        }
-        
-        /// <summary>
-        /// 设置弹药数量（用于测试或特殊情况）
-        /// </summary>
-        /// <param name="ammoType">弹药类型</param>
-        /// <param name="count">新的数量</param>
-        public void SetAmmoCount(string ammoType, int count)
-        {
-            if (string.IsNullOrEmpty(ammoType))
-                return;
-            
-            int oldAmount = _ammoInventory.GetValueOrDefault(ammoType, 0);
-            int newAmount = Mathf.Max(0, count);
-            _ammoInventory[ammoType] = newAmount;
-            
-            Debug.Log($"PlayerInventory: Set {ammoType} ammo to {newAmount}");
-            
-            // 触发事件（如果数量有变化）
-            if (oldAmount != newAmount)
-            {
-                OnAmmoChanged?.Invoke(ammoType, oldAmount, newAmount);
-                OnInventoryChanged?.Invoke();
-            }
-        }
-        
-        /// <summary>
-        /// 获取所有弹药类型和数量
-        /// </summary>
-        /// <returns>弹药字典的副本</returns>
-        public Dictionary<string, int> GetAllAmmo()
-        {
-            return new Dictionary<string, int>(_ammoInventory);
-        }
-        
-        /// <summary>
-        /// 获取所有有库存的弹药类型
-        /// </summary>
-        /// <returns>弹药类型列表</returns>
-        public List<string> GetAvailableAmmoTypes()
-        {
-            var types = new List<string>();
-            
-            foreach (var kvp in _ammoInventory)
-            {
-                if (kvp.Value > 0)
-                {
-                    types.Add(kvp.Key);
-                }
-            }
-            
-            return types;
-        }
-        
-        /// <summary>
-        /// 检查是否有任何弹药
-        /// </summary>
-        /// <returns>是否有弹药</returns>
-        public bool HasAnyAmmo()
-        {
-            foreach (var kvp in _ammoInventory)
-            {
-                if (kvp.Value > 0)
-                    return true;
-            }
-            
-            return false;
-        }
-        
-        /// <summary>
-        /// 获取总弹药数量
-        /// </summary>
-        /// <returns>所有类型弹药的总数</returns>
-        public int GetTotalAmmoCount()
-        {
-            int total = 0;
-            foreach (var kvp in _ammoInventory)
-            {
-                total += kvp.Value;
-            }
-            
-            return total;
-        }
-        
-        /// <summary>
-        /// 清空所有弹药（用于测试或特殊事件）
-        /// </summary>
-        public void ClearAllAmmo()
-        {
-            var oldAmmo = new Dictionary<string, int>(_ammoInventory);
-            _ammoInventory.Clear();
-            
-            // 触发每种弹药的变化事件
-            foreach (var kvp in oldAmmo)
-            {
-                if (kvp.Value > 0)
-                {
-                    OnAmmoChanged?.Invoke(kvp.Key, kvp.Value, 0);
-                }
-            }
-            
-            OnInventoryChanged?.Invoke();
-            Debug.Log("PlayerInventory: All ammo cleared");
         }
 
         #endregion

@@ -132,27 +132,11 @@ namespace Resonance.Player.Inventory
             bool consumed = _cachedWeaponAsset.ConsumeAmmo();
             if (consumed)
             {
-                // Sync ammo count to inventory
-                _inventory.UpdateWeaponAmmo(_equippedWeaponID, _cachedWeaponAsset.CurrentAmmo);
-                
                 OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
                 Debug.Log($"WeaponManager: Ammo consumed. Remaining: {_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo}");
             }
             
             return consumed;
-        }
-        
-        /// <summary>
-        /// Reload weapon (restore full ammo)
-        /// </summary>
-        public void Reload()
-        {
-            if (_cachedWeaponAsset == null) return;
-            
-            _cachedWeaponAsset.ResetAmmo();
-            OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
-            
-            Debug.Log($"WeaponManager: Reloaded. Ammo: {_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo}");
         }
         
         #endregion
