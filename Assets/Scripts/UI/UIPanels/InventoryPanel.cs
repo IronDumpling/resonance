@@ -409,10 +409,6 @@ namespace Resonance.UI
         {
             if (cellData == null) return null;
             
-            Debug.Log($"InventoryPanel: ConvertToGridItem - ID={cellData.ItemID}, Name={cellData.ItemName}");
-            Debug.Log($"InventoryPanel: ItemPrefab from GridCellData = {(cellData.ItemPrefab != null ? cellData.ItemPrefab.name : "NULL")}");
-            Debug.Log($"InventoryPanel: ItemIcon from GridCellData = {(cellData.ItemIcon != null ? cellData.ItemIcon.name : "NULL")}");
-            
             var gridItem = new GridItem(
                 cellData.ItemID,
                 cellData.ItemName,
@@ -421,8 +417,6 @@ namespace Resonance.UI
                 cellData.GridHeight,
                 cellData.ItemPrefab
             );
-            
-            Debug.Log($"InventoryPanel: GridItem created - itemPrefab = {(gridItem.itemPrefab != null ? gridItem.itemPrefab.name : "NULL")}");
             
             // Set position and rotation
             gridItem.SetGridPosition(cellData.GridPosition);

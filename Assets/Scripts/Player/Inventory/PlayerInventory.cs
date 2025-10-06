@@ -192,8 +192,6 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            Debug.Log($"PlayerInventory: AddItemToGrid - Name={itemData.ItemName}, ItemPrefab={(itemData.ItemPrefab != null ? itemData.ItemPrefab.name : "NULL")}");
-            
             itemData.GridPosition = position;
             itemData.Rotation = rotation;
             
@@ -209,8 +207,6 @@ namespace Resonance.Player.Inventory
             
             // Add to dictionary
             _itemsById[itemData.ItemID] = itemData;
-            
-            Debug.Log($"PlayerInventory: Item added to _itemsById. Stored ItemPrefab={(itemData.ItemPrefab != null ? itemData.ItemPrefab.name : "NULL")}");
             
             // Trigger event
             OnItemAddedToGrid?.Invoke(itemData, position);
@@ -434,11 +430,6 @@ namespace Resonance.Player.Inventory
         /// </summary>
         public List<GridCellData> GetAllItems()
         {
-            Debug.Log($"PlayerInventory: GetAllItems called. Total items: {_itemsById.Count}");
-            foreach (var item in _itemsById.Values)
-            {
-                Debug.Log($"PlayerInventory: Item {item.ItemName} - ItemPrefab = {(item.ItemPrefab != null ? item.ItemPrefab.name : "NULL")}");
-            }
             return new List<GridCellData>(_itemsById.Values);
         }
         

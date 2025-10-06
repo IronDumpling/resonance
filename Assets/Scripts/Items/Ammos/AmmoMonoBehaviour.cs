@@ -332,11 +332,18 @@ namespace Resonance.Items
                         var consumableManager = playerController.ConsumableManager;
                         if (consumableManager != null)
                         {
+                            Debug.Log($"AmmoMonoBehaviour: Adding ammo with visual data");
+                            Debug.Log($"AmmoMonoBehaviour: ammoIcon = {(_ammoDataAsset.ammoIcon != null ? _ammoDataAsset.ammoIcon.name : "NULL")}");
+                            Debug.Log($"AmmoMonoBehaviour: itemPrefab = {(_ammoDataAsset.itemPrefab != null ? _ammoDataAsset.itemPrefab.name : "NULL")}");
+                            
                             // 添加弹药 - ConsumableManager会自动处理堆叠逻辑
+                            // ItemIcon 和 ItemPrefab 用于在 InventoryPanel 中显示
                             bool added = consumableManager.AddAmmo(
                                 _ammoDataAsset.ammoType, 
                                 _ammoDataAsset.ammoName, 
-                                _ammoDataAsset.ammoCount
+                                _ammoDataAsset.ammoCount,
+                                _ammoDataAsset.ammoIcon,      
+                                _ammoDataAsset.itemPrefab     
                             );
                             
                             if (added)

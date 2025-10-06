@@ -33,7 +33,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Add ammo (smart stacking)
         /// </summary>
-        public bool AddAmmo(string ammoType, string ammoName, int amount)
+        public bool AddAmmo(string ammoType, string ammoName, int amount, Sprite ammoIcon = null, GameObject itemPrefab = null)
         {
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
             {
@@ -42,6 +42,7 @@ namespace Resonance.Player.Inventory
             }
             
             Debug.Log($"ConsumableManager: Adding {amount} {ammoType} ammo");
+            Debug.Log($"ConsumableManager: ammoIcon = {(ammoIcon != null ? ammoIcon.name : "NULL")}, itemPrefab = {(itemPrefab != null ? itemPrefab.name : "NULL")}");
             
             // Find existing ammo of the same type
             var existingAmmo = _inventory.GetItemsByType(ItemType.Consumable)
@@ -73,7 +74,7 @@ namespace Resonance.Player.Inventory
             {
                 int newStackAmount = Mathf.Min(remainingAmount, DEFAULT_AMMO_STACK_SIZE);
                 
-                if (!CreateNewAmmoStack(ammoType, ammoName, newStackAmount))
+                if (!CreateNewAmmoStack(ammoType, ammoName, newStackAmount, ammoIcon, itemPrefab))
                 {
                     Debug.LogWarning($"ConsumableManager: Failed to create new ammo stack. Remaining: {remainingAmount}");
                     break;
@@ -271,7 +272,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Create a new ammo stack
         /// </summary>
-        private bool CreateNewAmmoStack(string ammoType, string ammoName, int quantity)
+        private bool CreateNewAmmoStack(string ammoType, string ammoName, int quantity, Sprite ammoIcon, GameObject itemPrefab)
         {
             // Find empty space
             Vector2Int emptyPos = _inventory.FindEmptySpace(1, 1); // Ammo takes 1x1 grid
@@ -280,6 +281,8 @@ namespace Resonance.Player.Inventory
                 Debug.LogWarning("ConsumableManager: No empty space for new ammo stack");
                 return false;
             }
+            
+            Debug.Log($"ConsumableManager: CreateNewAmmoStack - ammoIcon = {(ammoIcon != null ? ammoIcon.name : "NULL")}, itemPrefab = {(itemPrefab != null ? itemPrefab.name : "NULL")}");
             
             // Create new ammo data
             var ammoData = new GridCellData
@@ -292,10 +295,14 @@ namespace Resonance.Player.Inventory
                 GridWidth = 1,
                 GridHeight = 1,
                 GridPosition = emptyPos,
-                Rotation = 0
+                Rotation = 0,
+                ItemIcon = ammoIcon,      // ✅ 添加 ItemIcon
+                ItemPrefab = itemPrefab   // ✅ 添加 ItemPrefab
             };
             
             ammoData.CustomData["ammoType"] = ammoType;
+            
+            Debug.Log($"ConsumableManager: Created GridCellData - ItemIcon = {(ammoData.ItemIcon != null ? ammoData.ItemIcon.name : "NULL")}, ItemPrefab = {(ammoData.ItemPrefab != null ? ammoData.ItemPrefab.name : "NULL")}");
             
             // Add to inventory
             return _inventory.AddItemToGrid(ammoData, emptyPos);

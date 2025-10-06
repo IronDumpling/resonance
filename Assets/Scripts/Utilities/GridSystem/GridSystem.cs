@@ -562,6 +562,12 @@ namespace Resonance.Utilities
                 
                 // Add GridItemVisual
                 visual = visualObj.AddComponent<GridItemVisual>();
+
+                RectTransform containerRect = visualObj.GetComponent<RectTransform>();
+                containerRect.anchorMin = new Vector2(0, 1); // Top-left
+                containerRect.anchorMax = new Vector2(0, 1); // Top-left
+                containerRect.anchoredPosition = Vector2.zero;
+                containerRect.pivot = new Vector2(0, 1);     // Top-left pivot
             }
             else
             {
