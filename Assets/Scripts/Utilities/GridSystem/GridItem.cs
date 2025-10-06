@@ -25,6 +25,7 @@ namespace Resonance.Utilities
         public bool isRotated = false; // 是否旋转了90度
         
         [Header("Visual Properties")]
+        public GameObject itemPrefab; // Prefab instance to display in grid
         public Color itemColor = Color.white;
         public bool isSelected = false;
         public bool isDragging = false;

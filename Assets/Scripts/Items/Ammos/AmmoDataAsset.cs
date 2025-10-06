@@ -23,6 +23,7 @@ namespace Resonance.Items
         
         [Header("Visual")]
         public Sprite ammoIcon;
+        public GameObject itemPrefab;
         
         [Header("Inventory")]
         public int gridWidth = 1;

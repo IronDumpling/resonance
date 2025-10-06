@@ -601,13 +601,14 @@ GameObject:
   - component: {fileID: 2109839858580066483}
   - component: {fileID: 6001528706004148910}
   - component: {fileID: 2776817302638396789}
+  - component: {fileID: 4201726829246871464}
   m_Layer: 5
   m_Name: PlayerStatusPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2109839858580066483
 RectTransform:
   m_ObjectHideFlags: 0
@@ -669,6 +670,39 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &4201726829246871464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4333882429809776053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83fbbf9e2affa4b478322f178c9ddda0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.UI.PlayerStatusPanel
+  _panelName: PlayerStatusPanel
+  _layer: 20
+  _hideOnStart: 1
+  _weaponPanel: {fileID: 8334360890598681250}
+  _healthPanel: {fileID: 9189781997542411716}
+  _resiliencePanel: {fileID: 3183528282096492870}
+  _coreEnergyPanel: {fileID: 4001972575734816262}
+  _weaponIcon: {fileID: 6477202900115034517}
+  _ammoCount: {fileID: 6556006141127491016}
+  _healthValue: {fileID: 4634895308881518050}
+  _resilienceBackground: {fileID: 2063580350865281140}
+  _resilienceValue: {fileID: 1998602154112738807}
+  _coreEnergyBackground: {fileID: 5722318912998874996}
+  _coreEnergyCurrentValue: {fileID: 2762765002202078422}
+  _coreEnergyLockedValue: {fileID: 2378975911766258947}
+  _coreSlotsContainer: {fileID: 6139904763689746121}
+  _dividerPrefab: {fileID: 7699155110390338235, guid: 98c4feb08d875e14eb6b9cf64f8684b3, type: 3}
+  _healthyHealthSprite: {fileID: 21300000, guid: 9c5ae82e62111574ab4afd1ac26bc145, type: 3}
+  _injuredHealthSprite: {fileID: 21300000, guid: 47443376564467f419d9f450a6f8de52, type: 3}
+  _woundedHealthSprite: {fileID: 21300000, guid: f41200d721dde4343862d285fdd54194, type: 3}
+  _criticalHealthSprite: {fileID: 21300000, guid: cade78c40724dde4393839d7fe6f1afb, type: 3}
 --- !u!1 &6139904763689746121
 GameObject:
   m_ObjectHideFlags: 0
@@ -823,11 +857,10 @@ MonoBehaviour:
   _layer: 10
   _hideOnStart: 1
   _waveModulePanel: {fileID: 1617680430708693502}
-  _playerStatusPanel: {fileID: 0}
-  _inventoryGridPanel: {fileID: 0}
+  _playerStatusPanel: {fileID: 4201726829246871464}
+  _inventoryGridPanel: {fileID: 8682364681743588092}
   _gridSystem: {fileID: 9105550924298924834}
-  _gridSlotPrefab: {fileID: 2113098298717480440, guid: 576a8d4b152edb34d95919fd8c0b106b, type: 3}
-  _itemInfoPanel: {fileID: 0}
+  _itemInfoPanel: {fileID: 7389018244650382275}
   _waveModuleName: {fileID: 0}
   _waveModuleDescription: {fileID: 0}
   _waveModuleIcon: {fileID: 0}
@@ -866,8 +899,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -5, y: 0}
-  m_SizeDelta: {x: -30, y: -20}
+  m_AnchoredPosition: {x: -95, y: 0}
+  m_SizeDelta: {x: -210, y: -20}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &931532609336854002
 CanvasRenderer:
@@ -919,12 +952,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2398efaa6e9ae5544acd4382a5b3bcb9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.Utilities.GridSystem
-  _gridWidth: 3
-  _gridHeight: 3
   _slotSize: 100
   _slotSpacing: 2
   _slotPrefab: {fileID: 2113098298717480440, guid: 576a8d4b152edb34d95919fd8c0b106b, type: 3}
-  _itemPrefab: {fileID: 0}
   _gridColor: {r: 1, g: 1, b: 1, a: 1}
   _occupiedColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   _highlightColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
@@ -1277,7 +1307,7 @@ GameObject:
   - component: {fileID: 6828351618215240192}
   - component: {fileID: 8749451398913870995}
   m_Layer: 5
-  m_Name: InventoryPanel
+  m_Name: InventoryGridPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1353,13 +1383,14 @@ GameObject:
   - component: {fileID: 9002162423746576008}
   - component: {fileID: 7331057653009091175}
   - component: {fileID: 1098349665967066274}
+  - component: {fileID: 7389018244650382275}
   m_Layer: 5
   m_Name: ItemInfoPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &9002162423746576008
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1417,6 +1448,25 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7389018244650382275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8790781594268260135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a099b240808a06040914a1412f0528ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.UI.InfoPanel
+  _panelName: InfoPanel
+  _layer: 20
+  _hideOnStart: 1
+  _infoName: {fileID: 0}
+  _infoContent: {fileID: 0}
+  _infoImage: {fileID: 0}
+  _closeButton: {fileID: 0}
 --- !u!1 &9189781997542411716
 GameObject:
   m_ObjectHideFlags: 0

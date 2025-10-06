@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Resonance.Player.Core;
 using Resonance.Player.Inventory;
 using System.Collections.Generic;
@@ -13,25 +14,28 @@ namespace Resonance.Utilities
     public class GridSystem : MonoBehaviour, IGridSystem
     {
         [Header("Grid Configuration")]
-        [SerializeField] private int _gridWidth = 10;
-        [SerializeField] private int _gridHeight = 6;
         [SerializeField] private float _slotSize = 64f;
         [SerializeField] private float _slotSpacing = 2f;
         
         [Header("Prefabs")]
         [SerializeField] private GameObject _slotPrefab;
-        [SerializeField] private GameObject _itemPrefab;
         
         [Header("Visual Settings")]
         [SerializeField] private Color _gridColor = Color.white;
         [SerializeField] private Color _occupiedColor = Color.gray;
         [SerializeField] private Color _highlightColor = Color.yellow;
         
-        // 核心数据
+        private int _gridWidth;
+        private int _gridHeight;
         private GridSlot[,] _slots;
         private List<GridItem> _items = new List<GridItem>();
+        private Dictionary<int, GridItemVisual> _itemVisuals = new Dictionary<int, GridItemVisual>(); // itemID -> visual
         private GridItem _selectedItem;
+        private GridItemVisual _selectedVisual;
         private bool _isInitialized = false;
+        
+        // Container for item visuals
+        private Transform _itemVisualsContainer;
         
         // 属性
         public int GridWidth => _gridWidth;
@@ -47,22 +51,30 @@ namespace Resonance.Utilities
         public System.Action<GridItem> OnItemSelected { get; set; }
         public System.Action<GridItem> OnItemDeselected { get; set; }
         
-        private void Awake()
-        {
-            InitializeGrid();
-        }
-        
         /// <summary>
-        /// 初始化网格系统
+        /// Initialize grid system with specified size
         /// </summary>
-        public void InitializeGrid()
+        /// <param name="width">Grid width (from PlayerBaseStats)</param>
+        /// <param name="height">Grid height (from PlayerBaseStats)</param>
+        public void InitializeGrid(int width, int height)
         {
-            if (_isInitialized) return;
+            if (_isInitialized)
+            {
+                Debug.LogWarning("GridSystem: Already initialized");
+                return;
+            }
+            
+            // Override with provided dimensions
+            _gridWidth = width;
+            _gridHeight = height;
             
             Debug.Log($"GridSystem: Initializing grid {_gridWidth}x{_gridHeight}");
             
             // 创建槽位数组
             _slots = new GridSlot[_gridWidth, _gridHeight];
+            
+            // 创建 item visuals 容器（在槽位之上渲染）
+            CreateItemVisualsContainer();
             
             // 创建槽位对象
             CreateSlots();
@@ -72,6 +84,45 @@ namespace Resonance.Utilities
             
             _isInitialized = true;
             Debug.Log("GridSystem: Initialization complete");
+        }
+        
+        /// <summary>
+        /// 初始化网格系统（使用默认尺寸）
+        /// </summary>
+        public void InitializeGrid()
+        {
+            InitializeGrid(_gridWidth, _gridHeight);
+        }
+        
+        /// <summary>
+        /// 创建物品视觉容器
+        /// </summary>
+        private void CreateItemVisualsContainer()
+        {
+            GameObject containerObj = new GameObject("ItemVisualsContainer");
+            _itemVisualsContainer = containerObj.transform;
+            _itemVisualsContainer.SetParent(transform, false);
+            
+            // Set as last child so items render on top of slots
+            _itemVisualsContainer.SetAsLastSibling();
+            
+            // Set up RectTransform to cover entire grid area
+            RectTransform containerRect = containerObj.AddComponent<RectTransform>();
+            
+            // Use top-left anchor
+            containerRect.anchorMin = new Vector2(0, 1); // Top-left
+            containerRect.anchorMax = new Vector2(0, 1); // Top-left
+            containerRect.pivot = new Vector2(0, 1);     // Top-left pivot
+            
+            // Position at (0, 0) from top-left
+            containerRect.anchoredPosition = Vector2.zero;
+            
+            // Calculate size to cover entire grid
+            float totalWidth = _gridWidth * _slotSize + (_gridWidth - 1) * _slotSpacing;
+            float totalHeight = _gridHeight * _slotSize + (_gridHeight - 1) * _slotSpacing;
+            containerRect.sizeDelta = new Vector2(totalWidth, totalHeight);
+            
+            Debug.Log($"GridSystem: Created item visuals container with size {totalWidth}x{totalHeight}");
         }
         
         /// <summary>
@@ -157,6 +208,7 @@ namespace Resonance.Utilities
             if (item.gridPosition.x >= 0 && item.gridPosition.y >= 0)
             {
                 RemoveItemFromSlots(item);
+                // Don't destroy visual here, we'll update it
             }
             
             // 设置新位置
@@ -170,6 +222,9 @@ namespace Resonance.Utilities
             
             // 更新槽位
             UpdateSlotsForItem(item);
+            
+            // Create or update visual representation
+            CreateOrUpdateItemVisual(item);
             
             OnItemPlaced?.Invoke(item);
             Debug.Log($"GridSystem: Placed item {item.itemName} at {position}");
@@ -207,6 +262,10 @@ namespace Resonance.Utilities
             {
                 // 更新槽位
                 UpdateSlotsForItem(item);
+                
+                // Update visual representation
+                CreateOrUpdateItemVisual(item);
+                
                 OnItemRotated?.Invoke(item);
                 Debug.Log($"GridSystem: Rotated item {item.itemName}");
                 return true;
@@ -226,6 +285,9 @@ namespace Resonance.Utilities
             
             RemoveItemFromSlots(item);
             _items.Remove(item);
+            
+            // Destroy visual representation
+            DestroyItemVisual(item);
             
             OnItemRemoved?.Invoke(item);
             Debug.Log($"GridSystem: Removed item {item.itemName}");
@@ -306,33 +368,57 @@ namespace Resonance.Utilities
             return true;
         }
         
-        public void SelectItem(GridItem item)
+        /// <summary>
+        /// Select item visual (internal method)
+        /// </summary>
+        private void SelectItemVisual(GridItemVisual visual)
         {
-            if (_selectedItem == item) return;
+            if (visual == null) return;
             
-            // 取消之前的选择
-            if (_selectedItem != null)
+            // Deselect previous
+            if (_selectedVisual != null)
             {
-                _selectedItem.isSelected = false;
-                OnItemDeselected?.Invoke(_selectedItem);
+                _selectedVisual.SetSelected(false);
             }
             
-            // 选择新物品
-            _selectedItem = item;
-            if (_selectedItem != null)
+            // Select new
+            _selectedVisual = visual;
+            _selectedItem = visual.GridItem;
+            _selectedVisual.SetSelected(true);
+            
+            OnItemSelected?.Invoke(_selectedItem);
+            Debug.Log($"GridSystem: Selected item {_selectedItem.itemName}");
+        }
+        
+        /// <summary>
+        /// Select item by GridItem (public API for external use)
+        /// </summary>
+        public void SelectItem(GridItem item)
+        {
+            if (item == null)
             {
-                _selectedItem.isSelected = true;
-                OnItemSelected?.Invoke(_selectedItem);
+                DeselectItem();
+                return;
+            }
+            
+            if (_itemVisuals.TryGetValue(item.itemID, out GridItemVisual visual))
+            {
+                SelectItemVisual(visual);
             }
         }
         
+        /// <summary>
+        /// Deselect current item
+        /// </summary>
         public void DeselectItem()
         {
-            if (_selectedItem != null)
+            if (_selectedVisual != null)
             {
-                _selectedItem.isSelected = false;
+                _selectedVisual.SetSelected(false);
                 OnItemDeselected?.Invoke(_selectedItem);
+                _selectedVisual = null;
                 _selectedItem = null;
+                Debug.Log("GridSystem: Deselected item");
             }
         }
         
@@ -380,14 +466,133 @@ namespace Resonance.Utilities
             }
         }
         
+        /// <summary>
+        /// 创建或更新物品的视觉表现
+        /// </summary>
+        private void CreateOrUpdateItemVisual(GridItem item)
+        {
+            if (item == null || _itemVisualsContainer == null) return;
+            
+            // Check if visual already exists
+            if (_itemVisuals.TryGetValue(item.itemID, out GridItemVisual existingVisual))
+            {
+                // Update existing visual
+                existingVisual.UpdateSizeAndPosition();
+                Debug.Log($"GridSystem: Updated visual for item {item.itemName}");
+            }
+            else
+            {
+                // Instantiate the item prefab or create fallback
+                GameObject visualObj = null;
+                GridItemVisual visual = null;
+                
+                if (item.itemPrefab != null)
+                {
+                    // Instantiate the prefab (which should already have GridItemVisual and Button components)
+                    visualObj = Instantiate(item.itemPrefab, _itemVisualsContainer);
+                    visualObj.name = $"ItemVisual_{item.itemID}_{item.itemName}";
+                    
+                    // Get or add GridItemVisual component
+                    visual = visualObj.GetComponent<GridItemVisual>();
+                    if (visual == null)
+                    {
+                        visual = visualObj.AddComponent<GridItemVisual>();
+                        Debug.LogWarning($"GridSystem: ItemPrefab for {item.itemName} doesn't have GridItemVisual component. Adding it.");
+                    }
+                }
+                else
+                {
+                    // Fallback: Create simple visual with icon
+                    Debug.LogWarning($"GridSystem: No prefab found for {item.itemName}, creating fallback visual");
+                    visualObj = new GameObject($"ItemVisual_{item.itemID}_{item.itemName}");
+                    
+                    // Add Image for icon
+                    Image iconImage = visualObj.AddComponent<Image>();
+                    iconImage.sprite = item.itemIcon;
+                    iconImage.color = item.itemColor;
+                    
+                    // Add Button for interaction
+                    Button button = visualObj.AddComponent<Button>();
+                    
+                    // Add GridItemVisual
+                    visual = visualObj.AddComponent<GridItemVisual>();
+                }
+                
+                // Subscribe to click event
+                visual.OnItemClicked += OnItemVisualClicked;
+                
+                // Initialize the visual
+                visual.Initialize(item, _slotSize, _itemVisualsContainer);
+                
+                // Store reference
+                _itemVisuals[item.itemID] = visual;
+                
+                Debug.Log($"GridSystem: Created visual for item {item.itemName} (Prefab: {item.itemPrefab != null})");
+            }
+        }
+        
+        /// <summary>
+        /// 销毁物品的视觉表现
+        /// </summary>
+        private void DestroyItemVisual(GridItem item)
+        {
+            if (item == null) return;
+            
+            if (_itemVisuals.TryGetValue(item.itemID, out GridItemVisual visual))
+            {
+                // Unsubscribe from events
+                if (visual != null)
+                {
+                    visual.OnItemClicked -= OnItemVisualClicked;
+                }
+                
+                // Clear selection if this was selected
+                if (_selectedVisual == visual)
+                {
+                    _selectedVisual = null;
+                    _selectedItem = null;
+                }
+                
+                _itemVisuals.Remove(item.itemID);
+                if (visual != null)
+                {
+                    Destroy(visual.gameObject);
+                }
+                Debug.Log($"GridSystem: Destroyed visual for item {item.itemName}");
+            }
+        }
+        
         #endregion
         
         #region Event Handlers
         
+        /// <summary>
+        /// Handle grid slot clicked (empty slot or background)
+        /// </summary>
         private void OnSlotClicked(GridSlot slot)
         {
-            GridItem item = GetItemAt(slot.GridPosition);
-            SelectItem(item);
+            // Clicking on empty slot deselects current item
+            DeselectItem();
+        }
+        
+        /// <summary>
+        /// Handle item visual clicked
+        /// </summary>
+        private void OnItemVisualClicked(GridItemVisual visual)
+        {
+            if (visual == null || visual.GridItem == null) return;
+            
+            // Toggle selection
+            if (_selectedVisual == visual)
+            {
+                // Clicked on already selected item - deselect
+                DeselectItem();
+            }
+            else
+            {
+                // Select this item
+                SelectItemVisual(visual);
+            }
         }
         
         private void OnSlotHovered(GridSlot slot)
@@ -414,6 +619,16 @@ namespace Resonance.Utilities
             {
                 RemoveItem(item);
             }
+            
+            // Ensure all visuals are cleaned up
+            foreach (var visual in _itemVisuals.Values)
+            {
+                if (visual != null)
+                {
+                    Destroy(visual.gameObject);
+                }
+            }
+            _itemVisuals.Clear();
         }
         
         /// <summary>

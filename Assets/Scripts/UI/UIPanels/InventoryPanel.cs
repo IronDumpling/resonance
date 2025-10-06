@@ -32,12 +32,11 @@ namespace Resonance.UI
         
         [Header("Grid System")]
         [SerializeField] private GridSystem _gridSystem;
-        [SerializeField] private GameObject _gridSlotPrefab;
         
         [Header("Item Info Panel")]
         [SerializeField] private InfoPanel _itemInfoPanel;
         
-        [Header("Wave Module Panel (Placeholder)")]
+        [Header("Wave Module Panel")]
         [SerializeField] private TextMeshProUGUI _waveModuleName;
         [SerializeField] private TextMeshProUGUI _waveModuleDescription;
         [SerializeField] private Image _waveModuleIcon;
@@ -87,7 +86,7 @@ namespace Resonance.UI
             
             // Auto-find item info panel
             if (_itemInfoPanel == null)
-                _itemInfoPanel = GetComponentInChildren<InfoPanel>();
+                _itemInfoPanel = GetComponentInChildren<InfoPanel>();       
             
             // Auto-find wave module components
             if (_waveModuleName == null && _waveModulePanel != null)
@@ -181,6 +180,13 @@ namespace Resonance.UI
                 return;
             }
             
+            // Get grid size from PlayerInventory (which comes from PlayerBaseStats)
+            int gridWidth = _playerInventory != null ? _playerInventory.GridWidth : 5;
+            int gridHeight = _playerInventory != null ? _playerInventory.GridHeight : 5;
+            
+            // Initialize grid with proper size
+            _gridSystem.InitializeGrid(gridWidth, gridHeight);
+            
             // Subscribe to grid system events
             _gridSystem.OnItemSelected += OnItemSelected;
             _gridSystem.OnItemDeselected += OnItemDeselected;
@@ -190,7 +196,7 @@ namespace Resonance.UI
             // Initialize grid with player inventory items
             LoadInventoryItemsToGrid();
             
-            Debug.Log("InventoryPanel: Grid system initialized");
+            Debug.Log($"InventoryPanel: Grid system initialized with size {gridWidth}x{gridHeight}");
         }
 
         private void SubscribeToPlayerEvents()
@@ -383,6 +389,10 @@ namespace Resonance.UI
                 gridItem.Rotate(); // Apply rotation if needed
             }
             
+            // Set visual data
+            gridItem.itemIcon = cellData.ItemIcon;
+            gridItem.itemPrefab = cellData.ItemPrefab;
+            
             // Store additional data
             gridItem.customData["quantity"] = cellData.Quantity;
             gridItem.customData["maxStackSize"] = cellData.MaxStackSize;
@@ -400,9 +410,31 @@ namespace Resonance.UI
 
         private void SyncGridToInventory()
         {
-            // This method would sync grid changes back to the player inventory
-            // For now, we'll keep it simple and just log
-            Debug.Log("InventoryPanel: Syncing grid changes to inventory");
+            if (_playerInventory == null || _gridSystem == null) return;
+            
+            // Sync grid item positions/rotations back to PlayerInventory
+            var allGridItems = _gridSystem.GetAllItems();
+            foreach (var gridItem in allGridItems)
+            {
+                var inventoryItem = _playerInventory.GetItemByID(gridItem.itemID);
+                if (inventoryItem != null)
+                {
+                    // Update position if changed
+                    if (inventoryItem.GridPosition != gridItem.gridPosition)
+                    {
+                        _playerInventory.MoveItemInGrid(gridItem.itemID, gridItem.gridPosition);
+                    }
+                    
+                    // Update rotation if changed
+                    int targetRotation = gridItem.isRotated ? 90 : 0;
+                    if (inventoryItem.Rotation != targetRotation)
+                    {
+                        _playerInventory.RotateItemInGrid(gridItem.itemID);
+                    }
+                }
+            }
+            
+            Debug.Log("InventoryPanel: Synced grid changes to inventory");
         }
 
         private void RefreshGridDisplay()
@@ -417,8 +449,8 @@ namespace Resonance.UI
         private void UpdateAllUI()
         {
             UpdateWaveModulePanel();
-            UpdatePlayerStatusPanel();
-            UpdateItemInfoPanel(_selectedItem);
+            // UpdatePlayerStatusPanel();
+            // UpdateItemInfoPanel(_selectedItem);
         }
 
         private void UpdateWaveModulePanel()
@@ -463,25 +495,20 @@ namespace Resonance.UI
             var infoData = ScriptableObject.CreateInstance<InfoDataAsset>();
             // infoData.infoName = item.itemName;
             // infoData.infoContent = $"Type: {item.itemType}\nSize: {item.CurrentWidth}x{item.CurrentHeight}\nID: {item.itemID}";
-            // infoData.infoImage = item.itemIcon; // Uncomment when you have item icons
+            
+            // // Add quantity and ammo info if available
+            // if (item.customData.ContainsKey("quantity"))
+            // {
+            //     infoData.infoContent += $"\nQuantity: {item.customData["quantity"]}";
+            // }
+            // if (item.itemType == ItemType.Weapon && item.customData.ContainsKey("currentAmmo"))
+            // {
+            //     infoData.infoContent += $"\nAmmo: {item.customData["currentAmmo"]}/{item.customData["maxAmmo"]}";
+            // }
+            
+            // infoData.infoImage = item.itemIcon;
             
             return infoData;
-        }
-
-        #endregion
-
-        #region Input Handling
-
-        private void HandleInventoryInput()
-        {
-            if (_inputService == null || !_inputService.IsInventoryMode) return;
-            
-            // Handle item movement
-            Vector2 moveInput = Vector2.zero;
-            // This would be connected to the input service events
-            
-            // Handle item rotation
-            // This would be connected to the input service events
         }
 
         #endregion

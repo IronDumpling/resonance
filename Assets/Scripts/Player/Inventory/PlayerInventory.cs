@@ -25,33 +25,39 @@ namespace Resonance.Player.Inventory
     [System.Serializable]
     public class GridCellData
     {
-        // 基础信息
+        // Basic information
         public int ItemID { get; set; }
         public string ItemName { get; set; }
         public ItemType ItemType { get; set; }
         
-        // 堆叠信息
+        // Stack information
         public int Quantity { get; set; }
         public int MaxStackSize { get; set; }
         
-        // 空间信息
+        // Grid information
         public int GridWidth { get; set; }
         public int GridHeight { get; set; }
         public int Rotation { get; set; } // 0, 90, 180, 270
-        public Vector2Int GridPosition { get; set; } // 起始位置
+        public Vector2Int GridPosition { get; set; } // Starting position
+
+        // Visual data 
+        public Sprite ItemIcon { get; set; }
+        public GameObject ItemPrefab { get; set; }
         
-        // 装备状态
+        // Equipped status
         public bool IsEquipped { get; set; }
         
-        // 武器特有数据
+        // Weapon-specific data
         public int CurrentAmmo { get; set; }
         public string AmmoType { get; set; }
         public int MaxAmmo { get; set; }
         
-        // 额外数据
+        // Extra data
         public string AssetPath { get; set; }
         public float Durability { get; set; }
         public Dictionary<string, object> CustomData { get; set; }
+        
+
         
         public GridCellData()
         {
@@ -63,7 +69,7 @@ namespace Resonance.Player.Inventory
         }
 
         /// <summary>
-        /// 计算当前宽度（考虑旋转）
+        /// Calculate current width (considering rotation)
         /// </summary>
         public int GetCurrentWidth()
         {
@@ -71,7 +77,7 @@ namespace Resonance.Player.Inventory
         }
         
         /// <summary>
-        /// 计算当前高度（考虑旋转）
+        /// Calculate current height
         /// </summary>
         public int GetCurrentHeight()
         {
@@ -79,7 +85,7 @@ namespace Resonance.Player.Inventory
         }
 
         /// <summary>
-        /// 获取占用的所有格子位置
+        /// Get all occupied grid positions
         /// </summary>
         public List<Vector2Int> GetOccupiedPositions()
         {

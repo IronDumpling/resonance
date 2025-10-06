@@ -39,6 +39,7 @@ namespace Resonance.Items
         
         [Header("Visual")]
         public Sprite weaponIcon;
+        public GameObject itemPrefab; // Prefab to display in inventory grid
         
         [Header("Inventory")]
         public int gridWidth = 2;
