@@ -22,8 +22,8 @@ MonoBehaviour:
   _runSpeed: 5
   _aimMoveSpeed: 2
   _reloadMoveSpeed: 2.5
-  _inventoryGridWidth: 5
-  _inventoryGridHeight: 5
+  _inventoryGridWidth: 3
+  _inventoryGridHeight: 3
   _moduleSlots: 3
   _interactionRange: 2
   _interactionLayerMask:
