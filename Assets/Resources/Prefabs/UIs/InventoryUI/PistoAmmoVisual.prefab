@@ -270,10 +270,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9204c1bb088cac04199dc0de1d100401, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.Utilities.GridItemVisual
-  _rectTransform: {fileID: 0}
+  _rectTransform: {fileID: 4160597316386358142}
+  _button: {fileID: 555266432305815107}
+  _quantityText: {fileID: 449797971814831372}
   _canvasGroup: {fileID: 0}
-  _button: {fileID: 0}
-  _selectionOutline: {fileID: 0}
-  _normalColor: {r: 1, g: 1, b: 1, a: 1}
-  _selectedColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-  _dragColor: {r: 1, g: 1, b: 1, a: 0.6}
+  _normalAlpha: 0.95
+  _selectedAlpha: 1
+  _dragAlpha: 0.7

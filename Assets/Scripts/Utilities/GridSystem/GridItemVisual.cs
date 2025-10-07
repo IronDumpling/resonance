@@ -11,22 +11,21 @@ namespace Resonance.Utilities
     /// </summary>
     public class GridItemVisual : MonoBehaviour
     {
-        [Header("Components")]
+        [Header("Item Components")]
         [SerializeField] private RectTransform _rectTransform;
-        [SerializeField] private CanvasGroup _canvasGroup;
         [SerializeField] private Button _button;
-        [SerializeField] private Image _selectionOutline;
         [SerializeField] private TextMeshProUGUI _quantityText;
         
-        [Header("Visual Settings")]
-        [SerializeField] private Color _normalColor = Color.white;
-        [SerializeField] private Color _selectedColor = Color.yellow;
-        [SerializeField] private Color _dragColor = new Color(1f, 1f, 1f, 0.6f);
-        
+        [Header("Alpha Settings")]
+        [SerializeField] private CanvasGroup _canvasGroup;
+        [SerializeField] private float _normalAlpha = 0.95f;
+        [SerializeField] private float _selectedAlpha = 1f;
+        [SerializeField] private float _dragAlpha = 0.7f;
+
         private GridItem _gridItem;
         private float _slotSize;
         private bool _isSelected = false;
-        
+
         // Events
         public System.Action<GridItemVisual> OnItemClicked;
         
@@ -85,11 +84,11 @@ namespace Resonance.Utilities
             
             // Set parent
             transform.SetParent(parent, false);
-            
-            // Create selection outline
-            if (_selectionOutline == null)
+
+            // Set normal alpha
+            if (_canvasGroup != null)
             {
-                CreateSelectionOutline();
+                _canvasGroup.alpha = _normalAlpha;
             }
             
             // Update size and position
@@ -148,17 +147,10 @@ namespace Resonance.Utilities
         {
             _isSelected = selected;
             
-            // Update selection outline
-            if (_selectionOutline != null)
-            {
-                _selectionOutline.enabled = selected;
-                _selectionOutline.color = _selectedColor;
-            }
-            
             // Update alpha
             if (_canvasGroup != null)
             {
-                _canvasGroup.alpha = selected ? 1f : 0.9f;
+                _canvasGroup.alpha = selected ? _selectedAlpha : _normalAlpha;
             }
             
             // Update grid item state
@@ -175,7 +167,7 @@ namespace Resonance.Utilities
         {
             if (_canvasGroup != null)
             {
-                _canvasGroup.alpha = dragging ? 0.6f : 1f;
+                _canvasGroup.alpha = dragging ? _dragAlpha : _normalAlpha;
                 _canvasGroup.blocksRaycasts = !dragging;
             }
             
@@ -184,30 +176,6 @@ namespace Resonance.Utilities
             {
                 _gridItem.isDragging = dragging;
             }
-        }
-        
-        /// <summary>
-        /// Create selection outline if needed
-        /// </summary>
-        private void CreateSelectionOutline()
-        {
-            // Create outline GameObject
-            GameObject outlineObj = new GameObject("SelectionOutline");
-            outlineObj.transform.SetParent(transform, false);
-            
-            _selectionOutline = outlineObj.AddComponent<Image>();
-            _selectionOutline.color = _selectedColor;
-            _selectionOutline.enabled = false; // Hidden by default
-            
-            // Set as first child so it renders behind the item
-            outlineObj.transform.SetAsFirstSibling();
-            
-            // Configure rect transform to be slightly larger
-            RectTransform outlineRect = outlineObj.GetComponent<RectTransform>();
-            outlineRect.anchorMin = Vector2.zero;
-            outlineRect.anchorMax = Vector2.one;
-            outlineRect.offsetMin = new Vector2(-4, -4); // 4px padding
-            outlineRect.offsetMax = new Vector2(4, 4);
         }
         
         /// <summary>
