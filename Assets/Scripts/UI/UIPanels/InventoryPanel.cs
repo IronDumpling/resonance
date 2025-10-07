@@ -34,7 +34,7 @@ namespace Resonance.UI
         [SerializeField] private GridSystem _gridSystem;
         
         [Header("Item Info Panel")]
-        [SerializeField] private InfoPanel _itemInfoPanel;
+        [SerializeField] private GameObject _itemInfoPanel;
         
         [Header("Wave Module Panel")]
         [SerializeField] private TextMeshProUGUI _waveModuleName;
@@ -86,7 +86,7 @@ namespace Resonance.UI
             
             // Auto-find item info panel
             if (_itemInfoPanel == null)
-                _itemInfoPanel = GetComponentInChildren<InfoPanel>();       
+                _itemInfoPanel = FindChildGameObject("InfoPanel");       
             
             // Auto-find wave module components
             if (_waveModuleName == null && _waveModulePanel != null)
@@ -517,11 +517,11 @@ namespace Resonance.UI
             {
                 // Create InfoDataAsset from GridItem
                 var infoData = CreateInfoDataFromGridItem(item);
-                _itemInfoPanel.DisplayInfoData(infoData);
+                // _itemInfoPanel.DisplayInfoData(infoData);
             }
             else
             {
-                _itemInfoPanel.DisplayInfoData(null);
+                // _itemInfoPanel.DisplayInfoData(null);
             }
         }
 

@@ -32,11 +32,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1332799782203523848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -250, y: -350}
-  m_SizeDelta: {x: 500, y: 400}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: -600, y: -300}
+  m_SizeDelta: {x: -1400, y: 900}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &6769062636915665744
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -92,8 +92,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 50
+  m_fontSizeBase: 50
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -333,9 +333,6 @@ MonoBehaviour:
   _panelName: InfoPanel
   _layer: 10
   _hideOnStart: 1
-  _mainCanvasGroup: {fileID: 0}
-  _uiComponents: []
-  _componentCanvasGroups: []
   _infoName: {fileID: 1819798785491097464}
   _infoContent: {fileID: 8296754958940250702}
   _infoImage: {fileID: 3326763190097563992}
@@ -508,11 +505,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1332799782203523848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 250, y: -350}
-  m_SizeDelta: {x: 500, y: 400}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 600, y: -300}
+  m_SizeDelta: {x: -1400, y: 900}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &6602202903157024009
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -704,10 +701,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1332799782203523848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: -50}
-  m_SizeDelta: {x: 1000, y: 50}
+  m_SizeDelta: {x: -200, y: 200}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &8567115934113284864
 CanvasRenderer:
@@ -764,8 +761,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 70
+  m_fontSizeBase: 70
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
