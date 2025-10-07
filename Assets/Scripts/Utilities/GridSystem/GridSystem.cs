@@ -282,6 +282,9 @@ namespace Resonance.Utilities
             
             Vector2Int currentPosition = item.gridPosition;
             
+            // 先清除当前占用的槽位
+            RemoveItemFromSlots(item);
+            
             // 临时旋转物品
             item.Rotate(clockwise);
             
@@ -302,6 +305,10 @@ namespace Resonance.Utilities
             {
                 // 旋转失败，恢复原状态
                 item.Rotate(!clockwise);
+                
+                // 恢复原来的槽位占用
+                UpdateSlotsForItem(item);
+                
                 Debug.LogWarning($"GridSystem: Cannot rotate item {item.itemName} - no space");
                 return false;
             }

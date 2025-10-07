@@ -53,11 +53,17 @@ namespace Resonance.UI
         private IPlayerService _playerService;
         private PlayerController _playerController;
         private PlayerInventory _playerInventory;
+        private GridOperationManager _gridOperationManager;
         
         // State tracking
         private bool _isInitialized = false;
         private GridItem _selectedItem;
         private Dictionary<int, GridItem> _inventoryItems = new Dictionary<int, GridItem>();
+        
+        // Input state tracking
+        private Vector2 _currentMoveInput = Vector2.zero;
+        private float _moveInputCooldown = 0.2f; // Cooldown between moves
+        private float _lastMoveTime = 0f;
 
         protected override void Awake()
         {
@@ -151,8 +157,13 @@ namespace Resonance.UI
                 if (_playerController != null)
                 {
                     _playerInventory = _playerController.Inventory;
+                    
+                    // Get GridOperationManager from PlayerController
+                    _gridOperationManager = _playerController.GridOperationManager;
+                    
                     InitializeGridSystem();
                     SubscribeToPlayerEvents();
+                    SubscribeToInputEvents();
                     _isInitialized = true;
                     
                     Debug.Log("InventoryPanel: Initialized successfully");
@@ -231,6 +242,18 @@ namespace Resonance.UI
             _playerInventory.OnItemRemovedFromGrid += OnInventoryItemRemovedFromGrid;
             _playerInventory.OnInventoryChanged += OnInventoryChanged;
         }
+        
+        private void SubscribeToInputEvents()
+        {
+            if (_inputService == null) return;
+            
+            // Subscribe to inventory input events
+            _inputService.OnMoveItem += OnMoveItemInput;
+            _inputService.OnRotateItemLeft += OnRotateItemLeftInput;
+            _inputService.OnRotateItemRight += OnRotateItemRightInput;
+            
+            Debug.Log("InventoryPanel: Subscribed to input events");
+        }
 
         private void UnsubscribeFromPlayerEvents()
         {
@@ -252,6 +275,16 @@ namespace Resonance.UI
             if (_playerService != null)
             {
                 _playerService.OnPlayerRegistered -= OnPlayerRegistered;
+            }
+        }
+        
+        private void UnsubscribeFromInputEvents()
+        {
+            if (_inputService != null)
+            {
+                _inputService.OnMoveItem -= OnMoveItemInput;
+                _inputService.OnRotateItemLeft -= OnRotateItemLeftInput;
+                _inputService.OnRotateItemRight -= OnRotateItemRightInput;
             }
         }
 
@@ -279,6 +312,66 @@ namespace Resonance.UI
             }
             Debug.Log($"InventoryPanel: Item deselected - {item?.itemName ?? "None"}");
         }
+        
+        #region Input Event Handlers
+        
+        private void OnMoveItemInput(Vector2 moveInput)
+        {
+            // Only respond if an item is selected
+            if (_selectedItem == null)
+            {
+                return;
+            }
+            
+            // Store input for processing in Update
+            _currentMoveInput = moveInput;
+        }
+        
+        private void OnRotateItemLeftInput()
+        {
+            // Only respond if an item is selected
+            if (_selectedItem == null)
+            {
+                Debug.Log("InventoryPanel: Cannot rotate - no item selected");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Rotating item {_selectedItem.itemName} left (counter-clockwise)");
+            
+            // Rotate in GridSystem (counter-clockwise)
+            if (_gridSystem.RotateItem(_selectedItem, clockwise: false))
+            {
+                Debug.Log($"InventoryPanel: Successfully rotated {_selectedItem.itemName} left");
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryPanel: Failed to rotate {_selectedItem.itemName} - no space");
+            }
+        }
+        
+        private void OnRotateItemRightInput()
+        {
+            // Only respond if an item is selected
+            if (_selectedItem == null)
+            {
+                Debug.Log("InventoryPanel: Cannot rotate - no item selected");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Rotating item {_selectedItem.itemName} right (clockwise)");
+            
+            // Rotate in GridSystem (clockwise)
+            if (_gridSystem.RotateItem(_selectedItem, clockwise: true))
+            {
+                Debug.Log($"InventoryPanel: Successfully rotated {_selectedItem.itemName} right");
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryPanel: Failed to rotate {_selectedItem.itemName} - no space");
+            }
+        }
+        
+        #endregion
 
         private void OnItemMoved(GridItem item)
         {
@@ -627,18 +720,79 @@ namespace Resonance.UI
         protected override void OnCleanup()
         {
             UnsubscribeFromPlayerEvents();
+            UnsubscribeFromInputEvents();
             _isInitialized = false;
             Debug.Log("InventoryPanel: Cleaned up");
         }
 
         #endregion
+        
+        #region Input Processing
+        
+        /// <summary>
+        /// Process movement input for selected item
+        /// </summary>
+        private void ProcessMoveInput()
+        {
+            if (_selectedItem == null || _currentMoveInput == Vector2.zero)
+            {
+                return;
+            }
+            
+            // Convert normalized input to grid movement (one cell at a time)
+            Vector2Int moveDirection = Vector2Int.zero;
+            
+            // Prioritize horizontal or vertical movement based on which is stronger
+            if (Mathf.Abs(_currentMoveInput.x) > Mathf.Abs(_currentMoveInput.y))
+            {
+                // Horizontal movement
+                moveDirection.x = _currentMoveInput.x > 0 ? 1 : -1;
+            }
+            else
+            {
+                // Vertical movement (inverted Y because grid Y goes down)
+                moveDirection.y = _currentMoveInput.y > 0 ? -1 : 1;
+            }
+            
+            // Calculate new position
+            Vector2Int newPosition = _selectedItem.gridPosition + moveDirection;
+            
+            Debug.Log($"InventoryPanel: Attempting to move {_selectedItem.itemName} from {_selectedItem.gridPosition} to {newPosition}");
+            
+            // Try to move item in GridSystem
+            if (_gridSystem.MoveItem(_selectedItem, newPosition))
+            {
+                Debug.Log($"InventoryPanel: Successfully moved {_selectedItem.itemName} to {newPosition}");
+            }
+            else
+            {
+                Debug.Log($"InventoryPanel: Cannot move {_selectedItem.itemName} to {newPosition} - position blocked or out of bounds");
+            }
+        }
+        
+        #endregion
 
         #region Unity Lifecycle
+        
+        private void Update()
+        {
+            // Process movement input with cooldown
+            if (_selectedItem != null && _currentMoveInput != Vector2.zero && _gridSystem != null)
+            {
+                // Check if enough time has passed since last move
+                if (Time.time - _lastMoveTime >= _moveInputCooldown)
+                {
+                    ProcessMoveInput();
+                    _lastMoveTime = Time.time;
+                }
+            }
+        }
 
         private void OnDestroy()
         {
             CleanupEventListeners();
             UnsubscribeFromPlayerEvents();
+            UnsubscribeFromInputEvents();
         }
 
         private void CleanupEventListeners()
