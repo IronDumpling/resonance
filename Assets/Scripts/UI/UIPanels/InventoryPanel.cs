@@ -35,6 +35,13 @@ namespace Resonance.UI
         
         [Header("Item Info Panel")]
         [SerializeField] private GameObject _itemInfoPanel;
+        [SerializeField] private Image _itemInfoImage;
+        [SerializeField] private TextMeshProUGUI _itemInfoName;
+        [SerializeField] private TextMeshProUGUI _itemInfoContent;
+        [SerializeField] private GameObject _itemInfoButtonContainer;
+        [SerializeField] private Button _itemUseButton;
+        [SerializeField] private Button _itemCombineButton;
+        [SerializeField] private Button _itemDropButton;
         
         [Header("Wave Module Panel")]
         [SerializeField] private TextMeshProUGUI _waveModuleName;
@@ -86,7 +93,21 @@ namespace Resonance.UI
             
             // Auto-find item info panel
             if (_itemInfoPanel == null)
-                _itemInfoPanel = FindChildGameObject("InfoPanel");       
+                _itemInfoPanel = FindChildGameObject("InfoPanel");
+            if (_itemInfoImage == null)
+                _itemInfoImage = FindChildComponent<Image>(_itemInfoPanel, "InfoImage");
+            if (_itemInfoName == null)
+                _itemInfoName = FindChildComponent<TextMeshProUGUI>(_itemInfoPanel, "InfoName");
+            if (_itemInfoContent == null)
+                _itemInfoContent = FindChildComponent<TextMeshProUGUI>(_itemInfoPanel, "InfoContent");
+            if (_itemInfoButtonContainer == null)
+                _itemInfoButtonContainer = FindChildGameObject("InfoButtonContainer");
+            if (_itemUseButton == null)
+                _itemUseButton = FindChildComponent<Button>(_itemInfoPanel, "UseButton");
+            if (_itemCombineButton == null)
+                _itemCombineButton = FindChildComponent<Button>(_itemInfoPanel, "CombineButton");
+            if (_itemDropButton == null)
+                _itemDropButton = FindChildComponent<Button>(_itemInfoPanel, "DropButton");
             
             // Auto-find wave module components
             if (_waveModuleName == null && _waveModulePanel != null)
@@ -485,8 +506,8 @@ namespace Resonance.UI
         private void UpdateAllUI()
         {
             UpdateWaveModulePanel();
-            // UpdatePlayerStatusPanel();
-            // UpdateItemInfoPanel(_selectedItem);
+            UpdatePlayerStatusPanel();
+            UpdateItemInfoPanel(_selectedItem);
         }
 
         private void UpdateWaveModulePanel()
@@ -516,35 +537,24 @@ namespace Resonance.UI
             if (item != null)
             {
                 // Create InfoDataAsset from GridItem
-                var infoData = CreateInfoDataFromGridItem(item);
-                // _itemInfoPanel.DisplayInfoData(infoData);
+                _itemInfoName.text = item.itemName;
+                // _itemInfoContent.text = item.itemDescription;
+                _itemInfoImage.sprite = item.itemIcon;
+                _itemInfoButtonContainer.SetActive(true);
+                // _itemUseButton.onClick.AddListener(OnItemUseButtonClicked);
+                // _itemCombineButton.onClick.AddListener(OnItemCombineButtonClicked);
+                // _itemDropButton.onClick.AddListener(OnItemDropButtonClicked);
             }
             else
             {
-                // _itemInfoPanel.DisplayInfoData(null);
+                _itemInfoName.text = null;
+                _itemInfoContent.text = null;
+                _itemInfoImage.sprite = null;
+                _itemInfoButtonContainer.SetActive(false);
+                // _itemUseButton.onClick.RemoveListener(OnItemUseButtonClicked);
+                // _itemCombineButton.onClick.RemoveListener(OnItemCombineButtonClicked);
+                // _itemDropButton.onClick.RemoveListener(OnItemDropButtonClicked);
             }
-        }
-
-        private InfoDataAsset CreateInfoDataFromGridItem(GridItem item)
-        {
-            // Create a temporary InfoDataAsset for display
-            var infoData = ScriptableObject.CreateInstance<InfoDataAsset>();
-            // infoData.infoName = item.itemName;
-            // infoData.infoContent = $"Type: {item.itemType}\nSize: {item.CurrentWidth}x{item.CurrentHeight}\nID: {item.itemID}";
-            
-            // // Add quantity and ammo info if available
-            // if (item.customData.ContainsKey("quantity"))
-            // {
-            //     infoData.infoContent += $"\nQuantity: {item.customData["quantity"]}";
-            // }
-            // if (item.itemType == ItemType.Weapon && item.customData.ContainsKey("currentAmmo"))
-            // {
-            //     infoData.infoContent += $"\nAmmo: {item.customData["currentAmmo"]}/{item.customData["maxAmmo"]}";
-            // }
-            
-            // infoData.infoImage = item.itemIcon;
-            
-            return infoData;
         }
 
         #endregion
