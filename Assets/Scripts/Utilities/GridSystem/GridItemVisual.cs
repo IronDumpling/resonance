@@ -102,29 +102,41 @@ namespace Resonance.Utilities
         {
             if (_gridItem == null || _rectTransform == null) return;
             
-            // Calculate size in pixels (with spacing)
-            float width = _gridItem.CurrentWidth * _slotSize;
-            float height = _gridItem.CurrentHeight * _slotSize;
+            // Use BASE size (not rotated size) for the visual
+            // We will apply rotation transform to get the correct visual appearance
+            float width = _gridItem.baseWidth * _slotSize;
+            float height = _gridItem.baseHeight * _slotSize;
             
-            // Set size - stretch to cover all occupied slots
+            Debug.Log($"GridItemVisual.UpdateSizeAndPosition: Item {_gridItem.itemName}, " +
+                     $"Base Size: {width}x{height}, Current Size: {_gridItem.CurrentWidth}x{_gridItem.CurrentHeight}, " +
+                     $"Position: {_gridItem.gridPosition}, IsRotated: {_gridItem.isRotated}");
+            
+            // Set size using BASE dimensions
             _rectTransform.sizeDelta = new Vector2(width, height);
             
-            // Set position - aligned to top-left of the first slot
+            // Calculate position
+            // When rotated, we need to adjust the position to account for the visual rotation
             Vector2 position = new Vector2(
                 _gridItem.gridPosition.x * _slotSize,
                 -_gridItem.gridPosition.y * _slotSize
             );
-            _rectTransform.anchoredPosition = position;
             
-            // Apply rotation if needed
+            // Apply visual rotation around top-left corner
             if (_gridItem.isRotated)
             {
                 _rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
+                
+                // Adjust position to account for rotation
+                // When we rotate 90° clockwise around top-left, the item shifts
+                // We need to move it down by its original width
+                position.y -= width;
             }
             else
             {
                 _rectTransform.localRotation = Quaternion.identity;
             }
+            
+            _rectTransform.anchoredPosition = position;
 
             // Update quantity text
             if (_quantityText != null)

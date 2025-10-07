@@ -296,51 +296,70 @@ namespace Resonance.Utilities
         {
             if (item == null || !_items.Contains(item)) return false;
             
-            Vector2Int currentPosition = item.gridPosition;
+            Vector2Int oldPosition = item.gridPosition;
+            int oldWidth = item.CurrentWidth;
+            int oldHeight = item.CurrentHeight;
             
-            // 先清除当前占用的槽位
+            Debug.Log($"GridSystem: RotateItem called - Item: {item.itemName}, Old position: {oldPosition}, Old size: {oldWidth}x{oldHeight}");
+            
+            // Clear current slot occupancy
             RemoveItemFromSlots(item);
             
-            // 临时旋转物品
+            // Rotate the item (this toggles isRotated flag)
             item.Rotate(clockwise);
             
-            // 尝试在当前位置放置
-            if (CanPlaceItem(item, currentPosition))
+            int newWidth = item.CurrentWidth;
+            int newHeight = item.CurrentHeight;
+            
+            Debug.Log($"GridSystem: After rotation - New size: {newWidth}x{newHeight}");
+            
+            // Calculate geometric center of the item before rotation
+            float centerX = oldPosition.x + oldWidth / 2.0f;
+            float centerY = oldPosition.y + oldHeight / 2.0f;
+            
+            Debug.Log($"GridSystem: Geometric center: ({centerX}, {centerY})");
+            
+            // Calculate new top-left position to keep the center as close as possible
+            float newPosX = centerX - newWidth / 2.0f;
+            float newPosY = centerY - newHeight / 2.0f;
+            
+            // Round to nearest grid position
+            Vector2Int newPosition = new Vector2Int(
+                Mathf.RoundToInt(newPosX),
+                Mathf.RoundToInt(newPosY)
+            );
+            
+            Debug.Log($"GridSystem: Calculated new position (before clamping): {newPosition}");
+            
+            // Try to place at the calculated position
+            if (CanPlaceItem(item, newPosition))
             {
-                // 更新槽位
+                item.SetGridPosition(newPosition);
                 UpdateSlotsForItem(item);
-                
-                // Update visual representation
                 CreateOrUpdateItemVisual(item);
                 
                 OnItemRotated?.Invoke(item);
-                Debug.Log($"GridSystem: Rotated item {item.itemName} at original position {currentPosition}");
+                Debug.Log($"GridSystem: Successfully rotated {item.itemName} from {oldPosition} to {newPosition}");
                 return true;
             }
             
-            // 如果原位置不行，尝试调整位置
-            Vector2Int adjustedPosition = FindBestPositionForRotatedItem(item, currentPosition);
+            // If calculated position doesn't work, try nearby positions
+            Debug.Log($"GridSystem: Calculated position {newPosition} doesn't work, searching nearby...");
+            Vector2Int adjustedPosition = FindBestPositionForRotatedItem(item, newPosition);
             if (adjustedPosition.x >= 0 && CanPlaceItem(item, adjustedPosition))
             {
-                // 设置调整后的位置
                 item.SetGridPosition(adjustedPosition);
-                
-                // 更新槽位
                 UpdateSlotsForItem(item);
-                
-                // Update visual representation
                 CreateOrUpdateItemVisual(item);
                 
                 OnItemRotated?.Invoke(item);
-                Debug.Log($"GridSystem: Rotated item {item.itemName} and adjusted position from {currentPosition} to {adjustedPosition}");
+                Debug.Log($"GridSystem: Rotated {item.itemName} and adjusted position from {newPosition} to {adjustedPosition}");
                 return true;
             }
             
-            // 旋转失败，恢复原状态
+            // Rotation failed, restore original state
             item.Rotate(!clockwise);
-            item.SetGridPosition(currentPosition);
-            
-            // 恢复原来的槽位占用
+            item.SetGridPosition(oldPosition);
             UpdateSlotsForItem(item);
             
             Debug.LogWarning($"GridSystem: Cannot rotate item {item.itemName} - no space available");
@@ -450,12 +469,16 @@ namespace Resonance.Utilities
                    position.y >= 0 && position.y < _gridHeight;
         }
         
-        public bool IsAreaEmpty(Vector2Int position, GridItem item)
+        /// <summary>
+        /// Core logic: Check if the specified area is empty
+        /// </summary>
+        /// <param name="position">Top-left position of the area</param>
+        /// <param name="width">Width of the area</param>
+        /// <param name="height">Height of the area</param>
+        /// <param name="excludeItem">Item to exclude from the check (optional)</param>
+        /// <returns>True if the area is empty</returns>
+        private bool IsAreaEmptyCore(Vector2Int position, int width, int height, GridItem excludeItem = null)
         {
-            
-            int width = item.CurrentWidth;
-            int height = item.CurrentHeight;
-            
             if (!IsPositionValid(position)) 
             {
                 Debug.Log($"IsAreaEmpty: Position {position} is invalid");
@@ -468,7 +491,7 @@ namespace Resonance.Utilities
             }
             
             Debug.Log($"IsAreaEmpty: Checking area from {position} to ({position.x + width - 1}, {position.y + height - 1})" + 
-                     (item != null ? $" (excluding {item.itemName})" : ""));
+                     (excludeItem != null ? $" (excluding {excludeItem.itemName})" : ""));
             
             for (int x = position.x; x < position.x + width; x++)
             {
@@ -476,7 +499,7 @@ namespace Resonance.Utilities
                 {
                     Vector2Int checkPos = new Vector2Int(x, y);
                     var itemAtPos = GetItemAt(checkPos);
-                    if (itemAtPos != null && itemAtPos != item)
+                    if (itemAtPos != null && itemAtPos != excludeItem)
                     {
                         Debug.Log($"IsAreaEmpty: Position {checkPos} is occupied by {itemAtPos.itemName}");
                         return false;
@@ -487,39 +510,37 @@ namespace Resonance.Utilities
             Debug.Log($"IsAreaEmpty: Area is empty");
             return true;
         }
+        
+        /// <summary>
+        /// Check if the specified item can be placed at the given position (Polymorphic overload 1)
+        /// </summary>
+        /// <param name="position">Position to place the item</param>
+        /// <param name="item">Item to be placed</param>
+        /// <returns>True if the item can be placed</returns>
+        public bool IsAreaEmpty(Vector2Int position, GridItem item)
+        {
+            if (item == null)
+            {
+                Debug.LogWarning("IsAreaEmpty: Item is null");
+                return false;
+            }
 
+            int width = item.CurrentWidth;
+            int height = item.CurrentHeight;
+            
+            return IsAreaEmptyCore(position, width, height, item);
+        }
+        
+        /// <summary>
+        /// Check if the specified area with given dimensions is empty (Polymorphic overload 2)
+        /// </summary>
+        /// <param name="position">Top-left position of the area</param>
+        /// <param name="width">Width of the area</param>
+        /// <param name="height">Height of the area</param>
+        /// <returns>True if the area is empty</returns>
         public bool IsAreaEmpty(Vector2Int position, int width, int height)
         {
-            
-            if (!IsPositionValid(position)) 
-            {
-                Debug.Log($"IsAreaEmpty: Position {position} is invalid");
-                return false;
-            }
-            if (position.x + width > _gridWidth || position.y + height > _gridHeight) 
-            {
-                Debug.Log($"IsAreaEmpty: Area {position} to ({position.x + width - 1}, {position.y + height - 1}) is out of bounds");
-                return false;
-            }
-            
-            Debug.Log($"IsAreaEmpty: Checking area from {position} to ({position.x + width - 1}, {position.y + height - 1})");
-            
-            for (int x = position.x; x < position.x + width; x++)
-            {
-                for (int y = position.y; y < position.y + height; y++)
-                {
-                    Vector2Int checkPos = new Vector2Int(x, y);
-                    var itemAtPos = GetItemAt(checkPos);
-                    if (itemAtPos != null)
-                    {
-                        Debug.Log($"IsAreaEmpty: Position {checkPos} is occupied by {itemAtPos.itemName}");
-                        return false;
-                    }
-                }
-            }
-            
-            Debug.Log($"IsAreaEmpty: Area is empty");
-            return true;
+            return IsAreaEmptyCore(position, width, height, null);
         }
         
         /// <summary>
