@@ -10,7 +10,6 @@ namespace Resonance.Core.GlobalServices
     {
         private InputActionAsset _inputActions;
         private InputActionMap _playerMap;
-        private InputActionMap _uiMap;
         private InputActionMap _inventoryMap;
         private bool _isEnabled = true;
         
@@ -75,7 +74,6 @@ namespace Resonance.Core.GlobalServices
             }
 
             _playerMap = _inputActions.FindActionMap("Player");
-            _uiMap = _inputActions.FindActionMap("UI");
             _inventoryMap = _inputActions.FindActionMap("Inventory");
             
             SetupInputCallbacks();
@@ -281,24 +279,6 @@ namespace Resonance.Core.GlobalServices
             {
                 _playerMap.Disable();
                 Debug.Log("InputService: Player input disabled");
-            }
-        }
-
-        public void EnableUIInput()
-        {
-            if (_uiMap != null)
-            {
-                _uiMap.Enable();
-                Debug.Log("InputService: UI input enabled");
-            }
-        }
-
-        public void DisableUIInput()
-        {
-            if (_uiMap != null)
-            {
-                _uiMap.Disable();
-                Debug.Log("InputService: UI input disabled");
             }
         }
 

@@ -13,18 +13,15 @@ namespace Resonance.Utilities
     /// </summary>
     public class GridSystem : MonoBehaviour, IGridSystem
     {
+        [Header("Visual Container")]
+        [SerializeField] private Transform _slotVisualContainer;
+        [SerializeField] private Transform _itemVisualContainer;
+
         [Header("Grid Configuration")]
         [SerializeField] private float _slotSize = 64f;
         [SerializeField] private float _slotSpacing = 2f;
-        
-        [Header("Prefabs")]
         [SerializeField] private GameObject _slotPrefab;
-        
-        [Header("Visual Settings")]
-        [SerializeField] private Transform _itemVisualsContainer;
         [SerializeField] private Color _gridColor = Color.white;
-        [SerializeField] private Color _occupiedColor = Color.gray;
-        [SerializeField] private Color _highlightColor = Color.yellow;
         
         private int _gridWidth;
         private int _gridHeight;
@@ -35,13 +32,13 @@ namespace Resonance.Utilities
         private GridItemVisual _selectedVisual;
         private bool _isInitialized = false;
         
-        // 属性
+        // Properties
         public int GridWidth => _gridWidth;
         public int GridHeight => _gridHeight;
         public bool IsInitialized => _isInitialized;
         public GridItem SelectedItem => _selectedItem;
         
-        // 事件
+        // Events
         public System.Action<GridItem> OnItemPlaced { get; set; }
         public System.Action<GridItem> OnItemMoved { get; set; }
         public System.Action<GridItem> OnItemRotated { get; set; }
@@ -67,76 +64,46 @@ namespace Resonance.Utilities
             // Override with provided dimensions
             _gridWidth = width;
             _gridHeight = height;
-            
-            // 创建槽位数组
             _slots = new GridSlot[_gridWidth, _gridHeight];
             
-            // 创建 item visuals 容器（在槽位之上渲染）
-            CreateItemVisualsContainer();
-            
-            // 创建槽位对象
+            // Render Grid Container and Slots
+            CreateSlotVisualContainer();
             CreateSlots();
+
+            // Render Item Visual Containers Above Slots
+            CreateItemVisualContainer();
             
-            // 设置槽位事件
             SetupSlotEvents();
             
             _isInitialized = true;
 
             Debug.Log($"GridSystem: Initialized slots array {_gridWidth}x{_gridHeight}");
         }
-        
-        /// <summary>
-        /// 初始化网格系统（使用默认尺寸）
-        /// </summary>
-        public void InitializeGrid()
-        {
-            InitializeGrid(_gridWidth, _gridHeight);
-        }
-        
-        /// <summary>
-        /// 创建物品视觉容器
-        /// </summary>
-        private void CreateItemVisualsContainer()
-        {
-            Debug.Log($"GridSystem: CreateItemVisualsContainer called");
 
+        private void CreateSlotVisualContainer()
+        {
             RectTransform containerRect = null;
-            
-            if (_itemVisualsContainer == null)
+            if (_slotVisualContainer == null)
             {
-                _itemVisualsContainer = new GameObject("ItemVisualsContainer").transform;
-                _itemVisualsContainer.SetParent(transform, false);
-                _itemVisualsContainer.SetAsLastSibling();
-                containerRect = _itemVisualsContainer.gameObject.AddComponent<RectTransform>();
+                _slotVisualContainer = new GameObject("SlotVisualContainer").transform;
+                _slotVisualContainer.SetParent(transform, false);
+                _slotVisualContainer.SetAsLastSibling();
+                containerRect = _slotVisualContainer.gameObject.AddComponent<RectTransform>();
                 Debug.Log("GridSystem: Created new ItemVisualsContainer");
             }
             else
             {
-                containerRect = _itemVisualsContainer.gameObject.GetComponent<RectTransform>();
+                containerRect = _slotVisualContainer.gameObject.GetComponent<RectTransform>();
             }
-            
-            Debug.Log($"GridSystem: Set _itemVisualsContainer = {(_itemVisualsContainer != null ? "EXISTS" : "NULL")}");
-            
-            // Set up RectTransform to cover entire grid area
-            // Use top-left anchor
-            containerRect.anchorMin = new Vector2(0, 1); // Top-left
-            containerRect.anchorMax = new Vector2(0, 1); // Top-left
-            containerRect.anchoredPosition = Vector2.zero;
-            containerRect.pivot = new Vector2(0, 1);     // Top-left pivot
-        
-            // Calculate size to cover entire grid
-            float totalWidth = _gridWidth * _slotSize + (_gridWidth - 1) * _slotSpacing;
-            float totalHeight = _gridHeight * _slotSize + (_gridHeight - 1) * _slotSpacing;
-            containerRect.sizeDelta = new Vector2(totalWidth, totalHeight);
-            
-            Debug.Log($"GridSystem: Created item visuals container with size {totalWidth}x{totalHeight}");
+
+            SetContainerRectTransform(containerRect);
         }
-        
+
         /// <summary>
         /// 创建槽位对象
         /// </summary>
         private void CreateSlots()
-        {
+        {            
             if (_slotPrefab == null)
             {
                 Debug.LogError("GridSystem: Slot prefab is not assigned!");
@@ -147,7 +114,7 @@ namespace Resonance.Utilities
             {
                 for (int y = 0; y < _gridHeight; y++)
                 {
-                    GameObject slotObj = Instantiate(_slotPrefab, transform);
+                    GameObject slotObj = Instantiate(_slotPrefab, _slotVisualContainer);
                     slotObj.name = $"Slot_{x}_{y}";
                     
                     GridSlot slot = slotObj.GetComponent<GridSlot>();
@@ -170,6 +137,48 @@ namespace Resonance.Utilities
                     }
                 }
             }
+        }
+        
+        /// <summary>
+        /// 创建物品视觉容器
+        /// </summary>
+        private void CreateItemVisualContainer()
+        {
+            Debug.Log($"GridSystem: CreateItemVisualContainer called");
+
+            RectTransform containerRect = null;
+            
+            if (_itemVisualContainer == null)
+            {
+                _itemVisualContainer = new GameObject("ItemVisualsContainer").transform;
+                _itemVisualContainer.SetParent(transform, false);
+                _itemVisualContainer.SetAsLastSibling();
+                containerRect = _itemVisualContainer.gameObject.AddComponent<RectTransform>();
+                Debug.Log("GridSystem: Created new ItemVisualsContainer");
+            }
+            else
+            {
+                containerRect = _itemVisualContainer.gameObject.GetComponent<RectTransform>();
+            }
+            
+            SetContainerRectTransform(containerRect);
+        }
+
+        private void SetContainerRectTransform(RectTransform containerRect)
+        {
+            // Set up RectTransform to cover entire grid area
+            // Use top-left anchor
+            containerRect.anchorMin = new Vector2(0, 1); // Top-left
+            containerRect.anchorMax = new Vector2(0, 1); // Top-left
+            containerRect.anchoredPosition = Vector2.zero;
+            containerRect.pivot = new Vector2(0, 1);     // Top-left pivot
+        
+            // Calculate size to cover entire grid
+            float totalWidth = _gridWidth * _slotSize + (_gridWidth - 1) * _slotSpacing;
+            float totalHeight = _gridHeight * _slotSize + (_gridHeight - 1) * _slotSpacing;
+            containerRect.sizeDelta = new Vector2(totalWidth, totalHeight);
+
+            Debug.Log($"GridSystem: Created visuals container with size {totalWidth}x{totalHeight}");
         }
         
         /// <summary>
@@ -490,10 +499,10 @@ namespace Resonance.Utilities
         /// </summary>
         private void EnsureItemVisualsContainer()
         {
-            if (_itemVisualsContainer == null && _isInitialized)
+            if (_itemVisualContainer == null && _isInitialized)
             {
                 Debug.LogWarning($"GridSystem: ItemVisualsContainer is null but GridSystem is initialized. Recreating container.");
-                CreateItemVisualsContainer();
+                CreateItemVisualContainer();
             }
         }
         
@@ -511,14 +520,14 @@ namespace Resonance.Utilities
             }
             
             // Ensure container exists (lazy initialization)
-            if (_itemVisualsContainer == null)
+            if (_itemVisualContainer == null)
             {
                 if (_isInitialized)
                 {
                     Debug.LogWarning($"GridSystem: ItemVisualsContainer is null but GridSystem is initialized. Attempting to recreate container.");
                     EnsureItemVisualsContainer();
                     
-                    if (_itemVisualsContainer == null)
+                    if (_itemVisualContainer == null)
                     {
                         Debug.LogError($"GridSystem: Failed to create ItemVisualsContainer. Cannot create visual for {item.itemName}");
                         return;
@@ -528,7 +537,7 @@ namespace Resonance.Utilities
                 {
                     // GridSystem not initialized yet - this is fine, visuals will be created when UI opens
                     Debug.LogWarning($"GridSystem: ItemVisualsContainer not initialized yet. Item {item.itemName} visual will be created when inventory panel opens.");
-                    Debug.LogWarning($"GridSystem: _isInitialized = {_isInitialized}, _itemVisualsContainer = {(_itemVisualsContainer != null ? "EXISTS" : "NULL")}");
+                    Debug.LogWarning($"GridSystem: _isInitialized = {_isInitialized}, _itemVisualContainer = {(_itemVisualContainer != null ? "EXISTS" : "NULL")}");
                     return;
                 }
             }
@@ -573,7 +582,7 @@ namespace Resonance.Utilities
             {
                 // Instantiate the prefab
                 // which should already have GridItemVisual and Button components
-                visualObj = Instantiate(item.itemPrefab, _itemVisualsContainer);
+                visualObj = Instantiate(item.itemPrefab, _itemVisualContainer);
                 visualObj.name = $"ItemVisual_{item.itemID}_{item.itemName}";
                 
                 // Get or add GridItemVisual component
@@ -589,7 +598,7 @@ namespace Resonance.Utilities
             visual.OnItemClicked += OnItemVisualClicked;
             
             // Initialize the visual
-            visual.Initialize(item, _slotSize, _itemVisualsContainer);
+            visual.Initialize(item, _slotSize, _itemVisualContainer);
             
             // Store reference
             _itemVisuals[item.itemID] = visual;

@@ -28,7 +28,5 @@ namespace Resonance.Interfaces.Services
         void DisableInventoryInput();
         void EnablePlayerInput();
         void DisablePlayerInput();
-        void EnableUIInput();
-        void DisableUIInput();
     }
 }
