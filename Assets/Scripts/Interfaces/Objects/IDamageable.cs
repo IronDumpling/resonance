@@ -1,73 +1,83 @@
 using UnityEngine;
+using Resonance.Utilities;
 
 namespace Resonance.Interfaces
 {
     /// <summary>
-    /// 可受伤害物体的接口
-    /// 实现此接口的对象可以接受伤害，支持双血量系统
+    /// Interface for objects that can be damaged
+    /// Implementing this interface allows objects to take damage
     /// </summary>
     public interface IDamageable
     {
         #region Damage Methods
         
         /// <summary>
-        /// 受到伤害 (支持双血量系统)
+        /// Take damage (supports health, resilience and core)
         /// </summary>
-        /// <param name="damageInfo">伤害信息</param>
+        /// <param name="damageInfo">Damage information</param>
         void TakeDamage(DamageInfo damageInfo);
         
         /// <summary>
         /// 受到物理伤害
         /// </summary>
-        /// <param name="damage">伤害值</param>
-        /// <param name="damageSource">伤害来源位置</param>
+        /// <param name="damage">Damage value</param>
+        /// <param name="damageSource">Damage source position</param>
         void TakeHealthDamage(float damage, Vector3 damageSource);
         
         /// <summary>
         /// 受到精神伤害
         /// </summary>
-        /// <param name="damage">伤害值</param>
-        /// <param name="damageSource">伤害来源位置</param>
+        /// <param name="damage">Damage value</param>
+        /// <param name="damageSource">Damage source position</param>
         void TakeCoreDamage(float damage, Vector3 damageSource);
+
+        /// <summary>
+        /// Take resilience damage
+        /// </summary>
+        /// <param name="damage">Damage value</param>
+        /// <param name="damageSource">Damage source position</param>
+        void TakeResilienceDamage(float damage, Vector3 damageSource);
         
         #endregion
         
         #region Health Properties
         
         /// <summary>
-        /// 是否物理存活 (物理血量 > 0)
+        /// Is alive (health > 0)
+        /// TODO: refactor to IsHealthAlive
         /// </summary>
         bool IsAlive { get; }
         
         /// <summary>
-        /// 是否精神存活 (精神血量 > 0)
+        /// Is core alive (core capacity > 0)
         /// </summary>
         bool IsCoreAlive { get; }
         
         /// <summary>
-        /// 是否处于死亡状态 (物理血量 = 0 但精神血量 > 0)
+        /// Is in death state (health = 0 but core capacity > 0)
+        /// TODO: refactor to OnlyHealthDeath, and add OnlyCoreDeath
         /// </summary>
         bool IsInDeathState { get; }
         
         /// <summary>
-        /// 当前物理血量
+        /// Current health
         /// </summary>
         float CurrentHealth { get; }
         
         /// <summary>
-        /// 最大物理血量
+        /// Max health
         /// </summary>
         float MaxHealth { get; }
         
         /// <summary>
-        /// 当前精神血量
+        /// Current core health
         /// </summary>
-        float CurrentCoreHealth { get; }
+        float CurrentCoreCapacity { get; }
         
         /// <summary>
-        /// 最大精神血量
+        /// Max core health
         /// </summary>
-        float MaxCoreHealth { get; }
+        float MaxCoreCapacity { get; }
         
         #endregion
     }

@@ -1,34 +1,34 @@
 using UnityEngine;
 
-namespace Resonance.Interfaces
+namespace Resonance.Utilities
 {
     /// <summary>
-    /// 伤害类型枚举
-    /// 定义不同类型的伤害及其对新属性系统的影响
+    /// Damage type enumeration
+    /// Defines different types of damage and their impact on the new attribute system
     /// </summary>
     public enum DamageType
     {
         /// <summary>
-        /// 生命伤害 - 直接影响生命值
-        /// 例如：枪击、爆炸、撞击等
+        /// Health damage - Directly affects health value
+        /// For example: Gunshot, explosion, impact, etc.
         /// </summary>
         Health,
         
         /// <summary>
-        /// 韧性伤害 - 影响韧性值（造成硬直/眩晕）
-        /// 例如：重击、冲击波、弹反等
+        /// Resilience damage - Affects resilience value (causes stuns/眩晕)
+        /// For example: Heavy hit, shockwave, counter-attack, etc.
         /// </summary>
         Resilience,
         
         /// <summary>
-        /// 晶核伤害 - 影响晶核容量
-        /// 例如：共振攻击、晶核直击等
+        /// Core damage - Affects core capacity
+        /// For example: Resonance attack, core direct hit, etc.
         /// </summary>
         Core,
         
         /// <summary>
-        /// 混合伤害 - 同时影响生命和韧性
-        /// 例如：特殊武器、环境伤害等
+        /// Mixed damage - Affects both health and resilience
+        /// For example: Weapons, environmental damage, etc.
         /// </summary>
         Mixed
     }
