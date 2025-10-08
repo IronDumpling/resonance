@@ -3,8 +3,8 @@ using UnityEngine;
 namespace Resonance.Interfaces.Objects
 {
     /// <summary>
-    /// Interface for objects that can be interacted with by the player
-    /// Used by the new PlayerInteractAction system
+    /// Base interface for objects that can be interacted with by the player
+    /// Simplified version - interaction flow is handled by InteractionService
     /// </summary>
     public interface IInteractable
     {
@@ -25,24 +25,6 @@ namespace Resonance.Interfaces.Objects
         /// </summary>
         /// <returns>World position</returns>
         Vector3 GetPosition();
-
-        /// <summary>
-        /// Start the interaction process
-        /// Called when the player begins interacting
-        /// </summary>
-        void StartInteraction();
-
-        /// <summary>
-        /// Complete the interaction successfully
-        /// Called when the interaction duration is reached
-        /// </summary>
-        void CompleteInteraction();
-
-        /// <summary>
-        /// Cancel the interaction
-        /// Called when the interaction is interrupted
-        /// </summary>
-        void CancelInteraction();
 
         /// <summary>
         /// Get a descriptive name for this interactable

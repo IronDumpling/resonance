@@ -5,12 +5,15 @@ using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
+using Resonance.Player.Core;
+using Resonance.Core.StateMachine.States;
 
 namespace Resonance.Core.GlobalServices
 {
     /// <summary>
-    /// 全局交互服务
-    /// 管理玩家与场景中所有可交互物体的交互
+    /// Global service 
+    /// for managing interactions between the player and interactable objects
     /// </summary>
     public class InteractionService : IInteractionService
     {
@@ -18,8 +21,16 @@ namespace Resonance.Core.GlobalServices
         private string _currentInteractionText = "";
         private HashSet<GameObject> _registeredInteractables = new HashSet<GameObject>();
         
-        // 新系统：跟踪范围内的可交互对象
+        // Track interactable objects in range
         private Dictionary<GameObject, IInteractable> _interactablesInRange = new Dictionary<GameObject, IInteractable>();
+        
+        // Dependencies
+        private IPlayerService _playerService;
+        private IUIService _uiService;
+        
+        // Internal strategies
+        private PickupStrategy _pickupStrategy;
+        private ReadableStrategy _readableStrategy;
 
         // IGameService Properties
         public int Priority => 30; // After PlayerService (20) since we need the player to be available
@@ -32,6 +43,7 @@ namespace Resonance.Core.GlobalServices
 
         // Events
         public event System.Action<GameObject, string> OnInteractableChanged;
+        public static event System.Action OnInventoryFullPickupAttempt;
 
         #region IGameService Implementation
 
@@ -45,9 +57,17 @@ namespace Resonance.Core.GlobalServices
 
             State = SystemState.Initializing;
             Debug.Log("InteractionService: Initializing");
+            
+            // Get dependencies
+            _playerService = ServiceRegistry.Get<IPlayerService>();
+            _uiService = ServiceRegistry.Get<IUIService>();
+            
+            // Initialize internal strategies
+            _pickupStrategy = new PickupStrategy(_playerService);
+            _readableStrategy = new ReadableStrategy(_uiService);
 
             State = SystemState.Running;
-            Debug.Log("InteractionService: Initialized successfully");
+            Debug.Log("InteractionService: Initialized successfully with pickup and readable strategies");
         }
 
         public void Shutdown()
@@ -86,7 +106,7 @@ namespace Resonance.Core.GlobalServices
             
             if (_registeredInteractables.Remove(interactable))
             {
-                // 如果当前交互对象被移除，清除它
+                // If the current interaction object is removed, clear it
                 if (_currentInteractable == interactable)
                 {
                     ClearCurrentInteractable();
@@ -128,20 +148,20 @@ namespace Resonance.Core.GlobalServices
         #region Private Methods
 
         /// <summary>
-        /// 获取最近的可交互对象
+        /// Get the nearest interactable object
         /// </summary>
-        /// <returns>最近的可交互对象，如果没有则为null</returns>
+        /// <returns>The nearest interactable object, or null if none</returns>
         public IInteractable GetNearestInteractable()
         {
             if (_interactablesInRange.Count == 0) return null;
 
-            // 获取玩家位置
+            // Get player position
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null) return null;
 
             Vector3 playerPosition = playerService.CurrentPlayer.transform.position;
             
-            // 找到最近的可交互对象
+            // Find the nearest interactable object
             IInteractable nearest = null;
             float nearestDistance = float.MaxValue;
 
@@ -162,28 +182,28 @@ namespace Resonance.Core.GlobalServices
         }
 
         /// <summary>
-        /// 处理可交互对象进入范围
+        /// Handle interactable object entering range
         /// </summary>
-        /// <param name="gameObject">游戏对象</param>
-        /// <param name="interactable">可交互对象</param>
+        /// <param name="gameObject">Game object</param>
+        /// <param name="interactable">Interactable object</param>
         public void OnInteractableEnteredRange(GameObject gameObject, IInteractable interactable)
         {
             if (gameObject == null || interactable == null) return;
 
-            // 添加到范围内对象列表
+            // Add to range objects list
             _interactablesInRange[gameObject] = interactable;
         }
 
         /// <summary>
-        /// 处理可交互对象离开范围
+        /// Handle interactable object leaving range
         /// </summary>
-        /// <param name="gameObject">游戏对象</param>
-        /// <param name="interactable">可交互对象</param>
+        /// <param name="gameObject">Game object</param>
+        /// <param name="interactable">Interactable object</param>
         public void OnInteractableExitedRange(GameObject gameObject, IInteractable interactable)
         {
             if (gameObject == null) return;
 
-            // 从范围内对象列表移除
+            // Remove from range objects list
             _interactablesInRange.Remove(gameObject);
         }
 
@@ -192,18 +212,18 @@ namespace Resonance.Core.GlobalServices
         #region Debug Methods
 
         /// <summary>
-        /// 获取已注册的交互对象数量（用于调试）
+        /// Get the number of registered interactable objects (for debugging)
         /// </summary>
-        /// <returns>交互对象数量</returns>
+        /// <returns>Number of interactable objects</returns>
         public int GetRegisteredCount()
         {
             return _registeredInteractables.Count;
         }
 
         /// <summary>
-        /// 获取所有已注册的交互对象（用于调试）
+        /// Get all registered interactable objects (for debugging)
         /// </summary>
-        /// <returns>交互对象列表</returns>
+        /// <returns>Interactable objects list</returns>
         public GameObject[] GetRegisteredInteractables()
         {
             GameObject[] result = new GameObject[_registeredInteractables.Count];
@@ -211,6 +231,142 @@ namespace Resonance.Core.GlobalServices
             return result;
         }
 
+        #endregion
+        
+        #region Interaction Flow Management
+        
+        /// <summary>
+        /// Complete interaction with the specified interactable object
+        /// This is the main entry point for executing interactions
+        /// </summary>
+        /// <param name="interactable">The interactable object to interact with</param>
+        public void CompleteInteraction(IInteractable interactable)
+        {
+            if (interactable == null)
+            {
+                Debug.LogWarning("InteractionService: Cannot complete interaction with null interactable");
+                return;
+            }
+            
+            Debug.Log($"InteractionService: Completing interaction with {interactable.GetInteractableName()}");
+            
+            // Dispatch to the corresponding strategy based on type
+            if (interactable is IPickupable pickupable)
+            {
+                _pickupStrategy.Execute(pickupable);
+            }
+            else if (interactable is IReadable readable)
+            {
+                _readableStrategy.Execute(readable);
+            }
+            else
+            {
+                Debug.LogWarning($"InteractionService: Unknown interactable type: {interactable.GetType().Name}");
+            }
+        }
+        
+        #endregion
+        
+        #region Internal Strategies
+        
+        /// <summary>
+        /// Pickup strategy - handle pickup logic for IPickupable items
+        /// </summary>
+        private class PickupStrategy
+        {
+            private IPlayerService _playerService;
+            
+            public PickupStrategy(IPlayerService playerService)
+            {
+                _playerService = playerService;
+            }
+            
+            public void Execute(IPickupable pickupable)
+            {
+                var playerController = _playerService.CurrentPlayer?.Controller;
+                if (playerController == null)
+                {
+                    Debug.LogError("PickupStrategy: PlayerController is null");
+                    return;
+                }
+                
+                // Try to pickup
+                bool canAdd = pickupable.TryAddToInventory(out GridItem gridItem, out string failureReason);
+                
+                if (canAdd && gridItem != null)
+                {
+                    // Add to inventory
+                    var inventory = playerController.Inventory;
+                    Vector2Int emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
+                    
+                    if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                    {
+                        bool added = inventory.AddItemToGrid(gridItem, emptyPos);
+                        if (added)
+                        {
+                            pickupable.DestroyPickupItem();
+                            Debug.Log($"PickupStrategy: Successfully picked up {gridItem.ItemName}");
+                            
+                            // Auto-equip weapon
+                            AutoEquipIfWeapon(gridItem, playerController);
+                            
+                            // Show pickup information
+                            var gunDataAsset = gridItem.CustomData.ContainsKey("originalAsset") 
+                                ? gridItem.CustomData["originalAsset"] as IInfoable 
+                                : null;
+                            if (gunDataAsset != null)
+                            {
+                                InfoDisplayService.ShowInfo(gunDataAsset);
+                            }
+                            return;
+                        }
+                    }
+                }
+                
+                // Failed: Inventory full
+                Debug.LogWarning($"PickupStrategy: Pickup failed - {failureReason}");
+                pickupable.OnInventoryFull();
+                OnInventoryFullPickupAttempt?.Invoke();
+            }
+            
+            private void AutoEquipIfWeapon(GridItem item, PlayerController controller)
+            {
+                if (item.ItemType == Utilities.ItemType.Weapon)
+                {
+                    controller.WeaponManager?.EquipWeapon(item.ItemID);
+                    Debug.Log($"PickupStrategy: Auto-equipped weapon {item.ItemName}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Read strategy - handle information display logic for IReadable items
+        /// </summary>
+        private class ReadableStrategy
+        {
+            private IUIService _uiService;
+            
+            public ReadableStrategy(IUIService uiService)
+            {
+                _uiService = uiService;
+            }
+            
+            public void Execute(IReadable readable)
+            {
+                var infoable = readable.GetInfoable();
+                if (infoable == null)
+                {
+                    Debug.LogError("ReadableStrategy: GetInfoable() returned null");
+                    return;
+                }
+                
+                Debug.Log($"ReadableStrategy: Displaying info for {infoable.GetInfoData().name}");
+                
+                // Use the unified InfoDisplayService to display information
+                InfoDisplayService.ShowInfo(infoable);
+            }
+        }
+        
         #endregion
     }
 }

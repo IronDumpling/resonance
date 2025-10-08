@@ -102,9 +102,6 @@ namespace Resonance.Player.Actions
                 _interactionDuration = DEFAULT_INTERACTION_DURATION;
             }
 
-            // Start the interaction
-            _targetInteractable.StartInteraction();
-
             // Play interaction start effects
             PlayInteractionStartEffects(player);
 
@@ -179,9 +176,8 @@ namespace Resonance.Player.Actions
             {
                 Debug.Log("PlayerInteractAction: Cancelled");
                 
-                // Cancel the interaction on the target
-                _targetInteractable?.CancelInteraction();
-                
+                // For Pickup and ReadInfo interactions, no special cancel logic needed
+                // Just cleanup the action state
                 CleanupAction(player);
             }
         }
@@ -204,8 +200,12 @@ namespace Resonance.Player.Actions
         {
             if (_targetInteractable != null)
             {
-                // Trigger the interaction effect
-                _targetInteractable.CompleteInteraction();
+                // Trigger the interaction effect via InteractionService
+                var interactionService = ServiceRegistry.Get<IInteractionService>();
+                if (interactionService != null)
+                {
+                    interactionService.CompleteInteraction(_targetInteractable);
+                }
                 
                 Debug.Log($"PlayerInteractAction: Completed interaction with {_targetInteractable.GetInteractableName()}");
             }

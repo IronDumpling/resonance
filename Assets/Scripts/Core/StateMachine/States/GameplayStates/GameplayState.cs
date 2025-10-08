@@ -62,6 +62,10 @@ namespace Resonance.Core.StateMachine.States
                 Debug.LogError("GameplayState: InputService not found, cannot subscribe to inventory events");
             }
             
+            // Subscribe to InteractionService events for auto-opening inventory when full
+            GlobalServices.InteractionService.OnInventoryFullPickupAttempt += OnInventoryFullPickupAttempt;
+            Debug.Log("GameplayState: Subscribed to InteractionService inventory-full event");
+            
             // Reset UI state for new gameplay session
             Debug.Log("GameplayState: Reset _hasShownUI flag for new gameplay session");
         }
@@ -100,6 +104,16 @@ namespace Resonance.Core.StateMachine.States
             _subStateMachine?.Update();
         }
 
+        /// <summary>
+        /// Handle inventory-full pickup attempt
+        /// Automatically opens inventory for player to organize items
+        /// </summary>
+        private void OnInventoryFullPickupAttempt()
+        {
+            Debug.Log("GameplayState: Inventory full during pickup attempt - auto-opening inventory");
+            StartInventory();
+        }
+        
         public void Exit()
         {
             Debug.Log("State: Exiting Gameplay");
@@ -130,6 +144,10 @@ namespace Resonance.Core.StateMachine.States
                 inputService.OnCloseInventory -= CloseInventory;
                 Debug.Log("GameplayState: Unsubscribed from inventory input events");
             }
+            
+            // Unsubscribe from InteractionService events
+            GlobalServices.InteractionService.OnInventoryFullPickupAttempt -= OnInventoryFullPickupAttempt;
+            Debug.Log("GameplayState: Unsubscribed from InteractionService events");
             
             // Cleanup substate machine
             _subStateMachine?.Clear();

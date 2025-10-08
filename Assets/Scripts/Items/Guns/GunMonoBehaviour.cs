@@ -13,7 +13,7 @@ namespace Resonance.Items
     /// Gun MonoBehaviour - Handles the visual and interaction system for guns
     /// Responsibilities: pickup, equip, interact with gun, visual animations
     /// </summary>
-    public class GunMonoBehaviour : MonoBehaviour, IInteractable, IPausable
+    public class GunMonoBehaviour : MonoBehaviour, IPickupable, IPausable
     {
         [Header("Gun Configuration")]
         [SerializeField] private GunDataAsset _gunDataAsset;
@@ -38,7 +38,7 @@ namespace Resonance.Items
         private bool _isPickedUp = false;
         
         // 交互状态
-        private bool _isInteracting = false;
+        // private bool _isInteracting = false;
         
         // 动画相关
         private Vector3 _originalPosition;
@@ -227,209 +227,24 @@ namespace Resonance.Items
             _pickupVisual.transform.eulerAngles = currentRotation;
         }
 
-        #region IInteractable Implementation
+        #region IPickupable Implementation
 
-        /// <summary>
-        /// Check if this gun can currently be interacted with
-        /// </summary>
-        /// <returns>True if interaction is possible</returns>
+        // IInteractable base methods
         public bool CanInteract()
         {
-            // Can interact if not picked up 
             return !_isPickedUp;
         }
 
-        /// <summary>
-        /// Get the interaction duration for picking up this weapon
-        /// </summary>
-        /// <returns>Duration of the interaction in seconds</returns>
         public float GetInteractionDuration()
         {
             return _interactionDuration;
         }
 
-        /// <summary>
-        /// Get the world position of this gun
-        /// </summary>
-        /// <returns>World position</returns>
         public Vector3 GetPosition()
         {
             return transform.position;
         }
 
-        /// <summary>
-        /// Start the interaction process
-        /// </summary>
-        public void StartInteraction()
-        {
-            if (!CanInteract())
-            {
-                Debug.LogWarning($"GunMonoBehaviour: Cannot start interaction with {_gunDataAsset.weaponName}");
-                return;
-            }
-
-            _isInteracting = true;
-
-            Debug.Log($"GunMonoBehaviour: Started interaction with {_gunDataAsset.weaponName}");
-
-            // Show interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(true);
-            }
-
-            // TODO: Play interaction start effects (visual/audio feedback)
-        }
-
-        /// <summary>
-        /// Complete the interaction successfully - pickup the weapon
-        /// </summary>
-        public void CompleteInteraction()
-        {
-            if (!_isInteracting)
-            {
-                Debug.LogWarning($"GunMonoBehaviour: CompleteInteraction called but not interacting with {_gunDataAsset.weaponName}");
-                return;
-            }
-
-            Debug.Log($"GunMonoBehaviour: Completing interaction with {_gunDataAsset.weaponName}");
-
-            // Get current player from PlayerService
-            var playerService = ServiceRegistry.Get<IPlayerService>();
-            Transform playerTransform = null;
-            
-            if (playerService?.CurrentPlayer != null)
-            {
-                playerTransform = playerService.CurrentPlayer.transform;
-            }
-
-            // Perform the actual pickup
-            var gunCopy = PerformPickup();
-            
-            if (gunCopy != null && playerTransform != null)
-            {
-                // Try to equip the weapon to the player using the new inventory system
-                var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
-                if (playerMono != null && playerMono.IsInitialized)
-                {
-                    /* ======= TODO Temporary Auto-Equip ====== */
-                    var playerController = playerMono.Controller;
-                    if (playerController != null)
-                    {
-                        var inventory = playerController.Inventory;
-                        var weaponManager = playerController.WeaponManager;
-                        
-                        if (inventory != null && weaponManager != null)
-                        {
-                            // Step 1: Create GridItem for the weapon
-                            int weaponID = gunCopy.GetInstanceID();
-                            var weaponData = new GridItem
-                            {
-                                ItemID = weaponID,
-                                ItemName = gunCopy.weaponName,
-                                ItemType = ItemType.Weapon,
-                                GridWidth = gunCopy.gridWidth,
-                                GridHeight = gunCopy.gridHeight,
-                                CurrentAmmo = gunCopy.CurrentAmmo,
-                                AmmoType = gunCopy.ammoType,
-                                MaxAmmo = gunCopy.maxAmmo,
-                                AssetPath = GetAssetPath(_gunDataAsset),
-                                ItemPrefab = gunCopy.itemPrefab,
-                                ItemIcon = gunCopy.weaponIcon, 
-                                Quantity = 1,
-                                MaxStackQuantity = 1,
-                                Durability = 1f
-                            };
-                            weaponData.CustomData["originalAsset"] = gunCopy;
-                            weaponData.CustomData["weaponName"] = gunCopy.weaponName;
-                            
-                            // Step 2: Find empty space in inventory
-                            Vector2Int emptyPos = inventory.FindEmptySpace(weaponData.GridWidth, weaponData.GridHeight);
-                            if (emptyPos.x >= 0 && emptyPos.y >= 0)
-                            {
-                                // Step 3: Add to inventory grid
-                                bool added = inventory.AddItemToGrid(weaponData, emptyPos);
-                                if (added)
-                                {
-                                    Debug.Log($"GunMonoBehaviour: Added {gunCopy.weaponName} to inventory at {emptyPos}");
-                                    
-                                    // Step 4: Equip weapon (TEMPORARY - auto equip on pickup)
-                                    // TODO: In future, let player manually equip from inventory panel
-                                    bool equipped = weaponManager.EquipWeapon(weaponID);
-                                    if (equipped)
-                                    {
-                                        Debug.Log($"GunMonoBehaviour: Successfully equipped {gunCopy.weaponName} (TEMPORARY AUTO-EQUIP)");
-                                    }
-                                    else
-                                    {
-                                        Debug.LogWarning($"GunMonoBehaviour: Added to inventory but failed to equip {gunCopy.weaponName}");
-                                    }
-                                }
-                                else
-                                {
-                                    Debug.LogError($"GunMonoBehaviour: Failed to add {gunCopy.weaponName} to inventory");
-                                }
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"GunMonoBehaviour: No space in inventory for {gunCopy.weaponName}");
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogError("GunMonoBehaviour: Player's Inventory or WeaponManager is null");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogError("GunMonoBehaviour: Player's Controller is null");
-                    }
-                    /* ======= TODO Temporary Auto-Equip ====== */
-                }
-                else
-                {
-                    Debug.LogError("GunMonoBehaviour: Player not found or not initialized");
-                }
-            }
-
-            _isInteracting = false;
-
-            // Hide interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(false);
-            }
-
-            // Show info panel for the gun
-            ShowGunInfo();
-
-            Debug.Log($"GunMonoBehaviour: CompleteInteraction complete");
-        }
-
-        /// <summary>
-        /// Cancel the interaction
-        /// </summary>
-        public void CancelInteraction()
-        {
-            if (!_isInteracting) return;
-
-            Debug.Log($"GunMonoBehaviour: Cancelled interaction with {_gunDataAsset.weaponName}");
-
-            _isInteracting = false;
-
-            // Hide interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(false);
-            }
-
-            // TODO: Stop interaction effects
-        }
-
-        /// <summary>
-        /// Get a descriptive name for this interactable
-        /// </summary>
-        /// <returns>Weapon name</returns>
         public string GetInteractableName()
         {
             return _gunDataAsset?.weaponName ?? "Unknown Weapon";
@@ -466,25 +281,6 @@ namespace Resonance.Items
 
         #endregion
 
-        #region Info Display
-
-        /// <summary>
-        /// Show info panel for this gun using the unified InfoDisplay system
-        /// </summary>
-        private void ShowGunInfo()
-        {
-            if (_gunDataAsset == null)
-            {
-                Debug.LogError("GunMonoBehaviour: Cannot show gun info with null GunDataAsset");
-                return;
-            }
-
-            // Use the unified InfoDisplayService
-            InfoDisplayService.ShowInfo(_gunDataAsset);
-        }
-
-        #endregion
-
         #region Public Methods
 
         /// <summary>
@@ -510,39 +306,124 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 重置武器状态（用于重新生成或测试）
+        /// Reset weapon state (for re-generation or testing)
         /// </summary>
         public void ResetWeapon()
         {
             _isPickedUp = false;
-            _isInteracting = false;
+            // _isInteracting = false;
             gameObject.SetActive(true);
         }
 
         #endregion
 
+        /// <summary>
+        /// Try to add this weapon to inventory
+        /// Creates GridItem data and checks if inventory has space
+        /// </summary>
+        public bool TryAddToInventory(out GridItem gridItem, out string failureReason)
+        {
+            gridItem = null;
+            failureReason = "";
+            
+            // Create runtime copy of weapon data
+            var gunCopy = _gunDataAsset.CreateRuntimeCopy();
+            if (gunCopy == null)
+            {
+                failureReason = "Failed to create weapon copy";
+                return false;
+            }
+            
+            // Get player controller
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService?.CurrentPlayer == null || !playerService.CurrentPlayer.IsInitialized)
+            {
+                failureReason = "Player not initialized";
+                return false;
+            }
+            
+            var playerController = playerService.CurrentPlayer.Controller;
+            var inventory = playerController.Inventory;
+            
+            // Check if inventory has space
+            Vector2Int emptyPos = inventory.FindEmptySpace(gunCopy.gridWidth, gunCopy.gridHeight);
+            if (emptyPos.x < 0 || emptyPos.y < 0)
+            {
+                failureReason = $"No space in inventory for {gunCopy.weaponName} ({gunCopy.gridWidth}x{gunCopy.gridHeight})";
+                return false;
+            }
+            
+            // Create GridItem
+            int weaponID = gunCopy.GetInstanceID();
+            gridItem = new GridItem
+            {
+                ItemID = weaponID,
+                ItemName = gunCopy.weaponName,
+                ItemType = ItemType.Weapon,
+                GridWidth = gunCopy.gridWidth,
+                GridHeight = gunCopy.gridHeight,
+                CurrentAmmo = gunCopy.CurrentAmmo,
+                AmmoType = gunCopy.ammoType,
+                MaxAmmo = gunCopy.maxAmmo,
+                AssetPath = GetAssetPath(_gunDataAsset),
+                ItemPrefab = gunCopy.itemPrefab,
+                ItemIcon = gunCopy.weaponIcon,
+                Quantity = 1,
+                MaxStackQuantity = 1,
+                Durability = 1f
+            };
+            gridItem.CustomData["originalAsset"] = gunCopy;
+            gridItem.CustomData["weaponName"] = gunCopy.weaponName;
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Called when inventory is full and pickup fails
+        /// Item stays in world for player to pick up after organizing inventory
+        /// </summary>
+        public void OnInventoryFull()
+        {
+            Debug.LogWarning($"GunMonoBehaviour: Inventory full! Please organize your inventory to pick up {_gunDataAsset.weaponName}");
+            
+            // Reset pickup state but keep item in world
+            _isPickedUp = false;
+            
+            // Could show special VFX or UI hint here
+            // For example: make the item glow to indicate "failed to pickup"
+        }
+        
+        /// <summary>
+        /// Destroy this pickup item from the world
+        /// Called after successful pickup
+        /// </summary>
+        public void DestroyPickupItem()
+        {
+            PerformPickup(); // This handles all cleanup
+        }
+
         #region Private Methods
 
         /// <summary>
-        /// 拾取武器（新系统内部使用）
+        /// Internal pickup logic - handles cleanup and visual effects
         /// </summary>
-        /// <returns>武器数据的副本</returns>
+        /// <returns>Weapon data copy</returns>
         private GunDataAsset PerformPickup()
         {
             if (_isPickedUp) return null;
 
             _isPickedUp = true;
-            _isInteracting = false;
+            // _isInteracting = false;
 
             PlayPickupAudio(transform.position);
             
-            // 创建运行时副本
+            // Create runtime copy
             GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
             
-            // 停止所有动画
+            // Stop all animations
             StopAllCoroutines();
             
-            // 从交互服务中移除
+            // Remove from interaction service
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -552,7 +433,7 @@ namespace Resonance.Items
                 }
             }
             
-            // 隐藏拾取视觉对象
+            // Hide pickup visual object
             if (_pickupVisual != null)
             {
                 _pickupVisual.SetActive(false);
@@ -568,9 +449,9 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 播放拾取音频
+        /// Play pickup audio
         /// </summary>
-        /// <param name="pickupPosition">拾取位置</param>
+        /// <param name="pickupPosition">Pickup position</param>
         private void PlayPickupAudio(Vector3 pickupPosition)
         {
             if (_audioService == null) return;
@@ -580,7 +461,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 获取ScriptableObject的资源路径
+        /// Get the asset path of the ScriptableObject
         /// </summary>
         private string GetAssetPath(ScriptableObject asset)
         {
