@@ -308,7 +308,8 @@ namespace Resonance.Core.GlobalServices
                                 gridItem.ItemName,
                                 gridItem.Quantity,
                                 gridItem.ItemIcon,
-                                gridItem.ItemPrefab
+                                gridItem.ItemPrefab,
+                                gridItem.AssetPath
                             );
                             Debug.Log($"PickupStrategy: Added ammo via ConsumableManager - {gridItem.ItemName} x{gridItem.Quantity}");
                         }

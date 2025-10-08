@@ -145,7 +145,7 @@ namespace Resonance.Items
                 return;
             }
             
-            // 查找Text组件
+            // Find Text component
             if (_interactTextComponent == null)
             {
                 Transform textChild = _interactUI.transform.Find("Text");

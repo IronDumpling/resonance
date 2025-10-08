@@ -533,21 +533,21 @@ namespace Resonance.UI
             
             // Load all items from the new grid-based inventory
             Debug.Log($"InventoryPanel: About to load {allItems.Count} items from inventory");
-            foreach (var gridCellData in allItems)
+            foreach (var gridItem in allItems)
             {
-                Debug.Log($"InventoryPanel: Processing item: ID={gridCellData.ItemID}, Name={gridCellData.ItemName}, Position={gridCellData.GridPosition}");
+                Debug.Log($"InventoryPanel: Processing item: ID={gridItem.ItemID}, Name={gridItem.ItemName}, Position={gridItem.GridPosition}");
                 
                 // Place item at its stored position (directly using GridItem)
                 // This will create visuals since GridSystem is now initialized
-                Debug.Log($"InventoryPanel: About to place item {gridCellData.ItemName} at {gridCellData.GridPosition}");
-                if (_gridSystem.PlaceItem(gridCellData, gridCellData.GridPosition))
+                Debug.Log($"InventoryPanel: About to place item {gridItem.ItemName} at {gridItem.GridPosition}");
+                if (_gridSystem.PlaceItem(gridItem, gridItem.GridPosition))
                 {
-                    _inventoryItems[gridCellData.ItemID] = gridCellData;
-                    Debug.Log($"InventoryPanel: Successfully placed item {gridCellData.ItemName} at {gridCellData.GridPosition}");
+                    _inventoryItems[gridItem.ItemID] = gridItem;
+                    Debug.Log($"InventoryPanel: Successfully placed item {gridItem.ItemName} at {gridItem.GridPosition}");
                 }
                 else
                 {
-                    Debug.LogWarning($"InventoryPanel: Failed to place item {gridCellData.ItemName} at {gridCellData.GridPosition}");
+                    Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.ItemName} at {gridItem.GridPosition}");
                 }
             }
             
@@ -570,22 +570,22 @@ namespace Resonance.UI
             }
             
             // Get item data from PlayerInventory
-            var gridCellData = _playerInventory.GetItemByID(itemID);
-            if (gridCellData == null)
+            var gridItem = _playerInventory.GetItemByID(itemID);
+            if (gridItem == null)
             {
                 Debug.LogWarning($"InventoryPanel: Item {itemID} not found in PlayerInventory");
                 return;
             }
             
             // Place item at its stored position (directly using GridItem)
-            if (_gridSystem.PlaceItem(gridCellData, gridCellData.GridPosition))
+            if (_gridSystem.PlaceItem(gridItem, gridItem.GridPosition))
             {
-                _inventoryItems[itemID] = gridCellData;
-                Debug.Log($"InventoryPanel: Added item {gridCellData.ItemName} to grid at {gridCellData.GridPosition}");
+                _inventoryItems[itemID] = gridItem;
+                Debug.Log($"InventoryPanel: Added item {gridItem.ItemName} to grid at {gridItem.GridPosition}");
             }
             else
             {
-                Debug.LogWarning($"InventoryPanel: Failed to place item {gridCellData.ItemName} at {gridCellData.GridPosition}");
+                Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.ItemName} at {gridItem.GridPosition}");
             }
         }
 

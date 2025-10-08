@@ -372,15 +372,16 @@ namespace Resonance.Items
                 ItemType = ItemType.Consumable,
                 GridWidth = _ammoDataAsset.gridWidth,
                 GridHeight = _ammoDataAsset.gridHeight,
-                ItemPrefab = _ammoDataAsset.itemPrefab,  // ✅ Set prefab
+                ItemPrefab = _ammoDataAsset.itemPrefab,
+                AssetPath = GetAssetPath(_ammoDataAsset),
                 ItemIcon = _ammoDataAsset.ammoIcon,
                 Quantity = _ammoDataAsset.ammoCount,
-                MaxStackQuantity = 999, // Ammo can stack
+                MaxStackQuantity = 60, // Ammo can stack
                 Durability = 1f
             };
             
             // Store original asset for InfoPanel display
-            gridItem.CustomData["originalAsset"] = _ammoDataAsset;  // ✅ Set for InfoPanel
+            gridItem.CustomData["originalAsset"] = _ammoDataAsset;
             gridItem.CustomData["ammoType"] = _ammoDataAsset.ammoType;
             
             return true;
@@ -463,6 +464,19 @@ namespace Resonance.Items
             // Use the same pickup sound as weapon, but slightly higher pitch to indicate it's ammo
             AudioClipType audioClipType = AudioClipType.ItemPickup;
             _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.7f, 1.2f); // slightly higher pitch
+        }
+
+        /// <summary>
+        /// Get the asset path of the ScriptableObject
+        /// </summary>
+        private string GetAssetPath(ScriptableObject asset)
+        {
+            if (asset == null) return "";
+            #if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.GetAssetPath(asset);
+            #else
+            return asset.name; // Runtime fallback
+            #endif
         }
 
         #endregion

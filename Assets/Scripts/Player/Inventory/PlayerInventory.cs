@@ -702,7 +702,7 @@ namespace Resonance.Player.Inventory
                     }
                     
                     // Create GridItem
-                    var gridCellData = new GridItem
+                    var gridItem = new GridItem
                     {
                         ItemID = cellSaveData.itemID,
                         ItemName = cellSaveData.ItemName,
@@ -723,13 +723,13 @@ namespace Resonance.Player.Inventory
                     };
                     
                     // Reload ItemPrefab and ItemIcon from AssetPath
-                    LoadVisualDataFromAssetPath(gridCellData, cellSaveData.assetPath);
+                    LoadVisualDataFromAssetPath(gridItem, cellSaveData.assetPath);
                     
                     // Add to grid (without triggering events during load)
-                    bool added = AddItemToGrid(gridCellData, gridCellData.GridPosition, gridCellData.Rotation);
+                    bool added = AddItemToGrid(gridItem, gridItem.GridPosition, gridItem.Rotation);
                     if (!added)
                     {
-                        Debug.LogWarning($"PlayerInventory: Failed to load item {gridCellData.ItemName} at {gridCellData.GridPosition}");
+                        Debug.LogWarning($"PlayerInventory: Failed to load item {gridItem.ItemName} at {gridItem.GridPosition}");
                     }
                 }
             }
@@ -741,11 +741,11 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Load ItemPrefab and ItemIcon from AssetPath
         /// </summary>
-        private void LoadVisualDataFromAssetPath(GridItem gridCellData, string assetPath)
+        private void LoadVisualDataFromAssetPath(GridItem gridItem, string assetPath)
         {
             if (string.IsNullOrEmpty(assetPath))
             {
-                Debug.LogWarning($"PlayerInventory: No AssetPath for {gridCellData.ItemName}. Visual data cannot be loaded.");
+                Debug.LogWarning($"PlayerInventory: No AssetPath for {gridItem.ItemName}. Visual data cannot be loaded.");
                 return;
             }
             
@@ -763,15 +763,15 @@ namespace Resonance.Player.Inventory
             Debug.Log($"PlayerInventory: Resources path: {resourcesPath}");
 
 
-            switch (gridCellData.ItemType)
+            switch (gridItem.ItemType)
             {
                 case ItemType.Weapon:
                     // Load GunDataAsset
                     var gunData = Resources.Load<GunDataAsset>(resourcesPath);
                     if (gunData != null)
                     {
-                        gridCellData.ItemPrefab = gunData.itemPrefab;
-                        gridCellData.ItemIcon = gunData.weaponIcon;
+                        gridItem.ItemPrefab = gunData.itemPrefab;
+                        gridItem.ItemIcon = gunData.weaponIcon;
                         Debug.Log($"PlayerInventory: Loaded weapon visual data - ItemPrefab={(gunData.itemPrefab != null ? gunData.itemPrefab.name : "NULL")},"+
                                 $"ItemIcon={(gunData.weaponIcon != null ? gunData.weaponIcon.name : "NULL")}");
                     }
@@ -781,13 +781,13 @@ namespace Resonance.Player.Inventory
                     }
                     break;
                 case ItemType.Consumable:
-                    if (gridCellData.CustomData.ContainsKey("ammoType"))
+                    if (gridItem.CustomData.ContainsKey("ammoType"))
                     {
                         var ammoData = Resources.Load<AmmoDataAsset>(resourcesPath);
                         if (ammoData != null)
                         {
-                            gridCellData.ItemPrefab = ammoData.itemPrefab;
-                            gridCellData.ItemIcon = ammoData.ammoIcon;
+                            gridItem.ItemPrefab = ammoData.itemPrefab;
+                            gridItem.ItemIcon = ammoData.ammoIcon;
                             Debug.Log($"PlayerInventory: Loaded ammo visual data - ItemPrefab={(ammoData.itemPrefab != null ? ammoData.itemPrefab.name : "NULL")},"+
                                     $"ItemIcon={(ammoData.ammoIcon != null ? ammoData.ammoIcon.name : "NULL")}");
                         }
@@ -798,7 +798,7 @@ namespace Resonance.Player.Inventory
                     }
                     else
                     {
-                        Debug.LogWarning($"PlayerInventory: No ammo type found for {gridCellData.ItemName}");
+                        Debug.LogWarning($"PlayerInventory: No ammo type found for {gridItem.ItemName}");
                     }
                     break;
                 default:

@@ -35,7 +35,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Add ammo (smart stacking)
         /// </summary>
-        public bool AddAmmo(string ammoType, string ammoName, int amount, Sprite ammoIcon = null, GameObject itemPrefab = null)
+        public bool AddAmmo(string ammoType, string ammoName, int amount, Sprite ammoIcon = null, GameObject itemPrefab = null, string assetPath = null)
         {
             if (string.IsNullOrEmpty(ammoType) || amount <= 0)
             {
@@ -43,7 +43,7 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            Debug.Log($"ConsumableManager: Adding {amount} {ammoType} ammo (Icon={ammoIcon != null}, Prefab={itemPrefab != null})");
+            Debug.Log($"ConsumableManager: Adding {amount} {ammoType} ammo (Icon={ammoIcon != null}, Prefab={itemPrefab != null}, AssetPath={assetPath})");
             
             // Find existing ammo of the same type
             var existingAmmo = _inventory.GetItemsByType(ItemType.Consumable)
@@ -75,7 +75,7 @@ namespace Resonance.Player.Inventory
             {
                 int newStackAmount = Mathf.Min(remainingAmount, DEFAULT_AMMO_STACK_SIZE);
                 
-                if (!CreateNewAmmoStack(ammoType, ammoName, newStackAmount, ammoIcon, itemPrefab))
+                if (!CreateNewAmmoStack(ammoType, ammoName, newStackAmount, ammoIcon, itemPrefab, assetPath))
                 {
                     Debug.LogWarning($"ConsumableManager: Failed to create new ammo stack. Remaining: {remainingAmount}");
                     break;
@@ -273,7 +273,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Create a new ammo stack
         /// </summary>
-        private bool CreateNewAmmoStack(string ammoType, string ammoName, int quantity, Sprite ammoIcon, GameObject itemPrefab)
+        private bool CreateNewAmmoStack(string ammoType, string ammoName, int quantity, Sprite ammoIcon, GameObject itemPrefab, string assetPath)
         {
             // Find empty space
             Vector2Int emptyPos = _inventory.FindEmptySpace(1, 1); // Ammo takes 1x1 grid
@@ -296,7 +296,8 @@ namespace Resonance.Player.Inventory
                 GridPosition = emptyPos,
                 Rotation = 0,
                 ItemIcon = ammoIcon,      
-                ItemPrefab = itemPrefab  
+                ItemPrefab = itemPrefab,
+                AssetPath = assetPath 
             };
             
             ammoData.CustomData["ammoType"] = ammoType;
