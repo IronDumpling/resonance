@@ -8,8 +8,8 @@ using System.Linq;
 namespace Resonance.Utilities
 {
     /// <summary>
-    /// 可复用的网格系统实现
-    /// 支持物品放置、移动、旋转等操作
+    /// Reusable grid system implementation
+    /// Supports item placement, movement, rotation, etc.
     /// </summary>
     public class GridSystem : MonoBehaviour, IGridSystem
     {
@@ -100,7 +100,7 @@ namespace Resonance.Utilities
         }
 
         /// <summary>
-        /// 创建槽位对象
+        /// Create slot object
         /// </summary>
         private void CreateSlots()
         {            
@@ -126,7 +126,7 @@ namespace Resonance.Utilities
                     slot.Initialize(new Vector2Int(x, y));
                     _slots[x, y] = slot;
                     
-                    // 设置位置
+                    // Set position
                     RectTransform rectTransform = slotObj.GetComponent<RectTransform>();
                     if (rectTransform != null)
                     {
@@ -211,7 +211,7 @@ namespace Resonance.Utilities
                 return false;
             }
             
-            // 检查物品是否超出边界
+            // Check if the item is out of bounds
             bool xOutOfBounds = position.x + item.CurrentWidth > _gridWidth;
             bool yOutOfBounds = position.y + item.CurrentHeight > _gridHeight;
             
@@ -226,7 +226,7 @@ namespace Resonance.Utilities
                 return false;
             }
             
-            // 检查区域是否被占用（排除物品自身）
+            // Check if the area is occupied (excluding the item itself)
             bool areaEmpty = IsAreaEmpty(position, item);
             Debug.Log($"CanPlaceItem: Area empty check result: {areaEmpty}");
             return areaEmpty;
@@ -245,7 +245,7 @@ namespace Resonance.Utilities
                 return false;
             }
             
-            // 移除物品的旧位置
+            // Remove item from old position
             if (item.gridPosition.x >= 0 && item.gridPosition.y >= 0)
             {
                 Debug.Log($"GridSystem: Removing item from old position {item.gridPosition}");
@@ -253,17 +253,17 @@ namespace Resonance.Utilities
                 // Don't destroy visual here, we'll update it
             }
             
-            // 设置新位置
+            // Set new position
             item.SetGridPosition(position);
             
-            // 添加到物品列表
+            // Add to items list
             if (!_items.Contains(item))
             {
                 _items.Add(item);
                 Debug.Log($"GridSystem: Added item to _items list");
             }
             
-            // 更新槽位
+            // Update slots
             UpdateSlotsForItem(item);
             
             // Create or update visual representation
@@ -280,12 +280,20 @@ namespace Resonance.Utilities
             if (item == null || !_items.Contains(item)) return false;
             
             Vector2Int oldPosition = item.gridPosition;
+            bool wasSelected = (item == _selectedItem);
             
             // PlaceItem already handles UpdateSlotsForItem and CreateOrUpdateItemVisual
             if (PlaceItem(item, newPosition))
             {
                 OnItemMoved?.Invoke(item);
                 Debug.Log($"GridSystem: Moved item {item.itemName} from {oldPosition} to {newPosition}");
+                
+                // Maintain selection after move
+                if (wasSelected)
+                {
+                    SelectItem(item);
+                }
+                
                 return true;
             }
             
@@ -299,6 +307,7 @@ namespace Resonance.Utilities
             Vector2Int oldPosition = item.gridPosition;
             int oldWidth = item.CurrentWidth;
             int oldHeight = item.CurrentHeight;
+            bool wasSelected = (item == _selectedItem);
             
             Debug.Log($"GridSystem: RotateItem called - Item: {item.itemName}, Old position: {oldPosition}, Old size: {oldWidth}x{oldHeight}");
             
@@ -340,6 +349,13 @@ namespace Resonance.Utilities
                 
                 OnItemRotated?.Invoke(item);
                 Debug.Log($"GridSystem: Successfully rotated {item.itemName} from {oldPosition} to {newPosition}");
+                
+                // Maintain selection after rotation
+                if (wasSelected)
+                {
+                    SelectItem(item);
+                }
+                
                 return true;
             }
             
@@ -354,6 +370,13 @@ namespace Resonance.Utilities
                 
                 OnItemRotated?.Invoke(item);
                 Debug.Log($"GridSystem: Rotated {item.itemName} and adjusted position from {newPosition} to {adjustedPosition}");
+                
+                // Maintain selection after rotation
+                if (wasSelected)
+                {
+                    SelectItem(item);
+                }
+                
                 return true;
             }
             
@@ -367,12 +390,12 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 为旋转后的物品找到最佳位置
+        /// Find the best position for a rotated item
         /// </summary>
         private Vector2Int FindBestPositionForRotatedItem(GridItem item, Vector2Int originalPosition)
         {
-            // 尝试在原始位置附近找到合适的位置
-            int searchRadius = 2; // 搜索半径
+            // Try to find a suitable position near the original position
+            int searchRadius = 2;
             
             for (int radius = 0; radius <= searchRadius; radius++)
             {
@@ -382,7 +405,7 @@ namespace Resonance.Utilities
                     {
                         Vector2Int testPosition = new Vector2Int(x, y);
                         
-                        // 检查是否在网格范围内
+                        // Check if the position is within the grid
                         if (testPosition.x >= 0 && testPosition.y >= 0 &&
                             testPosition.x + item.CurrentWidth <= _gridWidth &&
                             testPosition.y + item.CurrentHeight <= _gridHeight)
@@ -396,7 +419,7 @@ namespace Resonance.Utilities
                 }
             }
             
-            return new Vector2Int(-1, -1); // 没有找到合适位置
+            return new Vector2Int(-1, -1); // No suitable position found
         }
         
         public bool RemoveItem(GridItem item)
@@ -441,7 +464,7 @@ namespace Resonance.Utilities
                 }
             }
             
-            return new Vector2Int(-1, -1); // 没有找到空位
+            return new Vector2Int(-1, -1); // No suitable position found
         }
         
         public List<Vector2Int> FindEmptySpaces(int width, int height)
@@ -622,9 +645,9 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 更新物品占用的槽位
+        /// Update the slots occupied by the item
         /// </summary>
-        /// <param name="item">物品</param>
+        /// <param name="item">Item</param>
         private void UpdateSlotsForItem(GridItem item)
         {
             if (item.gridPosition.x < 0 || item.gridPosition.y < 0) return;
@@ -642,7 +665,7 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 确保 ItemVisualsContainer 存在，如果不存在则创建它
+        /// Ensure ItemVisualsContainer exists, if not create it
         /// </summary>
         private void EnsureItemVisualsContainer()
         {
@@ -654,7 +677,7 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 创建或更新物品的视觉表现
+        /// Create or update the visual representation of the item
         /// </summary>
         private void CreateOrUpdateItemVisual(GridItem item)
         {
@@ -754,7 +777,7 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 销毁物品的视觉表现
+        /// Destroy the visual representation of the item
         /// </summary>
         private void DestroyItemVisual(GridItem item)
         {
@@ -819,12 +842,12 @@ namespace Resonance.Utilities
         
         private void OnSlotHovered(GridSlot slot)
         {
-            // 可以在这里添加悬停效果
+            // Can add hover effect here
         }
         
         private void OnSlotUnhovered(GridSlot slot)
         {
-            // 可以在这里移除悬停效果
+            // Can remove hover effect here
         }
         
         #endregion
@@ -832,7 +855,7 @@ namespace Resonance.Utilities
         #region Public Methods
         
         /// <summary>
-        /// 清空所有物品
+        /// Clear all items
         /// </summary>
         public void ClearAllItems()
         {
@@ -858,29 +881,29 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 获取指定类型的物品
+        /// Get items by type
         /// </summary>
-        /// <param name="itemType">物品类型</param>
-        /// <returns>物品列表</returns>
+        /// <param name="itemType">Item type</param>
+        /// <returns>Item list</returns>
         public List<GridItem> GetItemsByType(ItemType itemType)
         {
             return _items.Where(item => item.itemType == itemType).ToList();
         }
         
         /// <summary>
-        /// 检查是否有指定ID的物品
+        /// Check if there is an item with the specified ID
         /// </summary>
-        /// <param name="itemID">物品ID</param>
-        /// <returns>是否存在</returns>
+        /// <param name="itemID">Item ID</param>
+        /// <returns>Whether it exists</returns>
         public bool HasItem(int itemID)
         {
             return _items.Any(item => item.itemID == itemID);
         }
         
         /// <summary>
-        /// 获取指定ID的物品
+        /// Get item by ID
         /// </summary>
-        /// <param name="itemID">物品ID</param>
+        /// <param name="itemID">Item ID</param>
         /// <returns>物品</returns>
         public GridItem GetItemByID(int itemID)
         {
@@ -893,7 +916,7 @@ namespace Resonance.Utilities
         
         private void OnDestroy()
         {
-            // 清理事件
+            // Clean up events
             OnItemPlaced = null;
             OnItemMoved = null;
             OnItemRotated = null;

@@ -87,7 +87,7 @@ namespace Resonance.UI
 
         protected override void OnCleanup()
         {
-            // Unsubscribe from events (Risk mitigation: Event lifecycle management)
+            // Unsubscribe from events
             if (_inputService != null)
             {
                 _inputService.OnQTE -= OnQTEInput;
