@@ -833,7 +833,7 @@ namespace Resonance.Player
             // Disable input
             if (_inputService != null)
             {
-                _inputService.IsEnabled = false;
+                _inputService.DisablePlayerInput();
             }
 
             // Trigger death animation/effects

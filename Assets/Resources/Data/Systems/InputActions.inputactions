@@ -95,15 +95,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "QTE",
-                    "type": "Button",
-                    "id": "abc12345-6789-0123-4567-890123456789",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "Tap",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -260,17 +251,6 @@
                     "action": "Reload",
                     "isComposite": false,
                     "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "def45678-9012-3456-7890-123456789abc",
-                    "path": "<Keyboard>/f",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "QTE",
-                    "isComposite": false,
-                    "isPartOfComposite": false
                 }
             ]
         },
@@ -403,6 +383,62 @@
                     "action": "MoveItem",
                     "isComposite": false,
                     "isPartOfComposite": true
+                }
+            ]
+        },
+        {
+            "name": "Information",
+            "id": "082ab585-e09b-42e2-818f-419d850c5583",
+            "actions": [
+                {
+                    "name": "CloseInformation",
+                    "type": "Button",
+                    "id": "ae4cd633-c05f-4fea-a08a-a07112d42f45",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "b5dafdf3-7d72-47d8-a8e1-65ff1a7e32f8",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CloseInformation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Wave",
+            "id": "f1265570-8644-4b39-9ba3-0a11d02856fa",
+            "actions": [
+                {
+                    "name": "QTE",
+                    "type": "Button",
+                    "id": "08914d0f-6890-4e26-9ac2-c36805de34cc",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Tap",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "9b3031c5-c8dd-4837-ac3a-341c986772fc",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "QTE",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }

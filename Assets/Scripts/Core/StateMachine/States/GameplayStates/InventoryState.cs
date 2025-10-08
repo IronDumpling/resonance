@@ -47,12 +47,12 @@ namespace Resonance.Core.StateMachine.States
                 Debug.LogError("InventoryState: SelectivePauseService is null, cannot pause gameplay");
             }
 
-            // Set inventory mode in input service
+            // Switch input to Inventory map (disable player actions, enable inventory controls)
             if (_inputService != null)
             {
-                _inputService.IsInventoryMode = true;
+                _inputService.DisablePlayerInput();
                 _inputService.EnableInventoryInput();
-                Debug.Log("InventoryState: Set inventory mode to true and enabled inventory input");
+                Debug.Log("InventoryState: Switched to Inventory input mode");
             }
 
             // Show InventoryPanel
@@ -87,12 +87,12 @@ namespace Resonance.Core.StateMachine.States
                 Debug.LogError("InventoryState: SelectivePauseService is null, cannot resume gameplay");
             }
 
-            // Clear inventory mode in input service
+            // Restore player input
             if (_inputService != null)
             {
-                _inputService.IsInventoryMode = false;
                 _inputService.DisableInventoryInput();
-                Debug.Log("InventoryState: Set inventory mode to false and disabled inventory input");
+                _inputService.EnablePlayerInput();
+                Debug.Log("InventoryState: Restored player input mode");
             }
 
             Debug.Log("InventoryState: Inventory closed successfully");

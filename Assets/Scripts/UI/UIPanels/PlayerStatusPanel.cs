@@ -135,7 +135,7 @@ namespace Resonance.UI
             
             // Load divider prefab if not assigned
             if (_dividerPrefab == null)
-                _dividerPrefab = Resources.Load<GameObject>("Prefabs/UIs/SlotDivider");
+                _dividerPrefab = Resources.Load<GameObject>("Prefabs/UIs/ComponentsUI/SlotDivider");
         }
 
         private void LoadHealthSprites()

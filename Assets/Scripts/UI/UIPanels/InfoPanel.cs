@@ -15,10 +15,11 @@ namespace Resonance.UI
         [SerializeField] private TextMeshProUGUI _infoName;
         [SerializeField] private TextMeshProUGUI _infoContent;
         [SerializeField] private Image _infoImage;
-        [SerializeField] private Button _closeButton;
 
         // Current info data
         private InfoDataAsset _currentInfoData;
+
+        private IInputService _inputService;
 
         protected override void Awake()
         {
@@ -29,9 +30,9 @@ namespace Resonance.UI
             _hideOnStart = true;
         }
 
-        protected override void Start()
+        protected override void OnInitialize()
         {
-            base.Start();
+            base.OnInitialize();
 
             AutoDiscoverUIComponents();
             SetupEventListeners();
@@ -50,19 +51,18 @@ namespace Resonance.UI
                 _infoContent = transform.Find("InfoContent")?.GetComponent<TextMeshProUGUI>();
             if (_infoImage == null)
                 _infoImage = transform.Find("InfoImage")?.GetComponent<Image>();
-            if (_closeButton == null)
-                _closeButton = transform.Find("CloseButton")?.GetComponent<Button>();
         }
 
         private void SetupEventListeners()
         {
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingStarted += OnInfoReadingStarted;
-            
-            // Setup close button
-            if (_closeButton != null)
+
+            _inputService = ServiceRegistry.Get<IInputService>();
+            if (_inputService != null)
             {
-                _closeButton.onClick.AddListener(OnCloseButtonClicked);
+                _inputService.OnInformationClose += CloseInfoPanel;
+                Debug.Log("InfoPanel: Subscribed to InformationClose input events");
             }
             
             Debug.Log("InfoPanel: Event listeners setup complete");
@@ -72,11 +72,11 @@ namespace Resonance.UI
         {
             // Unsubscribe from InfoReadingState events
             InfoReadingState.OnInfoReadingStarted -= OnInfoReadingStarted;
-            
-            // Cleanup close button
-            if (_closeButton != null)
+
+            if (_inputService != null)
             {
-                _closeButton.onClick.RemoveListener(OnCloseButtonClicked);
+                _inputService.OnInformationClose -= CloseInfoPanel;
+                Debug.Log("InfoPanel: Unsubscribed from InformationClose input events");
             }
             
             Debug.Log("InfoPanel: Event listeners cleaned up");
@@ -86,12 +86,6 @@ namespace Resonance.UI
         {
             Debug.Log($"InfoPanel: Info reading started for {infoData?.infoName ?? "Unknown"}");
             DisplayInfoData(infoData);
-        }
-
-        private void OnCloseButtonClicked()
-        {
-            Debug.Log("InfoPanel: Close button clicked");
-            CloseInfoPanel();
         }
 
         /// <summary>
