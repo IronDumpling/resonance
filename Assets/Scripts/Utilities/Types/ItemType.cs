@@ -12,4 +12,10 @@ namespace Resonance.Utilities
         Module,        // Wave Module
         Weapon         // Pistol, etc.
     }
+
+    public enum ConsumableType
+    {
+        Ammo,
+        CoreEnergy
+    }
 }
