@@ -130,7 +130,21 @@ namespace Resonance.UI
             // Subscribe to InventoryState events
             InventoryState.OnInventoryStarted += OnInventoryStarted;
             
-            Debug.Log("InventoryPanel: Event listeners setup complete");
+            // Subscribe to operation button clicks
+            if (_itemUseButton != null)
+            {
+                _itemUseButton.onClick.AddListener(OnItemUseButtonClicked);
+            }
+            if (_itemDropButton != null)
+            {
+                _itemDropButton.onClick.AddListener(OnItemDropButtonClicked);
+            }
+            if (_itemCombineButton != null)
+            {
+                _itemCombineButton.onClick.AddListener(OnItemCombineButtonClicked);
+            }
+            
+            Debug.Log("InventoryPanel: Event listeners setup complete (including operation buttons)");
         }
 
         private void InitializeWithServices()
@@ -374,6 +388,8 @@ namespace Resonance.UI
         
         #endregion
 
+        #region Grid System Event Handlers
+        
         private void OnItemMoved(GridItem item)
         {
             Debug.Log($"InventoryPanel: Item moved - {item.ItemName}");
@@ -408,6 +424,88 @@ namespace Resonance.UI
             // Refresh grid display
             RefreshGridDisplay();
         }
+
+        #endregion
+        
+        #region Operation Button Event Handlers
+        
+        /// <summary>
+        /// Handle Use button click
+        /// </summary>
+        private void OnItemUseButtonClicked()
+        {
+            if (_selectedItem == null)
+            {
+                Debug.LogWarning("InventoryPanel: No item selected for Use operation");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Use button clicked for {_selectedItem.ItemName}");
+            
+            // Execute Use operation via InventoryOperationManager
+            if (_gridOperationManager != null)
+            {
+                _gridOperationManager.UseItem(_selectedItem);
+                
+                // Refresh UI to update button text (e.g., "Equip" -> "Unequip")
+                UpdateItemInfoPanel(_selectedItem);
+            }
+            else
+            {
+                Debug.LogError("InventoryPanel: InventoryOperationManager is null");
+            }
+        }
+        
+        /// <summary>
+        /// Handle Drop button click
+        /// </summary>
+        private void OnItemDropButtonClicked()
+        {
+            if (_selectedItem == null)
+            {
+                Debug.LogWarning("InventoryPanel: No item selected for Drop operation");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Drop button clicked for {_selectedItem.ItemName}");
+            
+            // Show confirmation dialog (optional, can be added later)
+
+            // For now, directly drop the item
+            if (_gridOperationManager != null)
+            {
+                _gridOperationManager.DropItem(_selectedItem);
+                
+                // Clear selection since item is dropped
+                _selectedItem = null;
+                UpdateItemInfoPanel(null);
+            }
+            else
+            {
+                Debug.LogError("InventoryPanel: InventoryOperationManager is null");
+            }
+        }
+        
+        /// <summary>
+        /// Handle Combine button click
+        /// </summary>
+        private void OnItemCombineButtonClicked()
+        {
+            if (_selectedItem == null)
+            {
+                Debug.LogWarning("InventoryPanel: No item selected for Combine operation");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Combine button clicked for {_selectedItem.ItemName}");
+            
+            // TODO: Implement combine target selection UI
+
+            // For now, just log that combine was requested
+            Debug.Log("InventoryPanel: Combine operation requires target selection (not yet implemented)");
+        }
+        
+        #endregion
 
         #endregion
 
@@ -574,24 +672,61 @@ namespace Resonance.UI
             
             if (item != null)
             {
-                // Create InfoDataAsset from GridItem
+                // Update basic info
                 _itemInfoName.text = item.ItemName;
-                // _itemInfoContent.text = item.itemDescription;
+                // _itemInfoContent.text = item.itemDescription; // TODO: Add description to GridItem
                 _itemInfoImage.sprite = item.ItemIcon;
-                _itemInfoButtonContainer.SetActive(true);
-                // _itemUseButton.onClick.AddListener(OnItemUseButtonClicked);
-                // _itemCombineButton.onClick.AddListener(OnItemCombineButtonClicked);
-                // _itemDropButton.onClick.AddListener(OnItemDropButtonClicked);
+                
+                // === Dynamic Operation Button Display ===
+                // Query operation capabilities from InventoryOperationManager
+                bool canUse = _gridOperationManager?.CanUse(item) ?? false;
+                bool canDrop = _gridOperationManager?.CanDrop(item) ?? false;
+                bool canCombine = _gridOperationManager?.CanCombine(item, null) ?? false; // TODO: Implement combine target selection
+                
+                // Show/hide buttons based on capabilities
+                if (_itemUseButton != null)
+                {
+                    _itemUseButton.gameObject.SetActive(canUse);
+                    if (canUse)
+                    {
+                        // Dynamic button text (e.g., "Equip" vs "Unequip")
+                        string buttonText = _gridOperationManager.GetUseButtonText(item);
+                        var buttonTextComponent = _itemUseButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                        if (buttonTextComponent != null)
+                        {
+                            buttonTextComponent.text = buttonText;
+                        }
+                    }
+                }
+                
+                if (_itemDropButton != null)
+                {
+                    _itemDropButton.gameObject.SetActive(canDrop);
+                }
+                
+                if (_itemCombineButton != null)
+                {
+                    _itemCombineButton.gameObject.SetActive(canCombine);
+                }
+                
+                // Show button container only if at least one button is active
+                bool hasAnyButton = canUse || canDrop || canCombine;
+                _itemInfoButtonContainer.SetActive(hasAnyButton);
+                
+                Debug.Log($"InventoryPanel: Item info updated - {item.ItemName} (Use:{canUse}, Drop:{canDrop}, Combine:{canCombine})");
             }
             else
             {
-                _itemInfoName.text = null;
-                _itemInfoContent.text = null;
+                // Clear info panel
+                _itemInfoName.text = "";
+                _itemInfoContent.text = "";
                 _itemInfoImage.sprite = null;
                 _itemInfoButtonContainer.SetActive(false);
-                // _itemUseButton.onClick.RemoveListener(OnItemUseButtonClicked);
-                // _itemCombineButton.onClick.RemoveListener(OnItemCombineButtonClicked);
-                // _itemDropButton.onClick.RemoveListener(OnItemDropButtonClicked);
+                
+                // Hide all buttons
+                if (_itemUseButton != null) _itemUseButton.gameObject.SetActive(false);
+                if (_itemDropButton != null) _itemDropButton.gameObject.SetActive(false);
+                if (_itemCombineButton != null) _itemCombineButton.gameObject.SetActive(false);
             }
         }
 
@@ -744,6 +879,20 @@ namespace Resonance.UI
         {
             // Unsubscribe from InventoryState events
             InventoryState.OnInventoryStarted -= OnInventoryStarted;
+            
+            // Unsubscribe from operation button clicks
+            if (_itemUseButton != null)
+            {
+                _itemUseButton.onClick.RemoveListener(OnItemUseButtonClicked);
+            }
+            if (_itemDropButton != null)
+            {
+                _itemDropButton.onClick.RemoveListener(OnItemDropButtonClicked);
+            }
+            if (_itemCombineButton != null)
+            {
+                _itemCombineButton.onClick.RemoveListener(OnItemCombineButtonClicked);
+            }
 
             Debug.Log("InventoryPanel: Event listeners cleaned up");
         }

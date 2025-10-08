@@ -122,8 +122,8 @@ namespace Resonance.Player.Core
             
             // Initialize inventory managers
             _consumableManager = new ConsumableManager(_inventory);
-            _gridOperationManager = new InventoryOperationManager(_inventory, _consumableManager);
             _weaponManager = new WeaponManager(_inventory);
+            _gridOperationManager = new InventoryOperationManager(_inventory, _weaponManager, _consumableManager);
             
             // Set PlayerController reference for PlayerMovement (for state-based speed calculation)
             _movement.SetPlayerController(this);

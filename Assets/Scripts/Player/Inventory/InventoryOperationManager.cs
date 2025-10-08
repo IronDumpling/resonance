@@ -1,30 +1,88 @@
 using UnityEngine;
 using Resonance.Player.Inventory;
+using Resonance.Player.Inventory.Operations;
+using Resonance.Interfaces.Operations;
+using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
+using System.Collections.Generic;
 
 namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// InventoryOperationManager - Manage grid operations
-    /// Responsibilities: move items, rotate items, stack items, collision detection
+    /// InventoryOperationManager - Unified manager for both grid and item operations
+    /// Responsibilities: 
+    /// 1. Grid operations: move, rotate, stack items
+    /// 2. Item operations: use, drop, combine items (delegated to handlers)
     /// </summary>
     public class InventoryOperationManager
     {
         private PlayerInventory _inventory;
         private ConsumableManager _consumableManager;
+        private WeaponManager _weaponManager;
         
-        // Events
+        // Operation Handlers (Strategy Pattern)
+        private Dictionary<ItemType, IItemOperationHandler> _operationHandlers;
+        
+        // Events - Grid Operations
         public System.Action<int, Vector2Int, Vector2Int> OnItemMoved; // itemID, oldPos, newPos
         public System.Action<int, int> OnItemRotated; // itemID, newRotation
         public System.Action<int, int> OnItemsStacked; // sourceID, targetID
         
-        public InventoryOperationManager(PlayerInventory inventory, ConsumableManager consumableManager)
+        // Events - Item Operations
+        public System.Action<GridItem> OnItemUsed;
+        public System.Action<GridItem> OnItemDropped;
+        public System.Action<GridItem, GridItem> OnItemsCombined;
+        
+        public InventoryOperationManager(
+            PlayerInventory inventory, 
+            WeaponManager weaponManager,
+            ConsumableManager consumableManager)
         {
             _inventory = inventory;
+            _weaponManager = weaponManager;
             _consumableManager = consumableManager;
-            Debug.Log("InventoryOperationManager: Initialized");
+            
+            InitializeOperationHandlers();
+            
+            Debug.Log("InventoryOperationManager: Initialized with operation handlers");
         }
         
-        #region 移动操作 - Move Operations
+        /// <summary>
+        /// Initialize operation handlers for different item types
+        /// </summary>
+        private void InitializeOperationHandlers()
+        {
+            _operationHandlers = new Dictionary<ItemType, IItemOperationHandler>();
+            
+            // Register handlers for each item type
+            _operationHandlers[ItemType.Weapon] = new WeaponOperationHandler(
+                _inventory, _weaponManager, _consumableManager);
+            
+            _operationHandlers[ItemType.Consumable] = new AmmoOperationHandler(
+                _inventory, _weaponManager, _consumableManager);
+            
+            // TODO Future handlers can be added here:
+            // _operationHandlers[ItemType.Tool] = new ToolOperationHandler(...);
+            // _operationHandlers[ItemType.Module] = new ModuleOperationHandler(...);
+            
+            Debug.Log($"InventoryOperationManager: Registered {_operationHandlers.Count} operation handlers");
+        }
+        
+        /// <summary>
+        /// Get operation handler for specific item type
+        /// </summary>
+        private IItemOperationHandler GetHandler(ItemType itemType)
+        {
+            if (_operationHandlers.TryGetValue(itemType, out var handler))
+            {
+                return handler;
+            }
+            
+            Debug.LogWarning($"InventoryOperationManager: No handler found for ItemType {itemType}");
+            return null;
+        }
+        
+        #region Move Operations
         
         /// <summary>
         /// Move item to new position
@@ -64,7 +122,7 @@ namespace Resonance.Player.Inventory
         
         #endregion
         
-        #region 旋转操作 - Rotate Operations
+        #region Rotate Operations
         
         /// <summary>
         /// Rotate item
@@ -218,19 +276,170 @@ namespace Resonance.Player.Inventory
         
         #endregion
         
-        #region Auto Arrange
+        #region Item Operations - Use/Drop/Combine
+        
+        // ==================== USE Operation ====================
         
         /// <summary>
-        /// Auto arrange inventory (optional feature)
+        /// Check if item can be used
         /// </summary>
-        public void AutoArrangeInventory()
+        public bool CanUse(GridItem item)
         {
-            Debug.Log("InventoryOperationManager: Auto-arranging inventory (not implemented yet)");
-            // TODO: Implement auto arrange logic
-            // 1. Get all items
-            // 2. Sort by type and size
-            // 3. Re-place from top-left
-            // 4. Auto stack同类弹药
+            if (item == null) return false;
+            
+            var handler = GetHandler(item.ItemType);
+            if (handler is IItemUsable usable)
+            {
+                return usable.CanUse(item);
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Use item (equip weapon, activate tool, etc.)
+        /// </summary>
+        public void UseItem(GridItem item)
+        {
+            if (item == null)
+            {
+                Debug.LogWarning("InventoryOperationManager: Cannot use null item");
+                return;
+            }
+            
+            var handler = GetHandler(item.ItemType);
+            if (handler is IItemUsable usable)
+            {
+                if (usable.CanUse(item))
+                {
+                    usable.Use(item);
+                    OnItemUsed?.Invoke(item);
+                    Debug.Log($"InventoryOperationManager: Used item {item.ItemName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"InventoryOperationManager: Cannot use item {item.ItemName}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryOperationManager: Item {item.ItemName} is not usable");
+            }
+        }
+        
+        /// <summary>
+        /// Get use button text for UI display
+        /// </summary>
+        public string GetUseButtonText(GridItem item)
+        {
+            if (item == null) return "Use";
+            
+            var handler = GetHandler(item.ItemType);
+            if (handler is IItemUsable usable)
+            {
+                return usable.GetUseButtonText(item);
+            }
+            
+            return "Use";
+        }
+
+        // ==================== COMBINE Operation ====================
+        
+        /// <summary>
+        /// Check if two items can be combined
+        /// </summary>
+        public bool CanCombine(GridItem sourceItem, GridItem targetItem)
+        {
+            if (sourceItem == null || targetItem == null) return false;
+            
+            var handler = GetHandler(sourceItem.ItemType);
+            if (handler is IItemCombinable combinable)
+            {
+                return combinable.CanCombine(sourceItem, targetItem);
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Combine two items (stack, merge, etc.)
+        /// </summary>
+        public void CombineItems(GridItem sourceItem, GridItem targetItem)
+        {
+            if (sourceItem == null || targetItem == null)
+            {
+                Debug.LogWarning("InventoryOperationManager: Cannot combine null items");
+                return;
+            }
+            
+            var handler = GetHandler(sourceItem.ItemType);
+            if (handler is IItemCombinable combinable)
+            {
+                if (combinable.CanCombine(sourceItem, targetItem))
+                {
+                    combinable.Combine(sourceItem, targetItem);
+                    OnItemsCombined?.Invoke(sourceItem, targetItem);
+                    Debug.Log($"InventoryOperationManager: Combined {sourceItem.ItemName} with {targetItem.ItemName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"InventoryOperationManager: Cannot combine {sourceItem.ItemName} with {targetItem.ItemName}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryOperationManager: Item {sourceItem.ItemName} is not combinable");
+            }
+        }
+        
+        // ==================== DROP Operation ====================
+        
+        /// <summary>
+        /// Check if item can be dropped
+        /// </summary>
+        public bool CanDrop(GridItem item)
+        {
+            if (item == null) return false;
+            
+            var handler = GetHandler(item.ItemType);
+            if (handler is IItemDroppable droppable)
+            {
+                return droppable.CanDrop(item);
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// Drop item
+        /// Permanently destroy item
+        /// </summary>
+        public void DropItem(GridItem item)
+        {
+            if (item == null)
+            {
+                Debug.LogWarning("InventoryOperationManager: Cannot drop null item");
+                return;
+            }
+            
+            var handler = GetHandler(item.ItemType);
+            if (handler is IItemDroppable droppable)
+            {
+                if (droppable.CanDrop(item))
+                {
+                    droppable.Drop(item);
+                    OnItemDropped?.Invoke(item);
+                    Debug.Log($"InventoryOperationManager: Dropped item {item.ItemName}");
+                }
+                else
+                {
+                    Debug.LogWarning($"InventoryOperationManager: Cannot drop item {item.ItemName}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryOperationManager: Item {item.ItemName} is not droppable");
+            }
         }
         
         #endregion
@@ -239,9 +448,18 @@ namespace Resonance.Player.Inventory
         
         public void Cleanup()
         {
+            // Grid operation events
             OnItemMoved = null;
             OnItemRotated = null;
             OnItemsStacked = null;
+            
+            // Item operation events
+            OnItemUsed = null;
+            OnItemDropped = null;
+            OnItemsCombined = null;
+            
+            // Clear handlers
+            _operationHandlers?.Clear();
         }
         
         #endregion
