@@ -10,8 +10,8 @@ using Resonance.Core.GlobalServices;
 namespace Resonance.Items
 {
     /// <summary>
-    /// 场景中可交互的Ammo物体
-    /// 玩家可以拾取并添加到弹药库存中
+    /// Interactable Ammo object in the scene
+    /// Players can pick up and add to ammo inventory
     /// 
     /// Visual System Responsibilities:
     /// - _pickupVisual: The visual representation for the ammo in the world (pickup state)
@@ -39,13 +39,13 @@ namespace Resonance.Items
         [SerializeField] private GameObject _interactUI;
         [SerializeField] private TextMeshProUGUI _interactTextComponent;
         
-        // 是否已被拾取
+        // Whether it has been picked up
         private bool _isPickedUp = false;
         
-        // 交互状态
+        // Interaction state
         // private bool _isInteracting = false;
         
-        // 动画相关
+        // Animation related
         private Vector3 _originalPosition;
         private float _bobTimer = 0f;
                 
@@ -60,7 +60,7 @@ namespace Resonance.Items
 
         void Start()
         {
-            // 验证Ammo数据资产
+            // Validate Ammo data asset
             if (_ammoDataAsset == null)
             {
                 Debug.LogError($"AmmoMonoBehaviour: No AmmoDataAsset assigned to {gameObject.name}!");
@@ -73,10 +73,10 @@ namespace Resonance.Items
                 return;
             }
 
-            // 记录原始位置用于动画
+            // Record original position for animation
             _originalPosition = transform.position;
             
-            // 如果没有指定拾取视觉模型，使用自身
+            // If no pickup visual model is specified, use itself
             if (_pickupVisual == null)
             {
                 _pickupVisual = gameObject;
@@ -97,7 +97,7 @@ namespace Resonance.Items
 
         void OnDestroy()
         {
-            // 清理交互服务注册
+            // Clean up interaction service registration
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -112,7 +112,7 @@ namespace Resonance.Items
         {
             if (_isPickedUp || _isPaused) return;
             
-            // 执行视觉动画
+            // Perform visual animations
             PerformVisualAnimations();
         }
 
@@ -135,11 +135,11 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 设置交互UI - 查找并设置InteractUI和Text组件
+        /// Setup interaction UI - find and set InteractUI and Text components
         /// </summary>
         private void SetupInteractionUI()
         {
-            // 查找InteractUI子对象（如果没有手动分配）
+            // Find InteractUI child object (if not manually assigned)
             if (_interactUI == null)
             {
                 Transform interactUIChild = transform.Find("InteractUI");
@@ -156,7 +156,7 @@ namespace Resonance.Items
                 return;
             }
             
-            // 查找Text组件
+            // Find Text component
             if (_interactTextComponent == null)
             {
                 Transform textChild = _interactUI.transform.Find("Text");
@@ -331,8 +331,8 @@ namespace Resonance.Items
         #endregion
 
         /// <summary>
-        /// Try to add this ammo to inventory via ConsumableManager
-        /// Ammo uses special stacking logic through ConsumableManager
+        /// Try to add this ammo to inventory
+        /// Creates complete GridItem data for the ammo
         /// </summary>
         public bool TryAddToInventory(out GridItem gridItem, out string failureReason)
         {
@@ -348,38 +348,40 @@ namespace Resonance.Items
             }
             
             var playerController = playerService.CurrentPlayer.Controller;
-            var consumableManager = playerController.ConsumableManager;
             var inventory = playerController.Inventory;
             
-            if (consumableManager == null || inventory == null)
+            if (inventory == null)
             {
-                failureReason = "ConsumableManager or Inventory is null";
+                failureReason = "Inventory is null";
                 return false;
             }
             
-            // Try to add ammo through ConsumableManager (handles stacking automatically)
-            bool added = consumableManager.AddAmmo(
-                _ammoDataAsset.ammoType,
-                _ammoDataAsset.ammoName,
-                _ammoDataAsset.ammoCount,
-                _ammoDataAsset.ammoIcon,
-                _ammoDataAsset.itemPrefab
-            );
-            
-            if (!added)
+            // Check if inventory has space (ammo uses ConsumableManager's grid size)
+            Vector2Int emptyPos = inventory.FindEmptySpace(_ammoDataAsset.gridWidth, _ammoDataAsset.gridHeight);
+            if (emptyPos.x < 0 || emptyPos.y < 0)
             {
-                failureReason = $"No space in inventory for {_ammoDataAsset.ammoName}";
+                failureReason = $"No space in inventory for {_ammoDataAsset.ammoName} ({_ammoDataAsset.gridWidth}x{_ammoDataAsset.gridHeight})";
                 return false;
             }
             
-            // Note: gridItem is not needed for ammo since ConsumableManager handles everything
-            // But we set it for consistency
+            // Create complete GridItem with all necessary data
             gridItem = new GridItem
             {
+                ItemID = GetInstanceID(), // Use unique ID
                 ItemName = _ammoDataAsset.ammoName,
                 ItemType = ItemType.Consumable,
-                Quantity = _ammoDataAsset.ammoCount
+                GridWidth = _ammoDataAsset.gridWidth,
+                GridHeight = _ammoDataAsset.gridHeight,
+                ItemPrefab = _ammoDataAsset.itemPrefab,  // ✅ Set prefab
+                ItemIcon = _ammoDataAsset.ammoIcon,
+                Quantity = _ammoDataAsset.ammoCount,
+                MaxStackQuantity = 999, // Ammo can stack
+                Durability = 1f
             };
+            
+            // Store original asset for InfoPanel display
+            gridItem.CustomData["originalAsset"] = _ammoDataAsset;  // ✅ Set for InfoPanel
+            gridItem.CustomData["ammoType"] = _ammoDataAsset.ammoType;
             
             return true;
         }
@@ -412,7 +414,7 @@ namespace Resonance.Items
         /// <summary>
         /// Internal pickup logic - handles cleanup and visual effects
         /// </summary>
-        /// <returns>是否成功拾取</returns>
+        /// <returns>Whether pickup is successful</returns>
         private bool PerformPickup()
         {
             if (_isPickedUp) return false;
@@ -422,10 +424,10 @@ namespace Resonance.Items
 
             PlayPickupAudio(transform.position);
             
-            // 停止所有动画
+            // Stop all animations
             StopAllCoroutines();
             
-            // 从交互服务中移除
+            // Remove from interaction service
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -435,7 +437,7 @@ namespace Resonance.Items
                 }
             }
             
-            // 隐藏拾取视觉对象
+            // Hide pickup visual object
             if (_pickupVisual != null)
             {
                 _pickupVisual.SetActive(false);
@@ -451,16 +453,16 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 播放拾取音频
+        /// Play pickup audio
         /// </summary>
-        /// <param name="pickupPosition">拾取位置</param>
+        /// <param name="pickupPosition">Pickup position</param>
         private void PlayPickupAudio(Vector3 pickupPosition)
         {
             if (_audioService == null) return;
 
-            // 使用与武器相同的拾取音效，但音调稍高一些表示是弹药
+            // Use the same pickup sound as weapon, but slightly higher pitch to indicate it's ammo
             AudioClipType audioClipType = AudioClipType.ItemPickup;
-            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.7f, 1.2f); // 稍微高一些的音调
+            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.7f, 1.2f); // slightly higher pitch
         }
 
         #endregion

@@ -34,13 +34,13 @@ namespace Resonance.Items
         [SerializeField] private GameObject _interactUI;
         [SerializeField] private TextMeshProUGUI _interactTextComponent;
         
-        // 是否已被拾取
+        // Whether it has been picked up
         private bool _isPickedUp = false;
         
-        // 交互状态
+        // Interaction state
         // private bool _isInteracting = false;
         
-        // 动画相关
+        // Animation related
         private Vector3 _originalPosition;
         private float _bobTimer = 0f;
                 
@@ -55,17 +55,17 @@ namespace Resonance.Items
 
         void Start()
         {
-            // 验证Gun数据资产
+            // Validate Gun data asset
             if (_gunDataAsset == null)
             {
                 Debug.LogError($"GunMonoBehaviour: No GunDataAsset assigned to {gameObject.name}!");
                 return;
             }
 
-            // 记录原始位置用于动画
+            // Record original position for animation
             _originalPosition = transform.position;
             
-            // 如果没有指定拾取视觉模型，使用自身
+            // If no pickup visual model is specified, use itself
             if (_pickupVisual == null)
             {
                 _pickupVisual = gameObject;
@@ -86,7 +86,7 @@ namespace Resonance.Items
 
         void OnDestroy()
         {
-            // 清理交互服务注册
+            // Clean up interaction service registration
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -101,14 +101,14 @@ namespace Resonance.Items
         {
             if (_isPickedUp || _isPaused) return;
             
-            // 执行视觉动画
+            // Perform visual animations
             PerformVisualAnimations();
         }
 
         #region Setup
 
         /// <summary>
-        /// 设置音频服务引用
+        /// Setup audio service reference
         /// </summary>
         private void SetupAudioService()
         {
@@ -124,11 +124,11 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 设置交互UI - 查找并设置InteractUI和Text组件
+        /// Setup interaction UI - find and set InteractUI and Text components
         /// </summary>
         private void SetupInteractionUI()
         {
-            // 查找InteractUI子对象（如果没有手动分配）
+            // Find InteractUI child object (if not manually assigned)
             if (_interactUI == null)
             {
                 Transform interactUIChild = transform.Find("InteractUI");

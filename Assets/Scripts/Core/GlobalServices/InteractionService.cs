@@ -295,31 +295,56 @@ namespace Resonance.Core.GlobalServices
                 
                 if (canAdd && gridItem != null)
                 {
-                    // Add to inventory
-                    var inventory = playerController.Inventory;
-                    Vector2Int emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
+                    bool added = false;
                     
-                    if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                    // Special handling for Consumable (Ammo) - use ConsumableManager for stacking
+                    if (gridItem.ItemType == Utilities.ItemType.Consumable)
                     {
-                        bool added = inventory.AddItemToGrid(gridItem, emptyPos);
-                        if (added)
+                        var consumableManager = playerController.ConsumableManager;
+                        if (consumableManager != null)
                         {
-                            pickupable.DestroyPickupItem();
-                            Debug.Log($"PickupStrategy: Successfully picked up {gridItem.ItemName}");
-                            
-                            // Auto-equip weapon
-                            AutoEquipIfWeapon(gridItem, playerController);
-                            
-                            // Show pickup information
-                            var gunDataAsset = gridItem.CustomData.ContainsKey("originalAsset") 
-                                ? gridItem.CustomData["originalAsset"] as IInfoable 
-                                : null;
-                            if (gunDataAsset != null)
-                            {
-                                InfoDisplayService.ShowInfo(gunDataAsset);
-                            }
-                            return;
+                            added = consumableManager.AddAmmo(
+                                gridItem.CustomData["ammoType"].ToString(),
+                                gridItem.ItemName,
+                                gridItem.Quantity,
+                                gridItem.ItemIcon,
+                                gridItem.ItemPrefab
+                            );
+                            Debug.Log($"PickupStrategy: Added ammo via ConsumableManager - {gridItem.ItemName} x{gridItem.Quantity}");
                         }
+                    }
+                    else
+                    {
+                        // For other items (Weapons, Tools, etc.) - add directly to grid
+                        var inventory = playerController.Inventory;
+                        Vector2Int emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
+                        
+                        if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                        {
+                            added = inventory.AddItemToGrid(gridItem, emptyPos);
+                            
+                            if (added)
+                            {
+                                // Auto-equip weapon
+                                AutoEquipIfWeapon(gridItem, playerController);
+                            }
+                        }
+                    }
+                    
+                    if (added)
+                    {
+                        pickupable.DestroyPickupItem();
+                        Debug.Log($"PickupStrategy: Successfully picked up {gridItem.ItemName}");
+                        
+                        // Show pickup information (for all item types)
+                        var itemDataAsset = gridItem.CustomData.ContainsKey("originalAsset") 
+                            ? gridItem.CustomData["originalAsset"] as IInfoable 
+                            : null;
+                        if (itemDataAsset != null)
+                        {
+                            InfoDisplayService.ShowInfo(itemDataAsset);
+                        }
+                        return;
                     }
                 }
                 
