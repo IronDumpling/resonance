@@ -4,10 +4,10 @@ using Resonance.Player.Inventory;
 namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// GridOperationManager - Manage grid operations
+    /// InventoryOperationManager - Manage grid operations
     /// Responsibilities: move items, rotate items, stack items, collision detection
     /// </summary>
-    public class GridOperationManager
+    public class InventoryOperationManager
     {
         private PlayerInventory _inventory;
         private ConsumableManager _consumableManager;
@@ -17,11 +17,11 @@ namespace Resonance.Player.Inventory
         public System.Action<int, int> OnItemRotated; // itemID, newRotation
         public System.Action<int, int> OnItemsStacked; // sourceID, targetID
         
-        public GridOperationManager(PlayerInventory inventory, ConsumableManager consumableManager)
+        public InventoryOperationManager(PlayerInventory inventory, ConsumableManager consumableManager)
         {
             _inventory = inventory;
             _consumableManager = consumableManager;
-            Debug.Log("GridOperationManager: Initialized");
+            Debug.Log("InventoryOperationManager: Initialized");
         }
         
         #region 移动操作 - Move Operations
@@ -34,7 +34,7 @@ namespace Resonance.Player.Inventory
             var item = _inventory.GetItemByID(itemID);
             if (item == null)
             {
-                Debug.LogWarning($"GridOperationManager: Item {itemID} not found");
+                Debug.LogWarning($"InventoryOperationManager: Item {itemID} not found");
                 return false;
             }
             
@@ -44,7 +44,7 @@ namespace Resonance.Player.Inventory
             if (_inventory.MoveItemInGrid(itemID, newPosition))
             {
                 OnItemMoved?.Invoke(itemID, oldPosition, newPosition);
-                Debug.Log($"GridOperationManager: Moved item {item.ItemName} from {oldPosition} to {newPosition}");
+                Debug.Log($"InventoryOperationManager: Moved item {item.ItemName} from {oldPosition} to {newPosition}");
                 return true;
             }
             
@@ -74,7 +74,7 @@ namespace Resonance.Player.Inventory
             var item = _inventory.GetItemByID(itemID);
             if (item == null)
             {
-                Debug.LogWarning($"GridOperationManager: Item {itemID} not found");
+                Debug.LogWarning($"InventoryOperationManager: Item {itemID} not found");
                 return false;
             }
             
@@ -84,7 +84,7 @@ namespace Resonance.Player.Inventory
             if (_inventory.RotateItemInGrid(itemID))
             {
                 OnItemRotated?.Invoke(itemID, item.Rotation);
-                Debug.Log($"GridOperationManager: Rotated item {item.ItemName} from {oldRotation}° to {item.Rotation}°");
+                Debug.Log($"InventoryOperationManager: Rotated item {item.ItemName} from {oldRotation}° to {item.Rotation}°");
                 return true;
             }
             
@@ -125,14 +125,14 @@ namespace Resonance.Player.Inventory
             
             if (sourceItem == null || targetItem == null)
             {
-                Debug.LogWarning("GridOperationManager: Source or target item not found");
+                Debug.LogWarning("InventoryOperationManager: Source or target item not found");
                 return false;
             }
             
             // Check if can stack
             if (!_consumableManager.CanStackItems(sourceItem, targetItem))
             {
-                Debug.LogWarning($"GridOperationManager: Cannot stack {sourceItem.ItemName} with {targetItem.ItemName}");
+                Debug.LogWarning($"InventoryOperationManager: Cannot stack {sourceItem.ItemName} with {targetItem.ItemName}");
                 return false;
             }
             
@@ -140,7 +140,7 @@ namespace Resonance.Player.Inventory
             if (_consumableManager.TryStackItems(sourceItemID, targetItemID))
             {
                 OnItemsStacked?.Invoke(sourceItemID, targetItemID);
-                Debug.Log($"GridOperationManager: Stacked {sourceItem.ItemName} onto {targetItem.ItemName}");
+                Debug.Log($"InventoryOperationManager: Stacked {sourceItem.ItemName} onto {targetItem.ItemName}");
                 return true;
             }
             
@@ -182,7 +182,7 @@ namespace Resonance.Player.Inventory
                 }
                 else
                 {
-                    Debug.LogWarning("GridOperationManager: Cannot drop - position occupied");
+                    Debug.LogWarning("InventoryOperationManager: Cannot drop - position occupied");
                     return false;
                 }
             }
@@ -225,7 +225,7 @@ namespace Resonance.Player.Inventory
         /// </summary>
         public void AutoArrangeInventory()
         {
-            Debug.Log("GridOperationManager: Auto-arranging inventory (not implemented yet)");
+            Debug.Log("InventoryOperationManager: Auto-arranging inventory (not implemented yet)");
             // TODO: Implement auto arrange logic
             // 1. Get all items
             // 2. Sort by type and size

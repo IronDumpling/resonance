@@ -5,7 +5,7 @@ using Resonance.Player.Inventory;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
     /// Reusable grid system implementation

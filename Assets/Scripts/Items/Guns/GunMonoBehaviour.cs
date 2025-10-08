@@ -3,6 +3,7 @@ using TMPro;
 using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 using Resonance.Core;
 using Resonance.Core.GlobalServices;
 
@@ -322,7 +323,7 @@ namespace Resonance.Items
                         {
                             // Step 1: Create GridCellData for the weapon
                             int weaponID = gunCopy.GetInstanceID();
-                            var weaponData = new Resonance.Player.Inventory.GridCellData
+                            var weaponData = new GridCellData
                             {
                                 ItemID = weaponID,
                                 ItemName = gunCopy.weaponName,

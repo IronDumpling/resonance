@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
     /// Grid系统接口，定义可复用的网格系统功能

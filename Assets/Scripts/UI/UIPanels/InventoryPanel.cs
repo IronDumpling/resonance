@@ -5,6 +5,7 @@ using Resonance.UI;
 using Resonance.Core;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 using Resonance.Interfaces.Services;
 using Resonance.Player;
 using Resonance.Player.Core;
@@ -53,7 +54,7 @@ namespace Resonance.UI
         private IPlayerService _playerService;
         private PlayerController _playerController;
         private PlayerInventory _playerInventory;
-        private GridOperationManager _gridOperationManager;
+        private InventoryOperationManager _gridOperationManager;
         
         // State tracking
         private bool _isInitialized = false;
@@ -158,8 +159,8 @@ namespace Resonance.UI
                 {
                     _playerInventory = _playerController.Inventory;
                     
-                    // Get GridOperationManager from PlayerController
-                    _gridOperationManager = _playerController.GridOperationManager;
+                    // Get InventoryOperationManager from PlayerController
+                    _gridOperationManager = _playerController.InventoryOperationManager;
                     
                     InitializeGridSystem();
                     SubscribeToPlayerEvents();
