@@ -321,9 +321,9 @@ namespace Resonance.Items
                         
                         if (inventory != null && weaponManager != null)
                         {
-                            // Step 1: Create GridCellData for the weapon
+                            // Step 1: Create GridItem for the weapon
                             int weaponID = gunCopy.GetInstanceID();
-                            var weaponData = new GridCellData
+                            var weaponData = new GridItem
                             {
                                 ItemID = weaponID,
                                 ItemName = gunCopy.weaponName,

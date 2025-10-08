@@ -20,12 +20,12 @@ namespace Resonance.Utilities.GridSystem
         
         // 状态
         private Vector2Int _gridPosition;
-        private GridCellData _currentItem; // Reference only, visual is handled by GridItemVisual
+        private GridItem _currentItem; // Reference only, visual is handled by GridItemVisual
         private SlotState _currentState = SlotState.Normal;
         private bool _isInitialized = false;
         
         public Vector2Int GridPosition => _gridPosition;
-        public GridCellData CurrentItem => _currentItem;
+        public GridItem CurrentItem => _currentItem;
         public SlotState CurrentState => _currentState;
         public bool IsOccupied => _currentItem != null;
         
@@ -84,7 +84,7 @@ namespace Resonance.Utilities.GridSystem
         /// 设置当前物品（仅用于引用，不显示视觉）
         /// </summary>
         /// <param name="item">物品</param>
-        public void SetItem(GridCellData item)
+        public void SetItem(GridItem item)
         {
             _currentItem = item;
         }

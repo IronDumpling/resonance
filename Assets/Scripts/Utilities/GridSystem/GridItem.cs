@@ -9,7 +9,7 @@ namespace Resonance.Utilities.GridSystem
     /// Unified data model for both inventory storage and UI display
     /// </summary>
     [System.Serializable]
-    public class GridCellData
+    public class GridItem
     {
         // Basic information
         public int ItemID { get; set; }
@@ -48,7 +48,7 @@ namespace Resonance.Utilities.GridSystem
         public bool IsDragging { get; set; }
         public Color ItemColor { get; set; } = Color.white;
         
-        public GridCellData()
+        public GridItem()
         {
             CustomData = new Dictionary<string, object>();
             GridPosition = new Vector2Int(-1, -1);
@@ -156,7 +156,7 @@ namespace Resonance.Utilities.GridSystem
         /// </summary>
         /// <param name="other">Other item</param>
         /// <returns>True if overlapping</returns>
-        public bool OverlapsWith(GridCellData other)
+        public bool OverlapsWith(GridItem other)
         {
             if (other == null) return false;
             

@@ -22,10 +22,10 @@ namespace Resonance.Player.Inventory
         private int _gridHeight;
         
         // Grid data storage (2D array, each cell may be occupied by a part of an item)
-        private GridCellData[,] _gridCells;
+        private GridItem[,] _gridCells;
         
         // Item quick lookup (itemID → item data)
-        private Dictionary<int, GridCellData> _itemsById;
+        private Dictionary<int, GridItem> _itemsById;
         
         // Occupancy mapping (each cell position → item ID occupying it)
         private Dictionary<Vector2Int, int> _cellOccupancy;
@@ -40,11 +40,11 @@ namespace Resonance.Player.Inventory
         public System.Action OnInventoryChanged; // General change event
         
         // Grid operation events
-        public System.Action<GridCellData, Vector2Int> OnItemAddedToGrid;
-        public System.Action<GridCellData, Vector2Int> OnItemRemovedFromGrid;
-        public System.Action<GridCellData, Vector2Int, Vector2Int> OnItemMovedInGrid; // item, oldPos, newPos
-        public System.Action<GridCellData, int> OnItemRotatedInGrid; // item, newRotation
-        public System.Action<GridCellData, int> OnItemQuantityChanged; // item, newQuantity
+        public System.Action<GridItem, Vector2Int> OnItemAddedToGrid;
+        public System.Action<GridItem, Vector2Int> OnItemRemovedFromGrid;
+        public System.Action<GridItem, Vector2Int, Vector2Int> OnItemMovedInGrid; // item, oldPos, newPos
+        public System.Action<GridItem, int> OnItemRotatedInGrid; // item, newRotation
+        public System.Action<GridItem, int> OnItemQuantityChanged; // item, newQuantity
         
         // Weapon-specific events (for WeaponManager)
         public System.Action<int> OnWeaponEquipped; // weaponID
@@ -70,8 +70,8 @@ namespace Resonance.Player.Inventory
             _gridHeight = gridHeight;
             
             // Initialize grid data
-            _gridCells = new GridCellData[_gridWidth, _gridHeight];
-            _itemsById = new Dictionary<int, GridCellData>();
+            _gridCells = new GridItem[_gridWidth, _gridHeight];
+            _itemsById = new Dictionary<int, GridItem>();
             _cellOccupancy = new Dictionary<Vector2Int, int>();
             
             // Initialize equipped weapon tracking
@@ -87,7 +87,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Add item to grid
         /// </summary>
-        public bool AddItemToGrid(GridCellData itemData, Vector2Int position, int rotation = 0)
+        public bool AddItemToGrid(GridItem itemData, Vector2Int position, int rotation = 0)
         {
             if (itemData == null)
             {
@@ -308,7 +308,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get item at position
         /// </summary>
-        public GridCellData GetItemAtPosition(Vector2Int position)
+        public GridItem GetItemAtPosition(Vector2Int position)
         {
             if (!IsValidPosition(position)) return null;
             
@@ -323,7 +323,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get item by ID
         /// </summary>
-        public GridCellData GetItemByID(int itemID)
+        public GridItem GetItemByID(int itemID)
         {
             return _itemsById.GetValueOrDefault(itemID);
         }
@@ -331,15 +331,15 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get all items
         /// </summary>
-        public List<GridCellData> GetAllItems()
+        public List<GridItem> GetAllItems()
         {
-            return new List<GridCellData>(_itemsById.Values);
+            return new List<GridItem>(_itemsById.Values);
         }
         
         /// <summary>
         /// Get all items by type
         /// </summary>
-        public List<GridCellData> GetItemsByType(ItemType itemType)
+        public List<GridItem> GetItemsByType(ItemType itemType)
         {
             return _itemsById.Values.Where(item => item.ItemType == itemType).ToList();
         }
@@ -395,7 +395,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Validate if can place item
         /// </summary>
-        public bool CanPlaceItemAt(GridCellData itemData, Vector2Int position)
+        public bool CanPlaceItemAt(GridItem itemData, Vector2Int position)
         {
             if (itemData == null) return false;
             
@@ -448,7 +448,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Occupy grid cells
         /// </summary>
-        private void OccupyGridCells(GridCellData itemData)
+        private void OccupyGridCells(GridItem itemData)
         {
             var positions = itemData.GetOccupiedPositions();
             foreach (var pos in positions)
@@ -460,7 +460,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Clear grid cells occupancy
         /// </summary>
-        private void ClearGridCells(GridCellData itemData)
+        private void ClearGridCells(GridItem itemData)
         {
             var positions = itemData.GetOccupiedPositions();
             foreach (var pos in positions)
@@ -701,8 +701,8 @@ namespace Resonance.Player.Inventory
                         continue;
                     }
                     
-                    // Create GridCellData
-                    var gridCellData = new GridCellData
+                    // Create GridItem
+                    var gridCellData = new GridItem
                     {
                         ItemID = cellSaveData.itemID,
                         ItemName = cellSaveData.ItemName,
@@ -741,7 +741,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Load ItemPrefab and ItemIcon from AssetPath
         /// </summary>
-        private void LoadVisualDataFromAssetPath(GridCellData gridCellData, string assetPath)
+        private void LoadVisualDataFromAssetPath(GridItem gridCellData, string assetPath)
         {
             if (string.IsNullOrEmpty(assetPath))
             {

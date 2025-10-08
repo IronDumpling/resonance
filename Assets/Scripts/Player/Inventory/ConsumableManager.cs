@@ -243,7 +243,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Check if two items can be stacked
         /// </summary>
-        public bool CanStackItems(GridCellData sourceItem, GridCellData targetItem)
+        public bool CanStackItems(GridItem sourceItem, GridItem targetItem)
         {
             if (sourceItem == null || targetItem == null)
                 return false;
@@ -284,7 +284,7 @@ namespace Resonance.Player.Inventory
             }
             
             // Create new ammo data
-            var ammoData = new GridCellData
+            var ammoData = new GridItem
             {
                 ItemID = GenerateUniqueItemID(),
                 ItemName = ammoName,

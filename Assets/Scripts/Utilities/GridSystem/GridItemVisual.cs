@@ -5,7 +5,7 @@ using TMPro;
 namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
-    /// Manages the visual representation of a GridCellData in the inventory
+    /// Manages the visual representation of a GridItem in the inventory
     /// Handles prefab instantiation, sizing, rotation, and selection
     /// This component is added to the instantiated ItemPrefab which already has a Button component
     /// </summary>
@@ -22,14 +22,14 @@ namespace Resonance.Utilities.GridSystem
         [SerializeField] private float _selectedAlpha = 1f;
         [SerializeField] private float _dragAlpha = 0.7f;
 
-        private GridCellData _gridItem;
+        private GridItem _gridItem;
         private float _slotSize;
         private bool _isSelected = false;
 
         // Events
         public System.Action<GridItemVisual> OnItemClicked;
         
-        public GridCellData GridItem => _gridItem;
+        public GridItem GridItem => _gridItem;
         public RectTransform RectTransform => _rectTransform;
         public bool IsSelected => _isSelected;
         
@@ -74,10 +74,10 @@ namespace Resonance.Utilities.GridSystem
         }
         
         /// <summary>
-        /// Initialize the visual with a GridCellData
+        /// Initialize the visual with a GridItem
         /// Note: This component is attached to the already instantiated prefab
         /// </summary>
-        public void Initialize(GridCellData item, float slotSize, Transform parent)
+        public void Initialize(GridItem item, float slotSize, Transform parent)
         {
             _gridItem = item;
             _slotSize = slotSize;

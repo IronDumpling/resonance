@@ -15,13 +15,13 @@ namespace Resonance.Utilities.GridSystem
         bool IsInitialized { get; }
         
         // Item management
-        bool CanPlaceItem(GridCellData item, Vector2Int position);
-        bool PlaceItem(GridCellData item, Vector2Int position);
-        bool MoveItem(GridCellData item, Vector2Int newPosition);
-        bool RotateItem(GridCellData item, bool clockwise = true);
-        bool RemoveItem(GridCellData item);
-        GridCellData GetItemAt(Vector2Int position);
-        List<GridCellData> GetAllItems();
+        bool CanPlaceItem(GridItem item, Vector2Int position);
+        bool PlaceItem(GridItem item, Vector2Int position);
+        bool MoveItem(GridItem item, Vector2Int newPosition);
+        bool RotateItem(GridItem item, bool clockwise = true);
+        bool RemoveItem(GridItem item);
+        GridItem GetItemAt(Vector2Int position);
+        List<GridItem> GetAllItems();
         
         // Space searching
         Vector2Int FindEmptySpace(int width, int height);
@@ -30,16 +30,16 @@ namespace Resonance.Utilities.GridSystem
         bool IsAreaEmpty(Vector2Int position, int width, int height);
         
         // Selection management
-        GridCellData SelectedItem { get; }
-        void SelectItem(GridCellData item);
+        GridItem SelectedItem { get; }
+        void SelectItem(GridItem item);
         void DeselectItem();
         
         // Events
-        System.Action<GridCellData> OnItemPlaced { get; set; }
-        System.Action<GridCellData> OnItemMoved { get; set; }
-        System.Action<GridCellData> OnItemRotated { get; set; }
-        System.Action<GridCellData> OnItemRemoved { get; set; }
-        System.Action<GridCellData> OnItemSelected { get; set; }
-        System.Action<GridCellData> OnItemDeselected { get; set; }
+        System.Action<GridItem> OnItemPlaced { get; set; }
+        System.Action<GridItem> OnItemMoved { get; set; }
+        System.Action<GridItem> OnItemRotated { get; set; }
+        System.Action<GridItem> OnItemRemoved { get; set; }
+        System.Action<GridItem> OnItemSelected { get; set; }
+        System.Action<GridItem> OnItemDeselected { get; set; }
     }
 }

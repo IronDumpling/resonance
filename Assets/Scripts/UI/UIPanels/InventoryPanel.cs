@@ -58,8 +58,8 @@ namespace Resonance.UI
         
         // State tracking
         private bool _isInitialized = false;
-        private GridCellData _selectedItem;
-        private Dictionary<int, GridCellData> _inventoryItems = new Dictionary<int, GridCellData>();
+        private GridItem _selectedItem;
+        private Dictionary<int, GridItem> _inventoryItems = new Dictionary<int, GridItem>();
         
         // Input state tracking
         private Vector2 _currentMoveInput = Vector2.zero;
@@ -297,14 +297,14 @@ namespace Resonance.UI
             UpdateAllUI();
         }
 
-        private void OnItemSelected(GridCellData item)
+        private void OnItemSelected(GridItem item)
         {
             _selectedItem = item;
             UpdateItemInfoPanel(item);
             Debug.Log($"InventoryPanel: Item selected - {item?.ItemName ?? "None"}");
         }
 
-        private void OnItemDeselected(GridCellData item)
+        private void OnItemDeselected(GridItem item)
         {
             if (_selectedItem == item)
             {
@@ -374,28 +374,28 @@ namespace Resonance.UI
         
         #endregion
 
-        private void OnItemMoved(GridCellData item)
+        private void OnItemMoved(GridItem item)
         {
             Debug.Log($"InventoryPanel: Item moved - {item.ItemName}");
             // Update player inventory if needed
             SyncGridToInventory();
         }
 
-        private void OnItemRotated(GridCellData item)
+        private void OnItemRotated(GridItem item)
         {
             Debug.Log($"InventoryPanel: Item rotated - {item.ItemName}");
             // Update player inventory if needed
             SyncGridToInventory();
         }
 
-        private void OnInventoryItemAddedToGrid(GridCellData itemData, Vector2Int position)
+        private void OnInventoryItemAddedToGrid(GridItem itemData, Vector2Int position)
         {
             Debug.Log($"InventoryPanel: Inventory item added to grid - ID: {itemData.ItemID}, Name: {itemData.ItemName}, Position: {position}");
             // Add item to grid if it's not already there
             AddInventoryItemToGrid(itemData.ItemID, itemData.ItemType);
         }
 
-        private void OnInventoryItemRemovedFromGrid(GridCellData itemData, Vector2Int position)
+        private void OnInventoryItemRemovedFromGrid(GridItem itemData, Vector2Int position)
         {
             Debug.Log($"InventoryPanel: Inventory item removed from grid - ID: {itemData.ItemID}, Name: {itemData.ItemName}, Position: {position}");
             // Remove item from grid
@@ -439,7 +439,7 @@ namespace Resonance.UI
             {
                 Debug.Log($"InventoryPanel: Processing item: ID={gridCellData.ItemID}, Name={gridCellData.ItemName}, Position={gridCellData.GridPosition}");
                 
-                // Place item at its stored position (directly using GridCellData)
+                // Place item at its stored position (directly using GridItem)
                 // This will create visuals since GridSystem is now initialized
                 Debug.Log($"InventoryPanel: About to place item {gridCellData.ItemName} at {gridCellData.GridPosition}");
                 if (_gridSystem.PlaceItem(gridCellData, gridCellData.GridPosition))
@@ -479,7 +479,7 @@ namespace Resonance.UI
                 return;
             }
             
-            // Place item at its stored position (directly using GridCellData)
+            // Place item at its stored position (directly using GridItem)
             if (_gridSystem.PlaceItem(gridCellData, gridCellData.GridPosition))
             {
                 _inventoryItems[itemID] = gridCellData;
@@ -495,7 +495,7 @@ namespace Resonance.UI
         {
             if (_gridSystem == null || !_inventoryItems.ContainsKey(itemID)) return;
             
-            GridCellData gridItem = _inventoryItems[itemID];
+            GridItem gridItem = _inventoryItems[itemID];
             _gridSystem.RemoveItem(gridItem);
             _inventoryItems.Remove(itemID);
             
@@ -568,13 +568,13 @@ namespace Resonance.UI
             }
         }
 
-        private void UpdateItemInfoPanel(GridCellData item)
+        private void UpdateItemInfoPanel(GridItem item)
         {
             if (_itemInfoPanel == null) return;
             
             if (item != null)
             {
-                // Create InfoDataAsset from GridCellData
+                // Create InfoDataAsset from GridItem
                 _itemInfoName.text = item.ItemName;
                 // _itemInfoContent.text = item.itemDescription;
                 _itemInfoImage.sprite = item.ItemIcon;
