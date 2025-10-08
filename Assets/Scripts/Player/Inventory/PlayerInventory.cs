@@ -2,25 +2,15 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Resonance.Items;
+using Resonance.Utilities;
 using Resonance.Player.Data;
 using Resonance.Player.Core;
 
 namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// Item type enum
-    /// </summary>
-    public enum ItemType
-    {
-        Consumable,    // Ammo, etc.
-        Tool,          // Key, etc.
-        Module,        // Wave Module
-        Weapon         // Pistol, etc.
-    }
-
-    /// <summary>
-    /// 格子单元数据 - 存储单个格子中的物品完整信息
-    /// 这是纯数据结构，不包含任何业务逻辑
+    /// Grid cell data - stores complete information about an item in a single cell
+    /// This is a pure data structure, without any business logic
     /// </summary>
     [System.Serializable]
     public class GridCellData

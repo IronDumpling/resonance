@@ -9,14 +9,8 @@ using Resonance.Core.GlobalServices;
 namespace Resonance.Items
 {
     /// <summary>
-    /// 场景中可交互的Gun物体
-    /// 玩家可以拾取并装备到武器管理器中
-    /// 
-    /// Visual System Responsibilities:
-    /// - _pickupVisual: The visual representation for the gun in the world (pickup state)
-    /// - This handles pickup animations (bob, rotation) and interaction triggers
-    /// - When equipped, the gun data is passed to WeaponManager but no visual weapon is shown on player yet
-    /// - Future: Add equipped weapon visual system to player for when gun is equipped
+    /// Gun MonoBehaviour - Handles the visual and interaction system for guns
+    /// Responsibilities: pickup, equip, interact with gun, visual animations
     /// </summary>
     public class GunMonoBehaviour : MonoBehaviour, IInteractable, IPausable
     {
@@ -332,7 +326,7 @@ namespace Resonance.Items
                             {
                                 ItemID = weaponID,
                                 ItemName = gunCopy.weaponName,
-                                ItemType = Resonance.Player.Inventory.ItemType.Weapon,
+                                ItemType = ItemType.Weapon,
                                 GridWidth = gunCopy.gridWidth,
                                 GridHeight = gunCopy.gridHeight,
                                 CurrentAmmo = gunCopy.CurrentAmmo,

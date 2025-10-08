@@ -2,12 +2,13 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Resonance.Items;
+using Resonance.Utilities;
 
 namespace Resonance.Player.Inventory
 {
     /// <summary>
     /// ConsumableManager - Manage consumable items (ammo, etc.)
-    /// Responsibilities: add/consume ammo, stack同类弹药, manage consumable usage
+    /// Responsibilities: add/consume ammo, stack same type ammo, manage consumable usage
     /// </summary>
     public class ConsumableManager
     {
