@@ -21,7 +21,7 @@ namespace Resonance.Player.Inventory
         private WeaponManager _weaponManager;
         
         // Operation Handlers (Strategy Pattern)
-        private Dictionary<ItemType, IItemOperationHandler> _operationHandlers;
+        private Dictionary<ItemType, BaseItemOperationHandler> _operationHandlers;
         
         // Events - Grid Operations
         public System.Action<int, Vector2Int, Vector2Int> OnItemMoved; // itemID, oldPos, newPos
@@ -52,7 +52,7 @@ namespace Resonance.Player.Inventory
         /// </summary>
         private void InitializeOperationHandlers()
         {
-            _operationHandlers = new Dictionary<ItemType, IItemOperationHandler>();
+            _operationHandlers = new Dictionary<ItemType, BaseItemOperationHandler>();
             
             // Register handlers for each item type
             _operationHandlers[ItemType.Weapon] = new WeaponOperationHandler(
@@ -71,7 +71,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get operation handler for specific item type
         /// </summary>
-        private IItemOperationHandler GetHandler(ItemType itemType)
+        private BaseItemOperationHandler GetHandler(ItemType itemType)
         {
             if (_operationHandlers.TryGetValue(itemType, out var handler))
             {

@@ -10,7 +10,7 @@ namespace Resonance.Player.Inventory.Operations
     /// Base class for all item operation handlers
     /// Provides common dependencies and utility methods
     /// </summary>
-    public abstract class BaseItemOperationHandler : IItemOperationHandler
+    public abstract class BaseItemOperationHandler
     {
         // Dependencies - injected via constructor
         protected PlayerInventory Inventory { get; private set; }
