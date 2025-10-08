@@ -80,7 +80,7 @@ namespace Resonance.Player.Data
     {
         // Basic info
         public int itemID;
-        public string itemName;
+        public string ItemName;
         public string itemType; // Store as string for serialization
         
         // Stack info

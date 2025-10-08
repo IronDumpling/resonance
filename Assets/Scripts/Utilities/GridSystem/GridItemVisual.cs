@@ -5,7 +5,7 @@ using TMPro;
 namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
-    /// Manages the visual representation of a GridItem in the inventory
+    /// Manages the visual representation of a GridCellData in the inventory
     /// Handles prefab instantiation, sizing, rotation, and selection
     /// This component is added to the instantiated ItemPrefab which already has a Button component
     /// </summary>
@@ -22,14 +22,14 @@ namespace Resonance.Utilities.GridSystem
         [SerializeField] private float _selectedAlpha = 1f;
         [SerializeField] private float _dragAlpha = 0.7f;
 
-        private GridItem _gridItem;
+        private GridCellData _gridItem;
         private float _slotSize;
         private bool _isSelected = false;
 
         // Events
         public System.Action<GridItemVisual> OnItemClicked;
         
-        public GridItem GridItem => _gridItem;
+        public GridCellData GridItem => _gridItem;
         public RectTransform RectTransform => _rectTransform;
         public bool IsSelected => _isSelected;
         
@@ -74,10 +74,10 @@ namespace Resonance.Utilities.GridSystem
         }
         
         /// <summary>
-        /// Initialize the visual with a GridItem
+        /// Initialize the visual with a GridCellData
         /// Note: This component is attached to the already instantiated prefab
         /// </summary>
-        public void Initialize(GridItem item, float slotSize, Transform parent)
+        public void Initialize(GridCellData item, float slotSize, Transform parent)
         {
             _gridItem = item;
             _slotSize = slotSize;
@@ -104,12 +104,12 @@ namespace Resonance.Utilities.GridSystem
             
             // Use BASE size (not rotated size) for the visual
             // We will apply rotation transform to get the correct visual appearance
-            float width = _gridItem.baseWidth * _slotSize;
-            float height = _gridItem.baseHeight * _slotSize;
+            float width = _gridItem.GridWidth * _slotSize;
+            float height = _gridItem.GridHeight * _slotSize;
             
-            Debug.Log($"GridItemVisual.UpdateSizeAndPosition: Item {_gridItem.itemName}, " +
-                     $"Base Size: {width}x{height}, Current Size: {_gridItem.CurrentWidth}x{_gridItem.CurrentHeight}, " +
-                     $"Position: {_gridItem.gridPosition}, IsRotated: {_gridItem.isRotated}");
+            Debug.Log($"GridItemVisual.UpdateSizeAndPosition: Item {_gridItem.ItemName}, " +
+                     $"Base Size: {width}x{height}, Current Size: {_gridItem.GetCurrentWidth()}x{_gridItem.GetCurrentHeight()}, " +
+                     $"Position: {_gridItem.GridPosition}, IsRotated: {_gridItem.IsRotated}");
             
             // Set size using BASE dimensions
             _rectTransform.sizeDelta = new Vector2(width, height);
@@ -117,12 +117,12 @@ namespace Resonance.Utilities.GridSystem
             // Calculate position
             // When rotated, we need to adjust the position to account for the visual rotation
             Vector2 position = new Vector2(
-                _gridItem.gridPosition.x * _slotSize,
-                -_gridItem.gridPosition.y * _slotSize
+                _gridItem.GridPosition.x * _slotSize,
+                -_gridItem.GridPosition.y * _slotSize
             );
             
             // Apply visual rotation around top-left corner
-            if (_gridItem.isRotated)
+            if (_gridItem.IsRotated)
             {
                 _rectTransform.localRotation = Quaternion.Euler(0, 0, 90);
                 
@@ -168,7 +168,7 @@ namespace Resonance.Utilities.GridSystem
             // Update grid item state
             if (_gridItem != null)
             {
-                _gridItem.isSelected = selected;
+                _gridItem.IsSelected = selected;
             }
         }
         
@@ -186,7 +186,7 @@ namespace Resonance.Utilities.GridSystem
             // Update grid item state
             if (_gridItem != null)
             {
-                _gridItem.isDragging = dragging;
+                _gridItem.IsDragging = dragging;
             }
         }
         

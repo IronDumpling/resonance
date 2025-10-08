@@ -26,9 +26,9 @@ namespace Resonance.Utilities.GridSystem
         private int _gridWidth;
         private int _gridHeight;
         private GridSlot[,] _slots;
-        private List<GridItem> _items = new List<GridItem>();
+        private List<GridCellData> _items = new List<GridCellData>();
         private Dictionary<int, GridItemVisual> _itemVisuals = new Dictionary<int, GridItemVisual>(); // itemID -> visual
-        private GridItem _selectedItem;
+        private GridCellData _selectedItem;
         private GridItemVisual _selectedVisual;
         private bool _isInitialized = false;
         
@@ -36,15 +36,15 @@ namespace Resonance.Utilities.GridSystem
         public int GridWidth => _gridWidth;
         public int GridHeight => _gridHeight;
         public bool IsInitialized => _isInitialized;
-        public GridItem SelectedItem => _selectedItem;
+        public GridCellData SelectedItem => _selectedItem;
         
         // Events
-        public System.Action<GridItem> OnItemPlaced { get; set; }
-        public System.Action<GridItem> OnItemMoved { get; set; }
-        public System.Action<GridItem> OnItemRotated { get; set; }
-        public System.Action<GridItem> OnItemRemoved { get; set; }
-        public System.Action<GridItem> OnItemSelected { get; set; }
-        public System.Action<GridItem> OnItemDeselected { get; set; }
+        public System.Action<GridCellData> OnItemPlaced { get; set; }
+        public System.Action<GridCellData> OnItemMoved { get; set; }
+        public System.Action<GridCellData> OnItemRotated { get; set; }
+        public System.Action<GridCellData> OnItemRemoved { get; set; }
+        public System.Action<GridCellData> OnItemSelected { get; set; }
+        public System.Action<GridCellData> OnItemDeselected { get; set; }
         
         /// <summary>
         /// Initialize grid system with specified size
@@ -203,7 +203,7 @@ namespace Resonance.Utilities.GridSystem
         
         #region IGridSystem Implementation
         
-        public bool CanPlaceItem(GridItem item, Vector2Int position)
+        public bool CanPlaceItem(GridCellData item, Vector2Int position)
         {
             if (item == null || !IsPositionValid(position)) 
             {
@@ -212,17 +212,19 @@ namespace Resonance.Utilities.GridSystem
             }
             
             // Check if the item is out of bounds
-            bool xOutOfBounds = position.x + item.CurrentWidth > _gridWidth;
-            bool yOutOfBounds = position.y + item.CurrentHeight > _gridHeight;
+            int currentWidth = item.GetCurrentWidth();
+            int currentHeight = item.GetCurrentHeight();
+            bool xOutOfBounds = position.x + currentWidth > _gridWidth;
+            bool yOutOfBounds = position.y + currentHeight > _gridHeight;
             
-            Debug.Log($"CanPlaceItem: Item {item.itemName} at {position}, size {item.CurrentWidth}x{item.CurrentHeight}");
+            Debug.Log($"CanPlaceItem: Item {item.ItemName} at {position}, size {currentWidth}x{currentHeight}");
             Debug.Log($"CanPlaceItem: Grid size {_gridWidth}x{_gridHeight}");
-            Debug.Log($"CanPlaceItem: X bounds check: {position.x} + {item.CurrentWidth} = {position.x + item.CurrentWidth} > {_gridWidth} = {xOutOfBounds}");
-            Debug.Log($"CanPlaceItem: Y bounds check: {position.y} + {item.CurrentHeight} = {position.y + item.CurrentHeight} > {_gridHeight} = {yOutOfBounds}");
+            Debug.Log($"CanPlaceItem: X bounds check: {position.x} + {currentWidth} = {position.x + currentWidth} > {_gridWidth} = {xOutOfBounds}");
+            Debug.Log($"CanPlaceItem: Y bounds check: {position.y} + {currentHeight} = {position.y + currentHeight} > {_gridHeight} = {yOutOfBounds}");
             
             if (xOutOfBounds || yOutOfBounds) 
             {
-                Debug.Log($"CanPlaceItem: Item {item.itemName} would be out of bounds");
+                Debug.Log($"CanPlaceItem: Item {item.ItemName} would be out of bounds");
                 return false;
             }
             
@@ -232,23 +234,23 @@ namespace Resonance.Utilities.GridSystem
             return areaEmpty;
         }
         
-        public bool PlaceItem(GridItem item, Vector2Int position)
+        public bool PlaceItem(GridCellData item, Vector2Int position)
         {
-            Debug.Log($"GridSystem: PlaceItem called for {item?.itemName ?? "NULL"} at {position}");
+            Debug.Log($"GridSystem: PlaceItem called for {item?.ItemName ?? "NULL"} at {position}");
             
             // Ensure container exists before placing item
             EnsureItemVisualsContainer();
             
             if (!CanPlaceItem(item, position)) 
             {
-                Debug.LogWarning($"GridSystem: Cannot place item {item?.itemName ?? "NULL"} at {position}");
+                Debug.LogWarning($"GridSystem: Cannot place item {item?.ItemName ?? "NULL"} at {position}");
                 return false;
             }
             
             // Remove item from old position
-            if (item.gridPosition.x >= 0 && item.gridPosition.y >= 0)
+            if (item.GridPosition.x >= 0 && item.GridPosition.y >= 0)
             {
-                Debug.Log($"GridSystem: Removing item from old position {item.gridPosition}");
+                Debug.Log($"GridSystem: Removing item from old position {item.GridPosition}");
                 RemoveItemFromSlots(item);
                 // Don't destroy visual here, we'll update it
             }
@@ -270,23 +272,23 @@ namespace Resonance.Utilities.GridSystem
             CreateOrUpdateItemVisual(item);
             
             OnItemPlaced?.Invoke(item);
-            Debug.Log($"GridSystem: Placed item {item.itemName} at {position}");
+            Debug.Log($"GridSystem: Placed item {item.ItemName} at {position}");
             
             return true;
         }
         
-        public bool MoveItem(GridItem item, Vector2Int newPosition)
+        public bool MoveItem(GridCellData item, Vector2Int newPosition)
         {
             if (item == null || !_items.Contains(item)) return false;
             
-            Vector2Int oldPosition = item.gridPosition;
+            Vector2Int oldPosition = item.GridPosition;
             bool wasSelected = (item == _selectedItem);
             
             // PlaceItem already handles UpdateSlotsForItem and CreateOrUpdateItemVisual
             if (PlaceItem(item, newPosition))
             {
                 OnItemMoved?.Invoke(item);
-                Debug.Log($"GridSystem: Moved item {item.itemName} from {oldPosition} to {newPosition}");
+                Debug.Log($"GridSystem: Moved item {item.ItemName} from {oldPosition} to {newPosition}");
                 
                 // Maintain selection after move
                 if (wasSelected)
@@ -300,25 +302,25 @@ namespace Resonance.Utilities.GridSystem
             return false;
         }
         
-        public bool RotateItem(GridItem item, bool clockwise = true)
+        public bool RotateItem(GridCellData item, bool clockwise = true)
         {
             if (item == null || !_items.Contains(item)) return false;
             
-            Vector2Int oldPosition = item.gridPosition;
-            int oldWidth = item.CurrentWidth;
-            int oldHeight = item.CurrentHeight;
+            Vector2Int oldPosition = item.GridPosition;
+            int oldWidth = item.GetCurrentWidth();
+            int oldHeight = item.GetCurrentHeight();
             bool wasSelected = (item == _selectedItem);
             
-            Debug.Log($"GridSystem: RotateItem called - Item: {item.itemName}, Old position: {oldPosition}, Old size: {oldWidth}x{oldHeight}");
+            Debug.Log($"GridSystem: RotateItem called - Item: {item.ItemName}, Old position: {oldPosition}, Old size: {oldWidth}x{oldHeight}");
             
             // Clear current slot occupancy
             RemoveItemFromSlots(item);
             
-            // Rotate the item (this toggles isRotated flag)
+            // Rotate the item (this toggles IsRotated flag)
             item.Rotate(clockwise);
             
-            int newWidth = item.CurrentWidth;
-            int newHeight = item.CurrentHeight;
+            int newWidth = item.GetCurrentWidth();
+            int newHeight = item.GetCurrentHeight();
             
             Debug.Log($"GridSystem: After rotation - New size: {newWidth}x{newHeight}");
             
@@ -348,7 +350,7 @@ namespace Resonance.Utilities.GridSystem
                 CreateOrUpdateItemVisual(item);
                 
                 OnItemRotated?.Invoke(item);
-                Debug.Log($"GridSystem: Successfully rotated {item.itemName} from {oldPosition} to {newPosition}");
+                Debug.Log($"GridSystem: Successfully rotated {item.ItemName} from {oldPosition} to {newPosition}");
                 
                 // Maintain selection after rotation
                 if (wasSelected)
@@ -369,7 +371,7 @@ namespace Resonance.Utilities.GridSystem
                 CreateOrUpdateItemVisual(item);
                 
                 OnItemRotated?.Invoke(item);
-                Debug.Log($"GridSystem: Rotated {item.itemName} and adjusted position from {newPosition} to {adjustedPosition}");
+                Debug.Log($"GridSystem: Rotated {item.ItemName} and adjusted position from {newPosition} to {adjustedPosition}");
                 
                 // Maintain selection after rotation
                 if (wasSelected)
@@ -385,14 +387,14 @@ namespace Resonance.Utilities.GridSystem
             item.SetGridPosition(oldPosition);
             UpdateSlotsForItem(item);
             
-            Debug.LogWarning($"GridSystem: Cannot rotate item {item.itemName} - no space available");
+            Debug.LogWarning($"GridSystem: Cannot rotate item {item.ItemName} - no space available");
             return false;
         }
         
         /// <summary>
         /// Find the best position for a rotated item
         /// </summary>
-        private Vector2Int FindBestPositionForRotatedItem(GridItem item, Vector2Int originalPosition)
+        private Vector2Int FindBestPositionForRotatedItem(GridCellData item, Vector2Int originalPosition)
         {
             // Try to find a suitable position near the original position
             int searchRadius = 2;
@@ -407,8 +409,8 @@ namespace Resonance.Utilities.GridSystem
                         
                         // Check if the position is within the grid
                         if (testPosition.x >= 0 && testPosition.y >= 0 &&
-                            testPosition.x + item.CurrentWidth <= _gridWidth &&
-                            testPosition.y + item.CurrentHeight <= _gridHeight)
+                            testPosition.x + item.GetCurrentWidth() <= _gridWidth &&
+                            testPosition.y + item.GetCurrentHeight() <= _gridHeight)
                         {
                             if (IsAreaEmpty(testPosition, item))
                             {
@@ -422,7 +424,7 @@ namespace Resonance.Utilities.GridSystem
             return new Vector2Int(-1, -1); // No suitable position found
         }
         
-        public bool RemoveItem(GridItem item)
+        public bool RemoveItem(GridCellData item)
         {
             if (item == null || !_items.Contains(item)) return false;
             
@@ -433,21 +435,21 @@ namespace Resonance.Utilities.GridSystem
             DestroyItemVisual(item);
             
             OnItemRemoved?.Invoke(item);
-            Debug.Log($"GridSystem: Removed item {item.itemName}");
+            Debug.Log($"GridSystem: Removed item {item.ItemName}");
             
             return true;
         }
         
-        public GridItem GetItemAt(Vector2Int position)
+        public GridCellData GetItemAt(Vector2Int position)
         {
             if (!IsPositionValid(position)) return null;
             
             return _items.FirstOrDefault(item => item.OccupiesPosition(position));
         }
         
-        public List<GridItem> GetAllItems()
+        public List<GridCellData> GetAllItems()
         {
-            return new List<GridItem>(_items);
+            return new List<GridCellData>(_items);
         }
         
         public Vector2Int FindEmptySpace(int width, int height)
@@ -500,7 +502,7 @@ namespace Resonance.Utilities.GridSystem
         /// <param name="height">Height of the area</param>
         /// <param name="excludeItem">Item to exclude from the check (optional)</param>
         /// <returns>True if the area is empty</returns>
-        private bool IsAreaEmptyCore(Vector2Int position, int width, int height, GridItem excludeItem = null)
+        private bool IsAreaEmptyCore(Vector2Int position, int width, int height, GridCellData excludeItem = null)
         {
             if (!IsPositionValid(position)) 
             {
@@ -514,7 +516,7 @@ namespace Resonance.Utilities.GridSystem
             }
             
             Debug.Log($"IsAreaEmpty: Checking area from {position} to ({position.x + width - 1}, {position.y + height - 1})" + 
-                     (excludeItem != null ? $" (excluding {excludeItem.itemName})" : ""));
+                     (excludeItem != null ? $" (excluding {excludeItem.ItemName})" : ""));
             
             for (int x = position.x; x < position.x + width; x++)
             {
@@ -524,7 +526,7 @@ namespace Resonance.Utilities.GridSystem
                     var itemAtPos = GetItemAt(checkPos);
                     if (itemAtPos != null && itemAtPos != excludeItem)
                     {
-                        Debug.Log($"IsAreaEmpty: Position {checkPos} is occupied by {itemAtPos.itemName}");
+                        Debug.Log($"IsAreaEmpty: Position {checkPos} is occupied by {itemAtPos.ItemName}");
                         return false;
                     }
                 }
@@ -540,7 +542,7 @@ namespace Resonance.Utilities.GridSystem
         /// <param name="position">Position to place the item</param>
         /// <param name="item">Item to be placed</param>
         /// <returns>True if the item can be placed</returns>
-        public bool IsAreaEmpty(Vector2Int position, GridItem item)
+        public bool IsAreaEmpty(Vector2Int position, GridCellData item)
         {
             if (item == null)
             {
@@ -548,8 +550,8 @@ namespace Resonance.Utilities.GridSystem
                 return false;
             }
 
-            int width = item.CurrentWidth;
-            int height = item.CurrentHeight;
+            int width = item.GetCurrentWidth();
+            int height = item.GetCurrentHeight();
             
             return IsAreaEmptyCore(position, width, height, item);
         }
@@ -585,13 +587,13 @@ namespace Resonance.Utilities.GridSystem
             _selectedVisual.SetSelected(true);
             
             OnItemSelected?.Invoke(_selectedItem);
-            Debug.Log($"GridSystem: Selected item {_selectedItem.itemName}");
+            Debug.Log($"GridSystem: Selected item {_selectedItem.ItemName}");
         }
         
         /// <summary>
-        /// Select item by GridItem (public API for external use)
+        /// Select item by GridCellData (public API for external use)
         /// </summary>
-        public void SelectItem(GridItem item)
+        public void SelectItem(GridCellData item)
         {
             if (item == null)
             {
@@ -599,7 +601,7 @@ namespace Resonance.Utilities.GridSystem
                 return;
             }
             
-            if (_itemVisuals.TryGetValue(item.itemID, out GridItemVisual visual))
+            if (_itemVisuals.TryGetValue(item.ItemID, out GridItemVisual visual))
             {
                 SelectItemVisual(visual);
             }
@@ -625,16 +627,19 @@ namespace Resonance.Utilities.GridSystem
         #region Helper Methods
         
         /// <summary>
-        /// 从槽位中移除物品
+        /// Remove item from slots
         /// </summary>
-        /// <param name="item">要移除的物品</param>
-        private void RemoveItemFromSlots(GridItem item)
+        /// <param name="item">Item to remove</param>
+        private void RemoveItemFromSlots(GridCellData item)
         {
-            if (item.gridPosition.x < 0 || item.gridPosition.y < 0) return;
+            if (item.GridPosition.x < 0 || item.GridPosition.y < 0) return;
             
-            for (int x = item.gridPosition.x; x < item.gridPosition.x + item.CurrentWidth; x++)
+            int currentWidth = item.GetCurrentWidth();
+            int currentHeight = item.GetCurrentHeight();
+            
+            for (int x = item.GridPosition.x; x < item.GridPosition.x + currentWidth; x++)
             {
-                for (int y = item.gridPosition.y; y < item.gridPosition.y + item.CurrentHeight; y++)
+                for (int y = item.GridPosition.y; y < item.GridPosition.y + currentHeight; y++)
                 {
                     if (IsPositionValid(new Vector2Int(x, y)))
                     {
@@ -648,13 +653,16 @@ namespace Resonance.Utilities.GridSystem
         /// Update the slots occupied by the item
         /// </summary>
         /// <param name="item">Item</param>
-        private void UpdateSlotsForItem(GridItem item)
+        private void UpdateSlotsForItem(GridCellData item)
         {
-            if (item.gridPosition.x < 0 || item.gridPosition.y < 0) return;
+            if (item.GridPosition.x < 0 || item.GridPosition.y < 0) return;
             
-            for (int x = item.gridPosition.x; x < item.gridPosition.x + item.CurrentWidth; x++)
+            int currentWidth = item.GetCurrentWidth();
+            int currentHeight = item.GetCurrentHeight();
+            
+            for (int x = item.GridPosition.x; x < item.GridPosition.x + currentWidth; x++)
             {
-                for (int y = item.gridPosition.y; y < item.gridPosition.y + item.CurrentHeight; y++)
+                for (int y = item.GridPosition.y; y < item.GridPosition.y + currentHeight; y++)
                 {
                     if (IsPositionValid(new Vector2Int(x, y)))
                     {
@@ -679,9 +687,9 @@ namespace Resonance.Utilities.GridSystem
         /// <summary>
         /// Create or update the visual representation of the item
         /// </summary>
-        private void CreateOrUpdateItemVisual(GridItem item)
+        private void CreateOrUpdateItemVisual(GridCellData item)
         {
-            Debug.Log($"GridSystem: CreateOrUpdateItemVisual called for item: {item?.itemName ?? "NULL"}");
+            Debug.Log($"GridSystem: CreateOrUpdateItemVisual called for item: {item?.ItemName ?? "NULL"}");
             
             if (item == null)
             {
@@ -699,25 +707,25 @@ namespace Resonance.Utilities.GridSystem
                     
                     if (_itemVisualContainer == null)
                     {
-                        Debug.LogError($"GridSystem: Failed to create ItemVisualsContainer. Cannot create visual for {item.itemName}");
+                        Debug.LogError($"GridSystem: Failed to create ItemVisualsContainer. Cannot create visual for {item.ItemName}");
                         return;
                     }
                 }
                 else
                 {
                     // GridSystem not initialized yet - this is fine, visuals will be created when UI opens
-                    Debug.LogWarning($"GridSystem: ItemVisualsContainer not initialized yet. Item {item.itemName} visual will be created when inventory panel opens.");
+                    Debug.LogWarning($"GridSystem: ItemVisualsContainer not initialized yet. Item {item.ItemName} visual will be created when inventory panel opens.");
                     Debug.LogWarning($"GridSystem: _isInitialized = {_isInitialized}, _itemVisualContainer = {(_itemVisualContainer != null ? "EXISTS" : "NULL")}");
                     return;
                 }
             }
             
             // Check if visual already exists
-            if (_itemVisuals.TryGetValue(item.itemID, out GridItemVisual existingVisual))
+            if (_itemVisuals.TryGetValue(item.ItemID, out GridItemVisual existingVisual))
             {
                 // Update existing visual
                 existingVisual.UpdateSizeAndPosition();
-                Debug.Log($"GridSystem: Updated visual for item {item.itemName}");
+                Debug.Log($"GridSystem: Updated visual for item {item.ItemName}");
                 return;
             }
 
@@ -725,16 +733,16 @@ namespace Resonance.Utilities.GridSystem
             GameObject visualObj = null;
             GridItemVisual visual = null;
             
-            if (item.itemPrefab == null)
+            if (item.ItemPrefab == null)
             {
                 // Fallback: Create simple visual with icon
-                Debug.LogWarning($"GridSystem: No prefab found for {item.itemName}, creating fallback visual");
-                visualObj = new GameObject($"ItemVisual_{item.itemID}_{item.itemName}");
+                Debug.LogWarning($"GridSystem: No prefab found for {item.ItemName}, creating fallback visual");
+                visualObj = new GameObject($"ItemVisual_{item.ItemID}_{item.ItemName}");
                 
                 // Add Image for icon
                 Image iconImage = visualObj.AddComponent<Image>();
-                iconImage.sprite = item.itemIcon;
-                iconImage.color = item.itemColor;
+                iconImage.sprite = item.ItemIcon;
+                iconImage.color = item.ItemColor;
                 
                 // Add Button for interaction
                 Button button = visualObj.AddComponent<Button>();
@@ -752,15 +760,15 @@ namespace Resonance.Utilities.GridSystem
             {
                 // Instantiate the prefab
                 // which should already have GridItemVisual and Button components
-                visualObj = Instantiate(item.itemPrefab, _itemVisualContainer);
-                visualObj.name = $"ItemVisual_{item.itemID}_{item.itemName}";
+                visualObj = Instantiate(item.ItemPrefab, _itemVisualContainer);
+                visualObj.name = $"ItemVisual_{item.ItemID}_{item.ItemName}";
                 
                 // Get or add GridItemVisual component
                 visual = visualObj.GetComponent<GridItemVisual>();
                 if (visual == null)
                 {
                     visual = visualObj.AddComponent<GridItemVisual>();
-                    Debug.LogWarning($"GridSystem: ItemPrefab for {item.itemName} doesn't have GridItemVisual component. Adding it.");
+                    Debug.LogWarning($"GridSystem: ItemPrefab for {item.ItemName} doesn't have GridItemVisual component. Adding it.");
                 }
             }
 
@@ -771,19 +779,19 @@ namespace Resonance.Utilities.GridSystem
             visual.Initialize(item, _slotSize, _itemVisualContainer);
             
             // Store reference
-            _itemVisuals[item.itemID] = visual;
+            _itemVisuals[item.ItemID] = visual;
             
-            Debug.Log($"GridSystem: Created visual for item {item.itemName} (HasPrefab: {item.itemPrefab != null}, Position: {item.gridPosition})");
+            Debug.Log($"GridSystem: Created visual for item {item.ItemName} (HasPrefab: {item.ItemPrefab != null}, Position: {item.GridPosition})");
         }
         
         /// <summary>
         /// Destroy the visual representation of the item
         /// </summary>
-        private void DestroyItemVisual(GridItem item)
+        private void DestroyItemVisual(GridCellData item)
         {
             if (item == null) return;
             
-            if (_itemVisuals.TryGetValue(item.itemID, out GridItemVisual visual))
+            if (_itemVisuals.TryGetValue(item.ItemID, out GridItemVisual visual))
             {
                 // Unsubscribe from events
                 if (visual != null)
@@ -798,12 +806,12 @@ namespace Resonance.Utilities.GridSystem
                     _selectedItem = null;
                 }
                 
-                _itemVisuals.Remove(item.itemID);
+                _itemVisuals.Remove(item.ItemID);
                 if (visual != null)
                 {
                     Destroy(visual.gameObject);
                 }
-                Debug.Log($"GridSystem: Destroyed visual for item {item.itemName}");
+                Debug.Log($"GridSystem: Destroyed visual for item {item.ItemName}");
             }
         }
         
@@ -861,7 +869,7 @@ namespace Resonance.Utilities.GridSystem
         {
             Debug.Log($"GridSystem: ClearAllItems called");
             
-            var itemsToRemove = new List<GridItem>(_items);
+            var itemsToRemove = new List<GridCellData>(_items);
             foreach (var item in itemsToRemove)
             {
                 RemoveItem(item);
@@ -885,9 +893,9 @@ namespace Resonance.Utilities.GridSystem
         /// </summary>
         /// <param name="itemType">Item type</param>
         /// <returns>Item list</returns>
-        public List<GridItem> GetItemsByType(ItemType itemType)
+        public List<GridCellData> GetItemsByType(ItemType itemType)
         {
-            return _items.Where(item => item.itemType == itemType).ToList();
+            return _items.Where(item => item.ItemType == itemType).ToList();
         }
         
         /// <summary>
@@ -897,17 +905,17 @@ namespace Resonance.Utilities.GridSystem
         /// <returns>Whether it exists</returns>
         public bool HasItem(int itemID)
         {
-            return _items.Any(item => item.itemID == itemID);
+            return _items.Any(item => item.ItemID == itemID);
         }
         
         /// <summary>
         /// Get item by ID
         /// </summary>
         /// <param name="itemID">Item ID</param>
-        /// <returns>物品</returns>
-        public GridItem GetItemByID(int itemID)
+        /// <returns>Item</returns>
+        public GridCellData GetItemByID(int itemID)
         {
-            return _items.FirstOrDefault(item => item.itemID == itemID);
+            return _items.FirstOrDefault(item => item.ItemID == itemID);
         }
         
         #endregion

@@ -4,42 +4,42 @@ using System.Collections.Generic;
 namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
-    /// Grid系统接口，定义可复用的网格系统功能
-    /// 支持物品放置、移动、旋转等操作
+    /// Grid system interface - defines reusable grid system functionality
+    /// Supports item placement, movement, rotation, etc.
     /// </summary>
     public interface IGridSystem
     {
-        // 基础属性
+        // Basic properties
         int GridWidth { get; }
         int GridHeight { get; }
         bool IsInitialized { get; }
         
-        // 物品管理
-        bool CanPlaceItem(GridItem item, Vector2Int position);
-        bool PlaceItem(GridItem item, Vector2Int position);
-        bool MoveItem(GridItem item, Vector2Int newPosition);
-        bool RotateItem(GridItem item, bool clockwise = true);
-        bool RemoveItem(GridItem item);
-        GridItem GetItemAt(Vector2Int position);
-        List<GridItem> GetAllItems();
+        // Item management
+        bool CanPlaceItem(GridCellData item, Vector2Int position);
+        bool PlaceItem(GridCellData item, Vector2Int position);
+        bool MoveItem(GridCellData item, Vector2Int newPosition);
+        bool RotateItem(GridCellData item, bool clockwise = true);
+        bool RemoveItem(GridCellData item);
+        GridCellData GetItemAt(Vector2Int position);
+        List<GridCellData> GetAllItems();
         
-        // 空间查找
+        // Space searching
         Vector2Int FindEmptySpace(int width, int height);
         List<Vector2Int> FindEmptySpaces(int width, int height);
         bool IsPositionValid(Vector2Int position);
         bool IsAreaEmpty(Vector2Int position, int width, int height);
         
-        // 选择管理
-        GridItem SelectedItem { get; }
-        void SelectItem(GridItem item);
+        // Selection management
+        GridCellData SelectedItem { get; }
+        void SelectItem(GridCellData item);
         void DeselectItem();
         
-        // 事件
-        System.Action<GridItem> OnItemPlaced { get; set; }
-        System.Action<GridItem> OnItemMoved { get; set; }
-        System.Action<GridItem> OnItemRotated { get; set; }
-        System.Action<GridItem> OnItemRemoved { get; set; }
-        System.Action<GridItem> OnItemSelected { get; set; }
-        System.Action<GridItem> OnItemDeselected { get; set; }
+        // Events
+        System.Action<GridCellData> OnItemPlaced { get; set; }
+        System.Action<GridCellData> OnItemMoved { get; set; }
+        System.Action<GridCellData> OnItemRotated { get; set; }
+        System.Action<GridCellData> OnItemRemoved { get; set; }
+        System.Action<GridCellData> OnItemSelected { get; set; }
+        System.Action<GridCellData> OnItemDeselected { get; set; }
     }
 }

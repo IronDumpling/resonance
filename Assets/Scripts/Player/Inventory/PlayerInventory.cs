@@ -640,7 +640,7 @@ namespace Resonance.Player.Inventory
                 var cellSaveData = new GridCellSaveData
                 {
                     itemID = item.ItemID,
-                    itemName = item.ItemName,
+                    ItemName = item.ItemName,
                     itemType = item.ItemType.ToString(),
                     quantity = item.Quantity,
                     maxStackQuantity = item.MaxStackQuantity,
@@ -705,7 +705,7 @@ namespace Resonance.Player.Inventory
                     var gridCellData = new GridCellData
                     {
                         ItemID = cellSaveData.itemID,
-                        ItemName = cellSaveData.itemName,
+                        ItemName = cellSaveData.ItemName,
                         ItemType = itemType,
                         Quantity = cellSaveData.quantity,
                         MaxStackQuantity = cellSaveData.maxStackQuantity,
