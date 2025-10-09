@@ -138,7 +138,7 @@ namespace Resonance.Core.StateMachine.States
             }
 
             // Stop the music with fade out
-            _audioService.StopMusic(fadeTime: 1f);
+            _audioService.StopMusic(fadeTime: 1.5f);
             Debug.Log("OutGameState: Stopped background music");
         }
         
