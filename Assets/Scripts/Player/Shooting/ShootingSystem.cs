@@ -411,7 +411,7 @@ namespace Resonance.Player.Shooting
         /// </summary>
         private void SetupCamera()
         {
-            // 首先尝试找到CameraManager的主相机
+            // First try to find CameraManager's main camera
             var cameraManager = Object.FindAnyObjectByType<Resonance.Cameras.CameraManager>();
             if (cameraManager != null && cameraManager.Brain != null)
             {
@@ -419,7 +419,7 @@ namespace Resonance.Player.Shooting
                 Debug.Log("ShootingSystem: Found camera from CameraManager");
             }
             
-            // 备用方案：寻找Main Camera
+            // Fallback: find Main Camera
             if (_mainCamera == null)
             {
                 _mainCamera = Camera.main;
@@ -429,7 +429,7 @@ namespace Resonance.Player.Shooting
                 }
             }
             
-            // 最后备用方案：寻找任何相机
+            // Last fallback: find any camera
             if (_mainCamera == null)
             {
                 _mainCamera = Object.FindAnyObjectByType<Camera>();
