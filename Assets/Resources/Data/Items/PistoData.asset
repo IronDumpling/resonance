@@ -58,8 +58,8 @@ MonoBehaviour:
       m_RotationOrder: 4
     rotationThreshold: 2
   recoilConfig:
-    recoilOffset: {x: 0, y: 0, z: 0.8}
-    recoilVariance: {x: 0.3, y: 0, z: 0.3}
+    recoilOffset: {x: 0, y: 1, z: 0}
+    recoilVariance: {x: 0.3, y: 0.3, z: 0.3}
     recoilMultiplierCurve:
       serializedVersion: 2
       m_Curve:

@@ -109,31 +109,6 @@ namespace Resonance.Player.Shooting
         }
         
         /// <summary>
-        /// Calculate shooting target point with random offset based on current accuracy
-        /// </summary>
-        /// <param name="originalTargetPoint">Original aim point</param>
-        /// <returns>Final target point with accuracy offset applied</returns>
-        public Vector3 CalculateShootingTargetPoint(Vector3 originalTargetPoint)
-        {
-            if (_config == null || _state == null)
-            {
-                return originalTargetPoint;
-            }
-            
-            // Generate random offset within crosshair circle
-            Vector2 randomOffset2D = Random.insideUnitCircle * _state.currentRadius;
-            
-            // Convert to world space offset (XZ plane for top-down games)
-            Vector3 worldOffset = new Vector3(randomOffset2D.x, 0f, randomOffset2D.y);
-            
-            Vector3 finalTargetPoint = originalTargetPoint + worldOffset;
-            
-            Debug.Log($"WeaponAccuracySystem: Target offset by {worldOffset.magnitude:F2} units (radius: {_state.currentRadius:F2})");
-            
-            return finalTargetPoint;
-        }
-        
-        /// <summary>
         /// Get damage multiplier based on current accuracy
         /// Perfect aim (min radius) = higher damage, poor aim (max radius) = base damage
         /// </summary>

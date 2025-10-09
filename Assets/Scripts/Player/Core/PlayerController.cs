@@ -457,10 +457,10 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 执行基于鼠标的射击
+        /// Perform shoot
         /// </summary>
-        /// <param name="shootOrigin">射击起始位置</param>
-        /// <returns>射击结果</returns>
+        /// <param name="shootOrigin">Shoot origin</param>
+        /// <returns>Shooting result</returns>
         public ShootingResult PerformShoot(Vector3 shootOrigin)
         {
             if (!CanShoot())
@@ -468,7 +468,7 @@ namespace Resonance.Player.Core
                 return new ShootingResult { success = false };
             }
 
-            // 消耗弹药
+            // Consume ammo
             if (!_weaponManager.ConsumeAmmo())
             {
                 Debug.LogWarning("PlayerController: Failed to consume ammo");
@@ -479,13 +479,13 @@ namespace Resonance.Player.Core
             
             GunDataAsset currentGun = _weaponManager.CurrentGun;
             
-            // 执行基于鼠标的两阶段射击
+            // Perform shoot
             ShootingResult result = new ShootingResult { success = false };
             if (_shootingSystem != null)
             {
                 // Pass aiming state to ShootingSystem
                 bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
-                result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun, isAiming);
+                result = _shootingSystem.PerformShoot(shootOrigin, currentGun, isAiming);
                 
                 // Core energy gain: 10 health damage = 2 core energy gain
                 if (result.success && result.hasHit && result.actualDamage > 0)
@@ -496,7 +496,7 @@ namespace Resonance.Player.Core
                 }
             }
             
-            // 触发射击事件
+            // Trigger shooting event
             OnShoot?.Invoke();
             
             Debug.Log($"PlayerController: Mouse-based shot fired with {currentGun.weaponName}. " +
