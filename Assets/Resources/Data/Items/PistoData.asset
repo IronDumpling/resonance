@@ -21,6 +21,72 @@ MonoBehaviour:
   fireRate: 1
   damageType: 3
   healthDamageRatio: 0.5
+  accuracyConfig:
+    baseRadius: 1.5
+    minRadius: 0.3
+    maxRadius: 5
+    timeToMinRadius: 2
+    movementRadiusPenalty: 1
+    rotationRadiusPenalty: 0.5
+    shootRadiusIncrease: 1.2
+    shootRecoveryDelay: 0.2
+    perfectAimDamageMultiplier: 2
+    baseAimDamageMultiplier: 1
+    damageMultiplierCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: 0
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 2
+        inSlope: 1
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    rotationThreshold: 2
+  recoilConfig:
+    recoilOffset: {x: 0, y: 0, z: 0.8}
+    recoilVariance: {x: 0.3, y: 0, z: 0.3}
+    recoilMultiplierCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: 0
+        outSlope: 0.2
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 5
+        value: 2
+        inSlope: 0.2
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    recoveryDelay: 0.3
+    recoverySpeed: 3
+    aimingRecoilMultiplier: 0.7
   weaponIcon: {fileID: 21300000, guid: 80810c76e8475864f9934095558ce785, type: 3}
   itemPrefab: {fileID: 8436483010609681290, guid: 46a603edf29af2547a51e2530a16e9d8, type: 3}
   gridWidth: 3

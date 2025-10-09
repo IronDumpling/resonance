@@ -7,6 +7,86 @@ using Resonance.Utilities;
 namespace Resonance.Items
 {
     /// <summary>
+    /// Weapon Accuracy Configuration
+    /// Controls crosshair size, shrinking/expanding behavior, and damage bonuses
+    /// </summary>
+    [System.Serializable]
+    public class WeaponAccuracyConfig
+    {
+        [Header("Crosshair Size (World Space Units)")]
+        [Tooltip("Base crosshair radius when starting to aim")]
+        public float baseRadius = 1.5f;
+        
+        [Tooltip("Minimum crosshair radius (perfect aim)")]
+        public float minRadius = 0.3f;
+        
+        [Tooltip("Maximum crosshair radius")]
+        public float maxRadius = 5.0f;
+        
+        [Header("Crosshair Shrinking")]
+        [Tooltip("Time to reach minimum radius while stationary aiming (seconds)")]
+        public float timeToMinRadius = 2.0f;
+        
+        [Header("Crosshair Expansion Penalties")]
+        [Tooltip("Radius increase when moving")]
+        public float movementRadiusPenalty = 1.0f;
+        
+        [Tooltip("Radius increase when rotating aim point rapidly")]
+        public float rotationRadiusPenalty = 0.5f;
+        
+        [Tooltip("Radius increase after each shot")]
+        public float shootRadiusIncrease = 1.2f;
+        
+        [Tooltip("Delay before crosshair starts shrinking after shooting (seconds)")]
+        public float shootRecoveryDelay = 0.2f;
+        
+        [Header("Accuracy Damage Bonus")]
+        [Tooltip("Damage multiplier at perfect aim (min radius)")]
+        public float perfectAimDamageMultiplier = 2.0f;
+        
+        [Tooltip("Damage multiplier at base aim")]
+        public float baseAimDamageMultiplier = 1.0f;
+        
+        [Tooltip("Damage multiplier curve (X: 0=worst aim, 1=perfect aim; Y: damage multiplier)")]
+        public AnimationCurve damageMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 1, 2.0f);
+        
+        [Header("Rotation Detection")]
+        [Tooltip("Aim point movement distance threshold to trigger rotation penalty (world units per second)")]
+        public float rotationThreshold = 2.0f;
+    }
+    
+    /// <summary>
+    /// Weapon Recoil Configuration
+    /// Controls recoil offset and recovery behavior
+    /// </summary>
+    [System.Serializable]
+    public class WeaponRecoilConfig
+    {
+        [Header("Recoil Offset (World Space)")]
+        [Tooltip("Recoil offset per shot (X: horizontal, Y: vertical, Z: backward)")]
+        public Vector3 recoilOffset = new Vector3(0f, 0f, 1.5f);
+        
+        [Tooltip("Random variance range for recoil")]
+        public Vector3 recoilVariance = new Vector3(0.3f, 0f, 0.3f);
+        
+        [Header("Consecutive Shot Recoil")]
+        [Tooltip("Recoil multiplier based on consecutive shots (X: shot number, Y: multiplier)")]
+        public AnimationCurve recoilMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 5, 2.0f);
+        
+        [Header("Recoil Recovery")]
+        [Tooltip("Delay before recoil starts recovering (seconds)")]
+        public float recoveryDelay = 0.3f;
+        
+        [Tooltip("Recoil recovery speed (units per second)")]
+        public float recoverySpeed = 3.0f;
+        
+        [Header("Aiming Recoil Reduction")]
+        [Tooltip("Recoil multiplier when aiming (reduces recoil)")]
+        [Range(0f, 1f)]
+        public float aimingRecoilMultiplier = 0.7f;
+    }
+
+    /// <summary>
     /// Gun data ScriptableObject asset
     /// Used to create and edit Gun configurations in Unity Editor
     /// </summary>
@@ -37,6 +117,14 @@ namespace Resonance.Items
         [Tooltip("For Mixed damage type: ratio of health damage (0-1). 1.0 = all health, 0.0 = all core")]
         [Range(0f, 1f)]
         public float healthDamageRatio = 0.5f;
+        
+        [Header("Accuracy Settings")]
+        [Tooltip("Weapon accuracy configuration (required)")]
+        public WeaponAccuracyConfig accuracyConfig = new WeaponAccuracyConfig();
+        
+        [Header("Recoil Settings")]
+        [Tooltip("Weapon recoil configuration (required)")]
+        public WeaponRecoilConfig recoilConfig = new WeaponRecoilConfig();
         
         [Header("Visual")]
         public Sprite weaponIcon;
@@ -210,6 +298,8 @@ namespace Resonance.Items
             copy.fireRate = this.fireRate;
             copy.damageType = this.damageType;
             copy.healthDamageRatio = this.healthDamageRatio;
+            copy.accuracyConfig = this.accuracyConfig;
+            copy.recoilConfig = this.recoilConfig;
             copy.weaponIcon = this.weaponIcon;
             copy.itemPrefab = this.itemPrefab;
             copy.gridWidth = this.gridWidth;

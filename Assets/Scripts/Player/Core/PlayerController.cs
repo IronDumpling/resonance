@@ -65,6 +65,7 @@ namespace Resonance.Player.Core
         public ConsumableManager ConsumableManager => _consumableManager;
         public InventoryOperationManager InventoryOperationManager => _gridOperationManager;
         public bool IsInvulnerable => _isInvulnerable;
+        public GameObject PlayerGameObject => _playerGameObject;
         
         // Dual Health Properties
         public bool IsAlive => _stats.IsAlive;
@@ -221,6 +222,13 @@ namespace Resonance.Player.Core
 
             // Notify ActionController of damage taken (for interruption logic)
             _actionController?.OnPlayerDamageTaken();
+            
+            // Interrupt aiming when taking damage
+            if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
+            {
+                _stateMachine.StopAiming();
+                Debug.Log("PlayerController: Aiming interrupted by damage");
+            }
 
             // Play hit audio effect
             PlayHitAudio();
@@ -475,7 +483,9 @@ namespace Resonance.Player.Core
             ShootingResult result = new ShootingResult { success = false };
             if (_shootingSystem != null)
             {
-                result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun);
+                // Pass aiming state to ShootingSystem
+                bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
+                result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun, isAiming);
                 
                 // Core energy gain: 10 health damage = 2 core energy gain
                 if (result.success && result.hasHit && result.actualDamage > 0)

@@ -485,6 +485,13 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
             
+            // Don't handle shooting if player is in aiming state
+            // PlayerAimingState will handle shooting instead
+            if (_playerController.IsAiming)
+            {
+                return;
+            }
+            
             // 计算射击起始位置（从玩家中心稍微前方）
             // Vector3 shootOrigin = transform.position + Vector3.up + transform.forward * 0.5f;
             Vector3 shootOrigin = transform.position + _shootOriginOffset;

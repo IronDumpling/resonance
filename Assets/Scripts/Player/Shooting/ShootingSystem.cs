@@ -12,6 +12,7 @@ namespace Resonance.Player.Shooting
     /// 实现两阶段射击：
     /// 1. 鼠标射线 → 目标点（Ground/Enemy/Objects）
     /// 2. 玩家位置 → 目标点 → 实际命中点
+    /// 集成精准度和后坐力系统
     /// </summary>
     public class ShootingSystem
     {
@@ -25,6 +26,11 @@ namespace Resonance.Player.Shooting
         
         // Audio service reference
         private IAudioService _audioService;
+        
+        // Weapon systems
+        private WeaponAccuracySystem _accuracySystem;
+        private WeaponRecoilSystem _recoilSystem;
+        private GunDataAsset _currentWeapon;
         
         // Shooting line visual effect
         private LineRenderer _shootingLineRenderer;  // 射击瞬间的闪烁线条
@@ -83,17 +89,109 @@ namespace Resonance.Player.Shooting
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
         }
 
+        #region Weapon System Management
+
+        /// <summary>
+        /// Initialize weapon systems with gun data
+        /// Called when equipping a weapon or entering aiming state
+        /// </summary>
+        public void InitializeWeapon(GunDataAsset weaponData)
+        {
+            if (weaponData == null)
+            {
+                Debug.LogError("ShootingSystem: Cannot initialize with null weapon data");
+                return;
+            }
+            
+            _currentWeapon = weaponData;
+            
+            // Initialize accuracy system
+            if (weaponData.accuracyConfig != null)
+            {
+                _accuracySystem = new WeaponAccuracySystem();
+                _accuracySystem.Initialize(weaponData.accuracyConfig);
+                Debug.Log($"ShootingSystem: Initialized accuracy system for {weaponData.weaponName}");
+            }
+            else
+            {
+                Debug.LogError($"ShootingSystem: Weapon {weaponData.weaponName} missing accuracyConfig!");
+            }
+            
+            // Initialize recoil system
+            if (weaponData.recoilConfig != null)
+            {
+                _recoilSystem = new WeaponRecoilSystem();
+                _recoilSystem.Initialize(weaponData.recoilConfig);
+                Debug.Log($"ShootingSystem: Initialized recoil system for {weaponData.weaponName}");
+            }
+            else
+            {
+                Debug.LogError($"ShootingSystem: Weapon {weaponData.weaponName} missing recoilConfig!");
+            }
+        }
+        
+        /// <summary>
+        /// Update weapon systems each frame (called from aiming state)
+        /// </summary>
+        public void UpdateWeaponSystems(float deltaTime, bool isAiming, bool isMoving)
+        {
+            // Update accuracy system
+            if (_accuracySystem != null && _accuracySystem.IsInitialized() && isAiming)
+            {
+                Vector3 currentAimPoint = GetMouseTargetPoint();
+                _accuracySystem.UpdateAccuracy(deltaTime, isAiming, isMoving, currentAimPoint);
+            }
+            
+            // Update recoil system
+            if (_recoilSystem != null && _recoilSystem.IsInitialized())
+            {
+                _recoilSystem.UpdateRecoil(deltaTime);
+            }
+        }
+        
+        /// <summary>
+        /// Cleanup weapon systems
+        /// Called when unequipping weapon or exiting aiming state
+        /// </summary>
+        public void CleanupWeapon()
+        {
+            _accuracySystem = null;
+            _recoilSystem = null;
+            _currentWeapon = null;
+            Debug.Log("ShootingSystem: Weapon systems cleaned up");
+        }
+        
+        /// <summary>
+        /// Get current crosshair radius (for UI display)
+        /// </summary>
+        public float GetCurrentCrosshairRadius()
+        {
+            return _accuracySystem?.GetCurrentRadius() ?? 0f;
+        }
+        
+        /// <summary>
+        /// Get accuracy percentage (0-1, 1 = perfect)
+        /// </summary>
+        public float GetAccuracyPercentage()
+        {
+            return _accuracySystem?.GetAccuracyPercentage() ?? 0f;
+        }
+
+        #endregion
+        
         #region Public Methods
 
         /// <summary>
         /// 执行基于鼠标的两阶段射击
         /// 阶段1：鼠标射线 → 获取目标点
         /// 阶段2：玩家 → 目标点 → 实际命中点
+        /// 集成精准度和后坐力系统
         /// </summary>
         /// <param name="shootOrigin">射击起始位置</param>
         /// <param name="gunData">武器数据</param>
+        /// <param name="isAiming">是否处于瞄准状态</param>
         /// <returns>射击结果</returns>
-        public ShootingResult PerformMouseBasedShoot(Vector3 shootOrigin, GunDataAsset gunData)
+        public ShootingResult PerformMouseBasedShoot(Vector3 shootOrigin, GunDataAsset gunData, bool isAiming = true)
         {
             if (gunData == null)
             {
@@ -109,20 +207,36 @@ namespace Resonance.Player.Shooting
 
             _totalShots++;
 
-            // Step 1: Get the target point from the mouse raycast
-            Vector3 targetPoint = GetMouseTargetPoint();
+            // Step 1: Get the base target point from mouse raycast (with recoil applied)
+            Vector3 baseTargetPoint = GetMouseTargetPoint();
             
-            // Step 2: Shoot from the player to the target point
-            Vector3 shootDirection = (targetPoint - shootOrigin).normalized;
+            // Step 2: Apply accuracy offset (shooting spread)
+            Vector3 finalTargetPoint = baseTargetPoint;
+            if (_accuracySystem != null && _accuracySystem.IsInitialized())
+            {
+                finalTargetPoint = _accuracySystem.CalculateShootingTargetPoint(baseTargetPoint);
+            }
             
-            // Step 3: Perform raycast detection
+            // Step 3: Calculate shooting direction from player to final target point
+            Vector3 shootDirection = (finalTargetPoint - shootOrigin).normalized;
+            
+            // Step 4: Perform raycast detection
             RaycastHit hitInfo;
             bool hasHit = Physics.Raycast(shootOrigin, shootDirection, out hitInfo, gunData.range, _targetLayerMask);
             
-            Vector3 endPoint = hasHit ? hitInfo.point : targetPoint;
+            Vector3 endPoint = hasHit ? hitInfo.point : finalTargetPoint;
+            
+            // Calculate final damage with accuracy bonus
+            float baseDamage = gunData.damage;
+            float damageMultiplier = 1.0f;
+            if (_accuracySystem != null && _accuracySystem.IsInitialized())
+            {
+                damageMultiplier = _accuracySystem.GetDamageMultiplier();
+            }
+            float finalDamage = baseDamage * damageMultiplier;
             
             // Debug information
-            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {targetPoint}, direction: {shootDirection}, range: {gunData.range}, layerMask: {_targetLayerMask}");
+            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {finalTargetPoint} (base: {baseTargetPoint}), damage: {finalDamage:F1} (base: {baseDamage}, multiplier: {damageMultiplier:F2})");
             
             // Show shooting line
             if (_showShootingLine)
@@ -130,11 +244,23 @@ namespace Resonance.Player.Shooting
                 ShowShootingLine(shootOrigin, endPoint);
             }
             
+            // Apply recoil
+            if (_recoilSystem != null && _recoilSystem.IsInitialized())
+            {
+                _recoilSystem.ApplyRecoil(isAiming);
+            }
+            
+            // Notify accuracy system of shot
+            if (_accuracySystem != null && _accuracySystem.IsInitialized())
+            {
+                _accuracySystem.OnShoot();
+            }
+            
             // Play shooting audio
             PlayShootingAudio(shootOrigin, gunData);
             
-            // Trigger shooting event
-            OnShoot?.Invoke(shootOrigin, gunData.damage);
+            // Trigger shooting event with final damage
+            OnShoot?.Invoke(shootOrigin, finalDamage);
             
             // Create shooting result
             ShootingResult result = new ShootingResult
@@ -145,9 +271,9 @@ namespace Resonance.Player.Shooting
                 endPosition = endPoint,
                 direction = shootDirection,
                 range = gunData.range,
-                damage = gunData.damage,
+                damage = finalDamage,
                 actualDamage = 0f, // Updated in ProcessHit
-                mouseTargetPoint = targetPoint
+                mouseTargetPoint = baseTargetPoint
             };
 
             if (hasHit)
@@ -166,7 +292,7 @@ namespace Resonance.Player.Shooting
             else
             {
                 OnMiss?.Invoke(endPoint);
-                Debug.Log($"ShootingSystem: Shot missed, aimed at {targetPoint}");
+                Debug.Log($"ShootingSystem: Shot missed, aimed at {baseTargetPoint}");
             }
 
             return result;
@@ -320,11 +446,12 @@ namespace Resonance.Player.Shooting
         }
 
         /// <summary>
-        /// 获取鼠标指向的目标点
+        /// 获取鼠标指向的目标点（应用后坐力偏移）
         /// 阶段1：鼠标射线 → Ground/Enemy/Objects
         /// 如果没有命中，使用平面交点作为备用
+        /// 最后应用后坐力偏移
         /// </summary>
-        /// <returns>目标点世界坐标</returns>
+        /// <returns>目标点世界坐标（含后坐力）</returns>
         private Vector3 GetMouseTargetPoint()
         {
             if (_mainCamera == null)
@@ -346,16 +473,25 @@ namespace Resonance.Player.Shooting
             
             // 阶段1：尝试射线检测 Environment/Enemy/Objects
             RaycastHit hitInfo;
+            Vector3 baseTargetPoint;
             if (Physics.Raycast(mouseRay, out hitInfo, Mathf.Infinity, _mouseRaycastLayerMask))
             {
-                // Debug.Log($"ShootingSystem: Mouse hit {hitInfo.collider.name}");
-                return hitInfo.point;
+                baseTargetPoint = hitInfo.point;
+            }
+            else
+            {
+                // 备用方案：使用平面交点
+                baseTargetPoint = IntersectPlane(mouseRay, _playerTransform.position.y);
             }
             
-            // 备用方案：使用平面交点
-            Vector3 fallbackPoint = IntersectPlane(mouseRay, _playerTransform.position.y);
-            // Debug.Log($"ShootingSystem: Using plane intersection at {fallbackPoint}");
-            return fallbackPoint;
+            // 应用后坐力偏移
+            if (_recoilSystem != null && _recoilSystem.IsInitialized())
+            {
+                Vector3 recoilOffset = _recoilSystem.GetRecoilOffset();
+                baseTargetPoint += recoilOffset;
+            }
+            
+            return baseTargetPoint;
         }
 
         /// <summary>

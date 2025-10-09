@@ -1,22 +1,28 @@
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Utilities;
 using Resonance.Player.Core;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Player.States
 {
     /// <summary>
     /// Aiming state where player can move slowly, look around, and shoot.
+    /// Integrates with WeaponAccuracySystem and WeaponRecoilSystem.
     /// Cannot interact with objects while aiming.
     /// </summary>
     public class PlayerAimingState : IState
     {
         private PlayerController _playerController;
+        private Vector3 _shootOrigin;
+        private IUIService _uiService;
         
         public string Name => "Aiming";
 
         public PlayerAimingState(PlayerController playerController)
         {
             _playerController = playerController;
+            _uiService = ServiceRegistry.Get<IUIService>();
         }
 
         public void Enter()
@@ -32,6 +38,19 @@ namespace Resonance.Player.States
             
             // Slow down movement while aiming
             _playerController.Movement.MovementSpeedModifier = 0.5f;
+            
+            // Initialize weapon systems in ShootingSystem
+            if (_playerController.ShootingSystem != null)
+            {
+                _playerController.ShootingSystem.InitializeWeapon(_playerController.WeaponManager.CurrentGun);
+                Debug.Log("PlayerAimingState: Weapon systems initialized");
+            }
+            
+            // Calculate shoot origin (player position + height offset)
+            _shootOrigin = _playerController.PlayerGameObject.transform.position + Vector3.up * 1.5f;
+            
+            // Show crosshair UI
+            ShowCrosshairUI();
         }
 
         public void Update()
@@ -44,21 +63,112 @@ namespace Resonance.Player.States
                 return;
             }
             
-            // Aiming state update logic
-            // Could include auto-aim assistance, reticle updates, etc.
+            // Update shoot origin
+            _shootOrigin = _playerController.PlayerGameObject.transform.position + Vector3.up * 1.5f;
+            
+            // Check if player is moving
+            bool isMoving = _playerController.Movement.Velocity.magnitude > 0.1f;
+            
+            // Update weapon systems (accuracy and recoil)
+            if (_playerController.ShootingSystem != null)
+            {
+                _playerController.ShootingSystem.UpdateWeaponSystems(Time.deltaTime, isAiming: true, isMoving);
+                
+                // Update aiming line visualization
+                _playerController.ShootingSystem.UpdateAimingLine(_shootOrigin);
+            }
+            
+            // Handle shooting input (left mouse button)
+            if (UnityEngine.InputSystem.Mouse.current != null && 
+                UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                TryShoot();
+            }
+            
+            // Handle exit aiming input (right mouse button released)
+            if (UnityEngine.InputSystem.Mouse.current != null && 
+                UnityEngine.InputSystem.Mouse.current.rightButton.wasReleasedThisFrame)
+            {
+                _playerController.StateMachine.StopAiming();
+            }
         }
 
         public void Exit()
         {
             Debug.Log("PlayerState: Exited Aiming state");
+            
+            // Reset movement speed
+            _playerController.Movement.MovementSpeedModifier = 1.0f;
+            
+            // Cleanup weapon systems
+            if (_playerController.ShootingSystem != null)
+            {
+                _playerController.ShootingSystem.CleanupWeapon();
+                _playerController.ShootingSystem.HideAimingLine();
+                Debug.Log("PlayerAimingState: Weapon systems cleaned up");
+            }
+            
+            // Hide crosshair UI
+            HideCrosshairUI();
         }
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition back to Normal or to death states
+            // Can transition back to Normal or to death/stun states
             return newState.Name == "Normal" || 
                    newState.Name == "Stun" || 
                    newState.Name == "Death";
+        }
+        
+        /// <summary>
+        /// Try to shoot if conditions are met
+        /// </summary>
+        private void TryShoot()
+        {
+            // Use PlayerController.PerformShoot() which handles all the logic
+            // including ammo consumption, events, and ShootingSystem integration
+            var result = _playerController.PerformShoot(_shootOrigin);
+            
+            if (result.success)
+            {
+                Debug.Log($"PlayerAimingState: Shot fired! Damage: {result.damage:F1}, Hit: {result.hasHit}");
+            }
+            else
+            {
+                Debug.Log("PlayerAimingState: Shot failed - conditions not met");
+            }
+        }
+        
+        /// <summary>
+        /// Show crosshair UI using UIService
+        /// </summary>
+        private void ShowCrosshairUI()
+        {
+            if (_uiService != null)
+            {
+                _uiService.ShowPanel("CrosshairPanel");
+                Debug.Log("PlayerAimingState: Crosshair UI shown");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerAimingState: UIService not found, cannot show crosshair UI");
+            }
+        }
+        
+        /// <summary>
+        /// Hide crosshair UI using UIService
+        /// </summary>
+        private void HideCrosshairUI()
+        {
+            if (_uiService != null)
+            {
+                _uiService.HidePanel("CrosshairPanel");
+                Debug.Log("PlayerAimingState: Crosshair UI hidden");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerAimingState: UIService not found, cannot hide crosshair UI");
+            }
         }
     }
 }

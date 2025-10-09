@@ -329,7 +329,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: _prefabResourcePaths.Array.size
-      value: 4
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: '_prefabResourcePaths.Array.data[0]'
@@ -349,7 +349,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8817248818699984355, guid: 676dfce5d491aa447bb4e55293d183c5, type: 3}
       propertyPath: '_prefabResourcePaths.Array.data[4]'
-      value: Prefabs/UIs/InventoryUI/InventoryPanel
+      value: Prefabs/UIs/CrosshairPanel
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
