@@ -119,7 +119,7 @@ namespace Resonance.Items
         #region Setup
         
         /// <summary>
-        /// 设置音频服务引用
+        /// Set audio service reference
         /// </summary>
         private void SetupAudioService()
         {
@@ -376,7 +376,7 @@ namespace Resonance.Items
                 AssetPath = GetAssetPath(_ammoDataAsset),
                 ItemIcon = _ammoDataAsset.ammoIcon,
                 Quantity = _ammoDataAsset.ammoCount,
-                MaxStackQuantity = 60, // Ammo can stack
+                MaxStackQuantity = _ammoDataAsset.maxStackQuantity, // Ammo can stack
                 Durability = 1f
             };
             

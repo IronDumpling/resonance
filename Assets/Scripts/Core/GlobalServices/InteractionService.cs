@@ -303,14 +303,7 @@ namespace Resonance.Core.GlobalServices
                         var consumableManager = playerController.ConsumableManager;
                         if (consumableManager != null)
                         {
-                            added = consumableManager.AddAmmo(
-                                gridItem.CustomData["ammoType"].ToString(),
-                                gridItem.ItemName,
-                                gridItem.Quantity,
-                                gridItem.ItemIcon,
-                                gridItem.ItemPrefab,
-                                gridItem.AssetPath
-                            );
+                            added = consumableManager.AddAmmo(gridItem.CustomData["ammoType"].ToString(), gridItem);
                             Debug.Log($"PickupStrategy: Added ammo via ConsumableManager - {gridItem.ItemName} x{gridItem.Quantity}");
                         }
                     }
