@@ -2,104 +2,13 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Resonance.Items;
+using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 using Resonance.Player.Data;
 using Resonance.Player.Core;
 
 namespace Resonance.Player.Inventory
 {
-    /// <summary>
-    /// Item type enum
-    /// </summary>
-    public enum ItemType
-    {
-        Consumable,    // Ammo, etc.
-        Tool,          // Key, etc.
-        Module,        // Wave Module
-        Weapon         // Pistol, etc.
-    }
-
-    /// <summary>
-    /// 格子单元数据 - 存储单个格子中的物品完整信息
-    /// 这是纯数据结构，不包含任何业务逻辑
-    /// </summary>
-    [System.Serializable]
-    public class GridCellData
-    {
-        // 基础信息
-        public int ItemID { get; set; }
-        public string ItemName { get; set; }
-        public ItemType ItemType { get; set; }
-        
-        // 堆叠信息
-        public int Quantity { get; set; }
-        public int MaxStackSize { get; set; }
-        
-        // 空间信息
-        public int GridWidth { get; set; }
-        public int GridHeight { get; set; }
-        public int Rotation { get; set; } // 0, 90, 180, 270
-        public Vector2Int GridPosition { get; set; } // 起始位置
-        
-        // 装备状态
-        public bool IsEquipped { get; set; }
-        
-        // 武器特有数据
-        public int CurrentAmmo { get; set; }
-        public string AmmoType { get; set; }
-        public int MaxAmmo { get; set; }
-        
-        // 额外数据
-        public string AssetPath { get; set; }
-        public float Durability { get; set; }
-        public Dictionary<string, object> CustomData { get; set; }
-        
-        public GridCellData()
-        {
-            CustomData = new Dictionary<string, object>();
-            GridPosition = new Vector2Int(-1, -1);
-            Quantity = 1;
-            MaxStackSize = 1;
-            Durability = 1f;
-        }
-
-        /// <summary>
-        /// 计算当前宽度（考虑旋转）
-        /// </summary>
-        public int GetCurrentWidth()
-        {
-            return (Rotation == 90 || Rotation == 270) ? GridHeight : GridWidth;
-        }
-        
-        /// <summary>
-        /// 计算当前高度（考虑旋转）
-        /// </summary>
-        public int GetCurrentHeight()
-        {
-            return (Rotation == 90 || Rotation == 270) ? GridWidth : GridHeight;
-        }
-
-        /// <summary>
-        /// 获取占用的所有格子位置
-        /// </summary>
-        public List<Vector2Int> GetOccupiedPositions()
-        {
-            var positions = new List<Vector2Int>();
-            if (GridPosition.x < 0 || GridPosition.y < 0) return positions;
-            
-            int width = GetCurrentWidth();
-            int height = GetCurrentHeight();
-            
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    positions.Add(new Vector2Int(GridPosition.x + x, GridPosition.y + y));
-                }
-            }
-            return positions;
-        }
-    }
-
     /// <summary>
     /// Unified player inventory system - pure data layer
     /// Store all items in a grid, without handling business logic
@@ -113,10 +22,10 @@ namespace Resonance.Player.Inventory
         private int _gridHeight;
         
         // Grid data storage (2D array, each cell may be occupied by a part of an item)
-        private GridCellData[,] _gridCells;
+        private GridItem[,] _gridCells;
         
         // Item quick lookup (itemID → item data)
-        private Dictionary<int, GridCellData> _itemsById;
+        private Dictionary<int, GridItem> _itemsById;
         
         // Occupancy mapping (each cell position → item ID occupying it)
         private Dictionary<Vector2Int, int> _cellOccupancy;
@@ -131,11 +40,11 @@ namespace Resonance.Player.Inventory
         public System.Action OnInventoryChanged; // General change event
         
         // Grid operation events
-        public System.Action<GridCellData, Vector2Int> OnItemAddedToGrid;
-        public System.Action<GridCellData, Vector2Int> OnItemRemovedFromGrid;
-        public System.Action<GridCellData, Vector2Int, Vector2Int> OnItemMovedInGrid; // item, oldPos, newPos
-        public System.Action<GridCellData, int> OnItemRotatedInGrid; // item, newRotation
-        public System.Action<GridCellData, int> OnItemQuantityChanged; // item, newQuantity
+        public System.Action<GridItem, Vector2Int> OnItemAddedToGrid;
+        public System.Action<GridItem, Vector2Int> OnItemRemovedFromGrid;
+        public System.Action<GridItem, Vector2Int, Vector2Int> OnItemMovedInGrid; // item, oldPos, newPos
+        public System.Action<GridItem, int> OnItemRotatedInGrid; // item, newRotation
+        public System.Action<GridItem, int> OnItemQuantityChanged; // item, newQuantity
         
         // Weapon-specific events (for WeaponManager)
         public System.Action<int> OnWeaponEquipped; // weaponID
@@ -161,8 +70,8 @@ namespace Resonance.Player.Inventory
             _gridHeight = gridHeight;
             
             // Initialize grid data
-            _gridCells = new GridCellData[_gridWidth, _gridHeight];
-            _itemsById = new Dictionary<int, GridCellData>();
+            _gridCells = new GridItem[_gridWidth, _gridHeight];
+            _itemsById = new Dictionary<int, GridItem>();
             _cellOccupancy = new Dictionary<Vector2Int, int>();
             
             // Initialize equipped weapon tracking
@@ -178,7 +87,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Add item to grid
         /// </summary>
-        public bool AddItemToGrid(GridCellData itemData, Vector2Int position, int rotation = 0)
+        public bool AddItemToGrid(GridItem itemData, Vector2Int position, int rotation = 0)
         {
             if (itemData == null)
             {
@@ -359,7 +268,7 @@ namespace Resonance.Player.Inventory
                 return false;
             }
             
-            if (newQuantity < 0 || newQuantity > itemData.MaxStackSize)
+            if (newQuantity < 0 || newQuantity > itemData.MaxStackQuantity)
             {
                 Debug.LogWarning($"PlayerInventory: Invalid quantity {newQuantity} for {itemData.ItemName}");
                 return false;
@@ -399,7 +308,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get item at position
         /// </summary>
-        public GridCellData GetItemAtPosition(Vector2Int position)
+        public GridItem GetItemAtPosition(Vector2Int position)
         {
             if (!IsValidPosition(position)) return null;
             
@@ -414,7 +323,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get item by ID
         /// </summary>
-        public GridCellData GetItemByID(int itemID)
+        public GridItem GetItemByID(int itemID)
         {
             return _itemsById.GetValueOrDefault(itemID);
         }
@@ -422,15 +331,15 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Get all items
         /// </summary>
-        public List<GridCellData> GetAllItems()
+        public List<GridItem> GetAllItems()
         {
-            return new List<GridCellData>(_itemsById.Values);
+            return new List<GridItem>(_itemsById.Values);
         }
         
         /// <summary>
         /// Get all items by type
         /// </summary>
-        public List<GridCellData> GetItemsByType(ItemType itemType)
+        public List<GridItem> GetItemsByType(ItemType itemType)
         {
             return _itemsById.Values.Where(item => item.ItemType == itemType).ToList();
         }
@@ -486,7 +395,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Validate if can place item
         /// </summary>
-        public bool CanPlaceItemAt(GridCellData itemData, Vector2Int position)
+        public bool CanPlaceItemAt(GridItem itemData, Vector2Int position)
         {
             if (itemData == null) return false;
             
@@ -539,7 +448,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Occupy grid cells
         /// </summary>
-        private void OccupyGridCells(GridCellData itemData)
+        private void OccupyGridCells(GridItem itemData)
         {
             var positions = itemData.GetOccupiedPositions();
             foreach (var pos in positions)
@@ -551,7 +460,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Clear grid cells occupancy
         /// </summary>
-        private void ClearGridCells(GridCellData itemData)
+        private void ClearGridCells(GridItem itemData)
         {
             var positions = itemData.GetOccupiedPositions();
             foreach (var pos in positions)
@@ -731,10 +640,10 @@ namespace Resonance.Player.Inventory
                 var cellSaveData = new GridCellSaveData
                 {
                     itemID = item.ItemID,
-                    itemName = item.ItemName,
+                    ItemName = item.ItemName,
                     itemType = item.ItemType.ToString(),
                     quantity = item.Quantity,
-                    maxStackSize = item.MaxStackSize,
+                    maxStackQuantity = item.MaxStackQuantity,
                     gridWidth = item.GridWidth,
                     gridHeight = item.GridHeight,
                     rotation = item.Rotation,
@@ -792,14 +701,14 @@ namespace Resonance.Player.Inventory
                         continue;
                     }
                     
-                    // Create GridCellData
-                    var gridCellData = new GridCellData
+                    // Create GridItem
+                    var gridItem = new GridItem
                     {
                         ItemID = cellSaveData.itemID,
-                        ItemName = cellSaveData.itemName,
+                        ItemName = cellSaveData.ItemName,
                         ItemType = itemType,
                         Quantity = cellSaveData.quantity,
-                        MaxStackSize = cellSaveData.maxStackSize,
+                        MaxStackQuantity = cellSaveData.maxStackQuantity,
                         GridWidth = cellSaveData.gridWidth,
                         GridHeight = cellSaveData.gridHeight,
                         Rotation = cellSaveData.rotation,
@@ -813,17 +722,115 @@ namespace Resonance.Player.Inventory
                         CustomData = cellSaveData.customData.ToDictionary()
                     };
                     
+                    // Reload ItemPrefab and ItemIcon from AssetPath
+                    LoadVisualDataFromAssetPath(gridItem, cellSaveData.assetPath);
+                    
                     // Add to grid (without triggering events during load)
-                    bool added = AddItemToGrid(gridCellData, gridCellData.GridPosition, gridCellData.Rotation);
+                    bool added = AddItemToGrid(gridItem, gridItem.GridPosition, gridItem.Rotation);
                     if (!added)
                     {
-                        Debug.LogWarning($"PlayerInventory: Failed to load item {gridCellData.ItemName} at {gridCellData.GridPosition}");
+                        Debug.LogWarning($"PlayerInventory: Failed to load item {gridItem.ItemName} at {gridItem.GridPosition}");
                     }
                 }
             }
             
             OnInventoryChanged?.Invoke();
             Debug.Log($"PlayerInventory: Loaded {_itemsById.Count} items to grid inventory");
+        }
+        
+        /// <summary>
+        /// Load ItemPrefab and ItemIcon from AssetPath
+        /// </summary>
+        private void LoadVisualDataFromAssetPath(GridItem gridItem, string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                Debug.LogWarning($"PlayerInventory: No AssetPath for {gridItem.ItemName}. Visual data cannot be loaded.");
+                return;
+            }
+            
+            Debug.Log($"PlayerInventory: Loading visual data from AssetPath: {assetPath}");
+            
+            // Convert Unity asset path to Resources path
+            string resourcesPath = ConvertToResourcesPath(assetPath);
+            
+            if (string.IsNullOrEmpty(resourcesPath))
+            {
+                Debug.LogWarning($"PlayerInventory: Failed to convert AssetPath to Resources path: {assetPath}");
+                return;
+            }
+            
+            Debug.Log($"PlayerInventory: Resources path: {resourcesPath}");
+
+
+            switch (gridItem.ItemType)
+            {
+                case ItemType.Weapon:
+                    // Load GunDataAsset
+                    var gunData = Resources.Load<GunDataAsset>(resourcesPath);
+                    if (gunData != null)
+                    {
+                        gridItem.ItemPrefab = gunData.itemPrefab;
+                        gridItem.ItemIcon = gunData.weaponIcon;
+                        Debug.Log($"PlayerInventory: Loaded weapon visual data - ItemPrefab={(gunData.itemPrefab != null ? gunData.itemPrefab.name : "NULL")},"+
+                                $"ItemIcon={(gunData.weaponIcon != null ? gunData.weaponIcon.name : "NULL")}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"PlayerInventory: Failed to load GunDataAsset from Resources path: {resourcesPath}");
+                    }
+                    break;
+                case ItemType.Consumable:
+                    if (gridItem.CustomData.ContainsKey("ammoType"))
+                    {
+                        var ammoData = Resources.Load<AmmoDataAsset>(resourcesPath);
+                        if (ammoData != null)
+                        {
+                            gridItem.ItemPrefab = ammoData.itemPrefab;
+                            gridItem.ItemIcon = ammoData.ammoIcon;
+                            Debug.Log($"PlayerInventory: Loaded ammo visual data - ItemPrefab={(ammoData.itemPrefab != null ? ammoData.itemPrefab.name : "NULL")},"+
+                                    $"ItemIcon={(ammoData.ammoIcon != null ? ammoData.ammoIcon.name : "NULL")}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"PlayerInventory: Failed to load AmmoDataAsset from Resources path: {resourcesPath}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"PlayerInventory: No ammo type found for {gridItem.ItemName}");
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        /// <summary>
+        /// Convert Unity asset path to Resources.Load compatible path
+        /// From: "Assets/Resources/Data/Items/PistoData.asset"
+        /// To: "Data/Items/PistoData"
+        /// </summary>
+        private string ConvertToResourcesPath(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath))
+                return "";
+            
+            // Remove "Assets/Resources/" prefix
+            const string resourcesPrefix = "Assets/Resources/";
+            if (assetPath.StartsWith(resourcesPrefix))
+            {
+                assetPath = assetPath.Substring(resourcesPrefix.Length);
+            }
+            
+            // Remove file extension
+            int lastDotIndex = assetPath.LastIndexOf('.');
+            if (lastDotIndex > 0)
+            {
+                assetPath = assetPath.Substring(0, lastDotIndex);
+            }
+            
+            return assetPath;
         }
 
         #endregion

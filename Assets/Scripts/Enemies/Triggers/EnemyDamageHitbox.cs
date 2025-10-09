@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Enemies.Core;
 using Resonance.Interfaces;
+using Resonance.Utilities;
 
 namespace Resonance.Enemies
 {

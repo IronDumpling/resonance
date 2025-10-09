@@ -1,114 +1,167 @@
 using UnityEngine;
+using Resonance.Utilities;
 using System.Collections.Generic;
-using Resonance.Player.Core;
-using Resonance.Player.Inventory;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
-    /// Grid中的物品表示
-    /// 支持任意尺寸的物品，可以旋转
+    /// Grid cell data - stores complete information about an item in a single cell
+    /// Unified data model for both inventory storage and UI display
     /// </summary>
     [System.Serializable]
     public class GridItem
     {
-        [Header("Basic Properties")]
-        public int itemID;
-        public string itemName;
-        public ItemType itemType;
-        public Sprite itemIcon;
+        // Basic information
+        public int ItemID { get; set; }
+        public string ItemName { get; set; }
+        public ItemType ItemType { get; set; }
         
-        [Header("Grid Properties")]
-        public int baseWidth = 1;   // 基础宽度（未旋转时）
-        public int baseHeight = 1;  // 基础高度（未旋转时）
-        public Vector2Int gridPosition = new Vector2Int(-1, -1); // 在网格中的位置
-        public bool isRotated = false; // 是否旋转了90度
+        // Stack information
+        public int Quantity { get; set; }
+        public int MaxStackQuantity { get; set; }
         
-        [Header("Visual Properties")]
-        public Color itemColor = Color.white;
-        public bool isSelected = false;
-        public bool isDragging = false;
+        // Grid information
+        public int GridWidth { get; set; }
+        public int GridHeight { get; set; }
+        public int Rotation { get; set; } // 0, 90, 180, 270
+        public Vector2Int GridPosition { get; set; } // Starting position
+
+        // Visual data 
+        public Sprite ItemIcon { get; set; }
+        public GameObject ItemPrefab { get; set; }
         
-        [Header("Custom Data")]
-        public Dictionary<string, object> customData = new Dictionary<string, object>();
+        // Equipped status
+        public bool IsEquipped { get; set; }
         
-        // 计算属性
-        public int CurrentWidth => isRotated ? baseHeight : baseWidth;
-        public int CurrentHeight => isRotated ? baseWidth : baseHeight;
-        public Vector2Int CurrentSize => new Vector2Int(CurrentWidth, CurrentHeight);
+        // Weapon-specific data
+        public int CurrentAmmo { get; set; }
+        public string AmmoType { get; set; }
+        public int MaxAmmo { get; set; }
         
-        // 占用区域
-        public List<Vector2Int> OccupiedPositions
+        // Extra data
+        public string AssetPath { get; set; }
+        public float Durability { get; set; }
+        public Dictionary<string, object> CustomData { get; set; }
+        
+        // UI State (migrated from GridItem)
+        public bool IsSelected { get; set; }
+        public bool IsDragging { get; set; }
+        public Color ItemColor { get; set; } = Color.white;
+        
+        public GridItem()
         {
-            get
-            {
-                var positions = new List<Vector2Int>();
-                if (gridPosition.x < 0 || gridPosition.y < 0) return positions;
-                
-                for (int x = 0; x < CurrentWidth; x++)
-                {
-                    for (int y = 0; y < CurrentHeight; y++)
-                    {
-                        positions.Add(new Vector2Int(gridPosition.x + x, gridPosition.y + y));
-                    }
-                }
-                return positions;
-            }
+            CustomData = new Dictionary<string, object>();
+            GridPosition = new Vector2Int(-1, -1);
+            Quantity = 1;
+            MaxStackQuantity = 1;
+            Durability = 1f;
+            ItemColor = Color.white;
+            IsSelected = false;
+            IsDragging = false;
         }
+
+        #region Computed Properties (migrated from GridItem)
         
-        public GridItem(int id, string name, ItemType type, int width = 1, int height = 1)
+        /// <summary>
+        /// Calculate current width (considering rotation)
+        /// </summary>
+        public int GetCurrentWidth()
         {
-            itemID = id;
-            itemName = name;
-            itemType = type;
-            baseWidth = width;
-            baseHeight = height;
-            gridPosition = new Vector2Int(-1, -1);
-            customData = new Dictionary<string, object>();
+            return (Rotation == 90 || Rotation == 270) ? GridHeight : GridWidth;
         }
         
         /// <summary>
-        /// 旋转物品
+        /// Calculate current height (considering rotation)
         /// </summary>
-        /// <param name="clockwise">是否顺时针旋转</param>
+        public int GetCurrentHeight()
+        {
+            return (Rotation == 90 || Rotation == 270) ? GridWidth : GridHeight;
+        }
+        
+        /// <summary>
+        /// Compatibility property for GridItem's bool isRotated
+        /// </summary>
+        public bool IsRotated 
+        { 
+            get => Rotation == 90 || Rotation == 270;
+            set => Rotation = value ? 90 : 0;
+        }
+        
+        /// <summary>
+        /// Current size as Vector2Int
+        /// </summary>
+        public Vector2Int CurrentSize => new Vector2Int(GetCurrentWidth(), GetCurrentHeight());
+        
+        #endregion
+        
+        #region Helper Methods (migrated from GridItem)
+
+        /// <summary>
+        /// Get all occupied grid positions
+        /// </summary>
+        public List<Vector2Int> GetOccupiedPositions()
+        {
+            var positions = new List<Vector2Int>();
+            if (GridPosition.x < 0 || GridPosition.y < 0) return positions;
+            
+            int width = GetCurrentWidth();
+            int height = GetCurrentHeight();
+            
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    positions.Add(new Vector2Int(GridPosition.x + x, GridPosition.y + y));
+                }
+            }
+            return positions;
+        }
+        
+        /// <summary>
+        /// Rotate item (migrated from GridItem)
+        /// </summary>
+        /// <param name="clockwise">Whether to rotate clockwise</param>
         public void Rotate(bool clockwise = true)
         {
-            isRotated = !isRotated;
+            Rotation = (Rotation + 90) % 360;
         }
         
         /// <summary>
-        /// 设置网格位置
+        /// Set grid position
         /// </summary>
-        /// <param name="position">新位置</param>
+        /// <param name="position">New position</param>
         public void SetGridPosition(Vector2Int position)
         {
-            gridPosition = position;
+            GridPosition = position;
         }
         
         /// <summary>
-        /// 检查是否在指定位置
+        /// Check if this item occupies the specified position
         /// </summary>
-        /// <param name="position">要检查的位置</param>
-        /// <returns>是否占用该位置</returns>
+        /// <param name="position">Position to check</param>
+        /// <returns>True if position is occupied</returns>
         public bool OccupiesPosition(Vector2Int position)
         {
-            if (gridPosition.x < 0 || gridPosition.y < 0) return false;
+            if (GridPosition.x < 0 || GridPosition.y < 0) return false;
             
-            return position.x >= gridPosition.x && position.x < gridPosition.x + CurrentWidth &&
-                   position.y >= gridPosition.y && position.y < gridPosition.y + CurrentHeight;
+            int width = GetCurrentWidth();
+            int height = GetCurrentHeight();
+            
+            return position.x >= GridPosition.x && position.x < GridPosition.x + width &&
+                   position.y >= GridPosition.y && position.y < GridPosition.y + height;
         }
         
         /// <summary>
-        /// 检查是否与另一个物品重叠
+        /// Check if this item overlaps with another item
         /// </summary>
-        /// <param name="other">另一个物品</param>
-        /// <returns>是否重叠</returns>
+        /// <param name="other">Other item</param>
+        /// <returns>True if overlapping</returns>
         public bool OverlapsWith(GridItem other)
         {
             if (other == null) return false;
             
-            var myPositions = OccupiedPositions;
-            var otherPositions = other.OccupiedPositions;
+            var myPositions = GetOccupiedPositions();
+            var otherPositions = other.GetOccupiedPositions();
             
             foreach (var pos in myPositions)
             {
@@ -120,35 +173,17 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 获取物品的边界框
+        /// Get bounding box of this item
         /// </summary>
-        /// <returns>边界框 (minX, minY, maxX, maxY)</returns>
+        /// <returns>Bounding rectangle (minX, minY, maxX, maxY)</returns>
         public RectInt GetBounds()
         {
-            if (gridPosition.x < 0 || gridPosition.y < 0)
+            if (GridPosition.x < 0 || GridPosition.y < 0)
                 return new RectInt(0, 0, 0, 0);
                 
-            return new RectInt(gridPosition.x, gridPosition.y, CurrentWidth, CurrentHeight);
+            return new RectInt(GridPosition.x, GridPosition.y, GetCurrentWidth(), GetCurrentHeight());
         }
         
-        /// <summary>
-        /// 克隆物品
-        /// </summary>
-        /// <returns>克隆的物品</returns>
-        public GridItem Clone()
-        {
-            var clone = new GridItem(itemID, itemName, itemType, baseWidth, baseHeight)
-            {
-                itemIcon = itemIcon,
-                gridPosition = gridPosition,
-                isRotated = isRotated,
-                itemColor = itemColor,
-                isSelected = false, // 克隆的物品默认不选中
-                isDragging = false,
-                customData = new Dictionary<string, object>(customData)
-            };
-            
-            return clone;
-        }
+        #endregion
     }
 }

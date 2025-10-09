@@ -17,6 +17,7 @@ namespace Resonance.Core.StateMachine.States
 
         private IUIService _uiService;
         private ISelectivePauseService _pauseService;
+        private IInputService _inputService;
         private InfoDataAsset _currentInfoData;
 
         // Events
@@ -30,9 +31,19 @@ namespace Resonance.Core.StateMachine.States
             // Get services
             _uiService = ServiceRegistry.Get<IUIService>();
             _pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            _inputService = ServiceRegistry.Get<IInputService>();
 
             Debug.Log($"InfoReadingState: UIService = {(_uiService != null ? "Found" : "NULL")}");
             Debug.Log($"InfoReadingState: SelectivePauseService = {(_pauseService != null ? "Found" : "NULL")}");
+            Debug.Log($"InfoReadingState: InputService = {(_inputService != null ? "Found" : "NULL")}");
+
+            // Switch input to Information map (disable player actions, enable info reading controls)
+            if (_inputService != null)
+            {
+                _inputService.DisablePlayerInput();
+                _inputService.EnableInformationInput();
+                Debug.Log("InfoReadingState: Switched to Information input mode");
+            }
 
             // Pause gameplay
             if (_pauseService != null)
@@ -75,6 +86,14 @@ namespace Resonance.Core.StateMachine.States
             else
             {
                 Debug.LogError("InfoReadingState: SelectivePauseService is null, cannot resume gameplay");
+            }
+
+            // Restore player input
+            if (_inputService != null)
+            {
+                _inputService.DisableInformationInput();
+                _inputService.EnablePlayerInput();
+                Debug.Log("InfoReadingState: Restored player input mode");
             }
 
             // Clean up state

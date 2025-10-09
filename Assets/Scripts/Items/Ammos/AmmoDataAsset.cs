@@ -19,19 +19,21 @@ namespace Resonance.Items
         
         [Header("Ammo Properties")]
         public string ammoType = "Pisto";
-        public int ammoCount = 30;
+        public int ammoCount = 4;
         
         [Header("Visual")]
         public Sprite ammoIcon;
+        public GameObject itemPrefab;
         
         [Header("Inventory")]
         public int gridWidth = 1;
         public int gridHeight = 1;
+        public int maxStackQuantity = 60;
 
         /// <summary>
-        /// 验证Ammo数据是否有效
+        /// Validate Ammo data
         /// </summary>
-        /// <returns>验证结果</returns>
+        /// <returns>Validation result</returns>
         public bool ValidateData()
         {
             if (string.IsNullOrEmpty(ammoName))
@@ -62,9 +64,9 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 获取弹药类型的显示名称
+        /// Get ammo type display name
         /// </summary>
-        /// <returns>弹药类型显示名称</returns>
+        /// <returns>Ammo type display name</returns>
         public string GetAmmoTypeDisplayName()
         {
             return ammoType switch
@@ -77,28 +79,28 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 检查是否与指定武器类型兼容
+        /// Check if compatible with specified weapon type
         /// </summary>
-        /// <param name="weaponAmmoType">武器的弹药类型</param>
-        /// <returns>是否兼容</returns>
+        /// <param name="weaponAmmoType">Weapon ammo type</param>
+        /// <returns>Is compatible</returns>
         public bool IsCompatibleWith(string weaponAmmoType)
         {
             return string.Equals(ammoType, weaponAmmoType, System.StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
-        /// 获取库存占用的网格大小
+        /// Get grid size occupied by inventory
         /// </summary>
-        /// <returns>网格大小 (width, height)</returns>
+        /// <returns>Grid size (width, height)</returns>
         public (int width, int height) GetGridSize()
         {
             return (gridWidth, gridHeight);
         }
 
         /// <summary>
-        /// 获取总的网格占用数量
+        /// Get total grid size occupied
         /// </summary>
-        /// <returns>占用的网格数量</returns>
+        /// <returns>Total grid size occupied</returns>
         public int GetTotalGridSize()
         {
             return gridWidth * gridHeight;
@@ -107,7 +109,7 @@ namespace Resonance.Items
         #region IInfoable Implementation
 
         /// <summary>
-        /// 获取要在InfoPanel中显示的信息数据
+        /// Get information data to display in InfoPanel
         /// </summary>
         public InfoData GetInfoData()
         {
@@ -119,7 +121,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 检查是否有有效的信息可以显示
+        /// Check if there is valid information to display
         /// </summary>
         public bool HasValidInfo()
         {
@@ -133,12 +135,12 @@ namespace Resonance.Items
 
         void OnValidate()
         {
-            // 确保数值在合理范围内
+            // Ensure values are within reasonable range
             ammoCount = Mathf.Max(1, ammoCount);
             gridWidth = Mathf.Clamp(gridWidth, 1, 10);
             gridHeight = Mathf.Clamp(gridHeight, 1, 10);
             
-            // 确保ammoType不为空
+            // Ensure ammoType is not empty
             if (string.IsNullOrEmpty(ammoType))
             {
                 ammoType = "Pisto";

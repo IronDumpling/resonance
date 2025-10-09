@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Resonance.Core;   
+using Resonance.Core;
 using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
@@ -10,52 +10,41 @@ namespace Resonance.Core.GlobalServices
     {
         private InputActionAsset _inputActions;
         private InputActionMap _playerMap;
-        private InputActionMap _uiMap;
         private InputActionMap _inventoryMap;
-        private bool _isEnabled = true;
-        
-        // Wave mode control (Risk mitigation: Input conflict resolution)
-        public bool IsWaveMode { get; set; } = false;
-        
-        // Inventory mode control
-        public bool IsInventoryMode { get; set; } = false;
+        private InputActionMap _informationMap;
+        private InputActionMap _waveMap;
 
         public int Priority => 10;
         public SystemState State { get; private set; } = SystemState.Uninitialized;
-        public bool IsEnabled 
-        { 
-            get => _isEnabled; 
-            set 
-            { 
-                _isEnabled = value;
-                if (_isEnabled) EnablePlayerInput();
-                else DisablePlayerInput();
-            } 
-        }
 
         public InputService(ServiceConfiguration configuration)
         {
             _inputActions = configuration.inputActions;
         }
 
-        // Input events
+        // Player Map events
         public event Action<Vector2> OnMove;
-        public event Action OnInteract;
-        public event Action OnWave; // Short press F (WaveAction)
+        public event Action OnInteract;   // Interact input (E key)
+        public event Action OnWave;       // Short press F (WaveAction)
         public event Action<bool> OnHeal; // F key press/release (HealAction) - true for press, false for release
-        public event Action<bool> OnRun; // true when starting to run, false when stopping
-        public event Action<bool> OnAim; // true when starting to aim, false when stopping
-        public event Action OnShoot;
+        public event Action<bool> OnRun;  // true when starting to run, false when stopping
+        public event Action<bool> OnAim;  // true when starting to aim, false when stopping
+        public event Action OnShoot;      // Shoot input (Mouse left button)
         public event Action<Vector2> OnLook;
-        public event Action OnQTE; // QTE input (F key during Wave mode)
-        public event Action OnReload; // Reload input (R key)
+        public event Action OnReload;     // Reload input (R key)
         
-        // Inventory events
-        public event Action OnOpenInventory; // Open inventory (Player map Tab key)
-        public event Action OnCloseInventory; // Close inventory (Inventory map Tab key)
+        // Inventory Map events
+        public event Action OnOpenInventory;     // Open inventory (Player map Tab key)
+        public event Action OnCloseInventory;    // Close inventory (Inventory map Tab key)
         public event Action<Vector2> OnMoveItem; // Move selected item (WASD in inventory mode)
-        public event Action OnRotateItemLeft; // Rotate item left (Q key in inventory mode)
-        public event Action OnRotateItemRight; // Rotate item right (E key in inventory mode)
+        public event Action OnRotateItemLeft;    // Rotate item left (Q key in inventory mode)
+        public event Action OnRotateItemRight;   // Rotate item right (E key in inventory mode)
+
+        // Information Map events
+        public event Action OnInformationClose; // Close information (E key)
+
+        // Wave Map events
+        public event Action OnQTE; // QTE input (F key during Wave mode)
 
         public void Initialize()
         {
@@ -75,8 +64,9 @@ namespace Resonance.Core.GlobalServices
             }
 
             _playerMap = _inputActions.FindActionMap("Player");
-            _uiMap = _inputActions.FindActionMap("UI");
             _inventoryMap = _inputActions.FindActionMap("Inventory");
+            _informationMap = _inputActions.FindActionMap("Information");
+            _waveMap = _inputActions.FindActionMap("Wave");
             
             SetupInputCallbacks();
             EnablePlayerInput();
@@ -87,7 +77,8 @@ namespace Resonance.Core.GlobalServices
 
         private void SetupInputCallbacks()
         {
-            if (_playerMap == null || _inventoryMap == null) return;
+            if (_playerMap == null || _inventoryMap == null || 
+                _informationMap == null || _waveMap == null) return;
 
             // Player input callbacks
             _playerMap["Move"].performed += OnMovePerformed;
@@ -108,19 +99,26 @@ namespace Resonance.Core.GlobalServices
             _playerMap["Shoot"].performed += OnShootPerformed;
             _playerMap["Look"].performed += OnLookPerformed;
 
-            _playerMap["OpenInventory"].performed += OnPlayerOpenInventoryPerformed;
+            _playerMap["OpenInventory"].performed += OnInventoryOpenPerformed;
             
-            _playerMap["QTE"].performed += OnQTEPerformed;
             _playerMap["Reload"].performed += OnReloadPerformed;
             
             // Inventory input callbacks
-            _inventoryMap["CloseInventory"].performed += OnInventoryCloseInventoryPerformed;
+            _inventoryMap["CloseInventory"].performed += OnInventoryClosePerformed;
             _inventoryMap["MoveItem"].performed += OnMoveItemPerformed;
             _inventoryMap["MoveItem"].canceled += OnMoveItemCanceled;
             _inventoryMap["RotateItemLeft"].performed += OnRotateItemLeftPerformed;
             _inventoryMap["RotateItemRight"].performed += OnRotateItemRightPerformed;
+
+            // Information input callbacks
+            _informationMap["CloseInformation"].performed += OnInformationClosePerformed;
+
+            // Wave input callbacks
+            _waveMap["QTE"].performed += OnQTEPerformed;
         }
 
+        #region Player Map Input Callbacks
+        
         private void OnMovePerformed(InputAction.CallbackContext context)
         {
             Vector2 moveInput = context.ReadValue<Vector2>();
@@ -139,27 +137,18 @@ namespace Resonance.Core.GlobalServices
 
         private void OnWavePerformed(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
-            if (IsWaveMode) return;
-            
             OnWave?.Invoke();
             Debug.Log("InputService: Wave press performed"); 
         }
 
         private void OnHealStarted(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
-            if (IsWaveMode) return;
-            
             OnHeal?.Invoke(true);
             Debug.Log("InputService: Heal key pressed (started)");
         }
 
         private void OnHealCanceled(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
-            if (IsWaveMode) return;
-            
             OnHeal?.Invoke(false);
             Debug.Log("InputService: Heal key released (canceled)");
         }
@@ -195,76 +184,74 @@ namespace Resonance.Core.GlobalServices
             OnLook?.Invoke(lookInput);
         }
 
-        private void OnQTEPerformed(InputAction.CallbackContext context)
-        {
-            // Risk mitigation: Input conflict resolution - only trigger if in Wave mode
-            if (!IsWaveMode) return;
-            
-            OnQTE?.Invoke();
-            Debug.Log("InputService: QTE press performed");
-        }
-
         private void OnReloadPerformed(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
-            if (IsWaveMode) return;
-            
             OnReload?.Invoke();
             Debug.Log("InputService: Reload press performed");
         }
         
-        private void OnPlayerOpenInventoryPerformed(InputAction.CallbackContext context)
+        private void OnInventoryOpenPerformed(InputAction.CallbackContext context)
         {
-            // Risk mitigation: Input conflict resolution - only trigger if not in Wave mode
-            if (IsWaveMode) return;
-            
             OnOpenInventory?.Invoke();
             Debug.Log("InputService: Player map - Open inventory press performed");
         }
+
+        #endregion
+
+        #region Inventory Map Input Callbacks
         
-        private void OnInventoryCloseInventoryPerformed(InputAction.CallbackContext context)
+        private void OnInventoryClosePerformed(InputAction.CallbackContext context)
         {
-            // Only trigger if in inventory mode
-            if (!IsInventoryMode) return;
-            
             OnCloseInventory?.Invoke();
             Debug.Log("InputService: Inventory map - Close inventory press performed");
         }
         
         private void OnMoveItemPerformed(InputAction.CallbackContext context)
         {
-            // Only trigger if in inventory mode
-            if (!IsInventoryMode) return;
-            
             Vector2 moveInput = context.ReadValue<Vector2>();
             OnMoveItem?.Invoke(moveInput);
         }
         
         private void OnMoveItemCanceled(InputAction.CallbackContext context)
         {
-            // Only trigger if in inventory mode
-            if (!IsInventoryMode) return;
-            
             OnMoveItem?.Invoke(Vector2.zero);
         }
         
         private void OnRotateItemLeftPerformed(InputAction.CallbackContext context)
         {
-            // Only trigger if in inventory mode
-            if (!IsInventoryMode) return;
-            
             OnRotateItemLeft?.Invoke();
             Debug.Log("InputService: Rotate item left press performed");
         }
         
         private void OnRotateItemRightPerformed(InputAction.CallbackContext context)
         {
-            // Only trigger if in inventory mode
-            if (!IsInventoryMode) return;
-            
             OnRotateItemRight?.Invoke();
             Debug.Log("InputService: Rotate item right press performed");
         }
+
+        #endregion
+
+        #region Information Map Input Callbacks
+
+        private void OnInformationClosePerformed(InputAction.CallbackContext context)
+        {
+            OnInformationClose?.Invoke();
+            Debug.Log("InputService: Information close press performed");
+        }
+
+        #endregion
+
+        #region Wave Map Input Callbacks
+
+        private void OnQTEPerformed(InputAction.CallbackContext context)
+        {
+            OnQTE?.Invoke();
+            Debug.Log("InputService: QTE press performed");
+        }
+
+        #endregion
+
+        #region Input Enabling/Disabling
 
         public void EnablePlayerInput()
         {
@@ -281,24 +268,6 @@ namespace Resonance.Core.GlobalServices
             {
                 _playerMap.Disable();
                 Debug.Log("InputService: Player input disabled");
-            }
-        }
-
-        public void EnableUIInput()
-        {
-            if (_uiMap != null)
-            {
-                _uiMap.Enable();
-                Debug.Log("InputService: UI input enabled");
-            }
-        }
-
-        public void DisableUIInput()
-        {
-            if (_uiMap != null)
-            {
-                _uiMap.Disable();
-                Debug.Log("InputService: UI input disabled");
             }
         }
 
@@ -319,6 +288,44 @@ namespace Resonance.Core.GlobalServices
                 Debug.Log("InputService: Inventory input disabled");
             }
         }
+
+        public void EnableInformationInput()
+        {
+            if (_informationMap != null)
+            {
+                _informationMap.Enable();
+                Debug.Log("InputService: Information input enabled");
+            }
+        }
+
+        public void DisableInformationInput()
+        {
+            if (_informationMap != null)
+            {
+                _informationMap.Disable();
+                Debug.Log("InputService: Information input disabled");
+            }
+        }
+
+        public void EnableWaveInput()
+        {
+            if (_waveMap != null)
+            {
+                _waveMap.Enable();
+                Debug.Log("InputService: Wave input enabled");
+            }
+        }
+
+        public void DisableWaveInput()
+        {
+            if (_waveMap != null)
+            {
+                _waveMap.Disable();
+                Debug.Log("InputService: Wave input disabled");
+            }
+        }
+        
+        #endregion
 
         public void Shutdown()
         {
@@ -342,13 +349,14 @@ namespace Resonance.Core.GlobalServices
             OnAim = null;
             OnShoot = null;
             OnLook = null;
-            OnQTE = null;
             OnReload = null;
             OnOpenInventory = null;
             OnCloseInventory = null;
             OnMoveItem = null;
             OnRotateItemLeft = null;
             OnRotateItemRight = null;
+            OnInformationClose = null;
+            OnQTE = null;
 
             State = SystemState.Shutdown;
         }

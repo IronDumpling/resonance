@@ -10,7 +10,7 @@ using Resonance.Core.StateMachine.States;
 
 namespace Resonance.Items
 {
-    public class InfoMonoBehaviour : MonoBehaviour, IInteractable, IPausable
+    public class InfoMonoBehaviour : MonoBehaviour, IReadable, IPausable
     {
         [Header("Info Configuration")]
         [SerializeField] private InfoDataAsset _infoDataAsset;
@@ -35,7 +35,7 @@ namespace Resonance.Items
         private bool _isPickedUp = false;
         
         // Interaction state
-        private bool _isInteracting = false;
+        // private bool _isInteracting = false;
         
         // Animation related
         private Vector3 _originalPosition;
@@ -218,8 +218,9 @@ namespace Resonance.Items
             _pickupVisual.transform.eulerAngles = currentRotation;
         }
 
-        #region IInteractable Implementation
+        #region IReadable Implementation
 
+        // IInteractable base methods
         public bool CanInteract()
         {
             return !_isPickedUp;
@@ -235,98 +236,15 @@ namespace Resonance.Items
             return transform.position;
         }
         
-        public void StartInteraction()
-        {
-            if (!CanInteract())
-            {
-                Debug.LogWarning($"InfoMonoBehaviour: Cannot start interaction with {_infoDataAsset.infoName}");
-            }
-
-            _isInteracting = true;
-
-            Debug.Log($"InfoMonoBehaviour: Started interaction with {_infoDataAsset.infoName}");
-
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(true);
-            }
-        }
-
-        public void CompleteInteraction()
-        {
-            if (!_isInteracting)
-            {
-                Debug.LogWarning($"InfoMonoBehaviour: CompleteInteraction called but not interacting with {_infoDataAsset.infoName}");
-                return;
-            }
-
-            Debug.Log($"InfoMonoBehaviour: Completing interaction with {_infoDataAsset.infoName}");
-
-            _isInteracting = false;
-
-            // Start the info reading session
-            StartInfoReadingSession();
-        }
-
-        /// <summary>
-        /// Start the info reading session by transitioning to InfoReading state
-        /// </summary>
-        private void StartInfoReadingSession()
-        {
-            if (_infoDataAsset == null)
-            {
-                Debug.LogError("InfoMonoBehaviour: Cannot start info reading session with null InfoDataAsset");
-                return;
-            }
-
-            // Get the GameManager and its state machine
-            var gameManager = GameManager.Instance;
-            if (gameManager == null)
-            {
-                Debug.LogError("InfoMonoBehaviour: GameManager instance not found");
-                return;
-            }
-
-            var stateMachine = gameManager.GetComponent<GameStateMachine>();
-            if (stateMachine == null)
-            {
-                Debug.LogError("InfoMonoBehaviour: GameStateMachine not found on GameManager");
-                return;
-            }
-
-            // Get the current GameplayState
-            var gameplayState = stateMachine.GetState<GameplayState>("Gameplay");
-            if (gameplayState == null)
-            {
-                Debug.LogError("InfoMonoBehaviour: GameplayState not found in state machine");
-                return;
-            }
-
-            Debug.Log($"InfoMonoBehaviour: Starting info reading session for {_infoDataAsset.infoName}");
-
-            // Start the info reading session
-            gameplayState.OnInfoReadingStarted(_infoDataAsset);
-
-            // Hide the interaction UI since we're now in reading mode
-            HideInteractionUI();
-        }
-
-        public void CancelInteraction()
-        {
-            if (!_isInteracting) return;
-
-            _isInteracting = false;
-
-            // Hide interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(false);
-            }
-        }
-
         public string GetInteractableName()
         {
             return _infoDataAsset?.infoName ?? "Unknown Info";
+        }
+
+        // IReadable specific method
+        public IInfoable GetInfoable()
+        {
+            return _infoDataAsset;
         }
 
         #endregion
@@ -381,7 +299,7 @@ namespace Resonance.Items
         public void ResetInfo()
         {
             _isPickedUp = false;
-            _isInteracting = false;
+            // _isInteracting = false;
             gameObject.SetActive(true);
         }
 

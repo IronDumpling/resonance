@@ -833,7 +833,7 @@ namespace Resonance.Player
             // Disable input
             if (_inputService != null)
             {
-                _inputService.IsEnabled = false;
+                _inputService.DisablePlayerInput();
             }
 
             // Trigger death animation/effects
@@ -1043,6 +1043,17 @@ namespace Resonance.Player
             }
         }
 
+        /// <summary>
+        /// Take resilience damage
+        /// </summary>
+        public void TakeResilienceDamage(float damage, Vector3 damageSource)
+        {
+            if (IsInitialized)
+            {
+                _playerController.TakeResilienceDamage(damage);
+            }
+        }
+
         #endregion
 
         #region Health Properties
@@ -1075,12 +1086,12 @@ namespace Resonance.Player
         /// <summary>
         /// Current core health
         /// </summary>
-        public float CurrentCoreHealth => IsInitialized ? _playerController.Stats.crystalCore.CurrentEnergy : 0f;
+        public float CurrentCoreCapacity => IsInitialized ? _playerController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
 
         /// <summary>
         /// Max core health
         /// </summary>
-        public float MaxCoreHealth => IsInitialized ? _playerController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
+        public float MaxCoreCapacity => IsInitialized ? _playerController.Stats.crystalCore.MaxEnergyCapacity : 0f;
 
         #endregion
 

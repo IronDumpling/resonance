@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _infoData:
     name: 'Rule 2: Heal'
-    content: Hold F to heal yourself
+    content: Hold [F] to heal yourself
     image: {fileID: 21300000, guid: fa345a051bde6bd43a39ecd5ab57a6c6, type: 3}

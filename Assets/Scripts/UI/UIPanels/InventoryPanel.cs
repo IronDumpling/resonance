@@ -5,6 +5,7 @@ using Resonance.UI;
 using Resonance.Core;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 using Resonance.Interfaces.Services;
 using Resonance.Player;
 using Resonance.Player.Core;
@@ -32,12 +33,18 @@ namespace Resonance.UI
         
         [Header("Grid System")]
         [SerializeField] private GridSystem _gridSystem;
-        [SerializeField] private GameObject _gridSlotPrefab;
         
         [Header("Item Info Panel")]
-        [SerializeField] private InfoPanel _itemInfoPanel;
+        [SerializeField] private GameObject _itemInfoPanel;
+        [SerializeField] private Image _itemInfoImage;
+        [SerializeField] private TextMeshProUGUI _itemInfoName;
+        [SerializeField] private TextMeshProUGUI _itemInfoContent;
+        [SerializeField] private GameObject _itemInfoButtonContainer;
+        [SerializeField] private Button _itemUseButton;
+        [SerializeField] private Button _itemCombineButton;
+        [SerializeField] private Button _itemDropButton;
         
-        [Header("Wave Module Panel (Placeholder)")]
+        [Header("Wave Module Panel")]
         [SerializeField] private TextMeshProUGUI _waveModuleName;
         [SerializeField] private TextMeshProUGUI _waveModuleDescription;
         [SerializeField] private Image _waveModuleIcon;
@@ -47,11 +54,17 @@ namespace Resonance.UI
         private IPlayerService _playerService;
         private PlayerController _playerController;
         private PlayerInventory _playerInventory;
+        private InventoryOperationManager _gridOperationManager;
         
         // State tracking
         private bool _isInitialized = false;
         private GridItem _selectedItem;
         private Dictionary<int, GridItem> _inventoryItems = new Dictionary<int, GridItem>();
+        
+        // Input state tracking
+        private Vector2 _currentMoveInput = Vector2.zero;
+        private float _moveInputCooldown = 0.2f; // Cooldown between moves
+        private float _lastMoveTime = 0f;
 
         protected override void Awake()
         {
@@ -87,7 +100,21 @@ namespace Resonance.UI
             
             // Auto-find item info panel
             if (_itemInfoPanel == null)
-                _itemInfoPanel = GetComponentInChildren<InfoPanel>();
+                _itemInfoPanel = FindChildGameObject("InfoPanel");
+            if (_itemInfoImage == null)
+                _itemInfoImage = FindChildComponent<Image>(_itemInfoPanel, "InfoImage");
+            if (_itemInfoName == null)
+                _itemInfoName = FindChildComponent<TextMeshProUGUI>(_itemInfoPanel, "InfoName");
+            if (_itemInfoContent == null)
+                _itemInfoContent = FindChildComponent<TextMeshProUGUI>(_itemInfoPanel, "InfoContent");
+            if (_itemInfoButtonContainer == null)
+                _itemInfoButtonContainer = FindChildGameObject("InfoButtonContainer");
+            if (_itemUseButton == null)
+                _itemUseButton = FindChildComponent<Button>(_itemInfoPanel, "UseButton");
+            if (_itemCombineButton == null)
+                _itemCombineButton = FindChildComponent<Button>(_itemInfoPanel, "CombineButton");
+            if (_itemDropButton == null)
+                _itemDropButton = FindChildComponent<Button>(_itemInfoPanel, "DropButton");
             
             // Auto-find wave module components
             if (_waveModuleName == null && _waveModulePanel != null)
@@ -103,7 +130,21 @@ namespace Resonance.UI
             // Subscribe to InventoryState events
             InventoryState.OnInventoryStarted += OnInventoryStarted;
             
-            Debug.Log("InventoryPanel: Event listeners setup complete");
+            // Subscribe to operation button clicks
+            if (_itemUseButton != null)
+            {
+                _itemUseButton.onClick.AddListener(OnItemUseButtonClicked);
+            }
+            if (_itemDropButton != null)
+            {
+                _itemDropButton.onClick.AddListener(OnItemDropButtonClicked);
+            }
+            if (_itemCombineButton != null)
+            {
+                _itemCombineButton.onClick.AddListener(OnItemCombineButtonClicked);
+            }
+            
+            Debug.Log("InventoryPanel: Event listeners setup complete (including operation buttons)");
         }
 
         private void InitializeWithServices()
@@ -131,8 +172,13 @@ namespace Resonance.UI
                 if (_playerController != null)
                 {
                     _playerInventory = _playerController.Inventory;
+                    
+                    // Get InventoryOperationManager from PlayerController
+                    _gridOperationManager = _playerController.InventoryOperationManager;
+                    
                     InitializeGridSystem();
                     SubscribeToPlayerEvents();
+                    SubscribeToInputEvents();
                     _isInitialized = true;
                     
                     Debug.Log("InventoryPanel: Initialized successfully");
@@ -175,11 +221,20 @@ namespace Resonance.UI
 
         private void InitializeGridSystem()
         {
+            Debug.Log($"InventoryPanel: InitializeGridSystem called");
+            
             if (_gridSystem == null)
             {
                 Debug.LogError("InventoryPanel: GridSystem not found");
                 return;
             }
+            
+            // Get grid size from PlayerInventory (which comes from PlayerBaseStats)
+            int gridWidth = _playerInventory != null ? _playerInventory.GridWidth : 5;
+            int gridHeight = _playerInventory != null ? _playerInventory.GridHeight : 5;
+            
+            // Initialize grid with proper size
+            _gridSystem.InitializeGrid(gridWidth, gridHeight);
             
             // Subscribe to grid system events
             _gridSystem.OnItemSelected += OnItemSelected;
@@ -190,7 +245,7 @@ namespace Resonance.UI
             // Initialize grid with player inventory items
             LoadInventoryItemsToGrid();
             
-            Debug.Log("InventoryPanel: Grid system initialized");
+            Debug.Log($"InventoryPanel: Grid system initialized with size {gridWidth}x{gridHeight}");
         }
 
         private void SubscribeToPlayerEvents()
@@ -201,6 +256,18 @@ namespace Resonance.UI
             _playerInventory.OnItemAddedToGrid += OnInventoryItemAddedToGrid;
             _playerInventory.OnItemRemovedFromGrid += OnInventoryItemRemovedFromGrid;
             _playerInventory.OnInventoryChanged += OnInventoryChanged;
+        }
+        
+        private void SubscribeToInputEvents()
+        {
+            if (_inputService == null) return;
+            
+            // Subscribe to inventory input events
+            _inputService.OnMoveItem += OnMoveItemInput;
+            _inputService.OnRotateItemLeft += OnRotateItemLeftInput;
+            _inputService.OnRotateItemRight += OnRotateItemRightInput;
+            
+            Debug.Log("InventoryPanel: Subscribed to input events");
         }
 
         private void UnsubscribeFromPlayerEvents()
@@ -225,6 +292,16 @@ namespace Resonance.UI
                 _playerService.OnPlayerRegistered -= OnPlayerRegistered;
             }
         }
+        
+        private void UnsubscribeFromInputEvents()
+        {
+            if (_inputService != null)
+            {
+                _inputService.OnMoveItem -= OnMoveItemInput;
+                _inputService.OnRotateItemLeft -= OnRotateItemLeftInput;
+                _inputService.OnRotateItemRight -= OnRotateItemRightInput;
+            }
+        }
 
         #region Event Handlers
 
@@ -238,7 +315,7 @@ namespace Resonance.UI
         {
             _selectedItem = item;
             UpdateItemInfoPanel(item);
-            Debug.Log($"InventoryPanel: Item selected - {item?.itemName ?? "None"}");
+            Debug.Log($"InventoryPanel: Item selected - {item?.ItemName ?? "None"}");
         }
 
         private void OnItemDeselected(GridItem item)
@@ -248,31 +325,93 @@ namespace Resonance.UI
                 _selectedItem = null;
                 UpdateItemInfoPanel(null);
             }
-            Debug.Log($"InventoryPanel: Item deselected - {item?.itemName ?? "None"}");
+            Debug.Log($"InventoryPanel: Item deselected - {item?.ItemName ?? "None"}");
         }
+        
+        #region Input Event Handlers
+        
+        private void OnMoveItemInput(Vector2 moveInput)
+        {
+            // Only respond if an item is selected
+            if (_selectedItem == null)
+            {
+                return;
+            }
+            
+            // Store input for processing in Update
+            _currentMoveInput = moveInput;
+        }
+        
+        private void OnRotateItemLeftInput()
+        {
+            // Only respond if an item is selected
+            if (_selectedItem == null)
+            {
+                Debug.Log("InventoryPanel: Cannot rotate - no item selected");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Rotating item {_selectedItem.ItemName} left (counter-clockwise)");
+            
+            // Rotate in GridSystem (counter-clockwise)
+            if (_gridSystem.RotateItem(_selectedItem, clockwise: false))
+            {
+                Debug.Log($"InventoryPanel: Successfully rotated {_selectedItem.ItemName} left");
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryPanel: Failed to rotate {_selectedItem.ItemName} - no space");
+            }
+        }
+        
+        private void OnRotateItemRightInput()
+        {
+            // Only respond if an item is selected
+            if (_selectedItem == null)
+            {
+                Debug.Log("InventoryPanel: Cannot rotate - no item selected");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Rotating item {_selectedItem.ItemName} right (clockwise)");
+            
+            // Rotate in GridSystem (clockwise)
+            if (_gridSystem.RotateItem(_selectedItem, clockwise: true))
+            {
+                Debug.Log($"InventoryPanel: Successfully rotated {_selectedItem.ItemName} right");
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryPanel: Failed to rotate {_selectedItem.ItemName} - no space");
+            }
+        }
+        
+        #endregion
 
+        #region Grid System Event Handlers
+        
         private void OnItemMoved(GridItem item)
         {
-            Debug.Log($"InventoryPanel: Item moved - {item.itemName}");
+            Debug.Log($"InventoryPanel: Item moved - {item.ItemName}");
             // Update player inventory if needed
             SyncGridToInventory();
         }
 
         private void OnItemRotated(GridItem item)
         {
-            Debug.Log($"InventoryPanel: Item rotated - {item.itemName}");
+            Debug.Log($"InventoryPanel: Item rotated - {item.ItemName}");
             // Update player inventory if needed
             SyncGridToInventory();
         }
 
-        private void OnInventoryItemAddedToGrid(GridCellData itemData, Vector2Int position)
+        private void OnInventoryItemAddedToGrid(GridItem itemData, Vector2Int position)
         {
             Debug.Log($"InventoryPanel: Inventory item added to grid - ID: {itemData.ItemID}, Name: {itemData.ItemName}, Position: {position}");
             // Add item to grid if it's not already there
             AddInventoryItemToGrid(itemData.ItemID, itemData.ItemType);
         }
 
-        private void OnInventoryItemRemovedFromGrid(GridCellData itemData, Vector2Int position)
+        private void OnInventoryItemRemovedFromGrid(GridItem itemData, Vector2Int position)
         {
             Debug.Log($"InventoryPanel: Inventory item removed from grid - ID: {itemData.ItemID}, Name: {itemData.ItemName}, Position: {position}");
             // Remove item from grid
@@ -287,66 +426,166 @@ namespace Resonance.UI
         }
 
         #endregion
+        
+        #region Operation Button Event Handlers
+        
+        /// <summary>
+        /// Handle Use button click
+        /// </summary>
+        private void OnItemUseButtonClicked()
+        {
+            if (_selectedItem == null)
+            {
+                Debug.LogWarning("InventoryPanel: No item selected for Use operation");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Use button clicked for {_selectedItem.ItemName}");
+            
+            // Execute Use operation via InventoryOperationManager
+            if (_gridOperationManager != null)
+            {
+                _gridOperationManager.UseItem(_selectedItem);
+                
+                // Refresh UI to update button text (e.g., "Equip" -> "Unequip")
+                UpdateItemInfoPanel(_selectedItem);
+            }
+            else
+            {
+                Debug.LogError("InventoryPanel: InventoryOperationManager is null");
+            }
+        }
+        
+        /// <summary>
+        /// Handle Drop button click
+        /// </summary>
+        private void OnItemDropButtonClicked()
+        {
+            if (_selectedItem == null)
+            {
+                Debug.LogWarning("InventoryPanel: No item selected for Drop operation");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Drop button clicked for {_selectedItem.ItemName}");
+            
+            // Show confirmation dialog (optional, can be added later)
+
+            // For now, directly drop the item
+            if (_gridOperationManager != null)
+            {
+                _gridOperationManager.DropItem(_selectedItem);
+                
+                // Clear selection since item is dropped
+                _selectedItem = null;
+                UpdateItemInfoPanel(null);
+            }
+            else
+            {
+                Debug.LogError("InventoryPanel: InventoryOperationManager is null");
+            }
+        }
+        
+        /// <summary>
+        /// Handle Combine button click
+        /// </summary>
+        private void OnItemCombineButtonClicked()
+        {
+            if (_selectedItem == null)
+            {
+                Debug.LogWarning("InventoryPanel: No item selected for Combine operation");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: Combine button clicked for {_selectedItem.ItemName}");
+            
+            // TODO: Implement combine target selection UI
+
+            // For now, just log that combine was requested
+            Debug.Log("InventoryPanel: Combine operation requires target selection (not yet implemented)");
+        }
+        
+        #endregion
+
+        #endregion
 
         #region Grid Management
 
         private void LoadInventoryItemsToGrid()
         {
-            if (_playerInventory == null || _gridSystem == null) return;
+            Debug.Log($"InventoryPanel: LoadInventoryItemsToGrid called");
+            
+            if (_playerInventory == null || _gridSystem == null) 
+            {
+                Debug.LogWarning($"InventoryPanel: Cannot load items - _playerInventory={(_playerInventory != null ? "EXISTS" : "NULL")},"+
+                                $"_gridSystem={(_gridSystem != null ? "EXISTS" : "NULL")}");
+                return;
+            }
+            
+            Debug.Log($"InventoryPanel: GridSystem.IsInitialized = {_gridSystem.IsInitialized}");
+            
+            var allItems = _playerInventory.GetAllItems();
+            Debug.Log($"InventoryPanel: Total items in inventory: {allItems.Count}");
             
             // Clear existing grid items
             _gridSystem.ClearAllItems();
             _inventoryItems.Clear();
             
             // Load all items from the new grid-based inventory
-            var allItems = _playerInventory.GetAllItems();
-            foreach (var gridCellData in allItems)
+            Debug.Log($"InventoryPanel: About to load {allItems.Count} items from inventory");
+            foreach (var gridItem in allItems)
             {
-                // Convert GridCellData to GridItem for UI display
-                var gridItem = ConvertToGridItem(gridCellData);
-                if (gridItem != null)
+                Debug.Log($"InventoryPanel: Processing item: ID={gridItem.ItemID}, Name={gridItem.ItemName}, Position={gridItem.GridPosition}");
+                
+                // Place item at its stored position (directly using GridItem)
+                // This will create visuals since GridSystem is now initialized
+                Debug.Log($"InventoryPanel: About to place item {gridItem.ItemName} at {gridItem.GridPosition}");
+                if (_gridSystem.PlaceItem(gridItem, gridItem.GridPosition))
                 {
-                    // Place item at its stored position
-                    if (_gridSystem.PlaceItem(gridItem, gridCellData.GridPosition))
-                    {
-                        _inventoryItems[gridCellData.ItemID] = gridItem;
-                        Debug.Log($"InventoryPanel: Loaded item {gridItem.itemName} at {gridCellData.GridPosition}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.itemName} at {gridCellData.GridPosition}");
-                    }
+                    _inventoryItems[gridItem.ItemID] = gridItem;
+                    Debug.Log($"InventoryPanel: Successfully placed item {gridItem.ItemName} at {gridItem.GridPosition}");
+                }
+                else
+                {
+                    Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.ItemName} at {gridItem.GridPosition}");
                 }
             }
             
-            Debug.Log($"InventoryPanel: Loaded {_inventoryItems.Count} items to grid from PlayerInventory");
+            Debug.Log($"InventoryPanel: Successfully loaded {_inventoryItems.Count} items to grid");
         }
 
         private void AddInventoryItemToGrid(int itemID, ItemType itemType)
         {
-            if (_gridSystem == null || _inventoryItems.ContainsKey(itemID)) return;
+            // If GridSystem not initialized yet, skip - items will be loaded when panel opens
+            if (_gridSystem == null || !_gridSystem.IsInitialized)
+            {
+                Debug.Log($"InventoryPanel: GridSystem not initialized yet. Item {itemID} will be loaded when inventory opens.");
+                return;
+            }
+            
+            if (_inventoryItems.ContainsKey(itemID))
+            {
+                Debug.LogWarning($"InventoryPanel: Item {itemID} already exists in grid");
+                return;
+            }
             
             // Get item data from PlayerInventory
-            var gridCellData = _playerInventory.GetItemByID(itemID);
-            if (gridCellData == null)
+            var gridItem = _playerInventory.GetItemByID(itemID);
+            if (gridItem == null)
             {
                 Debug.LogWarning($"InventoryPanel: Item {itemID} not found in PlayerInventory");
                 return;
             }
             
-            // Convert to GridItem for UI display
-            GridItem gridItem = ConvertToGridItem(gridCellData);
-            if (gridItem == null) return;
-            
-            // Place item at its stored position
-            if (_gridSystem.PlaceItem(gridItem, gridCellData.GridPosition))
+            // Place item at its stored position (directly using GridItem)
+            if (_gridSystem.PlaceItem(gridItem, gridItem.GridPosition))
             {
                 _inventoryItems[itemID] = gridItem;
-                Debug.Log($"InventoryPanel: Added item {gridItem.itemName} to grid at {gridCellData.GridPosition}");
+                Debug.Log($"InventoryPanel: Added item {gridItem.ItemName} to grid at {gridItem.GridPosition}");
             }
             else
             {
-                Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.itemName} at {gridCellData.GridPosition}");
+                Debug.LogWarning($"InventoryPanel: Failed to place item {gridItem.ItemName} at {gridItem.GridPosition}");
             }
         }
 
@@ -358,51 +597,37 @@ namespace Resonance.UI
             _gridSystem.RemoveItem(gridItem);
             _inventoryItems.Remove(itemID);
             
-            Debug.Log($"InventoryPanel: Removed item {gridItem.itemName} from grid");
+            Debug.Log($"InventoryPanel: Removed item {gridItem.ItemName} from grid");
         }
 
-        /// <summary>
-        /// Convert GridCellData to GridItem for UI display
-        /// </summary>
-        private GridItem ConvertToGridItem(GridCellData cellData)
-        {
-            if (cellData == null) return null;
-            
-            var gridItem = new GridItem(
-                cellData.ItemID,
-                cellData.ItemName,
-                cellData.ItemType,
-                cellData.GridWidth,
-                cellData.GridHeight
-            );
-            
-            // Set position and rotation
-            gridItem.SetGridPosition(cellData.GridPosition);
-            if (cellData.Rotation == 90 || cellData.Rotation == 270)
-            {
-                gridItem.Rotate(); // Apply rotation if needed
-            }
-            
-            // Store additional data
-            gridItem.customData["quantity"] = cellData.Quantity;
-            gridItem.customData["maxStackSize"] = cellData.MaxStackSize;
-            
-            // For weapons, store ammo info
-            if (cellData.ItemType == ItemType.Weapon)
-            {
-                gridItem.customData["currentAmmo"] = cellData.CurrentAmmo;
-                gridItem.customData["maxAmmo"] = cellData.MaxAmmo;
-                gridItem.customData["ammoType"] = cellData.AmmoType;
-            }
-            
-            return gridItem;
-        }
 
         private void SyncGridToInventory()
         {
-            // This method would sync grid changes back to the player inventory
-            // For now, we'll keep it simple and just log
-            Debug.Log("InventoryPanel: Syncing grid changes to inventory");
+            if (_playerInventory == null || _gridSystem == null) return;
+            
+            // Sync grid item positions/rotations back to PlayerInventory
+            var allGridItems = _gridSystem.GetAllItems();
+            foreach (var gridItem in allGridItems)
+            {
+                var inventoryItem = _playerInventory.GetItemByID(gridItem.ItemID);
+                if (inventoryItem != null)
+                {
+                    // Update position if changed
+                    if (inventoryItem.GridPosition != gridItem.GridPosition)
+                    {
+                        _playerInventory.MoveItemInGrid(gridItem.ItemID, gridItem.GridPosition);
+                    }
+                    
+                    // Update rotation if changed
+                    int targetRotation = gridItem.IsRotated ? 90 : 0;
+                    if (inventoryItem.Rotation != targetRotation)
+                    {
+                        _playerInventory.RotateItemInGrid(gridItem.ItemID);
+                    }
+                }
+            }
+            
+            Debug.Log("InventoryPanel: Synced grid changes to inventory");
         }
 
         private void RefreshGridDisplay()
@@ -447,41 +672,62 @@ namespace Resonance.UI
             
             if (item != null)
             {
-                // Create InfoDataAsset from GridItem
-                var infoData = CreateInfoDataFromGridItem(item);
-                _itemInfoPanel.DisplayInfoData(infoData);
+                // Update basic info
+                _itemInfoName.text = item.ItemName;
+                // _itemInfoContent.text = item.itemDescription; // TODO: Add description to GridItem
+                _itemInfoImage.sprite = item.ItemIcon;
+                
+                // === Dynamic Operation Button Display ===
+                // Query operation capabilities from InventoryOperationManager
+                bool canUse = _gridOperationManager?.CanUse(item) ?? false;
+                bool canDrop = _gridOperationManager?.CanDrop(item) ?? false;
+                bool canCombine = _gridOperationManager?.CanCombine(item, null) ?? false; // TODO: Implement combine target selection
+                
+                // Show/hide buttons based on capabilities
+                if (_itemUseButton != null)
+                {
+                    _itemUseButton.gameObject.SetActive(canUse);
+                    if (canUse)
+                    {
+                        // Dynamic button text (e.g., "Equip" vs "Unequip")
+                        string buttonText = _gridOperationManager.GetUseButtonText(item);
+                        var buttonTextComponent = _itemUseButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+                        if (buttonTextComponent != null)
+                        {
+                            buttonTextComponent.text = buttonText;
+                        }
+                    }
+                }
+                
+                if (_itemDropButton != null)
+                {
+                    _itemDropButton.gameObject.SetActive(canDrop);
+                }
+                
+                if (_itemCombineButton != null)
+                {
+                    _itemCombineButton.gameObject.SetActive(canCombine);
+                }
+                
+                // Show button container only if at least one button is active
+                bool hasAnyButton = canUse || canDrop || canCombine;
+                _itemInfoButtonContainer.SetActive(hasAnyButton);
+                
+                Debug.Log($"InventoryPanel: Item info updated - {item.ItemName} (Use:{canUse}, Drop:{canDrop}, Combine:{canCombine})");
             }
             else
             {
-                _itemInfoPanel.DisplayInfoData(null);
+                // Clear info panel
+                _itemInfoName.text = "";
+                _itemInfoContent.text = "";
+                _itemInfoImage.sprite = null;
+                _itemInfoButtonContainer.SetActive(false);
+                
+                // Hide all buttons
+                if (_itemUseButton != null) _itemUseButton.gameObject.SetActive(false);
+                if (_itemDropButton != null) _itemDropButton.gameObject.SetActive(false);
+                if (_itemCombineButton != null) _itemCombineButton.gameObject.SetActive(false);
             }
-        }
-
-        private InfoDataAsset CreateInfoDataFromGridItem(GridItem item)
-        {
-            // Create a temporary InfoDataAsset for display
-            var infoData = ScriptableObject.CreateInstance<InfoDataAsset>();
-            // infoData.infoName = item.itemName;
-            // infoData.infoContent = $"Type: {item.itemType}\nSize: {item.CurrentWidth}x{item.CurrentHeight}\nID: {item.itemID}";
-            // infoData.infoImage = item.itemIcon; // Uncomment when you have item icons
-            
-            return infoData;
-        }
-
-        #endregion
-
-        #region Input Handling
-
-        private void HandleInventoryInput()
-        {
-            if (_inputService == null || !_inputService.IsInventoryMode) return;
-            
-            // Handle item movement
-            Vector2 moveInput = Vector2.zero;
-            // This would be connected to the input service events
-            
-            // Handle item rotation
-            // This would be connected to the input service events
         }
 
         #endregion
@@ -529,7 +775,20 @@ namespace Resonance.UI
 
         protected override void OnShow()
         {
-            Debug.Log("InventoryPanel: Shown");
+            Debug.Log($"InventoryPanel: OnShow called");
+            
+            // Reload all items to ensure visuals are created (in case items were picked up before panel was initialized)
+            if (_isInitialized && _gridSystem != null && _gridSystem.IsInitialized)
+            {
+                Debug.Log($"InventoryPanel: All conditions met, reloading inventory items");
+                LoadInventoryItemsToGrid();
+            }
+            else
+            {
+                Debug.LogWarning($"InventoryPanel: Cannot reload items - _isInitialized={_isInitialized}," +    
+                $"_gridSystem={(_gridSystem != null ? "EXISTS" : "NULL")}, _gridSystem.IsInitialized={(_gridSystem?.IsInitialized ?? false)}");
+            }
+            
             UpdateAllUI();
         }
 
@@ -541,24 +800,99 @@ namespace Resonance.UI
         protected override void OnCleanup()
         {
             UnsubscribeFromPlayerEvents();
+            UnsubscribeFromInputEvents();
             _isInitialized = false;
             Debug.Log("InventoryPanel: Cleaned up");
         }
 
         #endregion
+        
+        #region Input Processing
+        
+        /// <summary>
+        /// Process movement input for selected item
+        /// </summary>
+        private void ProcessMoveInput()
+        {
+            if (_selectedItem == null || _currentMoveInput == Vector2.zero)
+            {
+                return;
+            }
+            
+            // Convert normalized input to grid movement (one cell at a time)
+            Vector2Int moveDirection = Vector2Int.zero;
+            
+            // Prioritize horizontal or vertical movement based on which is stronger
+            if (Mathf.Abs(_currentMoveInput.x) > Mathf.Abs(_currentMoveInput.y))
+            {
+                // Horizontal movement
+                moveDirection.x = _currentMoveInput.x > 0 ? 1 : -1;
+            }
+            else
+            {
+                // Vertical movement (inverted Y because grid Y goes down)
+                moveDirection.y = _currentMoveInput.y > 0 ? -1 : 1;
+            }
+            
+            // Calculate new position
+            Vector2Int newPosition = _selectedItem.GridPosition + moveDirection;
+            
+            Debug.Log($"InventoryPanel: Attempting to move {_selectedItem.ItemName} from {_selectedItem.GridPosition} to {newPosition}");
+            
+            // Try to move item in GridSystem
+            if (_gridSystem.MoveItem(_selectedItem, newPosition))
+            {
+                Debug.Log($"InventoryPanel: Successfully moved {_selectedItem.ItemName} to {newPosition}");
+            }
+            else
+            {
+                Debug.Log($"InventoryPanel: Cannot move {_selectedItem.ItemName} to {newPosition} - position blocked or out of bounds");
+            }
+        }
+        
+        #endregion
 
         #region Unity Lifecycle
+        
+        private void Update()
+        {
+            // Process movement input with cooldown
+            if (_selectedItem != null && _currentMoveInput != Vector2.zero && _gridSystem != null)
+            {
+                // Check if enough time has passed since last move
+                if (Time.time - _lastMoveTime >= _moveInputCooldown)
+                {
+                    ProcessMoveInput();
+                    _lastMoveTime = Time.time;
+                }
+            }
+        }
 
         private void OnDestroy()
         {
             CleanupEventListeners();
             UnsubscribeFromPlayerEvents();
+            UnsubscribeFromInputEvents();
         }
 
         private void CleanupEventListeners()
         {
             // Unsubscribe from InventoryState events
             InventoryState.OnInventoryStarted -= OnInventoryStarted;
+            
+            // Unsubscribe from operation button clicks
+            if (_itemUseButton != null)
+            {
+                _itemUseButton.onClick.RemoveListener(OnItemUseButtonClicked);
+            }
+            if (_itemDropButton != null)
+            {
+                _itemDropButton.onClick.RemoveListener(OnItemDropButtonClicked);
+            }
+            if (_itemCombineButton != null)
+            {
+                _itemCombineButton.onClick.RemoveListener(OnItemCombineButtonClicked);
+            }
 
             Debug.Log("InventoryPanel: Event listeners cleaned up");
         }

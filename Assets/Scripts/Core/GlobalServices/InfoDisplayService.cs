@@ -11,7 +11,7 @@ namespace Resonance.Core.GlobalServices
 {
     /// <summary>
     /// Info display service
-    /// 统一管理所有IInfoable对象的信息显示逻辑
+    /// Unified management of all IInfoable object information display logic
     /// </summary>
     public static class InfoDisplayService
     {
@@ -40,7 +40,7 @@ namespace Resonance.Core.GlobalServices
         /// <summary>
         /// Show InfoData structure information
         /// </summary>
-        /// <param name="infoData">要显示的信息数据</param>
+        /// <param name="infoData">Information data to display</param>
         public static void ShowInfoData(InfoData infoData)
         {
             if (!infoData.IsValid())

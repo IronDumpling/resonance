@@ -2,20 +2,18 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Resonance.Items;
+using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 
 namespace Resonance.Player.Inventory
 {
     /// <summary>
     /// ConsumableManager - Manage consumable items (ammo, etc.)
-    /// Responsibilities: add/consume ammo, stack同类弹药, manage consumable usage
+    /// Responsibilities: add/consume ammo, stack same type ammo, manage consumable usage
     /// </summary>
     public class ConsumableManager
     {
         private PlayerInventory _inventory;
-        
-        // Ammo default configuration
-        private const int DEFAULT_AMMO_STACK_SIZE = 30;
-        private const int DEFAULT_ITEM_STACK_SIZE = 10;
         
         // Events
         public System.Action<string, int> OnAmmoAdded; // ammoType, amount
@@ -33,15 +31,15 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Add ammo (smart stacking)
         /// </summary>
-        public bool AddAmmo(string ammoType, string ammoName, int amount)
+        public bool AddAmmo(string ammoType, GridItem gridItem)
         {
-            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
+            if (string.IsNullOrEmpty(ammoType) || gridItem.Quantity <= 0)
             {
-                Debug.LogWarning($"ConsumableManager: Invalid ammo parameters - type: {ammoType}, amount: {amount}");
+                Debug.LogWarning($"ConsumableManager: Invalid ammo parameters - type: {ammoType}, amount: {gridItem.Quantity}");
                 return false;
             }
             
-            Debug.Log($"ConsumableManager: Adding {amount} {ammoType} ammo");
+            Debug.Log($"ConsumableManager: Adding {gridItem.Quantity} {ammoType} ammo (Icon={gridItem.ItemIcon != null}, Prefab={gridItem.ItemPrefab != null}, AssetPath={gridItem.AssetPath})");
             
             // Find existing ammo of the same type
             var existingAmmo = _inventory.GetItemsByType(ItemType.Consumable)
@@ -49,14 +47,14 @@ namespace Resonance.Player.Inventory
                               item.CustomData["ammoType"].ToString() == ammoType)
                 .ToList();
             
-            int remainingAmount = amount;
+            int remainingAmount = gridItem.Quantity;
             
             // Try to stack onto existing ammo
             foreach (var ammo in existingAmmo)
             {
-                if (ammo.Quantity < ammo.MaxStackSize)
+                if (ammo.Quantity < ammo.MaxStackQuantity)
                 {
-                    int canAdd = Mathf.Min(remainingAmount, ammo.MaxStackSize - ammo.Quantity);
+                    int canAdd = Mathf.Min(remainingAmount, ammo.MaxStackQuantity - ammo.Quantity);
                     int newQuantity = ammo.Quantity + canAdd;
                     
                     _inventory.UpdateItemQuantity(ammo.ItemID, newQuantity);
@@ -71,9 +69,9 @@ namespace Resonance.Player.Inventory
             // If there's remaining, create a new stack
             while (remainingAmount > 0)
             {
-                int newStackAmount = Mathf.Min(remainingAmount, DEFAULT_AMMO_STACK_SIZE);
+                int newStackAmount = Mathf.Min(remainingAmount, gridItem.MaxStackQuantity);
                 
-                if (!CreateNewAmmoStack(ammoType, ammoName, newStackAmount))
+                if (!CreateNewAmmoStack(ammoType, gridItem))
                 {
                     Debug.LogWarning($"ConsumableManager: Failed to create new ammo stack. Remaining: {remainingAmount}");
                     break;
@@ -83,7 +81,7 @@ namespace Resonance.Player.Inventory
                 Debug.Log($"ConsumableManager: Created new ammo stack with {newStackAmount}. Remaining: {remainingAmount}");
             }
             
-            int totalAdded = amount - remainingAmount;
+            int totalAdded = gridItem.Quantity - remainingAmount;
             if (totalAdded > 0)
             {
                 OnAmmoAdded?.Invoke(ammoType, totalAdded);
@@ -215,7 +213,7 @@ namespace Resonance.Player.Inventory
             
             // Calculate the total quantity after stacking
             int totalQuantity = sourceItem.Quantity + targetItem.Quantity;
-            int targetMaxStack = targetItem.MaxStackSize;
+            int targetMaxStack = targetItem.MaxStackQuantity;
             
             if (totalQuantity <= targetMaxStack)
             {
@@ -241,7 +239,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Check if two items can be stacked
         /// </summary>
-        public bool CanStackItems(GridCellData sourceItem, GridCellData targetItem)
+        public bool CanStackItems(GridItem sourceItem, GridItem targetItem)
         {
             if (sourceItem == null || targetItem == null)
                 return false;
@@ -271,7 +269,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Create a new ammo stack
         /// </summary>
-        private bool CreateNewAmmoStack(string ammoType, string ammoName, int quantity)
+        private bool CreateNewAmmoStack(string ammoType, GridItem gridItem)
         {
             // Find empty space
             Vector2Int emptyPos = _inventory.FindEmptySpace(1, 1); // Ammo takes 1x1 grid
@@ -282,17 +280,20 @@ namespace Resonance.Player.Inventory
             }
             
             // Create new ammo data
-            var ammoData = new GridCellData
+            var ammoData = new GridItem
             {
                 ItemID = GenerateUniqueItemID(),
-                ItemName = ammoName,
+                ItemName = gridItem.ItemName,
                 ItemType = ItemType.Consumable,
-                Quantity = quantity,
-                MaxStackSize = DEFAULT_AMMO_STACK_SIZE,
-                GridWidth = 1,
-                GridHeight = 1,
+                Quantity = gridItem.Quantity,
+                MaxStackQuantity = gridItem.MaxStackQuantity,
+                GridWidth = gridItem.GridWidth,
+                GridHeight = gridItem.GridHeight,
                 GridPosition = emptyPos,
-                Rotation = 0
+                Rotation = 0,
+                ItemIcon = gridItem.ItemIcon,      
+                ItemPrefab = gridItem.ItemPrefab,
+                AssetPath = gridItem.AssetPath 
             };
             
             ammoData.CustomData["ammoType"] = ammoType;

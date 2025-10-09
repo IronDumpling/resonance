@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.GridSystem
 {
     /// <summary>
     /// 单个网格槽位
@@ -11,21 +11,17 @@ namespace Resonance.Utilities
     {
         [Header("UI Components")]
         [SerializeField] private Image _backgroundImage;
-        [SerializeField] private Image _itemImage;
         [SerializeField] private GameObject _highlightObject;
-        [SerializeField] private GameObject _occupiedIndicator;
         
         [Header("Visual Settings")]
-        [SerializeField] private Color _emptyColor = Color.white;
-        [SerializeField] private Color _occupiedColor = Color.gray;
-        [SerializeField] private Color _highlightColor = Color.yellow;
-        [SerializeField] private Color _selectedColor = Color.blue;
-        [SerializeField] private Color _invalidColor = Color.red;
+        [SerializeField] private Color _normalColor = new Color(1f, 1f, 1f, 0.1f);
+        [SerializeField] private Color _highlightColor = new Color(1f, 1f, 0f, 0.3f);
+        [SerializeField] private Color _invalidColor = new Color(1f, 0f, 0f, 0.3f);
         
         // 状态
         private Vector2Int _gridPosition;
-        private GridItem _currentItem;
-        private SlotState _currentState = SlotState.Empty;
+        private GridItem _currentItem; // Reference only, visual is handled by GridItemVisual
+        private SlotState _currentState = SlotState.Normal;
         private bool _isInitialized = false;
         
         public Vector2Int GridPosition => _gridPosition;
@@ -40,11 +36,9 @@ namespace Resonance.Utilities
         
         public enum SlotState
         {
-            Empty,
-            Occupied,
-            Highlighted,
-            Selected,
-            Invalid
+            Normal,      // Default state
+            Highlighted, // Hover or preview state
+            Invalid      // Cannot place here
         }
         
         private void Awake()
@@ -57,14 +51,8 @@ namespace Resonance.Utilities
             if (_backgroundImage == null)
                 _backgroundImage = GetComponent<Image>();
             
-            if (_itemImage == null)
-                _itemImage = transform.Find("ItemImage")?.GetComponent<Image>();
-            
             if (_highlightObject == null)
                 _highlightObject = transform.Find("Highlight")?.gameObject;
-            
-            if (_occupiedIndicator == null)
-                _occupiedIndicator = transform.Find("OccupiedIndicator")?.gameObject;
             
             _isInitialized = true;
         }
@@ -76,7 +64,7 @@ namespace Resonance.Utilities
         public void Initialize(Vector2Int position)
         {
             _gridPosition = position;
-            SetState(SlotState.Empty);
+            SetState(SlotState.Normal);
             UpdateVisuals();
         }
         
@@ -93,14 +81,12 @@ namespace Resonance.Utilities
         }
         
         /// <summary>
-        /// 设置当前物品
+        /// 设置当前物品（仅用于引用，不显示视觉）
         /// </summary>
         /// <param name="item">物品</param>
         public void SetItem(GridItem item)
         {
             _currentItem = item;
-            SetState(item != null ? SlotState.Occupied : SlotState.Empty);
-            UpdateVisuals();
         }
         
         /// <summary>
@@ -117,32 +103,10 @@ namespace Resonance.Utilities
                 _backgroundImage.color = bgColor;
             }
             
-            // 更新物品图标
-            if (_itemImage != null)
-            {
-                if (_currentItem != null && _currentItem.itemIcon != null)
-                {
-                    _itemImage.sprite = _currentItem.itemIcon;
-                    _itemImage.color = _currentItem.itemColor;
-                    _itemImage.gameObject.SetActive(true);
-                }
-                else
-                {
-                    _itemImage.gameObject.SetActive(false);
-                }
-            }
-            
             // 更新高亮显示
             if (_highlightObject != null)
             {
-                _highlightObject.SetActive(_currentState == SlotState.Highlighted || 
-                                         _currentState == SlotState.Selected);
-            }
-            
-            // 更新占用指示器
-            if (_occupiedIndicator != null)
-            {
-                _occupiedIndicator.SetActive(_currentState == SlotState.Occupied);
+                _highlightObject.SetActive(_currentState == SlotState.Highlighted);
             }
         }
         
@@ -154,18 +118,13 @@ namespace Resonance.Utilities
         {
             switch (_currentState)
             {
-                case SlotState.Empty:
-                    return _emptyColor;
-                case SlotState.Occupied:
-                    return _occupiedColor;
                 case SlotState.Highlighted:
                     return _highlightColor;
-                case SlotState.Selected:
-                    return _selectedColor;
                 case SlotState.Invalid:
                     return _invalidColor;
+                case SlotState.Normal:
                 default:
-                    return _emptyColor;
+                    return _normalColor;
             }
         }
         
@@ -175,13 +134,13 @@ namespace Resonance.Utilities
         /// <param name="highlight">是否高亮</param>
         public void SetHighlight(bool highlight)
         {
-            if (highlight && _currentState == SlotState.Empty)
+            if (highlight)
             {
                 SetState(SlotState.Highlighted);
             }
-            else if (!highlight && _currentState == SlotState.Highlighted)
+            else if (_currentState == SlotState.Highlighted)
             {
-                SetState(SlotState.Empty);
+                SetState(SlotState.Normal);
             }
         }
         
@@ -197,7 +156,7 @@ namespace Resonance.Utilities
             }
             else if (_currentState == SlotState.Invalid)
             {
-                SetState(_currentItem != null ? SlotState.Occupied : SlotState.Empty);
+                SetState(SlotState.Normal);
             }
         }
         
@@ -207,7 +166,7 @@ namespace Resonance.Utilities
         public void Clear()
         {
             _currentItem = null;
-            SetState(SlotState.Empty);
+            SetState(SlotState.Normal);
         }
         
         /// <summary>

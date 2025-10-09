@@ -27,7 +27,7 @@ namespace Resonance.Player.Core
 
         private WeaponManager _weaponManager;
         private ConsumableManager _consumableManager;
-        private GridOperationManager _gridOperationManager;
+        private InventoryOperationManager _gridOperationManager;
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
@@ -62,7 +62,7 @@ namespace Resonance.Player.Core
         public WeaponManager WeaponManager => _weaponManager;
         public ShootingSystem ShootingSystem => _shootingSystem;
         public ConsumableManager ConsumableManager => _consumableManager;
-        public GridOperationManager GridOperationManager => _gridOperationManager;
+        public InventoryOperationManager InventoryOperationManager => _gridOperationManager;
         public bool IsInvulnerable => _isInvulnerable;
         
         // Dual Health Properties
@@ -122,8 +122,8 @@ namespace Resonance.Player.Core
             
             // Initialize inventory managers
             _consumableManager = new ConsumableManager(_inventory);
-            _gridOperationManager = new GridOperationManager(_inventory, _consumableManager);
             _weaponManager = new WeaponManager(_inventory);
+            _gridOperationManager = new InventoryOperationManager(_inventory, _weaponManager, _consumableManager);
             
             // Set PlayerController reference for PlayerMovement (for state-based speed calculation)
             _movement.SetPlayerController(this);

@@ -3,21 +3,22 @@ using TMPro;
 using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 using Resonance.Core;
 using Resonance.Core.GlobalServices;
 
 namespace Resonance.Items
 {
     /// <summary>
-    /// 场景中可交互的Ammo物体
-    /// 玩家可以拾取并添加到弹药库存中
+    /// Interactable Ammo object in the scene
+    /// Players can pick up and add to ammo inventory
     /// 
     /// Visual System Responsibilities:
     /// - _pickupVisual: The visual representation for the ammo in the world (pickup state)
     /// - This handles pickup animations (bob, rotation) and interaction triggers
     /// - When picked up, the ammo count is added to player's ammo inventory
     /// </summary>
-    public class AmmoMonoBehaviour : MonoBehaviour, IInteractable, IPausable
+    public class AmmoMonoBehaviour : MonoBehaviour, IPickupable, IPausable
     {
         [Header("Ammo Configuration")]
         [SerializeField] private AmmoDataAsset _ammoDataAsset;
@@ -38,13 +39,13 @@ namespace Resonance.Items
         [SerializeField] private GameObject _interactUI;
         [SerializeField] private TextMeshProUGUI _interactTextComponent;
         
-        // 是否已被拾取
+        // Whether it has been picked up
         private bool _isPickedUp = false;
         
-        // 交互状态
-        private bool _isInteracting = false;
+        // Interaction state
+        // private bool _isInteracting = false;
         
-        // 动画相关
+        // Animation related
         private Vector3 _originalPosition;
         private float _bobTimer = 0f;
                 
@@ -59,7 +60,7 @@ namespace Resonance.Items
 
         void Start()
         {
-            // 验证Ammo数据资产
+            // Validate Ammo data asset
             if (_ammoDataAsset == null)
             {
                 Debug.LogError($"AmmoMonoBehaviour: No AmmoDataAsset assigned to {gameObject.name}!");
@@ -72,10 +73,10 @@ namespace Resonance.Items
                 return;
             }
 
-            // 记录原始位置用于动画
+            // Record original position for animation
             _originalPosition = transform.position;
             
-            // 如果没有指定拾取视觉模型，使用自身
+            // If no pickup visual model is specified, use itself
             if (_pickupVisual == null)
             {
                 _pickupVisual = gameObject;
@@ -96,7 +97,7 @@ namespace Resonance.Items
 
         void OnDestroy()
         {
-            // 清理交互服务注册
+            // Clean up interaction service registration
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -111,14 +112,14 @@ namespace Resonance.Items
         {
             if (_isPickedUp || _isPaused) return;
             
-            // 执行视觉动画
+            // Perform visual animations
             PerformVisualAnimations();
         }
 
         #region Setup
         
         /// <summary>
-        /// 设置音频服务引用
+        /// Set audio service reference
         /// </summary>
         private void SetupAudioService()
         {
@@ -134,11 +135,11 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 设置交互UI - 查找并设置InteractUI和Text组件
+        /// Setup interaction UI - find and set InteractUI and Text components
         /// </summary>
         private void SetupInteractionUI()
         {
-            // 查找InteractUI子对象（如果没有手动分配）
+            // Find InteractUI child object (if not manually assigned)
             if (_interactUI == null)
             {
                 Transform interactUIChild = transform.Find("InteractUI");
@@ -155,7 +156,7 @@ namespace Resonance.Items
                 return;
             }
             
-            // 查找Text组件
+            // Find Text component
             if (_interactTextComponent == null)
             {
                 Transform textChild = _interactUI.transform.Find("Text");
@@ -239,174 +240,24 @@ namespace Resonance.Items
             _pickupVisual.transform.eulerAngles = currentRotation;
         }
 
-        #region IInteractable Implementation
+        #region IPickupable Implementation
 
-        /// <summary>
-        /// Check if this ammo can currently be interacted with
-        /// </summary>
-        /// <returns>True if interaction is possible</returns>
+        // IInteractable base methods
         public bool CanInteract()
         {
-            // Can interact if not picked up 
             return !_isPickedUp;
         }
 
-        /// <summary>
-        /// Get the interaction duration for picking up this ammo
-        /// </summary>
-        /// <returns>Duration of the interaction in seconds</returns>
         public float GetInteractionDuration()
         {
             return _interactionDuration;
         }
 
-        /// <summary>
-        /// Get the world position of this ammo
-        /// </summary>
-        /// <returns>World position</returns>
         public Vector3 GetPosition()
         {
             return transform.position;
         }
 
-        /// <summary>
-        /// Start the interaction process
-        /// </summary>
-        public void StartInteraction()
-        {
-            if (!CanInteract())
-            {
-                Debug.LogWarning($"AmmoMonoBehaviour: Cannot start interaction with {_ammoDataAsset.ammoName}");
-                return;
-            }
-
-            _isInteracting = true;
-
-            Debug.Log($"AmmoMonoBehaviour: Started interaction with {_ammoDataAsset.ammoName}");
-
-            // Show interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(true);
-            }
-
-            // TODO: Play interaction start effects (visual/audio feedback)
-        }
-
-        /// <summary>
-        /// Complete the interaction successfully - pickup the ammo
-        /// </summary>
-        public void CompleteInteraction()
-        {
-            if (!_isInteracting)
-            {
-                Debug.LogWarning($"AmmoMonoBehaviour: CompleteInteraction called but not interacting with {_ammoDataAsset.ammoName}");
-                return;
-            }
-
-            Debug.Log($"AmmoMonoBehaviour: Completing interaction with {_ammoDataAsset.ammoName}");
-
-            // Get current player from PlayerService
-            var playerService = ServiceRegistry.Get<IPlayerService>();
-            Transform playerTransform = null;
-            
-            if (playerService?.CurrentPlayer != null)
-            {
-                playerTransform = playerService.CurrentPlayer.transform;
-            }
-
-            // Perform the actual pickup
-            bool pickupSuccess = PerformPickup();
-            
-            if (pickupSuccess && playerTransform != null)
-            {
-                // Try to add ammo to player's unified inventory system
-                var playerMono = playerTransform.GetComponent<Resonance.Player.PlayerMonoBehaviour>();
-                if (playerMono != null && playerMono.IsInitialized)
-                {
-                    var playerController = playerMono.Controller;
-                    if (playerController != null)
-                    {
-                        /* ======= TODO Temporary Auto-Equip ====== */
-                        // 使用ConsumableManager添加弹药到inventory grid
-                        var consumableManager = playerController.ConsumableManager;
-                        if (consumableManager != null)
-                        {
-                            // 添加弹药 - ConsumableManager会自动处理堆叠逻辑
-                            bool added = consumableManager.AddAmmo(
-                                _ammoDataAsset.ammoType, 
-                                _ammoDataAsset.ammoName, 
-                                _ammoDataAsset.ammoCount
-                            );
-                            
-                            if (added)
-                            {
-                                Debug.Log($"AmmoMonoBehaviour: Successfully added {_ammoDataAsset.ammoCount} {_ammoDataAsset.ammoType} ammo to inventory");
-                                
-                                // 显示当前库存状态
-                                int totalCount = consumableManager.GetTotalAmmoCount(_ammoDataAsset.ammoType);
-                                Debug.Log($"AmmoMonoBehaviour: Player now has {totalCount} total {_ammoDataAsset.ammoType} ammo");
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"AmmoMonoBehaviour: Failed to add {_ammoDataAsset.ammoType} ammo to inventory (possibly no space)");
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogError("AmmoMonoBehaviour: Player's ConsumableManager is null");
-                        }
-                        /* ======= TODO Temporary Auto-Equip ====== */
-                    }
-                    else
-                    {
-                        Debug.LogError("AmmoMonoBehaviour: Player's Controller is null");
-                    }
-                }
-                else
-                {
-                    Debug.LogError("AmmoMonoBehaviour: Player not found or not initialized");
-                }
-            }
-
-            _isInteracting = false;
-
-            // Hide interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(false);
-            }
-
-            // Show info panel for the ammo
-            ShowAmmoInfo();
-
-            Debug.Log($"AmmoMonoBehaviour: CompleteInteraction complete");
-        }
-
-        /// <summary>
-        /// Cancel the interaction
-        /// </summary>
-        public void CancelInteraction()
-        {
-            if (!_isInteracting) return;
-
-            Debug.Log($"AmmoMonoBehaviour: Cancelled interaction with {_ammoDataAsset.ammoName}");
-
-            _isInteracting = false;
-
-            // Hide interaction UI
-            if (_interactUI != null)
-            {
-                _interactUI.SetActive(false);
-            }
-
-            // TODO: Stop interaction effects
-        }
-
-        /// <summary>
-        /// Get a descriptive name for this interactable
-        /// </summary>
-        /// <returns>Ammo name</returns>
         public string GetInteractableName()
         {
             return _ammoDataAsset?.ammoName ?? "Unknown Ammo";
@@ -443,25 +294,6 @@ namespace Resonance.Items
 
         #endregion
 
-        #region Info Display
-
-        /// <summary>
-        /// Show info panel for this ammo using the unified InfoDisplay system
-        /// </summary>
-        private void ShowAmmoInfo()
-        {
-            if (_ammoDataAsset == null)
-            {
-                Debug.LogError("AmmoMonoBehaviour: Cannot show ammo info with null AmmoDataAsset");
-                return;
-            }
-
-            // Use the unified InfoDisplayService
-            InfoDisplayService.ShowInfo(_ammoDataAsset);
-        }
-
-        #endregion
-
         #region Public Methods
 
         /// <summary>
@@ -487,36 +319,116 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 重置弹药状态（用于重新生成或测试）
+        /// Reset ammo state (for re-generation or testing)
         /// </summary>
         public void ResetAmmo()
         {
             _isPickedUp = false;
-            _isInteracting = false;
+            // _isInteracting = false;
             gameObject.SetActive(true);
         }
 
         #endregion
 
+        /// <summary>
+        /// Try to add this ammo to inventory
+        /// Creates complete GridItem data for the ammo
+        /// </summary>
+        public bool TryAddToInventory(out GridItem gridItem, out string failureReason)
+        {
+            gridItem = null;
+            failureReason = "";
+            
+            // Get player controller
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService?.CurrentPlayer == null || !playerService.CurrentPlayer.IsInitialized)
+            {
+                failureReason = "Player not initialized";
+                return false;
+            }
+            
+            var playerController = playerService.CurrentPlayer.Controller;
+            var inventory = playerController.Inventory;
+            
+            if (inventory == null)
+            {
+                failureReason = "Inventory is null";
+                return false;
+            }
+            
+            // Check if inventory has space (ammo uses ConsumableManager's grid size)
+            Vector2Int emptyPos = inventory.FindEmptySpace(_ammoDataAsset.gridWidth, _ammoDataAsset.gridHeight);
+            if (emptyPos.x < 0 || emptyPos.y < 0)
+            {
+                failureReason = $"No space in inventory for {_ammoDataAsset.ammoName} ({_ammoDataAsset.gridWidth}x{_ammoDataAsset.gridHeight})";
+                return false;
+            }
+            
+            // Create complete GridItem with all necessary data
+            gridItem = new GridItem
+            {
+                ItemID = GetInstanceID(), // Use unique ID
+                ItemName = _ammoDataAsset.ammoName,
+                ItemType = ItemType.Consumable,
+                GridWidth = _ammoDataAsset.gridWidth,
+                GridHeight = _ammoDataAsset.gridHeight,
+                ItemPrefab = _ammoDataAsset.itemPrefab,
+                AssetPath = GetAssetPath(_ammoDataAsset),
+                ItemIcon = _ammoDataAsset.ammoIcon,
+                Quantity = _ammoDataAsset.ammoCount,
+                MaxStackQuantity = _ammoDataAsset.maxStackQuantity, // Ammo can stack
+                Durability = 1f
+            };
+            
+            // Store original asset for InfoPanel display
+            gridItem.CustomData["originalAsset"] = _ammoDataAsset;
+            gridItem.CustomData["ammoType"] = _ammoDataAsset.ammoType;
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Called when inventory is full and pickup fails
+        /// Item stays in world for player to pick up after organizing inventory
+        /// </summary>
+        public void OnInventoryFull()
+        {
+            Debug.LogWarning($"AmmoMonoBehaviour: Inventory full! Please organize your inventory to pick up {_ammoDataAsset.ammoName}");
+            
+            // Reset pickup state but keep item in world
+            _isPickedUp = false;
+            
+            // Could show special VFX or UI hint here
+        }
+        
+        /// <summary>
+        /// Destroy this pickup item from the world
+        /// Called after successful pickup
+        /// </summary>
+        public void DestroyPickupItem()
+        {
+            PerformPickup(); // This handles all cleanup
+        }
+
         #region Private Methods
 
         /// <summary>
-        /// 拾取弹药（内部使用）
+        /// Internal pickup logic - handles cleanup and visual effects
         /// </summary>
-        /// <returns>是否成功拾取</returns>
+        /// <returns>Whether pickup is successful</returns>
         private bool PerformPickup()
         {
             if (_isPickedUp) return false;
 
             _isPickedUp = true;
-            _isInteracting = false;
+            // _isInteracting = false;
 
             PlayPickupAudio(transform.position);
             
-            // 停止所有动画
+            // Stop all animations
             StopAllCoroutines();
             
-            // 从交互服务中移除
+            // Remove from interaction service
             if (_interactionService != null)
             {
                 _interactionService.UnregisterInteractable(gameObject);
@@ -526,7 +438,7 @@ namespace Resonance.Items
                 }
             }
             
-            // 隐藏拾取视觉对象
+            // Hide pickup visual object
             if (_pickupVisual != null)
             {
                 _pickupVisual.SetActive(false);
@@ -542,16 +454,29 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 播放拾取音频
+        /// Play pickup audio
         /// </summary>
-        /// <param name="pickupPosition">拾取位置</param>
+        /// <param name="pickupPosition">Pickup position</param>
         private void PlayPickupAudio(Vector3 pickupPosition)
         {
             if (_audioService == null) return;
 
-            // 使用与武器相同的拾取音效，但音调稍高一些表示是弹药
+            // Use the same pickup sound as weapon, but slightly higher pitch to indicate it's ammo
             AudioClipType audioClipType = AudioClipType.ItemPickup;
-            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.7f, 1.2f); // 稍微高一些的音调
+            _audioService.PlaySFX3D(audioClipType, pickupPosition, 0.7f, 1.2f); // slightly higher pitch
+        }
+
+        /// <summary>
+        /// Get the asset path of the ScriptableObject
+        /// </summary>
+        private string GetAssetPath(ScriptableObject asset)
+        {
+            if (asset == null) return "";
+            #if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.GetAssetPath(asset);
+            #else
+            return asset.name; // Runtime fallback
+            #endif
         }
 
         #endregion

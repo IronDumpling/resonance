@@ -52,10 +52,11 @@ namespace Resonance.Core.StateMachine.States
                 }
             }
             
-            // Switch input mode to Wave (disable Heal/Wave, enable QTE)
+            // Switch input to Wave map (disable player actions, enable QTE)
             if (_inputService != null)
             {
-                _inputService.IsWaveMode = true;
+                _inputService.DisablePlayerInput();
+                _inputService.EnableWaveInput();
                 Debug.Log("WaveState: Switched to Wave input mode");
             }
             
@@ -92,11 +93,12 @@ namespace Resonance.Core.StateMachine.States
         {
             Debug.Log("WaveState: Exiting Wave substate");
             
-            // Restore normal input mode
+            // Restore player input
             if (_inputService != null)
             {
-                _inputService.IsWaveMode = false;
-                Debug.Log("WaveState: Restored normal input mode");
+                _inputService.DisableWaveInput();
+                _inputService.EnablePlayerInput();
+                Debug.Log("WaveState: Restored player input mode");
             }
             
             // Hide WavePanel and show normal Gameplay panels

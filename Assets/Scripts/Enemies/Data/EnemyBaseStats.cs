@@ -475,7 +475,7 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 恢复生命值（复活时使用）
+        /// Health Restore (used when reviving)
         /// </summary>
         /// <param name="amount">恢复量</param>
         /// <returns>实际恢复的量</returns>
@@ -492,16 +492,16 @@ namespace Resonance.Enemies.Data
                 UpdateHealthTier();
                 UpdateLifeState();
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
-                Debug.Log($"EnemyRuntimeStats: Restored {actualRestore} health. Current: {currentHealth}/{maxHealth}");
+                // Debug.Log($"EnemyRuntimeStats: Restored {actualRestore} health. Current: {currentHealth}/{maxHealth}");
             }
 
             return actualRestore;
         }
 
         /// <summary>
-        /// 更新韧性值（自然恢复）
+        /// Update resilience value (natural regeneration)
         /// </summary>
-        /// <param name="deltaTime">时间间隔</param>
+        /// <param name="deltaTime">Time interval</param>
         public void UpdateResilience(float deltaTime)
         {
             if (resilienceRegenRate <= 0f || currentResilience >= maxResilience) return;
@@ -517,9 +517,9 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 获取修正后的移动速度
+        /// Get modified move speed
         /// </summary>
-        /// <returns>考虑健康等级修正后的移动速度</returns>
+        /// <returns>Modified move speed considering health tier</returns>
         public float GetModifiedMoveSpeed()
         {
             if (!IsAlive) return 0f; // 死亡时无法移动

@@ -3,6 +3,7 @@ using Resonance.Items;
 using Resonance.Interfaces.Services;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Utilities.GridSystem;
 
 namespace Resonance.Player.Inventory
 {
@@ -175,9 +176,9 @@ namespace Resonance.Player.Inventory
         #region Helper Methods
         
         /// <summary>
-        /// Load weapon asset from GridCellData
+        /// Load weapon asset from GridItem
         /// </summary>
-        private GunDataAsset LoadWeaponAssetFromData(GridCellData weaponData)
+        private GunDataAsset LoadWeaponAssetFromData(GridItem weaponData)
         {
             Debug.Log($"WeaponManager: LoadWeaponAssetFromData called for '{weaponData.ItemName}'");
             Debug.Log($"WeaponManager: - AssetPath: '{weaponData.AssetPath}'");

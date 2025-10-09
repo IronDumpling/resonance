@@ -3,71 +3,77 @@ using UnityEngine;
 namespace Resonance.Interfaces.Services
 {
     /// <summary>
-    /// 交互服务接口
-    /// 管理玩家与场景中可交互物体的交互
+    /// Interaction service interface
+    /// Manage the interaction between the player and the interactable objects in the scene
     /// </summary>
     public interface IInteractionService : IGameService
     {
         /// <summary>
-        /// 当前可交互的对象
+        /// Current interactable object
         /// </summary>
         GameObject CurrentInteractable { get; }
         
         /// <summary>
-        /// 是否有可交互的对象
+        /// Whether there is an interactable object
         /// </summary>
         bool HasInteractable { get; }
         
         /// <summary>
-        /// 当前交互提示文本
+        /// Current interaction text
         /// </summary>
         string InteractionText { get; }
         
         /// <summary>
-        /// 注册可交互对象
+        /// Register the interactable object
         /// </summary>
-        /// <param name="interactable">可交互对象</param>
+        /// <param name="interactable">Interactable object</param>
         void RegisterInteractable(GameObject interactable);
         
         /// <summary>
-        /// 移除可交互对象
+        /// Remove the interactable object
         /// </summary>
-        /// <param name="interactable">可交互对象</param>
+        /// <param name="interactable">Interactable object</param>
         void UnregisterInteractable(GameObject interactable);
         
         /// <summary>
-        /// 设置当前可交互对象
+        /// Set the current interactable object
         /// </summary>
-        /// <param name="interactable">可交互对象</param>
-        /// <param name="interactionText">交互提示文本</param>
+        /// <param name="interactable">Interactable object</param>
+        /// <param name="interactionText">Interaction text</param>
         void SetCurrentInteractable(GameObject interactable, string interactionText = "");
         
         /// <summary>
-        /// 清除当前可交互对象
+        /// Clear the current interactable object
         /// </summary>
         void ClearCurrentInteractable();
 
         /// <summary>
-        /// 获取最近的可交互对象
+        /// Get the nearest interactable object
         /// </summary>
-        /// <returns>最近的可交互对象，如果没有则为null</returns>
+        /// <returns>The nearest interactable object, or null if none</returns>
         Interfaces.Objects.IInteractable GetNearestInteractable();
 
         /// <summary>
-        /// 处理可交互对象进入范围
+        /// Handle interactable object entering range
         /// </summary>
-        /// <param name="gameObject">游戏对象</param>
-        /// <param name="interactable">可交互对象</param>
+        /// <param name="gameObject">Game object</param>
+        /// <param name="interactable">Interactable object</param>
         void OnInteractableEnteredRange(GameObject gameObject, Interfaces.Objects.IInteractable interactable);
 
         /// <summary>
-        /// 处理可交互对象离开范围
+        /// Handle interactable object leaving range
         /// </summary>
-        /// <param name="gameObject">游戏对象</param>
-        /// <param name="interactable">可交互对象</param>
+        /// <param name="gameObject">Game object</param>
+        /// <param name="interactable">Interactable object</param>
         void OnInteractableExitedRange(GameObject gameObject, Interfaces.Objects.IInteractable interactable);
         
+        /// <summary>
+        /// Complete interaction with the specified interactable object
+        /// </summary>
+        /// <param name="interactable">The interactable object to interact with</param>
+        void CompleteInteraction(Interfaces.Objects.IInteractable interactable);
+        
         // Events
-        event System.Action<GameObject, string> OnInteractableChanged; // 可交互对象, 提示文本
+        event System.Action<GameObject, string> OnInteractableChanged; // Interactable object, interaction text
     }
 }

@@ -2,12 +2,13 @@ using UnityEngine;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Objects;
 using Resonance.Items.Core;
+using Resonance.Utilities;
 
 namespace Resonance.Items
 {
     /// <summary>
-    /// Gun数据的ScriptableObject资产
-    /// 用于在Unity Editor中创建和编辑Gun配置
+    /// Gun data ScriptableObject asset
+    /// Used to create and edit Gun configurations in Unity Editor
     /// </summary>
     [CreateAssetMenu(fileName = "New Gun Data", menuName = "Resonance/Items/Gun Data", order = 1)]
     public class GunDataAsset : ScriptableObject, IInfoable
@@ -39,6 +40,7 @@ namespace Resonance.Items
         
         [Header("Visual")]
         public Sprite weaponIcon;
+        public GameObject itemPrefab;
         
         [Header("Inventory")]
         public int gridWidth = 2;
@@ -56,9 +58,9 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 验证Gun数据是否有效
+        /// Validate Gun data
         /// </summary>
-        /// <returns>验证结果</returns>
+        /// <returns>Validation result</returns>
         public bool ValidateData()
         {
             if (string.IsNullOrEmpty(weaponName))
@@ -97,7 +99,7 @@ namespace Resonance.Items
         #region Runtime Methods
 
         /// <summary>
-        /// 检查是否有弹药
+        /// Check if there is ammo
         /// </summary>
         /// <returns>是否有弹药</returns>
         public bool HasAmmo()
@@ -106,18 +108,18 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 检查是否是满弹药
+        /// Check if there is full ammo
         /// </summary>
-        /// <returns>是否满弹药</returns>
+        /// <returns>Is full ammo</returns>
         public bool IsFullAmmo()
         {
             return CurrentAmmo >= maxAmmo;
         }
 
         /// <summary>
-        /// 获取弹药百分比
+        /// Get ammo percentage
         /// </summary>
-        /// <returns>弹药百分比 (0-1)</returns>
+        /// <returns>Ammo percentage (0-1)</returns>
         public float GetAmmoPercentage()
         {
             if (maxAmmo <= 0) return 0f;
@@ -125,7 +127,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 重置弹药到满弹药状态
+        /// Reset ammo to full ammo state
         /// </summary>
         public void ResetAmmo()
         {
@@ -133,9 +135,9 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 消耗一发弹药
+        /// Consume one ammo
         /// </summary>
-        /// <returns>是否成功消耗</returns>
+        /// <returns>Is success consume</returns>
         public bool ConsumeAmmo()
         {
             if (CurrentAmmo > 0)
@@ -147,20 +149,20 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 设置当前弹药数量
+        /// Set current ammo count
         /// </summary>
-        /// <param name="ammoCount">弹药数量</param>
+        /// <param name="ammoCount">Ammo count</param>
         public void SetCurrentAmmo(int ammoCount)
         {
             CurrentAmmo = Mathf.Clamp(ammoCount, 0, maxAmmo);
         }
 
         /// <summary>
-        /// 创建伤害信息结构体
+        /// Create damage info structure
         /// </summary>
-        /// <param name="sourcePosition">伤害来源位置</param>
-        /// <param name="sourceObject">伤害来源对象</param>
-        /// <returns>伤害信息</returns>
+        /// <param name="sourcePosition">Damage source position</param>
+        /// <param name="sourceObject">Damage source object</param>
+        /// <returns>Damage info</returns>
         public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null)
         {
             return new DamageInfo(
@@ -174,9 +176,9 @@ namespace Resonance.Items
         }
         
         /// <summary>
-        /// 获取伤害类型的描述文本
+        /// Get damage type description text
         /// </summary>
-        /// <returns>伤害类型描述</returns>
+        /// <returns>Damage type description</returns>
         public string GetDamageTypeDescription()
         {
             return damageType switch
@@ -190,10 +192,10 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 创建这个武器的独立副本（用于拾取时给玩家）
-        /// 注意：这会创建一个新的ScriptableObject实例，用于运行时独立的武器状态
+        /// Create a runtime copy of this weapon (for pickup)
+        /// Note: This will create a new ScriptableObject instance, for runtime independent weapon state
         /// </summary>
-        /// <returns>武器副本</returns>
+        /// <returns>Weapon copy</returns>
         public GunDataAsset CreateRuntimeCopy()
         {
             var copy = ScriptableObject.CreateInstance<GunDataAsset>();
@@ -209,6 +211,7 @@ namespace Resonance.Items
             copy.damageType = this.damageType;
             copy.healthDamageRatio = this.healthDamageRatio;
             copy.weaponIcon = this.weaponIcon;
+            copy.itemPrefab = this.itemPrefab;
             copy.gridWidth = this.gridWidth;
             copy.gridHeight = this.gridHeight;
             
@@ -223,7 +226,7 @@ namespace Resonance.Items
         #region IInfoable Implementation
 
         /// <summary>
-        /// 获取要在InfoPanel中显示的信息数据
+        /// Get information data to display in InfoPanel
         /// </summary>
         public InfoData GetInfoData()
         {
@@ -235,7 +238,7 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// 检查是否有有效的信息可以显示
+        /// Check if there is valid information to display
         /// </summary>
         public bool HasValidInfo()
         {
@@ -249,7 +252,7 @@ namespace Resonance.Items
 
         void OnValidate()
         {
-            // 确保数值在合理范围内
+            // Ensure values are within reasonable range
             maxAmmo = Mathf.Max(1, maxAmmo);
             damage = Mathf.Max(0.1f, damage);
             range = Mathf.Max(1f, range);

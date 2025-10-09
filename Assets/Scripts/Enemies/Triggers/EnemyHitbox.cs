@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Interfaces;
+using Resonance.Utilities;
 using DG.Tweening;
 
 namespace Resonance.Enemies

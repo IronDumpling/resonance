@@ -824,6 +824,16 @@ namespace Resonance.Enemies
             }
         }
 
+        public void TakeResilienceDamage(float damage, Vector3 damageSource)
+        {
+            if (IsInitialized)
+            {
+                _enemyController.TakeResilienceDamage(damage);
+                ShowDamageEffect(new DamageInfo(damage, DamageType.Resilience, damageSource));
+                PlayHitAudio(new DamageInfo(damage, DamageType.Resilience, damageSource));
+            }
+        }
+
         #endregion
 
         #region Health Properties
@@ -833,8 +843,8 @@ namespace Resonance.Enemies
         public bool IsInDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
         public float CurrentHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
         public float MaxHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
-        public float CurrentCoreHealth => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergy : 0f;
-        public float MaxCoreHealth => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
+        public float CurrentCoreCapacity => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
+        public float MaxCoreCapacity => IsInitialized ? _enemyController.Stats.crystalCore.MaxEnergyCapacity : 0f;
 
         #endregion
 

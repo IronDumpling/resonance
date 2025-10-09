@@ -1,5 +1,7 @@
 using UnityEngine;
 using Resonance.Core;
+using Resonance.Utilities;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -11,18 +13,24 @@ namespace Resonance.Core.StateMachine.States
     {
         public string Name => "Normal";
 
+        private IInputService _inputService;
+
         public void Enter()
         {
             Debug.Log("NormalGameplayState: Entering normal gameplay substate");
             
-            // Normal gameplay initialization
-            // Most gameplay logic is handled by other systems, this is just the default state
+            _inputService = ServiceRegistry.Get<IInputService>();
+            
+            if (_inputService != null)
+            {
+                _inputService.EnablePlayerInput();
+                Debug.Log("NormalGameplayState: Enabled player input");
+            }
         }
 
         public void Update()
         {
-            // Normal gameplay update logic
-            // Most updates are handled by other systems (Player, Enemies, etc.)
+            
         }
 
         public void Exit()
@@ -30,6 +38,11 @@ namespace Resonance.Core.StateMachine.States
             Debug.Log("NormalGameplayState: Exiting normal gameplay substate");
             
             // Normal gameplay cleanup
+            if (_inputService != null)
+            {
+                _inputService.DisablePlayerInput();
+                Debug.Log("NormalGameplayState: Disabled player input");
+            }
         }
 
         public bool CanTransitionTo(IState newState)

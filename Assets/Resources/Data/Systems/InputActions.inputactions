@@ -95,15 +95,6 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "QTE",
-                    "type": "Button",
-                    "id": "abc12345-6789-0123-4567-890123456789",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "Tap",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -260,17 +251,6 @@
                     "action": "Reload",
                     "isComposite": false,
                     "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "def45678-9012-3456-7890-123456789abc",
-                    "path": "<Keyboard>/f",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "QTE",
-                    "isComposite": false,
-                    "isPartOfComposite": false
                 }
             ]
         },
@@ -407,32 +387,14 @@
             ]
         },
         {
-            "name": "UI",
-            "id": "67890123-4567-8901-9012-678901234567",
+            "name": "Information",
+            "id": "082ab585-e09b-42e2-818f-419d850c5583",
             "actions": [
                 {
-                    "name": "Navigate",
-                    "type": "PassThrough",
-                    "id": "78901234-5678-9012-0123-789012345678",
-                    "expectedControlType": "Vector2",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Submit",
+                    "name": "CloseInformation",
                     "type": "Button",
-                    "id": "89012345-6789-0123-1234-890123456789",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Cancel",
-                    "type": "Button",
-                    "id": "90123456-7890-1234-2345-901234567890",
-                    "expectedControlType": "Button",
+                    "id": "ae4cd633-c05f-4fea-a08a-a07112d42f45",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -441,34 +403,40 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "01234567-8901-2345-3456-012345678901",
-                    "path": "<Gamepad>/leftStick",
+                    "id": "b5dafdf3-7d72-47d8-a8e1-65ff1a7e32f8",
+                    "path": "<Keyboard>/e",
                     "interactions": "",
                     "processors": "",
-                    "groups": "Gamepad",
-                    "action": "Navigate",
+                    "groups": "",
+                    "action": "CloseInformation",
                     "isComposite": false,
                     "isPartOfComposite": false
-                },
+                }
+            ]
+        },
+        {
+            "name": "Wave",
+            "id": "f1265570-8644-4b39-9ba3-0a11d02856fa",
+            "actions": [
+                {
+                    "name": "QTE",
+                    "type": "Button",
+                    "id": "08914d0f-6890-4e26-9ac2-c36805de34cc",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "Tap",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
                 {
                     "name": "",
-                    "id": "12345678-9012-3456-4567-123456789012",
-                    "path": "<Keyboard>/enter",
+                    "id": "9b3031c5-c8dd-4837-ac3a-341c986772fc",
+                    "path": "<Keyboard>/f",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Submit",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "23456789-0123-4567-5678-234567890123",
-                    "path": "<Keyboard>/escape",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Cancel",
+                    "action": "QTE",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
