@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 using Resonance.Player.Core;
 using Resonance.Player.Data;
+using Resonance.Player.Triggers;
 using Resonance.Core;
 using Resonance.Enemies;
 using Resonance.Items;

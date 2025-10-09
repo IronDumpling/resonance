@@ -90,22 +90,22 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 初始化PlayerController，需要PlayerMonoBehaviour传入GameObject引用
+        /// Initialize the PlayerController
         /// </summary>
-        /// <param name="baseStats">基础属性</param>
-        /// <param name="playerGameObject">玩家GameObject（用于射击系统和音频定位）</param>
+        /// <param name="baseStats">Base stats</param>
+        /// <param name="playerGameObject">Player GameObject (for shooting system and audio positioning)</param>
         public void Initialize(PlayerBaseStats baseStats, GameObject playerGameObject)
         {
             Initialize(baseStats);
             
-            // 获取音频服务
+            // Get the audio service
             _audioService = ServiceRegistry.Get<IAudioService>();
             if (_audioService == null)
             {
                 Debug.LogWarning("PlayerController: AudioService not found. Audio effects will be disabled.");
             }
             
-            // 如果有GameObject引用，初始化射击系统
+            // If there is a GameObject reference, initialize the shooting system
             if (playerGameObject != null)
             {
                 _shootingSystem = new ShootingSystem(playerGameObject);

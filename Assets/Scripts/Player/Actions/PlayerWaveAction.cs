@@ -1,10 +1,11 @@
 using UnityEngine;
+using Resonance.Core;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
+using Resonance.Player.Triggers;
 using Resonance.Interfaces.Objects;
-using Resonance.Enemies;
-using Resonance.Core;
 using Resonance.Interfaces.Services;
+using Resonance.Enemies;
 using Resonance.Utilities;
 
 namespace Resonance.Player.Actions

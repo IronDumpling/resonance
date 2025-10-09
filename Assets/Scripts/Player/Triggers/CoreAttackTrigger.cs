@@ -4,7 +4,7 @@ using System.Linq;
 using Resonance.Player.Core;
 using Resonance.Enemies;
 
-namespace Resonance.Player.Core
+namespace Resonance.Player.Triggers
 {
     /// <summary>
     /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within core attack range.
