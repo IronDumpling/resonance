@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using Resonance.Core;
@@ -13,10 +14,13 @@ namespace Resonance.UI
         [SerializeField] private Button _saveSlot2Button;
         [SerializeField] private Button _saveSlot3Button;
         [SerializeField] private Button _saveSlot4Button;
+        [SerializeField] private Button _backButton;
 
         [Header("Services")]
         private ISceneTransitionService _sceneService;
         private GameManager _gameManager;
+
+        public static event Action OnBackToMainMenuRequested;
 
         protected override void Awake()
         {
@@ -49,6 +53,8 @@ namespace Resonance.UI
                 _saveSlot3Button = FindButtonByName("SaveSlot3");
             if (_saveSlot4Button == null)
                 _saveSlot4Button = FindButtonByName("SaveSlot4");
+            if (_backButton == null)
+                _backButton = FindButtonByName("Back");
 
             // Setup events
             if (_saveSlot1Button != null)
@@ -59,6 +65,8 @@ namespace Resonance.UI
                 _saveSlot3Button.onClick.AddListener(OnSaveSlot3Clicked);
             if (_saveSlot4Button != null)
                 _saveSlot4Button.onClick.AddListener(OnSaveSlot4Clicked);
+            if (_backButton != null)
+                _backButton.onClick.AddListener(OnBackClicked);
         }
 
         private Button FindButtonByName(params string[] possibleNames)
@@ -131,6 +139,12 @@ namespace Resonance.UI
             Debug.Log("LoadProgressPanel: Save Slot 4 clicked");
         }
 
+        private void OnBackClicked()
+        {
+            OnBackToMainMenuRequested?.Invoke();
+            Debug.Log("LoadProgressPanel: Back button clicked");
+        }
+
         protected override void OnCleanup()
         {
             base.OnCleanup();
@@ -143,6 +157,8 @@ namespace Resonance.UI
                 _saveSlot3Button.onClick.RemoveAllListeners();
             if (_saveSlot4Button != null)
                 _saveSlot4Button.onClick.RemoveAllListeners();
+            if (_backButton != null)
+                _backButton.onClick.RemoveAllListeners();
         }
     }
 }
