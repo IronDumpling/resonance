@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Resonance.Player.Data;
 using Resonance.Player.States;
 using Resonance.Player.Actions;
+using Resonance.Player.Shooting;
 using Resonance.Player.Inventory;
 using Resonance.Core;
 using Resonance.Core.Data;

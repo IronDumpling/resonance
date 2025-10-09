@@ -5,39 +5,39 @@ using Resonance.Interfaces.Services;
 using Resonance.Utilities;
 using Resonance.Enemies;
 
-namespace Resonance.Player.Core
+namespace Resonance.Player.Shooting
 {
     /// <summary>
-    /// HitScan射击系统
+    /// HitScan shooting system
     /// 实现两阶段射击：
     /// 1. 鼠标射线 → 目标点（Ground/Enemy/Objects）
     /// 2. 玩家位置 → 目标点 → 实际命中点
     /// </summary>
     public class ShootingSystem
     {
-        // 射击配置
+        // Shooting configuration
         private LayerMask _targetLayerMask = -1; // 射击目标检测层
         private LayerMask _mouseRaycastLayerMask = -1; // 鼠标射线检测层（Ground, Enemy, Objects）
         
-        // 相机引用
+        // Camera reference
         private Camera _mainCamera;
         private Transform _playerTransform;
         
-        // 音频服务引用
+        // Audio service reference
         private IAudioService _audioService;
         
-        // 射击线条视觉效果
+        // Shooting line visual effect
         private LineRenderer _shootingLineRenderer;  // 射击瞬间的闪烁线条
         private LineRenderer _aimingLineRenderer;    // 瞄准时的持续线条
         private float _lineDisplayDuration = 0.1f;
         private bool _showShootingLine = true;
         private bool _showAimingLine = true;
         
-        // 射击统计
+        // Shooting statistics
         private int _totalShots = 0;
         private int _hits = 0;
         
-        // 事件
+        // Events
         public System.Action<Vector3, float> OnShoot; // 射击位置, 伤害
         public System.Action<Vector3, GameObject, float> OnHit; // 命中位置, 目标, 伤害
         public System.Action<Vector3> OnMiss; // 未命中位置
@@ -49,12 +49,12 @@ namespace Resonance.Player.Core
             SetupLineRenderers(playerObject);
             SetupAudioService();
             
-            // 设置默认层级
+            // Set default layer masks
             SetDefaultLayerMasks();
         }
         
         /// <summary>
-        /// 设置音频服务引用
+        /// Set audio service reference
         /// </summary>
         private void SetupAudioService()
         {
@@ -70,14 +70,14 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 设置默认的层级遮罩
+        /// Set default layer masks
         /// </summary>
         private void SetDefaultLayerMasks()
         {
-            // 鼠标射线检测层
+            // Mouse raycast detection layer
             _mouseRaycastLayerMask = (1 << 6) | (1 << 8); // Environment, Enemy
             
-            // 射击目标检测层
+            // Shooting target detection layer
             _targetLayerMask = (1 << 6) | (1 << 8); // Environment，Enemy
             
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
