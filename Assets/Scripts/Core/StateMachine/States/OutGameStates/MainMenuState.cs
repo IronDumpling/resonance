@@ -2,6 +2,7 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
+using Resonance.UI;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -31,8 +32,9 @@ namespace Resonance.Core.StateMachine.States
             }
             else
             {
-                // Scene already loaded, wait for UI panels to be ready
-                Debug.Log("MainMenuState: MainMenu scene already loaded, waiting for UI panels to be ready");
+                // Scene already loaded, try to show UI directly as backup mechanism
+                Debug.Log("MainMenuState: MainMenu scene already loaded, attempting to show UI directly");
+                TryShowMainMenuUI();
             }
         }
 
@@ -49,17 +51,70 @@ namespace Resonance.Core.StateMachine.States
 
         private void OnSceneUIPanelsReady(string sceneName)
         {
-            // 只处理MainMenu场景的UI准备完成事件
+            // Only handle MainMenu scene UI ready event
             if (sceneName == "MainMenu" && !_hasShownUI)
             {
                 Debug.Log($"MainMenuState: Scene {sceneName} UI panels are ready, showing main menu UI");
-                _hasShownUI = true;
                 
-                // 显示主菜单UI
-                _uiService?.ShowPanelsForState("OutGame/MainMenu");
+                // Use unified method to show UI
+                ShowMainMenuUI();
                 
-                // 取消订阅，避免重复处理
+                // Unsubscribe to avoid duplicate processing
                 _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
+            }
+        }
+
+        /// <summary>
+        /// Try to show main menu UI directly as backup mechanism
+        /// This is called when scene is already loaded and we need to show UI immediately
+        /// </summary>
+        private void TryShowMainMenuUI()
+        {
+            if (_uiService == null)
+            {
+                Debug.LogWarning("MainMenuState: UIService is null, cannot show main menu UI");
+                return;
+            }
+
+            // Check if it's safe to show UI directly
+            if (IsMainMenuUISafeToShow())
+            {
+                Debug.Log("MainMenuState: UI is safe to show, displaying main menu UI directly");
+                ShowMainMenuUI();
+            }
+            else
+            {
+                Debug.Log("MainMenuState: UI not ready yet, waiting for OnSceneUIPanelsReady event");
+            }
+        }
+
+        /// <summary>
+        /// Check if main menu UI is safe to show directly
+        /// </summary>
+        private bool IsMainMenuUISafeToShow()
+        {
+            if (_uiService == null) return false;
+
+            // Check if MainMenuPanel is registered and not already visible
+            var mainMenuPanel = _uiService.GetPanel<MainMenuPanel>("MainMenuPanel");
+            bool isRegistered = mainMenuPanel != null;
+            bool isNotVisible = !_uiService.IsPanelVisible("MainMenuPanel");
+            
+            Debug.Log($"MainMenuState: UI Safety Check - Registered: {isRegistered}, Not Visible: {isNotVisible}");
+            
+            return isRegistered && isNotVisible;
+        }
+
+        /// <summary>
+        /// Show main menu UI (unified method for both event and direct display)
+        /// </summary>
+        private void ShowMainMenuUI()
+        {
+            if (_uiService != null)
+            {
+                _uiService.ShowPanelsForState("OutGame/MainMenu");
+                _hasShownUI = true;
+                Debug.Log("MainMenuState: Main menu UI displayed successfully");
             }
         }
 
@@ -72,13 +127,13 @@ namespace Resonance.Core.StateMachine.States
         {
             Debug.Log("State: Exiting MainMenu substate");
             
-            // 清理事件订阅
+            // Clean up event subscriptions
             if (_uiService != null)
             {
                 _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
             }
             
-            // 重置状态
+            // Reset state
             _hasShownUI = false;
         }
 

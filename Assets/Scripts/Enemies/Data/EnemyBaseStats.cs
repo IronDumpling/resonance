@@ -56,7 +56,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("普通移动速度")]
         public float moveSpeed = 1f;
         [Tooltip("追击移动速度")]
-        public float chaseMoveSpeed = 2f;
+        public float chaseMoveSpeed = 2.5f;
         [Tooltip("巡逻半径")]
         public float patrolRadius = 5f;
         [Tooltip("到达目标的距离阈值")]

@@ -5,42 +5,48 @@ using Resonance.Interfaces.Services;
 using Resonance.Utilities;
 using Resonance.Enemies;
 
-namespace Resonance.Player.Core
+namespace Resonance.Player.Shooting
 {
     /// <summary>
-    /// HitScan射击系统
-    /// 实现两阶段射击：
-    /// 1. 鼠标射线 → 目标点（Ground/Enemy/Objects）
-    /// 2. 玩家位置 → 目标点 → 实际命中点
+    /// HitScan shooting system
+    /// Two-stage shooting:
+    /// 1. Mouse raycast → Target point (Ground/Enemy/Objects)
+    /// 2. Player position → Target point → Actual hit point
+    /// Integrate accuracy and recoil system
     /// </summary>
     public class ShootingSystem
     {
-        // 射击配置
-        private LayerMask _targetLayerMask = -1; // 射击目标检测层
-        private LayerMask _mouseRaycastLayerMask = -1; // 鼠标射线检测层（Ground, Enemy, Objects）
+        // Shooting configuration
+        private LayerMask _targetLayerMask = -1; // Shooting target detection layer
+        private LayerMask _mouseRaycastLayerMask = -1; // Mouse raycast detection layer (Ground, Enemy, Objects)
         
-        // 相机引用
+        // Camera reference
         private Camera _mainCamera;
         private Transform _playerTransform;
         
-        // 音频服务引用
+        // Audio service reference
         private IAudioService _audioService;
         
-        // 射击线条视觉效果
-        private LineRenderer _shootingLineRenderer;  // 射击瞬间的闪烁线条
-        private LineRenderer _aimingLineRenderer;    // 瞄准时的持续线条
+        // Weapon systems
+        private WeaponAccuracySystem _accuracySystem;
+        private WeaponRecoilSystem _recoilSystem;
+        private GunDataAsset _currentWeapon;
+        
+        // Shooting line visual effect
+        private LineRenderer _shootingLineRenderer;  // Flashing line during shooting
+        private LineRenderer _aimingLineRenderer;    // Continuous line during aiming
         private float _lineDisplayDuration = 0.1f;
         private bool _showShootingLine = true;
         private bool _showAimingLine = true;
         
-        // 射击统计
+        // Shooting statistics
         private int _totalShots = 0;
         private int _hits = 0;
         
-        // 事件
-        public System.Action<Vector3, float> OnShoot; // 射击位置, 伤害
-        public System.Action<Vector3, GameObject, float> OnHit; // 命中位置, 目标, 伤害
-        public System.Action<Vector3> OnMiss; // 未命中位置
+        // Events
+        public System.Action<Vector3, float> OnShoot; // Shooting position, damage
+        public System.Action<Vector3, GameObject, float> OnHit; // Hit position, target, damage
+        public System.Action<Vector3> OnMiss; // Missed position
 
         public ShootingSystem(GameObject playerObject)
         {
@@ -49,12 +55,12 @@ namespace Resonance.Player.Core
             SetupLineRenderers(playerObject);
             SetupAudioService();
             
-            // 设置默认层级
+            // Set default layer masks
             SetDefaultLayerMasks();
         }
         
         /// <summary>
-        /// 设置音频服务引用
+        /// Set audio service reference
         /// </summary>
         private void SetupAudioService()
         {
@@ -70,30 +76,122 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 设置默认的层级遮罩
+        /// Set default layer masks
         /// </summary>
         private void SetDefaultLayerMasks()
         {
-            // 鼠标射线检测层
+            // Mouse raycast detection layer
             _mouseRaycastLayerMask = (1 << 6) | (1 << 8); // Environment, Enemy
             
-            // 射击目标检测层
+            // Shooting target detection layer
             _targetLayerMask = (1 << 6) | (1 << 8); // Environment，Enemy
             
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
         }
 
+        #region Weapon System Management
+
+        /// <summary>
+        /// Initialize weapon systems with gun data
+        /// Called when equipping a weapon or entering aiming state
+        /// </summary>
+        public void InitializeWeapon(GunDataAsset weaponData)
+        {
+            if (weaponData == null)
+            {
+                Debug.LogError("ShootingSystem: Cannot initialize with null weapon data");
+                return;
+            }
+            
+            _currentWeapon = weaponData;
+            
+            // Initialize accuracy system
+            if (weaponData.accuracyConfig != null)
+            {
+                _accuracySystem = new WeaponAccuracySystem();
+                _accuracySystem.Initialize(weaponData.accuracyConfig);
+                Debug.Log($"ShootingSystem: Initialized accuracy system for {weaponData.weaponName}");
+            }
+            else
+            {
+                Debug.LogError($"ShootingSystem: Weapon {weaponData.weaponName} missing accuracyConfig!");
+            }
+            
+            // Initialize recoil system
+            if (weaponData.recoilConfig != null)
+            {
+                _recoilSystem = new WeaponRecoilSystem();
+                _recoilSystem.Initialize(weaponData.recoilConfig);
+                Debug.Log($"ShootingSystem: Initialized recoil system for {weaponData.weaponName}");
+            }
+            else
+            {
+                Debug.LogError($"ShootingSystem: Weapon {weaponData.weaponName} missing recoilConfig!");
+            }
+        }
+        
+        /// <summary>
+        /// Update weapon systems each frame (called from aiming state)
+        /// </summary>
+        public void UpdateWeaponSystems(float deltaTime, bool isAiming, bool isMoving)
+        {
+            // Update accuracy system
+            if (_accuracySystem != null && _accuracySystem.IsInitialized() && isAiming)
+            {
+                Vector2 currentMousePosition = UnityEngine.InputSystem.Mouse.current?.position.ReadValue() ?? Vector2.zero;
+                _accuracySystem.UpdateAccuracy(deltaTime, isAiming, isMoving, currentMousePosition);
+            }
+            
+            // Update recoil system
+            if (_recoilSystem != null && _recoilSystem.IsInitialized())
+            {
+                _recoilSystem.UpdateRecoil(deltaTime);
+            }
+        }
+        
+        /// <summary>
+        /// Cleanup weapon systems
+        /// Called when unequipping weapon or exiting aiming state
+        /// </summary>
+        public void CleanupWeapon()
+        {
+            _accuracySystem = null;
+            _recoilSystem = null;
+            _currentWeapon = null;
+            Debug.Log("ShootingSystem: Weapon systems cleaned up");
+        }
+        
+        /// <summary>
+        /// Get current crosshair radius (for UI display)
+        /// </summary>
+        public float GetCurrentCrosshairRadius()
+        {
+            return _accuracySystem?.GetCurrentRadius() ?? 0f;
+        }
+        
+        /// <summary>
+        /// Get accuracy percentage (0-1, 1 = perfect)
+        /// </summary>
+        public float GetAccuracyPercentage()
+        {
+            return _accuracySystem?.GetAccuracyPercentage() ?? 0f;
+        }
+
+        #endregion
+        
         #region Public Methods
 
         /// <summary>
-        /// 执行基于鼠标的两阶段射击
-        /// 阶段1：鼠标射线 → 获取目标点
-        /// 阶段2：玩家 → 目标点 → 实际命中点
+        /// Perform shoot
+        /// Step 1: Mouse raycast → Get target point
+        /// Step 2: Player → Target point → Actual hit point
+        /// Integrate accuracy and recoil system
         /// </summary>
-        /// <param name="shootOrigin">射击起始位置</param>
-        /// <param name="gunData">武器数据</param>
-        /// <returns>射击结果</returns>
-        public ShootingResult PerformMouseBasedShoot(Vector3 shootOrigin, GunDataAsset gunData)
+        /// <param name="shootOrigin">Shoot origin</param>
+        /// <param name="gunData">Weapon data</param>
+        /// <param name="isAiming">Is aiming</param>
+        /// <returns>Shooting result</returns>
+        public ShootingResult PerformShoot(Vector3 shootOrigin, GunDataAsset gunData, bool isAiming = true)
         {
             if (gunData == null)
             {
@@ -109,20 +207,28 @@ namespace Resonance.Player.Core
 
             _totalShots++;
 
-            // Step 1: Get the target point from the mouse raycast
-            Vector3 targetPoint = GetMouseTargetPoint();
+            // Step 1: Get the base target point from mouse raycast (with recoil applied)
+            Vector3 baseTargetPoint = GetMouseTargetPoint();
             
-            // Step 2: Shoot from the player to the target point
-            Vector3 shootDirection = (targetPoint - shootOrigin).normalized;
+            // Step 2: Calculate shooting direction from player to final target point
+            Vector3 shootDirection = (baseTargetPoint - shootOrigin).normalized;
             
             // Step 3: Perform raycast detection
             RaycastHit hitInfo;
             bool hasHit = Physics.Raycast(shootOrigin, shootDirection, out hitInfo, gunData.range, _targetLayerMask);
+            Vector3 endPoint = hasHit ? hitInfo.point : baseTargetPoint;
             
-            Vector3 endPoint = hasHit ? hitInfo.point : targetPoint;
+            // Step 4: Calculate final damage with accuracy bonus
+            float baseDamage = gunData.damage;
+            float damageMultiplier = 1.0f;
+            if (_accuracySystem != null && _accuracySystem.IsInitialized())
+            {
+                damageMultiplier = _accuracySystem.GetDamageMultiplier();
+            }
+            float finalDamage = baseDamage * damageMultiplier;
             
             // Debug information
-            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {targetPoint}, direction: {shootDirection}, range: {gunData.range}, layerMask: {_targetLayerMask}");
+            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {baseTargetPoint} (damage: {finalDamage:F1} (base: {baseDamage}, multiplier: {damageMultiplier:F2})");
             
             // Show shooting line
             if (_showShootingLine)
@@ -130,11 +236,24 @@ namespace Resonance.Player.Core
                 ShowShootingLine(shootOrigin, endPoint);
             }
             
+            // Apply recoil with current accuracy
+            if (_recoilSystem != null && _recoilSystem.IsInitialized())
+            {
+                float currentAccuracy = _accuracySystem?.GetAccuracyPercentage() ?? 1.0f;
+                _recoilSystem.ApplyRecoil(currentAccuracy);
+            }
+            
+            // Notify accuracy system of shot
+            if (_accuracySystem != null && _accuracySystem.IsInitialized())
+            {
+                _accuracySystem.OnShoot();
+            }
+            
             // Play shooting audio
             PlayShootingAudio(shootOrigin, gunData);
             
-            // Trigger shooting event
-            OnShoot?.Invoke(shootOrigin, gunData.damage);
+            // Trigger shooting event with final damage
+            OnShoot?.Invoke(shootOrigin, finalDamage);
             
             // Create shooting result
             ShootingResult result = new ShootingResult
@@ -145,9 +264,9 @@ namespace Resonance.Player.Core
                 endPosition = endPoint,
                 direction = shootDirection,
                 range = gunData.range,
-                damage = gunData.damage,
+                damage = finalDamage,
                 actualDamage = 0f, // Updated in ProcessHit
-                mouseTargetPoint = targetPoint
+                mouseTargetPoint = baseTargetPoint
             };
 
             if (hasHit)
@@ -166,7 +285,7 @@ namespace Resonance.Player.Core
             else
             {
                 OnMiss?.Invoke(endPoint);
-                Debug.Log($"ShootingSystem: Shot missed, aimed at {targetPoint}");
+                Debug.Log($"ShootingSystem: Shot missed, aimed at {baseTargetPoint}");
             }
 
             return result;
@@ -175,34 +294,34 @@ namespace Resonance.Player.Core
         /// <summary>
         /// Set target detection layer
         /// </summary>
-        /// <param name="layerMask">层遮罩</param>
+        /// <param name="layerMask">Layer mask</param>
         public void SetTargetLayerMask(LayerMask layerMask)
         {
             _targetLayerMask = layerMask;
         }
 
         /// <summary>
-        /// 设置鼠标射线检测层
+        /// Set mouse raycast layer mask
         /// </summary>
-        /// <param name="layerMask">层遮罩</param>
+        /// <param name="layerMask">Layer mask</param>
         public void SetMouseRaycastLayerMask(LayerMask layerMask)
         {
             _mouseRaycastLayerMask = layerMask;
         }
 
         /// <summary>
-        /// 设置是否显示射击线条
+        /// Set whether to show shooting line
         /// </summary>
-        /// <param name="show">是否显示</param>
+        /// <param name="show">Show</param>
         public void SetShowShootingLine(bool show)
         {
             _showShootingLine = show;
         }
 
         /// <summary>
-        /// 设置是否显示瞄准线条
+        /// Set whether to show aiming line
         /// </summary>
-        /// <param name="show">是否显示</param>
+        /// <param name="show">Show</param>
         public void SetShowAimingLine(bool show)
         {
             _showAimingLine = show;
@@ -213,22 +332,22 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 更新瞄准线显示（在瞄准状态下调用）
+        /// Update aiming line display (called in aiming state)
         /// </summary>
-        /// <param name="shootOrigin">射击起始位置</param>
+        /// <param name="shootOrigin">Shoot origin</param>
         public void UpdateAimingLine(Vector3 shootOrigin)
         {
             if (!_showAimingLine || _aimingLineRenderer == null) return;
 
-            // 获取鼠标目标点
+            // Get mouse target point
             Vector3 targetPoint = GetMouseTargetPoint();
             
-            // 显示瞄准线
+            // Show aiming line
             ShowAimingLine(shootOrigin, targetPoint);
         }
 
         /// <summary>
-        /// 隐藏瞄准线
+        /// Hide aiming line
         /// </summary>
         public void HideAimingLine()
         {
@@ -239,28 +358,28 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 获取当前鼠标指向的世界坐标点（公共方法）
-        /// 与射击系统使用相同的逻辑，确保玩家朝向和射击方向一致
+        /// Get current mouse target point (public method)
+        /// Use the same logic as the shooting system, ensure the player's orientation and shooting direction are consistent
         /// </summary>
-        /// <returns>鼠标指向的世界坐标点</returns>
+        /// <returns>Mouse target point</returns>
         public Vector3 GetCurrentMouseTargetPoint()
         {
             return GetMouseTargetPoint();
         }
 
         /// <summary>
-        /// 设置射击线条显示时长
+        /// Set shooting line display duration
         /// </summary>
-        /// <param name="duration">显示时长（秒）</param>
+        /// <param name="duration">Display duration (seconds)</param>
         public void SetLineDisplayDuration(float duration)
         {
             _lineDisplayDuration = Mathf.Max(0.01f, duration);
         }
 
         /// <summary>
-        /// 获取射击统计
+        /// Get shooting statistics
         /// </summary>
-        /// <returns>命中率</returns>
+        /// <returns>Accuracy</returns>
         public float GetAccuracy()
         {
             if (_totalShots == 0) return 0f;
@@ -268,7 +387,7 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 重置射击统计
+        /// Reset shooting statistics
         /// </summary>
         public void ResetStats()
         {
@@ -281,11 +400,11 @@ namespace Resonance.Player.Core
         #region Private Methods
 
         /// <summary>
-        /// 设置相机引用
+        /// Set camera reference
         /// </summary>
         private void SetupCamera()
         {
-            // 首先尝试找到CameraManager的主相机
+            // First try to find CameraManager's main camera
             var cameraManager = Object.FindAnyObjectByType<Resonance.Cameras.CameraManager>();
             if (cameraManager != null && cameraManager.Brain != null)
             {
@@ -293,7 +412,7 @@ namespace Resonance.Player.Core
                 Debug.Log("ShootingSystem: Found camera from CameraManager");
             }
             
-            // 备用方案：寻找Main Camera
+            // Fallback: find Main Camera
             if (_mainCamera == null)
             {
                 _mainCamera = Camera.main;
@@ -303,7 +422,7 @@ namespace Resonance.Player.Core
                 }
             }
             
-            // 最后备用方案：寻找任何相机
+            // Last fallback: find any camera
             if (_mainCamera == null)
             {
                 _mainCamera = Object.FindAnyObjectByType<Camera>();
@@ -320,11 +439,12 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 获取鼠标指向的目标点
-        /// 阶段1：鼠标射线 → Ground/Enemy/Objects
-        /// 如果没有命中，使用平面交点作为备用
+        /// Get mouse target point (apply recoil offset)
+        /// Step 1: Mouse raycast → Ground/Enemy/Objects
+        /// If not hit, use plane intersection as backup
+        /// Finally apply recoil offset
         /// </summary>
-        /// <returns>目标点世界坐标</returns>
+        /// <returns>Target point world coordinates (with recoil)</returns>
         private Vector3 GetMouseTargetPoint()
         {
             if (_mainCamera == null)
@@ -332,7 +452,7 @@ namespace Resonance.Player.Core
                 return _playerTransform.position + _playerTransform.forward * 10f;
             }
 
-            // 获取鼠标位置
+            // Get mouse position
             Vector2 mousePosition = UnityEngine.InputSystem.Mouse.current?.position.ReadValue() ?? Vector2.zero;
             
             if (mousePosition == Vector2.zero)
@@ -341,29 +461,38 @@ namespace Resonance.Player.Core
                 return _playerTransform.position + _playerTransform.forward * 10f;
             }
 
-            // 创建从相机通过鼠标的射线
+            // Create a ray from the camera through the mouse
             Ray mouseRay = _mainCamera.ScreenPointToRay(mousePosition);
             
-            // 阶段1：尝试射线检测 Environment/Enemy/Objects
+            // Step 1: Try raycast detection Environment/Enemy/Objects
             RaycastHit hitInfo;
+            Vector3 baseTargetPoint;
             if (Physics.Raycast(mouseRay, out hitInfo, Mathf.Infinity, _mouseRaycastLayerMask))
             {
-                // Debug.Log($"ShootingSystem: Mouse hit {hitInfo.collider.name}");
-                return hitInfo.point;
+                baseTargetPoint = hitInfo.point;
+            }
+            else
+            {
+                // Backup: Use plane intersection
+                baseTargetPoint = IntersectPlane(mouseRay, _playerTransform.position.y);
             }
             
-            // 备用方案：使用平面交点
-            Vector3 fallbackPoint = IntersectPlane(mouseRay, _playerTransform.position.y);
-            // Debug.Log($"ShootingSystem: Using plane intersection at {fallbackPoint}");
-            return fallbackPoint;
+            // Apply recoil offset
+            if (_recoilSystem != null && _recoilSystem.IsInitialized())
+            {
+                Vector3 recoilOffset = _recoilSystem.GetRecoilOffset();
+                baseTargetPoint += recoilOffset;
+            }
+            
+            return baseTargetPoint;
         }
 
         /// <summary>
-        /// 计算射线与指定高度平面的交点
+        /// Calculate the intersection of the ray with the specified height plane
         /// </summary>
-        /// <param name="ray">射线</param>
-        /// <param name="y">平面高度</param>
-        /// <returns>交点世界坐标</returns>
+        /// <param name="ray">Ray</param>
+        /// <param name="y">Plane height</param>
+        /// <returns>Intersection world coordinates</returns>
         private Vector3 IntersectPlane(Ray ray, float y)
         {
             Plane plane = new Plane(Vector3.up, new Vector3(0f, y, 0f));
@@ -372,17 +501,17 @@ namespace Resonance.Player.Core
                 return ray.GetPoint(enter);
             }
             
-            // 实在没打到就保持朝向
+            // If not hit, keep the direction
             return _playerTransform.position + _playerTransform.forward * 10f;
         }
 
         /// <summary>
-        /// 设置射击线条渲染器
+        /// Set shooting line renderer
         /// </summary>
-        /// <param name="playerObject">玩家对象</param>
+        /// <param name="playerObject">Player object</param>
         private void SetupLineRenderers(GameObject playerObject)
         {
-            // 创建射击线条（红色，闪烁）
+            // Create shooting line (red, flashing)
             GameObject shootingLineObject = new GameObject("ShootingLine");
             shootingLineObject.transform.SetParent(playerObject.transform);
             
@@ -400,7 +529,7 @@ namespace Resonance.Player.Core
             _shootingLineRenderer.positionCount = 2;
             _shootingLineRenderer.enabled = false;
             
-            // 创建瞄准线条（绿色，持续）
+            // Create aiming line (green, continuous)
             GameObject aimingLineObject = new GameObject("AimingLine");
             aimingLineObject.transform.SetParent(playerObject.transform);
             
@@ -422,10 +551,10 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 显示瞄准线条
+        /// Show aiming line
         /// </summary>
-        /// <param name="start">起始位置</param>
-        /// <param name="end">结束位置</param>
+        /// <param name="start">Start position</param>
+        /// <param name="end">End position</param>
         private void ShowAimingLine(Vector3 start, Vector3 end)
         {
             if (_aimingLineRenderer == null) return;
@@ -436,10 +565,10 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 显示射击线条
+        /// Show shooting line
         /// </summary>
-        /// <param name="start">起始位置</param>
-        /// <param name="end">结束位置</param>
+        /// <param name="start">Start position</param>
+        /// <param name="end">End position</param>
         private void ShowShootingLine(Vector3 start, Vector3 end)
         {
             if (_shootingLineRenderer == null) return;
@@ -448,7 +577,7 @@ namespace Resonance.Player.Core
             _shootingLineRenderer.SetPosition(1, end);
             _shootingLineRenderer.enabled = true;
             
-            // 创建一个简单的脚本来处理协程
+            // Create a simple script to handle the coroutine
             LineDisplayController controller = _shootingLineRenderer.gameObject.GetComponent<LineDisplayController>();
             if (controller == null)
             {
@@ -458,12 +587,12 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 处理命中目标
+        /// Process hit target
         /// </summary>
-        /// <param name="hitInfo">射线命中信息</param>
-        /// <param name="damage">伤害值</param>
-        /// <param name="damageSource">伤害来源</param>
-        /// <returns>实际造成的伤害值</returns>
+        /// <param name="hitInfo">Raycast hit info</param>
+        /// <param name="damage">Damage value</param>
+        /// <param name="damageSource">Damage source</param>
+        /// <returns>Actual damage value</returns>
         private float ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource, GunDataAsset gunData = null)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
@@ -491,7 +620,7 @@ namespace Resonance.Player.Core
                 // Let the weakpoint handle damage modification and application, and get the actual damage
                 actualDamage = weakpointHitbox.ProcessDamageHit(damageInfo);
                 
-                // 播放音效和触发事件
+                // Play audio and trigger event
                 PlayHitAudio(hitInfo.point, hitObject);
                 OnHit?.Invoke(hitInfo.point, hitObject, actualDamage);
                 return actualDamage;
@@ -501,7 +630,7 @@ namespace Resonance.Player.Core
             IDamageable damageable = hitObject.GetComponent<IDamageable>();
             IDestructible destructible = hitObject.GetComponent<IDestructible>();
             
-            // 确定要使用的GameObject引用
+            // Determine the GameObject reference to use
             GameObject damageableObject = hitObject;
             GameObject destructibleObject = hitObject;
             
@@ -585,32 +714,32 @@ namespace Resonance.Player.Core
         #region Audio Effects
         
         /// <summary>
-        /// 播放射击音效
+        /// Play shooting audio
         /// </summary>
-        /// <param name="shootOrigin">射击位置</param>
-        /// <param name="gunData">武器数据</param>
+        /// <param name="shootOrigin">Shoot origin</param>
+        /// <param name="gunData">Weapon data</param>
         private void PlayShootingAudio(Vector3 shootOrigin, GunDataAsset gunData)
         {
             if (_audioService == null) return;
             
-            // 根据武器类型选择音效
+            // According to the weapon type to select audio
             AudioClipType shootingClipType = GetShootingAudioClipType(gunData);
             
-            // 播放3D射击音效
+            // Play 3D shooting audio
             _audioService.PlaySFX3D(shootingClipType, shootOrigin, 0.8f, 1f);
             
             Debug.Log($"ShootingSystem: Played shooting audio {shootingClipType} at {shootOrigin}");
         }
         
         /// <summary>
-        /// 根据武器数据获取对应的射击音效类型
+        /// According to the weapon data to get the corresponding shooting audio type
         /// </summary>
-        /// <param name="gunData">武器数据</param>
-        /// <returns>音效类型</returns>
+        /// <param name="gunData">Weapon data</param>
+        /// <returns>Audio type</returns>
         private AudioClipType GetShootingAudioClipType(GunDataAsset gunData)
         {
-            // 根据武器名称或类型来选择音效
-            // 这里可以根据实际的武器系统进行扩展
+            // According to the weapon name or type to select audio
+            // Here can be extended according to the actual weapon system
             string weaponName = gunData.weaponName.ToLower();
             
             if (weaponName.Contains("rifle"))
@@ -619,37 +748,37 @@ namespace Resonance.Player.Core
             }
             else
             {
-                // 默认使用手枪音效
+                // Default use pistol audio
                 return AudioClipType.GunFirePistol;
             }
         }
         
         /// <summary>
-        /// 播放命中音效
+        /// Play hit audio
         /// </summary>
-        /// <param name="hitPoint">命中位置</param>
-        /// <param name="hitObject">命中对象</param>
+        /// <param name="hitPoint">Hit position</param>
+        /// <param name="hitObject">Hit object</param>
         private void PlayHitAudio(Vector3 hitPoint, GameObject hitObject)
         {
             if (_audioService == null) return;
             
-            // 根据命中对象的标签或层级来选择音效
+            // According to the hit object's tag or layer to select audio
             AudioClipType hitClipType = GetHitAudioClipType(hitObject);
             
-            // 播放3D命中音效
+            // Play 3D hit audio
             _audioService.PlaySFX3D(hitClipType, hitPoint, 0.6f, 1f);
             
             Debug.Log($"ShootingSystem: Played hit audio {hitClipType} at {hitPoint}");
         }
         
         /// <summary>
-        /// 根据命中对象获取对应的命中音效类型
+        /// According to the hit object to get the corresponding hit audio type
         /// </summary>
-        /// <param name="hitObject">命中的游戏对象</param>
-        /// <returns>音效类型</returns>
+        /// <param name="hitObject">Hit object</param>
+        /// <returns>Audio type</returns>
         private AudioClipType GetHitAudioClipType(GameObject hitObject)
         {
-            // 根据对象标签或名称来选择合适的命中音效
+            // According to the object's tag or name to select the appropriate hit audio
             string tag = hitObject.tag.ToLower();
             string name = hitObject.name.ToLower();
             
@@ -670,7 +799,7 @@ namespace Resonance.Player.Core
         #region Cleanup
 
         /// <summary>
-        /// 清理资源
+        /// Clean up resources
         /// </summary>
         public void Cleanup()
         {
@@ -690,28 +819,5 @@ namespace Resonance.Player.Core
         }
 
         #endregion
-    }
-
-    /// <summary>
-    /// 射击结果数据结构
-    /// </summary>
-    [System.Serializable]
-    public struct ShootingResult
-    {
-        public bool success;        // 射击是否成功执行
-        public bool hasHit;         // 是否命中目标
-        public Vector3 startPosition; // 射击起始位置
-        public Vector3 endPosition;   // 射击结束位置
-        public Vector3 direction;     // 射击方向
-        public float range;           // 射击距离
-        public float damage;          // 武器基础伤害值
-        public float actualDamage;    // 实际造成的伤害值
-        public Vector3 mouseTargetPoint; // 鼠标指向的目标点（阶段1结果）
-        
-        // 命中信息（如果hasHit为true）
-        public GameObject hitObject;  // 命中的对象
-        public Vector3 hitPoint;      // 命中点
-        public Vector3 hitNormal;     // 命中面的法线
-        public float hitDistance;     // 命中距离
     }
 }

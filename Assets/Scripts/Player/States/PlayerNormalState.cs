@@ -21,9 +21,6 @@ namespace Resonance.Player.States
         public void Enter()
         {
             Debug.Log("PlayerState: Entered Normal state");
-            
-            // Reset movement speed modifier
-            _playerController.Movement.MovementSpeedModifier = 1f;
         }
 
         public void Update()

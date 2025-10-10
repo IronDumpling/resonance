@@ -23,9 +23,6 @@ namespace Resonance.Player.States
         {
             Debug.Log("PlayerState: Entered Death state - Core health depleted");
             
-            // Stop all movement and actions
-            _playerController.Movement.MovementSpeedModifier = 0f;
-            
             // Trigger death logic
             GameManager.Instance.StateMachine.ChangeState("OutGame");
         }

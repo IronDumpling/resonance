@@ -19,20 +19,12 @@ namespace Resonance.Player.Core
         // State
         private Vector3 _velocity;
 
-        // Movement modifier for external speed adjustments (e.g., from PlayerDeathState)
-        private float _movementSpeedModifier = 1f;
-
         // Properties
         public Vector2 InputVector => _inputVector;
         public bool IsRunning => _isRunning;
         public bool IsGrounded => _isGrounded;
         public Vector3 Velocity => _velocity;
         public bool IsMoving => _inputVector.sqrMagnitude > 0.01f;
-        public float MovementSpeedModifier 
-        { 
-            get => _movementSpeedModifier; 
-            set => _movementSpeedModifier = Mathf.Clamp01(value); 
-        }
 
         public PlayerMovement(PlayerRuntimeStats stats)
         {
@@ -75,11 +67,9 @@ namespace Resonance.Player.Core
             // Horizontal movement (2D platform style)
             if (IsMoving)
             {
-                // Get the appropriate movement speed based on current state and health tier
+                // Get the appropriate movement speed based on current state, action, and health tier
+                // This is the single source of truth for player movement speed
                 float speed = GetCurrentMoveSpeed();
-
-                // Apply external movement speed modifier (e.g., from PlayerDeathState setting it to 0)
-                speed *= _movementSpeedModifier;
 
                 movement.x = _inputVector.x * speed * deltaTime;
                 movement.z = _inputVector.y * speed * deltaTime; // Y input maps to Z movement
@@ -89,8 +79,15 @@ namespace Resonance.Player.Core
         }
         
         /// <summary>
-        /// Get the appropriate movement speed based on current player state, action, and health tier
-        /// Similar to EnemyMovement.GetCurrentMoveSpeed()
+        /// Get the appropriate movement speed based on current player state, action, and health tier.
+        /// This is the single source of truth for player movement speed calculation.
+        /// 
+        /// Speed Rules:
+        /// 1. Normal State: can walk or run
+        /// 2. Aiming State: can only walk at aimMoveSpeed
+        /// 3. Reload Action: can only walk at reloadMoveSpeed
+        /// 4. Interact/Heal Actions, Stun/Death States: cannot move (speed = 0)
+        /// 5. All speeds are multiplied by health tier multiplier at the end
         /// </summary>
         private float GetCurrentMoveSpeed()
         {
@@ -100,32 +97,52 @@ namespace Resonance.Player.Core
                 return _isRunning ? _stats.runSpeed : _stats.walkSpeed;
             }
             
-            // Get health tier speed multiplier (Wounded: 0.7x, Critical: 0.4x)
+            // Get health tier speed multiplier (Healthy/Injured: 1.0x, Wounded: 0.7x, Critical: 0.4x)
             float healthTierMultiplier = HealthTierHelper.GetSpeedMultiplier(_playerController.HealthTier);
             
-            // Check current player state and apply appropriate base speed
+            // Check current player state
             string currentState = _playerController.CurrentState;
             
-            // Death state - no movement
+            // Rule 4: Death state - no movement
             if (currentState == "Death")
             {
                 return 0f;
             }
             
-            // Aiming state - use aim move speed
-            if (currentState == "Aiming")
+            // Rule 4: Stun state - no movement
+            if (currentState == "Stun")
             {
-                return _stats.aimMoveSpeed * healthTierMultiplier;
+                return 0f;
             }
             
-            // Check if player is performing Reload action
+            // Check current action (actions have higher priority than state for speed)
             string currentAction = _playerController.GetCurrentActionName();
+            
+            // Rule 4: Interact action - no movement (BlocksMovement = true)
+            if (currentAction == "Interact")
+            {
+                return 0f;
+            }
+            
+            // Rule 4: Heal action - no movement (BlocksMovement = true)
+            if (currentAction == "Heal")
+            {
+                return 0f;
+            }
+            
+            // Rule 3: Reload action - can only walk at reloadMoveSpeed
             if (currentAction == "Reload")
             {
                 return _stats.reloadMoveSpeed * healthTierMultiplier;
             }
             
-            // Normal state - use walk/run speed
+            // Rule 2: Aiming state - can only walk at aimMoveSpeed
+            if (currentState == "Aiming")
+            {
+                return _stats.aimMoveSpeed * healthTierMultiplier;
+            }
+            
+            // Rule 1: Normal state - can walk or run
             float baseSpeed = _isRunning ? _stats.runSpeed : _stats.walkSpeed;
             return baseSpeed * healthTierMultiplier;
         }
@@ -152,14 +169,12 @@ namespace Resonance.Player.Core
         #region State Queries
 
         /// <summary>
-        /// Get current effective movement speed (includes state, health tier, and modifier)
+        /// Get current effective movement speed (includes state, action, and health tier)
         /// Used for animation and external queries
         /// </summary>
         public float GetMovementSpeed()
         {
-            float speed = GetCurrentMoveSpeed();
-            speed *= _movementSpeedModifier;
-            return speed;
+            return GetCurrentMoveSpeed();
         }
 
         #endregion

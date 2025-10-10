@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Resonance.Player.Data;
 using Resonance.Player.States;
 using Resonance.Player.Actions;
+using Resonance.Player.Shooting;
 using Resonance.Player.Inventory;
 using Resonance.Core;
 using Resonance.Core.Data;
@@ -64,6 +65,7 @@ namespace Resonance.Player.Core
         public ConsumableManager ConsumableManager => _consumableManager;
         public InventoryOperationManager InventoryOperationManager => _gridOperationManager;
         public bool IsInvulnerable => _isInvulnerable;
+        public GameObject PlayerGameObject => _playerGameObject;
         
         // Dual Health Properties
         public bool IsAlive => _stats.IsAlive;
@@ -90,22 +92,22 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 初始化PlayerController，需要PlayerMonoBehaviour传入GameObject引用
+        /// Initialize the PlayerController
         /// </summary>
-        /// <param name="baseStats">基础属性</param>
-        /// <param name="playerGameObject">玩家GameObject（用于射击系统和音频定位）</param>
+        /// <param name="baseStats">Base stats</param>
+        /// <param name="playerGameObject">Player GameObject (for shooting system and audio positioning)</param>
         public void Initialize(PlayerBaseStats baseStats, GameObject playerGameObject)
         {
             Initialize(baseStats);
             
-            // 获取音频服务
+            // Get the audio service
             _audioService = ServiceRegistry.Get<IAudioService>();
             if (_audioService == null)
             {
                 Debug.LogWarning("PlayerController: AudioService not found. Audio effects will be disabled.");
             }
             
-            // 如果有GameObject引用，初始化射击系统
+            // If there is a GameObject reference, initialize the shooting system
             if (playerGameObject != null)
             {
                 _shootingSystem = new ShootingSystem(playerGameObject);
@@ -220,6 +222,13 @@ namespace Resonance.Player.Core
 
             // Notify ActionController of damage taken (for interruption logic)
             _actionController?.OnPlayerDamageTaken();
+            
+            // Interrupt aiming when taking damage
+            if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
+            {
+                _stateMachine.StopAiming();
+                Debug.Log("PlayerController: Aiming interrupted by damage");
+            }
 
             // Play hit audio effect
             PlayHitAudio();
@@ -448,10 +457,10 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// 执行基于鼠标的射击
+        /// Perform shoot
         /// </summary>
-        /// <param name="shootOrigin">射击起始位置</param>
-        /// <returns>射击结果</returns>
+        /// <param name="shootOrigin">Shoot origin</param>
+        /// <returns>Shooting result</returns>
         public ShootingResult PerformShoot(Vector3 shootOrigin)
         {
             if (!CanShoot())
@@ -459,7 +468,7 @@ namespace Resonance.Player.Core
                 return new ShootingResult { success = false };
             }
 
-            // 消耗弹药
+            // Consume ammo
             if (!_weaponManager.ConsumeAmmo())
             {
                 Debug.LogWarning("PlayerController: Failed to consume ammo");
@@ -470,11 +479,13 @@ namespace Resonance.Player.Core
             
             GunDataAsset currentGun = _weaponManager.CurrentGun;
             
-            // 执行基于鼠标的两阶段射击
+            // Perform shoot
             ShootingResult result = new ShootingResult { success = false };
             if (_shootingSystem != null)
             {
-                result = _shootingSystem.PerformMouseBasedShoot(shootOrigin, currentGun);
+                // Pass aiming state to ShootingSystem
+                bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
+                result = _shootingSystem.PerformShoot(shootOrigin, currentGun, isAiming);
                 
                 // Core energy gain: 10 health damage = 2 core energy gain
                 if (result.success && result.hasHit && result.actualDamage > 0)
@@ -485,7 +496,7 @@ namespace Resonance.Player.Core
                 }
             }
             
-            // 触发射击事件
+            // Trigger shooting event
             OnShoot?.Invoke();
             
             Debug.Log($"PlayerController: Mouse-based shot fired with {currentGun.weaponName}. " +

@@ -21,8 +21,6 @@ namespace Resonance.Player.States
         public void Enter()
         {
             Debug.Log("PlayerState: Entered Stun state");
-
-            _playerController.Movement.MovementSpeedModifier = 0.01f;
         }
         
         public void Update()
@@ -34,8 +32,6 @@ namespace Resonance.Player.States
         public void Exit()
         {
             Debug.Log("PlayerState: Exited Stun state");
-
-            _playerController.Movement.MovementSpeedModifier = 1f;
         }
 
         public bool CanTransitionTo(IState newState)

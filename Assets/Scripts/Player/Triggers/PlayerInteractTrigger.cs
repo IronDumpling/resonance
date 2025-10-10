@@ -4,12 +4,14 @@ using Resonance.Interfaces.Services;
 using Resonance.Utilities;
 using Resonance.Items;
 
-namespace Resonance.Player.Core
+namespace Resonance.Player.Triggers
 {
     /// <summary>
-    /// Player交互范围触发器组件
-    /// 挂载到Player的InteractRange子对象上，检测范围内的可交互对象
-    /// 参考EnemyDetectionTrigger的实现模式
+    /// Player Interact Trigger - triggered by E key for interactable objects in range
+    /// Attached to the InteractRange child object of Player, detects interactable objects in range
+    /// Conditions: PlayerNormalState, valid interactable object in range
+    /// Behavior: Player cannot move, performs interaction with target object
+    /// End condition: Interaction completes or is cancelled
     /// </summary>
     public class PlayerInteractTrigger : MonoBehaviour
     {
@@ -18,19 +20,19 @@ namespace Resonance.Player.Core
         private bool _isInitialized = false;
         private LayerMask _interactionLayerMask = 1 << 7; // Default to layer 7 (Interactable)
 
-        // 当前范围内的可交互对象
+        // Current interactable object in range
         private IInteractable _currentInteractable = null;
 
         /// <summary>
-        /// 初始化触发器
+        /// Initialize the trigger
         /// </summary>
-        /// <param name="playerMono">玩家MonoBehaviour引用</param>
+        /// <param name="playerMono">Player MonoBehaviour reference</param>
         public void Initialize(PlayerMonoBehaviour playerMono)
         {
             _playerMono = playerMono;
             _isInitialized = true;
 
-            // 获取交互服务
+            // Get the interaction service
             _interactionService = ServiceRegistry.Get<IInteractionService>();
             if (_interactionService == null)
             {

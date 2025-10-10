@@ -8,14 +8,14 @@ using Resonance.Interfaces.Services;
 namespace Resonance.Core.GlobalServices
 {
     /// <summary>
-    /// 全局音频服务
-    /// 管理游戏中所有音效播放、音量控制和音频混合器
+    /// Global audio service
+    /// Manage all audio playback, volume control, and audio mixer in the game
     /// </summary>
     public class AudioService : IAudioService
     {
         #region IGameService Properties
         
-        public int Priority => 25; // 在PlayerService之后，因为可能需要玩家位置信息
+        public int Priority => 25; // After PlayerService, because it may need player position information
         public SystemState State { get; private set; } = SystemState.Uninitialized;
 
         #endregion
@@ -27,20 +27,20 @@ namespace Resonance.Core.GlobalServices
         private GameObject _audioManager;
         private AudioSource _musicAudioSource;
         
-        // 音频源池化
+        // Audio source pooling
         private Queue<AudioSource> _availableAudioSources = new Queue<AudioSource>();
         private List<AudioSource> _usedAudioSources = new List<AudioSource>();
         private Dictionary<AudioClipType, List<AudioSource>> _playingClips = new Dictionary<AudioClipType, List<AudioSource>>();
         
-        // 音量设置
+        // Volume settings
         private float _masterVolume = 1f;
         private float _sfxVolume = 1f;
         private float _musicVolume = 0.7f;
         
-        // 音乐淡入淡出
+        // Music fade in/out
         private Coroutine _musicFadeCoroutine;
         
-        // MonoBehaviour引用用于协程
+        // MonoBehaviour reference for coroutines
         private MonoBehaviour _coroutineRunner;
 
         #endregion
@@ -64,7 +64,7 @@ namespace Resonance.Core.GlobalServices
             State = SystemState.Initializing;
             Debug.Log("AudioService: Initializing");
 
-            // 验证配置
+            // Verify configuration
             if (_configuration == null)
             {
                 Debug.LogError("AudioService: ServiceConfiguration is null");
@@ -72,23 +72,23 @@ namespace Resonance.Core.GlobalServices
                 return;
             }
 
-            // 设置音频混合器
+            // Set audio mixer
             _audioMixer = _configuration.audioMixer;
             if (_audioMixer == null)
             {
                 Debug.LogWarning("AudioService: AudioMixer is null in configuration");
             }
 
-            // 创建音频管理器GameObject
+            // Create audio manager GameObject
             CreateAudioManager();
             
-            // 初始化音频源池
+            // Initialize audio source pool
             InitializeAudioSourcePool();
             
-            // 设置默认音量
+            // Set default volumes
             SetDefaultVolumes();
             
-            // 初始化播放字典
+            // Initialize playing clips dictionary
             InitializePlayingClipsDictionary();
 
             State = SystemState.Running;
@@ -101,21 +101,21 @@ namespace Resonance.Core.GlobalServices
 
             Debug.Log("AudioService: Shutting down");
 
-            // 停止所有音频
+            // Stop all audio
             StopAllSFX();
             StopMusic(0f);
 
-            // 停止所有协程
+            // Stop all coroutines
             if (_musicFadeCoroutine != null)
             {
                 _coroutineRunner.StopCoroutine(_musicFadeCoroutine);
                 _musicFadeCoroutine = null;
             }
 
-            // 清理音频源池
+            // Cleanup audio source pool
             CleanupAudioSourcePool();
 
-            // 销毁音频管理器
+            // Destroy audio manager
             if (_audioManager != null)
             {
                 Object.Destroy(_audioManager);
@@ -131,7 +131,7 @@ namespace Resonance.Core.GlobalServices
             _audioManager = new GameObject("AudioManager");
             Object.DontDestroyOnLoad(_audioManager);
 
-            // 创建音乐音频源
+            // Create music audio source
             _musicAudioSource = _audioManager.AddComponent<AudioSource>();
             _musicAudioSource.loop = true;
             _musicAudioSource.playOnAwake = false;
@@ -162,7 +162,7 @@ namespace Resonance.Core.GlobalServices
             _sfxVolume = _configuration.defaultSFXVolume;
             _musicVolume = _configuration.defaultMusicVolume;
 
-            // 应用到混合器
+            // Apply to mixer
             SetMasterVolume(_masterVolume);
             SetSFXVolume(_sfxVolume);
             SetMusicVolume(_musicVolume);
@@ -172,7 +172,7 @@ namespace Resonance.Core.GlobalServices
         {
             _playingClips.Clear();
             
-            // 为每种音效类型初始化列表
+            // Initialize list for each clip type
             var clipTypes = System.Enum.GetValues(typeof(AudioClipType));
             foreach (AudioClipType clipType in clipTypes)
             {
@@ -305,7 +305,7 @@ namespace Resonance.Core.GlobalServices
             _masterVolume = Mathf.Clamp01(volume);
             if (_audioMixer != null)
             {
-                // 将线性音量转换为分贝 (-80dB 到 0dB)
+                // Convert linear volume to decibels (-80dB to 0dB)
                 float dbValue = _masterVolume > 0 ? Mathf.Log10(_masterVolume) * 20f : -80f;
                 _audioMixer.SetFloat("MasterVolume", dbValue);
             }
@@ -377,7 +377,7 @@ namespace Resonance.Core.GlobalServices
                     }
                     else
                     {
-                        // 清理已停止的音频源
+                        // Cleanup stopped audio sources
                         sources.RemoveAt(i);
                     }
                 }
@@ -395,7 +395,7 @@ namespace Resonance.Core.GlobalServices
                 }
             }
 
-            // 清理播放列表
+            // Cleanup playing list
             foreach (var clipType in _playingClips.Keys)
             {
                 _playingClips[clipType].Clear();
@@ -454,7 +454,7 @@ namespace Resonance.Core.GlobalServices
             }
             else
             {
-                // 创建新的音频源
+                // Create new audio source
                 audioSource = _audioManager.AddComponent<AudioSource>();
                 audioSource.playOnAwake = false;
             }
@@ -488,7 +488,7 @@ namespace Resonance.Core.GlobalServices
                 Object.Destroy(audioSource);
             }
 
-            // 从播放列表中移除
+            // Remove from playing list
             foreach (var clipType in _playingClips.Keys)
             {
                 _playingClips[clipType].Remove(audioSource);
@@ -503,8 +503,8 @@ namespace Resonance.Core.GlobalServices
             audioSource.loop = clipData.loop;
             audioSource.priority = clipData.priority;
 
-            // 设置混合器组
-            // 如果clipData指定了mixerGroup就使用，否则根据clipType自动选择
+            // Set mixer group
+            // If clipData specifies mixerGroup, use it, otherwise select automatically based on clipType
             AudioMixerGroup mixerGroup = clipData.mixerGroup;
             if (mixerGroup == null)
             {
@@ -532,7 +532,7 @@ namespace Resonance.Core.GlobalServices
                 _playingClips[clipType].Add(audioSource);
             }
 
-            // 启动协程来跟踪音频完成
+            // Start coroutine to track audio completion
             _coroutineRunner.StartCoroutine(TrackAudioCompletion(audioSource));
         }
 
@@ -551,7 +551,7 @@ namespace Resonance.Core.GlobalServices
 
         private IEnumerator PlayMusicWithFade(AudioClip musicClip, bool loop, float fadeTime)
         {
-            // 淡出当前音乐
+            // Fade out current music
             if (_musicAudioSource.isPlaying)
             {
                 float startVolume = _musicAudioSource.volume;
@@ -562,13 +562,13 @@ namespace Resonance.Core.GlobalServices
                 }
             }
 
-            // 设置新音乐
+            // Set new music
             _musicAudioSource.clip = musicClip;
             _musicAudioSource.loop = loop;
             _musicAudioSource.volume = 0;
             _musicAudioSource.Play();
 
-            // 淡入新音乐
+            // Fade in new music
             for (float t = 0; t < fadeTime; t += Time.deltaTime)
             {
                 _musicAudioSource.volume = Mathf.Lerp(0, _musicVolume, t / fadeTime);
