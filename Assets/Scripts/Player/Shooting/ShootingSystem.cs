@@ -236,10 +236,11 @@ namespace Resonance.Player.Shooting
                 ShowShootingLine(shootOrigin, endPoint);
             }
             
-            // Apply recoil
+            // Apply recoil with current accuracy
             if (_recoilSystem != null && _recoilSystem.IsInitialized())
             {
-                _recoilSystem.ApplyRecoil(isAiming);
+                float currentAccuracy = _accuracySystem?.GetAccuracyPercentage() ?? 1.0f;
+                _recoilSystem.ApplyRecoil(currentAccuracy);
             }
             
             // Notify accuracy system of shot

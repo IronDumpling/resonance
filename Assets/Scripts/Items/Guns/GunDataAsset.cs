@@ -67,11 +67,11 @@ namespace Resonance.Items
     public class WeaponRecoilConfig
     {
         [Header("Recoil Offset (World Space)")]
-        [Tooltip("Recoil offset per shot (X: horizontal, Y: vertical, Z: backward)")]
+        [Tooltip("Base recoil offset per shot - affected by consecutive shots and aiming (X: horizontal, Y: vertical, Z: backward)")]
         public Vector3 recoilOffset = new Vector3(0f, 1f, 0f);
         
-        [Tooltip("Random variance range for recoil")]
-        public Vector3 recoilVariance = new Vector3(0.3f, 0.3f, 0.3f);
+        [Tooltip("Random variance range for recoil - affected by accuracy (perfect aim = 0.1x, worst aim = 1.0x)")]
+        public Vector3 recoilVariance = new Vector3(0.5f, 0.5f, 0.5f);
         
         [Header("Consecutive Shot Recoil")]
         [Tooltip("Recoil multiplier based on consecutive shots (X: shot number, Y: multiplier)")]

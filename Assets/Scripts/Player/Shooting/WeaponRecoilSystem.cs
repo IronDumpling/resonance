@@ -64,41 +64,50 @@ namespace Resonance.Player.Shooting
         /// <summary>
         /// Apply recoil when shooting
         /// </summary>
-        /// <param name="isAiming">Is player currently aiming (reduces recoil)</param>
-        public void ApplyRecoil(bool isAiming)
+        /// <param name="accuracyPercentage">Current accuracy percentage (0-1, where 1 is perfect aim)</param>
+        public void ApplyRecoil(float accuracyPercentage = 1.0f)
         {
             if (_config == null || _state == null) return;
             
             _state.consecutiveShots++;
             
-            // Calculate recoil multiplier based on consecutive shots
-            float multiplier = 1.0f;
+            // === RECOIL OFFSET CALCULATION ===
+            // Consecutive shots affect the base recoil offset (predictable recoil pattern)
+            float consecutiveShotMultiplier = 1.0f;
             if (_config.recoilMultiplierCurve != null && _config.recoilMultiplierCurve.length > 0)
             {
-                multiplier = _config.recoilMultiplierCurve.Evaluate(_state.consecutiveShots);
+                consecutiveShotMultiplier = _config.recoilMultiplierCurve.Evaluate(_state.consecutiveShots);
             }
             
-            // Reduce recoil when aiming
-            if (isAiming)
-            {
-                multiplier *= _config.aimingRecoilMultiplier;
-            }
+            // Calculate base recoil offset (predictable component)
+            Vector3 baseRecoilOffset = _config.recoilOffset * consecutiveShotMultiplier;
             
-            // Calculate recoil offset
-            Vector3 recoil = _config.recoilOffset * multiplier;
+            // === RECOIL VARIANCE CALCULATION ===
+            // Accuracy affects only the random variance (unpredictable component)
+            // Perfect aim (1.0) → variance * 0.1 (very stable)
+            // Worst aim (0.0) → variance * 1.0 (full randomness)
+            float accuracyVarianceMultiplier = Mathf.Lerp(1.0f, 0.1f, accuracyPercentage);
+            Vector3 adjustedRecoilVariance = _config.recoilVariance * accuracyVarianceMultiplier;
             
-            // Add random variance
-            recoil.x += Random.Range(-_config.recoilVariance.x, _config.recoilVariance.x);
-            recoil.y += Random.Range(-_config.recoilVariance.y, _config.recoilVariance.y);
-            recoil.z += Random.Range(-_config.recoilVariance.z, _config.recoilVariance.z);
+            // Apply random variance to base recoil
+            Vector3 randomVariance = new Vector3(
+                Random.Range(-adjustedRecoilVariance.x, adjustedRecoilVariance.x),
+                Random.Range(-adjustedRecoilVariance.y, adjustedRecoilVariance.y),
+                Random.Range(-adjustedRecoilVariance.z, adjustedRecoilVariance.z)
+            );
             
-            // Accumulate recoil
-            _state.currentRecoilOffset += recoil;
+            // Final recoil = predictable base + random variance
+            Vector3 finalRecoil = baseRecoilOffset + randomVariance;
+            
+            // Accumulate total recoil
+            _state.currentRecoilOffset += finalRecoil;
             
             // Reset recovery timer
             _state.recoveryTimer = _config.recoveryDelay;
             
-            Debug.Log($"WeaponRecoilSystem: Recoil applied (shot #{_state.consecutiveShots}), offset: {_state.currentRecoilOffset}, multiplier: {multiplier:F2}");
+            Debug.Log($"WeaponRecoilSystem: Recoil applied (shot #{_state.consecutiveShots}) - " +
+                     $"Base: {baseRecoilOffset}, Variance: {randomVariance}, " +
+                     $"Accuracy: {accuracyPercentage:P0}, Consecutive: {consecutiveShotMultiplier:F2}");
         }
         
         /// <summary>
