@@ -18,8 +18,8 @@ namespace Resonance.Player.Shooting
         
         // Player state tracking
         public bool isMoving;              // Is player moving
-        public Vector3 lastAimPoint;       // Previous frame's aim point for rotation detection
-        public bool isRotating;            // Is aim point moving rapidly (mouse moving)
+        public Vector2 lastMousePosition;  // Previous frame's mouse position for rotation detection
+        public bool isRotating;            // Is mouse moving rapidly (player rotating aim)
         
         /// <summary>
         /// Initialize state with base radius
@@ -31,7 +31,7 @@ namespace Resonance.Player.Shooting
             aimingTime = 0f;
             timeSinceLastShot = 0f;
             isMoving = false;
-            lastAimPoint = Vector3.zero;
+            lastMousePosition = Vector2.zero;
             isRotating = false;
         }
         

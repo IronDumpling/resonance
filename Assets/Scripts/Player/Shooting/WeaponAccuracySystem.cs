@@ -13,10 +13,6 @@ namespace Resonance.Player.Shooting
         private AccuracyState _state;
         private WeaponAccuracyConfig _config;
         
-        // Smoothing parameters
-        private const float SHRINK_LERP_SPEED = 3.0f;
-        private const float EXPAND_LERP_SPEED = 6.0f;
-        
         /// <summary>
         /// Initialize accuracy system with weapon configuration
         /// </summary>
@@ -40,37 +36,46 @@ namespace Resonance.Player.Shooting
         /// <param name="deltaTime">Time since last frame</param>
         /// <param name="isAiming">Is player in aiming state</param>
         /// <param name="isMoving">Is player moving</param>
-        /// <param name="currentAimPoint">Current aim point in world space</param>
-        public void UpdateAccuracy(float deltaTime, bool isAiming, bool isMoving, Vector3 currentAimPoint)
+        /// <param name="currentMousePosition">Current mouse position in screen space</param>
+        public void UpdateAccuracy(float deltaTime, bool isAiming, bool isMoving, Vector2 currentMousePosition)
         {
             if (_config == null || _state == null) return;
             
             _state.isMoving = isMoving;
             _state.timeSinceLastShot += deltaTime;
             
-            // Detect rapid aim point movement (rotation)
-            if (_state.lastAimPoint != Vector3.zero)
+            // Rotation Detection - based on mouse movement, not aim point
+            if (_state.lastMousePosition != Vector2.zero)
             {
-                float aimPointDelta = Vector3.Distance(currentAimPoint, _state.lastAimPoint);
-                _state.isRotating = aimPointDelta > _config.rotationThreshold * deltaTime;
+                float mouseDelta = Vector2.Distance(currentMousePosition, _state.lastMousePosition);
+                _state.isRotating = mouseDelta > _config.rotationThreshold * deltaTime;
             }
-            _state.lastAimPoint = currentAimPoint;
+            _state.lastMousePosition = currentMousePosition;
             
-            // Calculate target radius based on player state
-            if (isAiming && !isMoving && !_state.isRotating && _state.timeSinceLastShot > _config.shootRecoveryDelay)
+            // Shrinking/Expanding Detection
+            bool isShootRecoveryDelay = _state.timeSinceLastShot > _config.shootRecoveryDelay;
+            
+            // Target Radius Calculation
+            if (isAiming && !_state.isMoving && !_state.isRotating && isShootRecoveryDelay)
             {
                 // Stationary aiming: shrink crosshair
                 _state.aimingTime += deltaTime;
-                float progress = Mathf.Clamp01(_state.aimingTime / _config.timeToMinRadius);
+                
+                // Calculate target radius based on aiming time and shrink speed
+                float shrinkTime = 1.0f / _config.shrinkLerpSpeed; // Time to reach min radius
+                float progress = Mathf.Clamp01(_state.aimingTime / shrinkTime);
                 _state.targetRadius = Mathf.Lerp(_config.baseRadius, _config.minRadius, progress);
+                
+                // Direct assignment for shrinking
+                _state.currentRadius = _state.targetRadius;
             }
             else
             {
-                // Moving/rotating: expand crosshair
+                // Moving/rotating while aiming: expand crosshair
                 _state.aimingTime = 0f;
                 _state.targetRadius = _config.baseRadius;
                 
-                if (isMoving)
+                if (_state.isMoving)
                 {
                     _state.targetRadius += _config.movementRadiusPenalty;
                 }
@@ -82,12 +87,14 @@ namespace Resonance.Player.Shooting
                 
                 // Clamp to max radius
                 _state.targetRadius = Mathf.Clamp(_state.targetRadius, _config.minRadius, _config.maxRadius);
+                
+                // Smooth transition to target radius for expanding
+                _state.currentRadius = Mathf.Lerp(
+                    _state.currentRadius, 
+                    _state.targetRadius, 
+                    _config.expandLerpSpeed * deltaTime
+                );
             }
-            
-            // Smooth transition to target radius
-            bool isShrinking = _state.targetRadius < _state.currentRadius;
-            float lerpSpeed = isShrinking ? SHRINK_LERP_SPEED : EXPAND_LERP_SPEED;
-            _state.currentRadius = Mathf.Lerp(_state.currentRadius, _state.targetRadius, lerpSpeed * deltaTime);
         }
         
         /// <summary>

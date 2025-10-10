@@ -21,13 +21,17 @@ namespace Resonance.Items
         public float minRadius = 0.3f;
         
         [Tooltip("Maximum crosshair radius")]
-        public float maxRadius = 5.0f;
+        public float maxRadius = 4.5f;
         
         [Header("Crosshair Shrinking")]
-        [Tooltip("Time to reach minimum radius while stationary aiming (seconds)")]
-        public float timeToMinRadius = 2.0f;
+
+        [Tooltip("Lerp speed for shrinking crosshair")]
+        public float shrinkLerpSpeed = 0.5f;
         
         [Header("Crosshair Expansion Penalties")]
+        [Tooltip("Lerp speed for expanding crosshair")]
+        public float expandLerpSpeed = 3.0f;
+
         [Tooltip("Radius increase when moving")]
         public float movementRadiusPenalty = 1.0f;
         
@@ -35,24 +39,24 @@ namespace Resonance.Items
         public float rotationRadiusPenalty = 0.5f;
         
         [Tooltip("Radius increase after each shot")]
-        public float shootRadiusIncrease = 1.2f;
+        public float shootRadiusIncrease = 1.5f;
         
         [Tooltip("Delay before crosshair starts shrinking after shooting (seconds)")]
-        public float shootRecoveryDelay = 0.2f;
+        public float shootRecoveryDelay = 0.3f;
+
+        [Header("Rotation Detection")]
+        [Tooltip("Mouse movement distance threshold to trigger rotation penalty (screen pixels per second)")]
+        public float rotationThreshold = 10.0f;
         
         [Header("Accuracy Damage Bonus")]
         [Tooltip("Damage multiplier at perfect aim (min radius)")]
-        public float perfectAimDamageMultiplier = 2.0f;
+        public float perfectAimDamageMultiplier = 3.0f;
         
         [Tooltip("Damage multiplier at base aim")]
         public float baseAimDamageMultiplier = 1.0f;
         
         [Tooltip("Damage multiplier curve (X: 0=worst aim, 1=perfect aim; Y: damage multiplier)")]
-        public AnimationCurve damageMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 1, 2.0f);
-        
-        [Header("Rotation Detection")]
-        [Tooltip("Aim point movement distance threshold to trigger rotation penalty (world units per second)")]
-        public float rotationThreshold = 2.0f;
+        public AnimationCurve damageMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 1, 3.0f);
     }
     
     /// <summary>

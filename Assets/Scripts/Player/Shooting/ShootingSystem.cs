@@ -138,8 +138,8 @@ namespace Resonance.Player.Shooting
             // Update accuracy system
             if (_accuracySystem != null && _accuracySystem.IsInitialized() && isAiming)
             {
-                Vector3 currentAimPoint = GetMouseTargetPoint();
-                _accuracySystem.UpdateAccuracy(deltaTime, isAiming, isMoving, currentAimPoint);
+                Vector2 currentMousePosition = UnityEngine.InputSystem.Mouse.current?.position.ReadValue() ?? Vector2.zero;
+                _accuracySystem.UpdateAccuracy(deltaTime, isAiming, isMoving, currentMousePosition);
             }
             
             // Update recoil system

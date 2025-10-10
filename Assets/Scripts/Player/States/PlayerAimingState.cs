@@ -63,13 +63,13 @@ namespace Resonance.Player.States
             // Update shoot origin
             _shootOrigin = _playerController.PlayerGameObject.transform.position + Vector3.up * 1.5f;
             
-            // Check if player is moving
-            bool isMoving = _playerController.Movement.Velocity.magnitude > 0.1f;
-            
             // Update weapon systems (accuracy and recoil)
             if (_playerController.ShootingSystem != null)
             {
-                _playerController.ShootingSystem.UpdateWeaponSystems(Time.deltaTime, isAiming: true, isMoving);
+                _playerController.ShootingSystem.UpdateWeaponSystems(
+                    Time.deltaTime, 
+                    isAiming: true, 
+                    _playerController.Movement.IsMoving);
                 
                 // Update aiming line visualization
                 _playerController.ShootingSystem.UpdateAimingLine(_shootOrigin);

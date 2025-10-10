@@ -22,9 +22,9 @@ MonoBehaviour:
   _runSpeed: 4
   _aimMoveSpeed: 1
   _reloadMoveSpeed: 2
-  _inventoryGridWidth: 4
+  _inventoryGridWidth: 3
   _inventoryGridHeight: 3
-  _moduleSlots: 3
+  _moduleSlots: 2
   _interactionRange: 2
   _interactionLayerMask:
     serializedVersion: 2

@@ -17,38 +17,40 @@ MonoBehaviour:
   maxAmmo: 8
   ammoType: Pisto
   damage: 30
-  range: 50
+  range: 30
   fireRate: 1
   damageType: 3
   healthDamageRatio: 0.5
   accuracyConfig:
     baseRadius: 1.5
     minRadius: 0.3
-    maxRadius: 5
-    timeToMinRadius: 2
+    maxRadius: 4.5
+    shrinkLerpSpeed: 0.5
+    expandLerpSpeed: 3
     movementRadiusPenalty: 1
     rotationRadiusPenalty: 0.5
-    shootRadiusIncrease: 1.2
+    shootRadiusIncrease: 1.5
     shootRecoveryDelay: 0.2
-    perfectAimDamageMultiplier: 2
+    rotationThreshold: 10
+    perfectAimDamageMultiplier: 3
     baseAimDamageMultiplier: 1
     damageMultiplierCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0
-        value: 1
+        time: -0.00023958832
+        value: 1.0042114
         inSlope: 0
-        outSlope: 1
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
-        time: 1
-        value: 2
-        inSlope: 1
-        outSlope: 0
+        time: 1.0000024
+        value: 2.9922955
+        inSlope: 2
+        outSlope: 2
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
@@ -56,7 +58,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    rotationThreshold: 2
   recoilConfig:
     recoilOffset: {x: 0, y: 1, z: 0}
     recoilVariance: {x: 0.3, y: 0.3, z: 0.3}

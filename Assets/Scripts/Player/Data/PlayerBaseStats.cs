@@ -39,11 +39,11 @@ namespace Resonance.Player.Data
 
         [Header("装备属性 - Equipment Attributes")]
         [Tooltip("背包初始格子数（宽）")]
-        [SerializeField] private int _inventoryGridWidth = 5;
+        [SerializeField] private int _inventoryGridWidth = 3;
         [Tooltip("背包初始格子数（高）")]
-        [SerializeField] private int _inventoryGridHeight = 5;
+        [SerializeField] private int _inventoryGridHeight = 3;
         [Tooltip("模块槽位数量")]
-        [SerializeField] private int _moduleSlots = 3;
+        [SerializeField] private int _moduleSlots = 2;
 
         [Header("交互属性 - Interaction Attributes")]
         [Tooltip("交互范围")]
