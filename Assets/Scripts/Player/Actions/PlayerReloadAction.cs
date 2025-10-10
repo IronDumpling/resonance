@@ -1,6 +1,6 @@
 using UnityEngine;
 using Resonance.Player.Core;
-using Resonance.Interfaces.Objects;
+using Resonance.Interfaces.Operations;
 using Resonance.Core;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;

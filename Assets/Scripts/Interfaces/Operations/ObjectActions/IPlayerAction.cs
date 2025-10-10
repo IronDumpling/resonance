@@ -1,9 +1,9 @@
-namespace Resonance.Interfaces.Objects
-{
-    using Resonance.Player.Core;
+using Resonance.Player.Core;
 
+namespace Resonance.Interfaces.Operations
+{
     /// <summary>
-    /// Interface for player actions that can be executed by the ActionController.
+    /// Interface for player actions that can be executed by the PlayerActionController.
     /// Actions can block movement, provide invulnerability, and be interrupted.
     /// </summary>
     public interface IPlayerAction

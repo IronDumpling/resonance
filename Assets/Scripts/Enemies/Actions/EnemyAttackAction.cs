@@ -1,6 +1,6 @@
 using UnityEngine;
-using Resonance.Interfaces.Objects;
 using Resonance.Enemies.Core;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Enemies.Actions
 {

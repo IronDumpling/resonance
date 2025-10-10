@@ -15,9 +15,9 @@ namespace Resonance.Player.Data
         [Tooltip("最大生命值")]
         [SerializeField] private float _maxHealth = 100f;
         [Tooltip("最大韧性值")]
-        [SerializeField] private float _maxResilience = 50f;
+        [SerializeField] private float _maxResilience = 20f;
         [Tooltip("眩晕阈值")]
-        [SerializeField] private float _stunThreshold = 10f;
+        [SerializeField] private float _stunThreshold = 1f;
         [Tooltip("无敌时间")]
         [SerializeField] private float _invulnerabilityTime = 1f;
 

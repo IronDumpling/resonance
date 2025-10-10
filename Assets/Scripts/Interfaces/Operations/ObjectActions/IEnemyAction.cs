@@ -1,7 +1,7 @@
-namespace Resonance.Interfaces.Objects
-{
-    using Resonance.Enemies.Core;
+using Resonance.Enemies.Core;
 
+namespace Resonance.Interfaces.Operations
+{
     /// <summary>
     /// Interface for enemy actions that can be executed by the EnemyActionController.
     /// Actions define specific behaviors like attacking, patrolling, chasing, etc.

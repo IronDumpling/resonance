@@ -1,10 +1,10 @@
 using UnityEngine;
+using Resonance.Core;
+using Resonance.Utilities;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
-using Resonance.Interfaces.Objects;
-using Resonance.Core;
 using Resonance.Interfaces.Services;
-using Resonance.Utilities;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Player.Actions
 {
@@ -191,7 +191,7 @@ namespace Resonance.Player.Actions
             if (_isActive)
             {
                 Debug.Log("PlayerHealAction: Interrupted by damage");
-                _isFinished = true; // Will be cleaned up by ActionController
+                _isFinished = true; // Will be cleaned up by PlayerActionController
             }
         }
 

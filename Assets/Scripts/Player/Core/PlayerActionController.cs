@@ -1,11 +1,11 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System.Linq;
-using Resonance.Interfaces.Objects;
-using Resonance.Player.Core;
-using Resonance.Interfaces.Services;
+using System.Collections.Generic;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Player.Core;
+using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Player.Core
 {
@@ -13,7 +13,7 @@ namespace Resonance.Player.Core
     /// Controls player actions and manages their execution.
     /// Handles action priority, blocking, and interruption logic.
     /// </summary>
-    public class ActionController
+    public class PlayerActionController
     {
         // Core references
         private PlayerController _playerController;
@@ -32,7 +32,7 @@ namespace Resonance.Player.Core
         public string CurrentActionName => _currentAction?.Name ?? "None";
         public IPlayerAction CurrentAction => _currentAction;
 
-        public ActionController(PlayerController playerController)
+        public PlayerActionController(PlayerController playerController)
         {
             _playerController = playerController;
             _availableActions = new List<IPlayerAction>();
@@ -44,7 +44,7 @@ namespace Resonance.Player.Core
         public void Initialize()
         {
             // Actions will be registered by the PlayerController
-            Debug.Log("ActionController: Initialized");
+            Debug.Log("PlayerActionController: Initialized");
         }
 
         /// <summary>
@@ -55,18 +55,18 @@ namespace Resonance.Player.Core
         {
             if (action == null)
             {
-                Debug.LogError("ActionController: Cannot register null action");
+                Debug.LogError("PlayerActionController: Cannot register null action");
                 return;
             }
 
             if (_availableActions.Any(a => a.Name == action.Name))
             {
-                Debug.LogWarning($"ActionController: Action {action.Name} is already registered");
+                Debug.LogWarning($"PlayerActionController: Action {action.Name} is already registered");
                 return;
             }
 
             _availableActions.Add(action);
-            Debug.Log($"ActionController: Registered action: {action.Name}");
+            Debug.Log($"PlayerActionController: Registered action: {action.Name}");
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace Resonance.Player.Core
                 }
 
                 _availableActions.Remove(action);
-                Debug.Log($"ActionController: Unregistered action: {actionName}");
+                Debug.Log($"PlayerActionController: Unregistered action: {actionName}");
             }
         }
 
@@ -103,7 +103,7 @@ namespace Resonance.Player.Core
                 // Check if action finished
                 if (_currentAction.IsFinished)
                 {
-                    Debug.Log($"ActionController: Action {_currentAction.Name} finished, calling FinishCurrentAction");
+                    Debug.Log($"PlayerActionController: Action {_currentAction.Name} finished, calling FinishCurrentAction");
                     FinishCurrentAction();
                 }
             }
@@ -118,14 +118,14 @@ namespace Resonance.Player.Core
         {
             if (_currentAction != null)
             {
-                Debug.LogWarning($"ActionController: Cannot start {actionName} - action {_currentAction.Name} is already running");
+                Debug.LogWarning($"PlayerActionController: Cannot start {actionName} - action {_currentAction.Name} is already running");
                 return false;
             }
 
             var action = _availableActions.FirstOrDefault(a => a.Name == actionName);
             if (action == null)
             {
-                Debug.LogWarning($"ActionController: Action {actionName} not found");
+                Debug.LogWarning($"PlayerActionController: Action {actionName} not found");
                 return false;
             }
 
@@ -143,13 +143,13 @@ namespace Resonance.Player.Core
 
             if (_currentAction != null)
             {
-                Debug.LogWarning($"ActionController: Cannot start {action.Name} - action {_currentAction.Name} is already running");
+                Debug.LogWarning($"PlayerActionController: Cannot start {action.Name} - action {_currentAction.Name} is already running");
                 return false;
             }
 
             if (!action.CanStart(_playerController))
             {
-                Debug.Log($"ActionController: Action {action.Name} cannot start - conditions not met");
+                Debug.Log($"PlayerActionController: Action {action.Name} cannot start - conditions not met");
                 return false;
             }
 
@@ -158,7 +158,7 @@ namespace Resonance.Player.Core
             _currentAction.Start(_playerController);
             OnActionStarted?.Invoke(_currentAction);
             
-            Debug.Log($"ActionController: Started action: {action.Name}");
+            Debug.Log($"PlayerActionController: Started action: {action.Name}");
             return true;
         }
 
@@ -174,7 +174,7 @@ namespace Resonance.Player.Core
                 OnActionCancelled?.Invoke(_currentAction);
                 _currentAction = null;
                 
-                Debug.Log($"ActionController: Cancelled action: {actionName}");
+                Debug.Log($"PlayerActionController: Cancelled action: {actionName}");
             }
         }
 
@@ -189,7 +189,7 @@ namespace Resonance.Player.Core
                 OnActionFinished?.Invoke(_currentAction);
                 _currentAction = null;
                 
-                Debug.Log($"ActionController: Finished action: {actionName}");
+                Debug.Log($"PlayerActionController: Finished action: {actionName}");
             }
         }
 
@@ -200,7 +200,7 @@ namespace Resonance.Player.Core
         {
             if (_currentAction != null && _currentAction.CanInterrupt)
             {
-                Debug.Log($"ActionController: Action {_currentAction.Name} interrupted by damage");
+                Debug.Log($"PlayerActionController: Action {_currentAction.Name} interrupted by damage");
                 _currentAction.OnDamageTaken(_playerController);
                 CancelCurrentAction();
             }
@@ -240,7 +240,7 @@ namespace Resonance.Player.Core
             OnActionFinished = null;
             OnActionCancelled = null;
             
-            Debug.Log("ActionController: Cleaned up");
+            Debug.Log("PlayerActionController: Cleaned up");
         }
     }
 }

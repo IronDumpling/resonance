@@ -22,9 +22,9 @@ namespace Resonance.Enemies.Data
         [Tooltip("最大生命值")]
         public float maxHealth = 100f;
         [Tooltip("最大韧性值")]
-        public float maxResilience = 50f;
+        public float maxResilience = 30f;
         [Tooltip("眩晕阈值")]
-        public float stunThreshold = 10f;
+        public float stunThreshold = 1.5f;
         
         [Header("晶核属性 - Crystal Core Attributes")]
         [Tooltip("晶核配置")]

@@ -1,5 +1,5 @@
 using UnityEngine;
-using Resonance.Interfaces.Objects;
+using Resonance.Interfaces.Operations;
 using Resonance.Enemies.Core;
 
 namespace Resonance.Enemies.Actions

@@ -1,8 +1,8 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System.Linq;
-using Resonance.Interfaces.Objects;
+using System.Collections.Generic;
 using Resonance.Enemies.Core;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Enemies.Core
 {

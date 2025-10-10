@@ -11,6 +11,7 @@ using Resonance.Utilities;
 using Resonance.Items;
 using Resonance.Interfaces.Objects;
 using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Player.Core
 {
@@ -32,7 +33,7 @@ namespace Resonance.Player.Core
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
-        private ActionController _actionController;
+        private PlayerActionController _actionController;
 
         // Services
         private IAudioService _audioService;
@@ -84,7 +85,7 @@ namespace Resonance.Player.Core
         public bool IsStunned => CurrentState == "Stun";
         public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
-        public ActionController ActionController => _actionController;
+        public PlayerActionController PlayerActionController => _actionController;
 
         public PlayerController(PlayerBaseStats baseStats)
         {
@@ -136,7 +137,7 @@ namespace Resonance.Player.Core
             _stateMachine.Initialize();
 
             // Initialize action controller
-            _actionController = new ActionController(this);
+            _actionController = new PlayerActionController(this);
             _actionController.Initialize();
             
             // Register available actions
@@ -220,7 +221,7 @@ namespace Resonance.Player.Core
 
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
 
-            // Notify ActionController of damage taken (for interruption logic)
+            // Notify PlayerActionController of damage taken (for interruption logic)
             _actionController?.OnPlayerDamageTaken();
             
             // Interrupt aiming when taking damage
@@ -582,7 +583,7 @@ namespace Resonance.Player.Core
         #region Action Management
         
         /// <summary>
-        /// Register a new action with the ActionController
+        /// Register a new action with the PlayerActionController
         /// </summary>
         /// <param name="action">The action to register</param>
         public void RegisterAction(IPlayerAction action)
@@ -637,7 +638,7 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Register all available player actions with the ActionController
+        /// Register all available player actions with the PlayerActionController
         /// </summary>
         private void RegisterPlayerActions()
         {

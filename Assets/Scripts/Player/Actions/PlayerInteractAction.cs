@@ -1,8 +1,9 @@
 using UnityEngine;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
-using Resonance.Interfaces.Objects;
 using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Objects;
+using Resonance.Interfaces.Operations;
 using Resonance.Core;
 using Resonance.Utilities;
 
@@ -157,13 +158,6 @@ namespace Resonance.Player.Actions
                 _isFinished = true;
                 return;
             }
-
-            // Update interaction progress
-            // float progress = actionDuration / _interactionDuration;
-            // _targetInteractable.UpdateInteractionProgress(progress);
-
-            // Update visual effects
-            // UpdateInteractionEffects(player, deltaTime, progress);
         }
 
         /// <summary>

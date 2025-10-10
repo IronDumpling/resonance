@@ -368,7 +368,7 @@ namespace Resonance.Player
             if (!IsInitialized) return;
             
             // Check if current action blocks movement (e.g., WaveAction, HealAction)
-            if (_playerController.ActionController.IsBlocking)
+            if (_playerController.PlayerActionController.IsBlocking)
             {
                 Debug.Log("PlayerMonoBehaviour: Movement input blocked by action");
                 _playerController.Movement.SetMovementInput(Vector2.zero);
@@ -1140,7 +1140,7 @@ namespace Resonance.Player
 
         /// <summary>
         /// Public method to check if there are Core hitboxes in core attack range
-        /// Used by ActionController for priority logic
+        /// Used by PlayerActionController for priority logic
         /// </summary>
         /// <returns>True if there are Core hitboxes in range</returns>
         public bool HasCoreHitboxesInCoreAttackRange()
