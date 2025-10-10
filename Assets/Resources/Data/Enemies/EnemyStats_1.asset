@@ -15,8 +15,8 @@ MonoBehaviour:
   enemyName: Basic Enemy
   enemyDescription: A basic enemy
   maxHealth: 100
-  maxResilience: 40
-  stunThreshold: 5
+  maxResilience: 20
+  stunThreshold: 1
   crystalCoreConfig: {fileID: 11400000, guid: 4a3be431e36760b4f86a5f8d78d79497, type: 2}
   corePattern: Enemy_Basic
   revivalDelay: 2
@@ -28,7 +28,7 @@ MonoBehaviour:
   attackRange: 1.5
   detectionRange: 4
   moveSpeed: 1
-  chaseMoveSpeed: 2
+  chaseMoveSpeed: 2.5
   patrolRadius: 2
   arrivalThreshold: 1.2
   normalMaterialPath: Art/Materials/Enemy_Body

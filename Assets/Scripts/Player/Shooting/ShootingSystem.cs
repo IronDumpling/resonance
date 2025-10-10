@@ -481,7 +481,6 @@ namespace Resonance.Player.Shooting
             {
                 Vector3 recoilOffset = _recoilSystem.GetRecoilOffset();
                 baseTargetPoint += recoilOffset;
-                Debug.Log($"ShootingSystem: Recoil offset: {recoilOffset}");
             }
             
             return baseTargetPoint;

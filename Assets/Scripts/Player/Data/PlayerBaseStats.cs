@@ -31,11 +31,11 @@ namespace Resonance.Player.Data
         [Tooltip("行走速度")]
         [SerializeField] private float _walkSpeed = 3f;
         [Tooltip("奔跑速度")]
-        [SerializeField] private float _runSpeed = 5f;
+        [SerializeField] private float _runSpeed = 4f;
         [Tooltip("瞄准移动速度")]
-        [SerializeField] private float _aimMoveSpeed = 2f;
+        [SerializeField] private float _aimMoveSpeed = 1f;
         [Tooltip("换弹移动速度")]
-        [SerializeField] private float _reloadMoveSpeed = 2.5f;
+        [SerializeField] private float _reloadMoveSpeed = 2f;
 
         [Header("装备属性 - Equipment Attributes")]
         [Tooltip("背包初始格子数（宽）")]

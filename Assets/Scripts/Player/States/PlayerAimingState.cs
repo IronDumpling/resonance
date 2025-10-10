@@ -36,9 +36,6 @@ namespace Resonance.Player.States
                 return;
             }
             
-            // Slow down movement while aiming
-            _playerController.Movement.MovementSpeedModifier = 0.5f;
-            
             // Initialize weapon systems in ShootingSystem
             if (_playerController.ShootingSystem != null)
             {
@@ -96,9 +93,6 @@ namespace Resonance.Player.States
         public void Exit()
         {
             Debug.Log("PlayerState: Exited Aiming state");
-            
-            // Reset movement speed
-            _playerController.Movement.MovementSpeedModifier = 1.0f;
             
             // Cleanup weapon systems
             if (_playerController.ShootingSystem != null)
