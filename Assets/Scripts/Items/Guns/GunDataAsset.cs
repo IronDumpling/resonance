@@ -15,13 +15,13 @@ namespace Resonance.Items
     {
         [Header("Crosshair Size (World Space Units)")]
         [Tooltip("Base crosshair radius when starting to aim")]
-        public float baseRadius = 1.5f;
+        public float baseRadius = 50f;
         
         [Tooltip("Minimum crosshair radius (perfect aim)")]
-        public float minRadius = 0.3f;
+        public float minRadius = 20f;
         
         [Tooltip("Maximum crosshair radius")]
-        public float maxRadius = 4.5f;
+        public float maxRadius = 80f;
         
         [Header("Crosshair Shrinking")]
 
@@ -83,11 +83,6 @@ namespace Resonance.Items
         
         [Tooltip("Recoil recovery speed (units per second)")]
         public float recoverySpeed = 3.0f;
-        
-        [Header("Aiming Recoil Reduction")]
-        [Tooltip("Recoil multiplier when aiming (reduces recoil)")]
-        [Range(0f, 1f)]
-        public float aimingRecoilMultiplier = 0.7f;
     }
 
     /// <summary>

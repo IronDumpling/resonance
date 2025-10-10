@@ -22,9 +22,9 @@ MonoBehaviour:
   damageType: 3
   healthDamageRatio: 0.5
   accuracyConfig:
-    baseRadius: 1.5
-    minRadius: 0.3
-    maxRadius: 4.5
+    baseRadius: 50
+    minRadius: 20
+    maxRadius: 80
     shrinkLerpSpeed: 0.5
     expandLerpSpeed: 3
     movementRadiusPenalty: 1
@@ -60,7 +60,7 @@ MonoBehaviour:
       m_RotationOrder: 4
   recoilConfig:
     recoilOffset: {x: 0, y: 1, z: 0}
-    recoilVariance: {x: 0.3, y: 0.3, z: 0.3}
+    recoilVariance: {x: 0.5, y: 0.5, z: 0.5}
     recoilMultiplierCurve:
       serializedVersion: 2
       m_Curve:
@@ -87,7 +87,6 @@ MonoBehaviour:
       m_RotationOrder: 4
     recoveryDelay: 0.3
     recoverySpeed: 3
-    aimingRecoilMultiplier: 0.7
   weaponIcon: {fileID: 21300000, guid: 80810c76e8475864f9934095558ce785, type: 3}
   itemPrefab: {fileID: 8436483010609681290, guid: 46a603edf29af2547a51e2530a16e9d8, type: 3}
   gridWidth: 3

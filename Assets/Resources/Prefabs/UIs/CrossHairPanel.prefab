@@ -196,8 +196,7 @@ MonoBehaviour:
   _hideOnStart: 1
   _crosshairContainer: {fileID: 5322699535528133846}
   _crosshairCircle: {fileID: 9034638715456790768}
-  _baseCrosshairSize: 50
-  _maxCrosshairSize: 200
+  _baseCrosshairSize: 100
   _accurateColor: {r: 0.29125133, g: 0.7264151, b: 0.29125133, a: 1}
   _inaccurateColor: {r: 0.7169812, g: 0.1318975, b: 0.1318975, a: 1}
   _colorTransitionSpeed: 5
@@ -267,7 +266,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 93c059c5bbad89049b28de6c286107d5, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ede38c75bb2fe8b4d947eca0a323a514, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

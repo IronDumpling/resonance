@@ -21,8 +21,7 @@ namespace Resonance.UI
         [SerializeField] private Image _crosshairCircle;
         
         [Header("Crosshair Settings")]
-        [SerializeField] private float _baseCrosshairSize = 50f;
-        [SerializeField] private float _maxCrosshairSize = 200f;
+        [SerializeField] private float _baseCrosshairSize = 100f;
         [SerializeField] private Color _accurateColor = Color.green;
         [SerializeField] private Color _inaccurateColor = Color.red;
         [SerializeField] private float _colorTransitionSpeed = 5f;
@@ -304,6 +303,7 @@ namespace Resonance.UI
 
         /// <summary>
         /// Update crosshair size based on weapon accuracy configuration
+        /// Uses simplified proportional scaling from weapon's accuracy config
         /// </summary>
         private void UpdateCrosshairSize()
         {
@@ -324,47 +324,20 @@ namespace Resonance.UI
             }
             
             // Get current crosshair radius from accuracy system (world units)
-            float worldRadius = _playerController.ShootingSystem.GetCurrentCrosshairRadius();
+            float currentWorldRadius = _playerController.ShootingSystem.GetCurrentCrosshairRadius();
             
-            // Convert world radius to screen size based on weapon configuration
-            float screenRadius = WorldRadiusToScreenSize(worldRadius, accuracyConfig);
-            
-            // Clamp to reasonable range
-            screenRadius = Mathf.Clamp(screenRadius, _baseCrosshairSize, _maxCrosshairSize);
-            
-            _targetSize = screenRadius;
+            // Convert using simplified proportional scaling
+            _targetSize = WorldRadiusToScreenSize(currentWorldRadius, accuracyConfig);
         }
 
         /// <summary>
-        /// Convert world radius to screen size based on weapon accuracy configuration
+        /// Convert world radius to screen size using simplified proportional scaling
         /// </summary>
-        private float WorldRadiusToScreenSize(float worldRadius, WeaponAccuracyConfig accuracyConfig)
+        private float WorldRadiusToScreenSize(float currentWorldRadius, WeaponAccuracyConfig accuracyConfig)
         {
-            if (_mainCamera == null) return _baseCrosshairSize;
-            
-            // Get the aim point
-            Vector3 aimPoint = GetCurrentAimPoint();
-            
-            // Calculate screen size based on distance from camera
-            float distance = Vector3.Distance(_mainCamera.transform.position, aimPoint);
-            
-            // Avoid division by zero
-            if (distance < 0.1f) distance = 0.1f;
-            
-            // Use weapon's base radius as reference for screen size calculation
-            float baseWorldRadius = accuracyConfig.baseRadius;
-            float normalizedRadius = worldRadius / baseWorldRadius;
-            
-            // Calculate base screen size from weapon's base radius
-            // Use field of view to calculate proper screen size
-            float fov = _mainCamera.fieldOfView;
-            float screenHeight = Screen.height;
-            float baseScreenSize = (baseWorldRadius / distance) * screenHeight / (2f * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad));
-            
-            // Apply normalized radius to get final screen size
-            float screenSize = baseScreenSize * normalizedRadius;
-            
-            return screenSize;
+            // Simple proportional conversion based on weapon's base radius
+            float normalizedRadius = currentWorldRadius / accuracyConfig.baseRadius;
+            return _baseCrosshairSize * normalizedRadius;
         }
 
         /// <summary>
@@ -436,6 +409,23 @@ namespace Resonance.UI
         public float GetCurrentCrosshairSize()
         {
             return _currentSize;
+        }
+        
+        /// <summary>
+        /// Get current crosshair size range based on weapon configuration
+        /// </summary>
+        public (float min, float max) GetCrosshairSizeRange()
+        {
+            if (_playerController?.WeaponManager?.CurrentGun?.accuracyConfig == null)
+            {
+                return (_baseCrosshairSize * 0.2f, _baseCrosshairSize * 3f);
+            }
+            
+            var config = _playerController.WeaponManager.CurrentGun.accuracyConfig;
+            float minSize = _baseCrosshairSize * (config.minRadius / config.baseRadius);
+            float maxSize = _baseCrosshairSize * (config.maxRadius / config.baseRadius);
+            
+            return (minSize, maxSize);
         }
 
         /// <summary>
