@@ -28,7 +28,7 @@ MonoBehaviour:
   attackRange: 1.5
   detectionRange: 4
   moveSpeed: 1
-  chaseMoveSpeed: 2.5
+  chaseMoveSpeed: 2
   patrolRadius: 2
   arrivalThreshold: 1.2
   normalMaterialPath: Art/Materials/Enemy_Body
