@@ -368,6 +368,36 @@ namespace Resonance.Player.Shooting
         }
 
         /// <summary>
+        /// Preview the actual shooting end point without performing the shot
+        /// This calculates the real end point by performing raycast from player to target
+        /// Used by UI systems to show where the shot will actually land
+        /// </summary>
+        /// <param name="shootOrigin">Shoot origin position</param>
+        /// <param name="gunData">Weapon data for range</param>
+        /// <returns>The actual end point (hit point or base target point)</returns>
+        public Vector3 PreviewShootingEndPoint(Vector3 shootOrigin, GunDataAsset gunData)
+        {
+            if (gunData == null)
+            {
+                Debug.LogWarning("ShootingSystem: PreviewShootingEndPoint called with null gunData");
+                return shootOrigin + Vector3.forward * 10f;
+            }
+
+            // Step 1: Get the base target point from mouse raycast (with recoil applied)
+            Vector3 baseTargetPoint = GetMouseTargetPoint();
+            
+            // Step 2: Calculate shooting direction from player to target point
+            Vector3 shootDirection = (baseTargetPoint - shootOrigin).normalized;
+            
+            // Step 3: Perform raycast detection to get actual end point
+            RaycastHit hitInfo;
+            bool hasHit = Physics.Raycast(shootOrigin, shootDirection, out hitInfo, gunData.range, _targetLayerMask);
+            
+            // Return hit point if we hit something, otherwise return base target point
+            return hasHit ? hitInfo.point : baseTargetPoint;
+        }
+
+        /// <summary>
         /// Set shooting line display duration
         /// </summary>
         /// <param name="duration">Display duration (seconds)</param>
