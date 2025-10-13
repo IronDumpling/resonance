@@ -46,7 +46,7 @@ namespace Resonance.Items
 
         [Header("Rotation Detection")]
         [Tooltip("Mouse movement distance threshold to trigger rotation penalty (screen pixels per second)")]
-        public float rotationThreshold = 10.0f;
+        public float rotationThreshold = 50.0f;
         
         [Header("Accuracy Damage Bonus")]
         [Tooltip("Damage multiplier at perfect aim (min radius)")]

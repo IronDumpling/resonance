@@ -20,10 +20,10 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientSkyColor: {r: 0.29142934, g: 0.31063843, b: 0.3490566, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
-  m_AmbientIntensity: 1
+  m_AmbientIntensity: 0.5
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
@@ -611,11 +611,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 442382469308402775, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: field of view
-      value: 30
+      value: 55
       objectReference: {fileID: 0}
     - target: {fileID: 442382469308402775, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: orthographic size
-      value: 5
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2544163692143342212, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -663,19 +663,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -15
+      value: -20
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9659258
+      value: 0.97629607
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.2588191
+      value: 0.2164396
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2040,18 +2040,6 @@ PrefabInstance:
     - target: {fileID: 1793449887358591980, guid: 58036ca1bd9031b4ea48b2944855a3a9, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2633144192507941458, guid: 58036ca1bd9031b4ea48b2944855a3a9, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2633692288073236582, guid: 58036ca1bd9031b4ea48b2944855a3a9, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2634354967075181612, guid: 58036ca1bd9031b4ea48b2944855a3a9, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 7220518059006091559, guid: 58036ca1bd9031b4ea48b2944855a3a9, type: 3}
       propertyPath: m_Name

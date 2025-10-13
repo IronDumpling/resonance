@@ -31,7 +31,7 @@ MonoBehaviour:
     rotationRadiusPenalty: 0.5
     shootRadiusIncrease: 1.5
     shootRecoveryDelay: 0.2
-    rotationThreshold: 10
+    rotationThreshold: 50
     perfectAimDamageMultiplier: 3
     baseAimDamageMultiplier: 1
     damageMultiplierCurve:
