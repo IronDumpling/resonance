@@ -118,24 +118,24 @@ MonoBehaviour:
   _panelName: PlayerStatusPanel
   _layer: 20
   _hideOnStart: 1
-  _weaponPanel: {fileID: 0}
-  _healthPanel: {fileID: 0}
-  _resiliencePanel: {fileID: 0}
-  _coreEnergyPanel: {fileID: 0}
-  _weaponIcon: {fileID: 0}
-  _ammoCount: {fileID: 0}
-  _healthValue: {fileID: 0}
-  _resilienceBackground: {fileID: 0}
-  _resilienceValue: {fileID: 0}
-  _coreEnergyBackground: {fileID: 0}
-  _coreEnergyCurrentValue: {fileID: 0}
-  _coreEnergyLockedValue: {fileID: 0}
-  _coreSlotsContainer: {fileID: 0}
-  _dividerPrefab: {fileID: 0}
-  _healthyHealthSprite: {fileID: 21300000, guid: bc15ff32cb0f2294f9225a2633d64d0b, type: 3}
-  _injuredHealthSprite: {fileID: 0}
-  _woundedHealthSprite: {fileID: 21300000, guid: efbbc2ba8d8ce27458d47eefad8697c2, type: 3}
-  _criticalHealthSprite: {fileID: 21300000, guid: d9ceea5be6a6f7c478539f513b19364f, type: 3}
+  _weaponPanel: {fileID: 6733231848441368446}
+  _healthPanel: {fileID: 2730273702741741706}
+  _chaosPanel: {fileID: 4238444766791157057}
+  _corePanel: {fileID: 6497677242717583713}
+  _weaponIcon: {fileID: 3576863803160275279}
+  _ammoCount: {fileID: 3308010486118068185}
+  _healthValue: {fileID: 4755277683652716586}
+  _chaosBackground: {fileID: 8930826341611831537}
+  _chaosValue: {fileID: 8212707690943974554}
+  _coreEnergyBackground: {fileID: 70821495643878420}
+  _coreEnergyCurrentValue: {fileID: 5346523463101722411}
+  _coreEnergyLockedValue: {fileID: 8791150439881819677}
+  _coreSlotsContainer: {fileID: 5064828195994160376}
+  _dividerPrefab: {fileID: 7699155110390338235, guid: 98c4feb08d875e14eb6b9cf64f8684b3, type: 3}
+  _healthyHealthSprite: {fileID: 21300000, guid: 9c5ae82e62111574ab4afd1ac26bc145, type: 3}
+  _injuredHealthSprite: {fileID: 21300000, guid: 47443376564467f419d9f450a6f8de52, type: 3}
+  _woundedHealthSprite: {fileID: 21300000, guid: f41200d721dde4343862d285fdd54194, type: 3}
+  _criticalHealthSprite: {fileID: 21300000, guid: cade78c40724dde4393839d7fe6f1afb, type: 3}
 --- !u!1 &2174450075175572094
 GameObject:
   m_ObjectHideFlags: 0
@@ -432,7 +432,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5360835720528381533}
   m_Layer: 5
-  m_Name: Resilience
+  m_Name: Chaos
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -844,7 +844,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1666484163444696486}
   m_Layer: 5
-  m_Name: CoreEnergy
+  m_Name: Core
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -6,8 +6,8 @@ using Resonance.Enemies.Actions;
 namespace Resonance.Enemies.States
 {
     /// <summary>
-    /// Enemy复活状态，物理血量缓慢恢复
-    /// 核心保持暴露，易受精神攻击
+    /// Enemy复活状态, 物理血量缓慢恢复
+    /// 核心保持暴露, 易受精神攻击
     /// </summary>
     public class EnemyRevivingState : IState
     {

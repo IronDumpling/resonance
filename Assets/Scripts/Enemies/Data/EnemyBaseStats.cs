@@ -1,6 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
 using Resonance.Core.Data;
+using Resonance.Utilities;
 
 namespace Resonance.Enemies.Data
 {
@@ -21,10 +22,6 @@ namespace Resonance.Enemies.Data
         [Header("生存属性 - Survival Attributes")]
         [Tooltip("最大生命值")]
         public float maxHealth = 100f;
-        [Tooltip("最大韧性值")]
-        public float maxResilience = 30f;
-        [Tooltip("眩晕阈值")]
-        public float stunThreshold = 1.5f;
         
         [Header("晶核属性 - Crystal Core Attributes")]
         [Tooltip("晶核配置")]
@@ -42,11 +39,15 @@ namespace Resonance.Enemies.Data
         
         [Header("战斗属性 - Combat Attributes")]
         [Tooltip("普通攻击伤害")]
-        public float normalDamage = 20f;
+        public float physicalDamage = 20f;
         [Tooltip("晶核攻击伤害")]
         public float coreDamage = 10f;
+        [Tooltip("紊乱伤害")]
+        public float chaosDamage = 15f;
         [Tooltip("攻击冷却时间")]
         public float attackCooldown = 2f;
+        [Tooltip("攻击持续时间")]
+        public float attackDuration = 0.5f;
         [Tooltip("攻击范围")]
         public float attackRange = 3f;
         [Tooltip("检测范围")]
@@ -108,7 +109,6 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// 创建运行时属性实例
         /// </summary>
-        /// <returns>运行时属性</returns>
         public EnemyRuntimeStats CreateRuntimeStats()
         {
             return new EnemyRuntimeStats(this);
@@ -117,7 +117,6 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// 验证配置数据
         /// </summary>
-        /// <returns>是否有效</returns>
         public bool ValidateConfig()
         {
             if (string.IsNullOrEmpty(enemyName))
@@ -129,18 +128,6 @@ namespace Resonance.Enemies.Data
             if (maxHealth <= 0)
             {
                 Debug.LogError($"EnemyBaseStats: {enemyName} has invalid maxHealth: {maxHealth}");
-                return false;
-            }
-
-            if (maxResilience <= 0)
-            {
-                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid maxResilience: {maxResilience}");
-                return false;
-            }
-
-            if (stunThreshold < 0f || stunThreshold >= maxResilience)
-            {
-                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid stunThreshold: {stunThreshold}");
                 return false;
             }
 
@@ -156,9 +143,9 @@ namespace Resonance.Enemies.Data
                 return false;
             }
 
-            if (normalDamage <= 0)
+            if (physicalDamage <= 0)
             {
-                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid normal damage: {normalDamage}");
+                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid normal damage: {physicalDamage}");
                 return false;
             }
 
@@ -177,8 +164,6 @@ namespace Resonance.Enemies.Data
         {
             // 确保数值在合理范围内
             maxHealth = Mathf.Max(1f, maxHealth);
-            maxResilience = Mathf.Max(1f, maxResilience);
-            stunThreshold = Mathf.Clamp(stunThreshold, 0f, maxResilience - 1f);
             
             // 复活系统验证
             revivalDelay = Mathf.Max(0f, revivalDelay);
@@ -186,9 +171,11 @@ namespace Resonance.Enemies.Data
             revivalRate = Mathf.Max(0.1f, revivalRate);
             
             // 战斗属性验证
-            normalDamage = Mathf.Max(0.1f, normalDamage);
+            physicalDamage = Mathf.Max(0.1f, physicalDamage);
             coreDamage = Mathf.Max(0f, coreDamage);
+            chaosDamage = Mathf.Max(0f, chaosDamage);
             attackCooldown = Mathf.Max(0.1f, attackCooldown);
+            attackDuration = Mathf.Max(0.1f, attackDuration);
             attackRange = Mathf.Max(0.1f, attackRange);
             detectionRange = Mathf.Max(0.1f, detectionRange);
             
@@ -224,10 +211,7 @@ namespace Resonance.Enemies.Data
         [Header("生存属性 - Survival Attributes")]
         public float currentHealth;
         public float maxHealth;
-        public float currentResilience;
-        public float maxResilience;
-        public float stunThreshold;
-        public float resilienceRegenRate;
+        public float chaosRecoveryRate;
         
         [Header("晶核属性 - Crystal Core Attributes")]
         public CrystalCore crystalCore;
@@ -239,9 +223,11 @@ namespace Resonance.Enemies.Data
         public float revivalRate;
         
         [Header("战斗属性 - Combat Attributes")]
-        public float normalDamage;
+        public float physicalDamage;
         public float coreDamage;
+        public float chaosDamage;
         public float attackCooldown;
+        public float attackDuration;
         public float attackRange;
         public float detectionRange;
         
@@ -278,86 +264,85 @@ namespace Resonance.Enemies.Data
 
         [Header("状态等级 - Status Tiers")]
         public EnemyHealthTier healthTier;
-        public EnemyResilienceState resilienceState;
         public EnemyLifeState lifeState;
 
         // 事件系统
         public System.Action<float, float> OnHealthChanged; // current, max
-        public System.Action<float, float> OnResilienceChanged; // current, max
         public System.Action<EnemyHealthTier> OnHealthTierChanged;
-        public System.Action<EnemyResilienceState> OnResilienceStateChanged;
         public System.Action<EnemyLifeState> OnLifeStateChanged;
         
         // 属性访问器
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
-        public float ResiliencePercentage => maxResilience > 0 ? currentResilience / maxResilience : 0f;
         public bool IsAlive => lifeState == EnemyLifeState.Alive;
         public bool IsReviving => lifeState == EnemyLifeState.Reviving;
         public bool IsDead => lifeState == EnemyLifeState.Dead;
-        public bool IsStunned => resilienceState == EnemyResilienceState.Stunned;
-        public bool IsCoreIntact => crystalCore != null && crystalCore.IsIntact;
+        public bool IsCoreIntact => crystalCore != null && crystalCore.CoreHealthState == CoreHealthState.Intact;
 
         public EnemyRuntimeStats(EnemyBaseStats baseStats)
         {
             // 复制生存属性
             maxHealth = baseStats.maxHealth;
-            currentHealth = maxHealth; // 开始时满生命值
-            maxResilience = baseStats.maxResilience;
-            currentResilience = maxResilience; // 开始时满韧性值
-            stunThreshold = baseStats.stunThreshold;
+            currentHealth = maxHealth;
             
             // 复制晶核属性
-            crystalCore = new CrystalCore(baseStats.crystalCoreConfig);
-            crystalCore.SetInfiniteEnergy(); // 敌人拥有无限能量
-            crystalCore.SetCorePattern(baseStats.corePattern);
+            // 创建 QTE 配置
+            var qteConfig = new Resonance.Core.Data.QTEConfig(
+                baseStats.qteEaseType,
+                baseStats.qteCycleDuration,
+                baseStats.qteTargetWindow
+            );
+            
+            crystalCore = new CrystalCore(baseStats.crystalCoreConfig, qteConfig);
+            crystalCore.SetFullEnergy(); // 敌人拥有满能量
             corePattern = baseStats.corePattern;
             
-            // 复制复活系统
+            // 复活系统
             revivalDelay = baseStats.revivalDelay;
             revivalDuration = baseStats.revivalDuration;
             revivalRate = baseStats.revivalRate;
             
-            // 复制战斗属性
-            normalDamage = baseStats.normalDamage;
+            // 战斗属性
+            physicalDamage = baseStats.physicalDamage;
             coreDamage = baseStats.coreDamage;
+            chaosDamage = baseStats.chaosDamage;
             attackCooldown = baseStats.attackCooldown;
+            attackDuration = baseStats.attackDuration;
             attackRange = baseStats.attackRange;
             detectionRange = baseStats.detectionRange;
             
-            // 复制移动属性
+            // 移动属性
             moveSpeed = baseStats.moveSpeed;
             chaseMoveSpeed = baseStats.chaseMoveSpeed;
             patrolRadius = baseStats.patrolRadius;
             arrivalThreshold = baseStats.arrivalThreshold;
             
-            // 复制视觉效果
+            // 视觉效果
             normalMaterialPath = baseStats.normalMaterialPath;
             damageMaterialPath = baseStats.damageMaterialPath;
             revivalMaterialPath = baseStats.revivalMaterialPath;
             damageFlashDuration = baseStats.damageFlashDuration;
             
-            // 复制音频配置
+            // 音频配置
             enableAudio = baseStats.enableAudio;
             
-            // 复制QTE配置
+            // QTE配置
             qteEaseType = baseStats.qteEaseType;
             qteCycleDuration = baseStats.qteCycleDuration;
             qteTargetWindow = baseStats.qteTargetWindow;
             
-            // 复制掉落系统
+            // 掉落系统
             deathLootPrefab = baseStats.deathLootPrefab;
             lootCount = baseStats.lootCount;
             lootSpawnRadius = baseStats.lootSpawnRadius;
             lootDropChance = baseStats.lootDropChance;
             
-            // 复制调试选项
+            // 调试选项
             showHealthBar = baseStats.showHealthBar;
             showDetectionRange = baseStats.showDetectionRange;
             showAttackRange = baseStats.showAttackRange;
 
             // 初始化状态等级
             UpdateHealthTier();
-            UpdateResilienceState();
             UpdateLifeState();
         }
 
@@ -368,7 +353,7 @@ namespace Resonance.Enemies.Data
         {
             var previousTier = healthTier;
             healthTier = EnemyHealthTierHelper.CalculateHealthTier(HealthPercentage);
-            resilienceRegenRate = EnemyHealthTierHelper.GetResilienceRegenRate(healthTier);
+            chaosRecoveryRate = EnemyHealthTierHelper.GetChaosRecoveryRate(healthTier);
 
             if (previousTier != healthTier)
             {
@@ -378,28 +363,13 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 更新韧性状态
-        /// </summary>
-        public void UpdateResilienceState()
-        {
-            var previousState = resilienceState;
-            resilienceState = EnemyHealthTierHelper.CalculateResilienceState(currentResilience, stunThreshold);
-
-            if (previousState != resilienceState)
-            {
-                OnResilienceStateChanged?.Invoke(resilienceState);
-                Debug.Log($"EnemyRuntimeStats: Resilience state changed to {resilienceState}");
-            }
-        }
-
-        /// <summary>
         /// 更新生命状态
         /// </summary>
         public void UpdateLifeState()
         {
             var previousState = lifeState;
-            float coreIntegrity = crystalCore?.Integrity ?? 0f;
-            lifeState = EnemyHealthTierHelper.CalculateLifeState(currentHealth, coreIntegrity);
+            CoreHealthState coreState = crystalCore?.CoreHealthState ?? CoreHealthState.Destroyed;
+            lifeState = EnemyHealthTierHelper.CalculateLifeState(currentHealth, coreState);
 
             if (previousState != lifeState)
             {
@@ -411,8 +381,6 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// 受到生命伤害
         /// </summary>
-        /// <param name="damage">伤害值</param>
-        /// <returns>实际造成的伤害</returns>
         public float TakeHealthDamage(float damage)
         {
             if (damage <= 0f || IsDead) return 0f;
@@ -433,52 +401,8 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 受到韧性伤害（硬直）
-        /// </summary>
-        /// <param name="damage">韧性伤害值</param>
-        /// <returns>实际造成的韧性损失</returns>
-        public float TakeResilienceDamage(float damage)
-        {
-            if (damage <= 0f) return 0f;
-
-            float previousResilience = currentResilience;
-            currentResilience = Mathf.Max(0f, currentResilience - damage);
-            float actualDamage = previousResilience - currentResilience;
-
-            if (actualDamage > 0f)
-            {
-                UpdateResilienceState();
-                OnResilienceChanged?.Invoke(currentResilience, maxResilience);
-                Debug.Log($"EnemyRuntimeStats: Took {actualDamage} resilience damage. Current: {currentResilience}/{maxResilience}");
-            }
-
-            return actualDamage;
-        }
-
-        /// <summary>
-        /// 晶核受到伤害
-        /// </summary>
-        /// <param name="damage">晶核容量损失</param>
-        /// <returns>实际造成的容量损失</returns>
-        public float TakeCoreDamage(float damage)
-        {
-            if (crystalCore == null || damage <= 0f) return 0f;
-
-            float actualDamage = crystalCore.DamageCapacity(damage);
-            if (actualDamage > 0f)
-            {
-                UpdateLifeState();
-                Debug.Log($"EnemyRuntimeStats: Crystal core took {actualDamage} damage. Integrity: {crystalCore.Integrity:P1}");
-            }
-
-            return actualDamage;
-        }
-
-        /// <summary>
         /// Health Restore (used when reviving)
         /// </summary>
-        /// <param name="amount">恢复量</param>
-        /// <returns>实际恢复的量</returns>
         public float RestoreHealth(float amount)
         {
             if (amount <= 0f) return 0f;
@@ -492,37 +416,28 @@ namespace Resonance.Enemies.Data
                 UpdateHealthTier();
                 UpdateLifeState();
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
-                // Debug.Log($"EnemyRuntimeStats: Restored {actualRestore} health. Current: {currentHealth}/{maxHealth}");
             }
 
             return actualRestore;
         }
 
         /// <summary>
-        /// Update resilience value (natural regeneration)
+        /// 更新晶核紊乱值(每帧调用)
         /// </summary>
-        /// <param name="deltaTime">Time interval</param>
-        public void UpdateResilience(float deltaTime)
+        public void UpdateChaos(float deltaTime)
         {
-            if (resilienceRegenRate <= 0f || currentResilience >= maxResilience) return;
-
-            float previousResilience = currentResilience;
-            currentResilience = Mathf.Min(currentResilience + resilienceRegenRate * deltaTime, maxResilience);
-            
-            if (currentResilience != previousResilience)
+            if (crystalCore != null)
             {
-                UpdateResilienceState();
-                OnResilienceChanged?.Invoke(currentResilience, maxResilience);
+                crystalCore.UpdateChaos(chaosRecoveryRate, deltaTime);
             }
         }
 
         /// <summary>
-        /// Get modified move speed
+        /// 获取修正后的移动速度
         /// </summary>
-        /// <returns>Modified move speed considering health tier</returns>
         public float GetModifiedMoveSpeed()
         {
-            if (!IsAlive) return 0f; // 死亡时无法移动
+            if (!IsAlive) return 0f;
             
             float speedMultiplier = EnemyHealthTierHelper.GetSpeedMultiplier(healthTier);
             return moveSpeed * speedMultiplier;
@@ -531,29 +446,26 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// 获取修正后的追击速度
         /// </summary>
-        /// <returns>考虑健康等级修正后的追击速度</returns>
         public float GetModifiedChaseMoveSpeed()
         {
-            if (!IsAlive) return 0f; // 死亡时无法移动
+            if (!IsAlive) return 0f;
             
             float speedMultiplier = EnemyHealthTierHelper.GetSpeedMultiplier(healthTier);
             return chaseMoveSpeed * speedMultiplier;
         }
 
         /// <summary>
-        /// 完全恢复生命和韧性
+        /// 完全恢复生命和晶核
         /// </summary>
         public void FullRestore()
         {
             currentHealth = maxHealth;
-            currentResilience = maxResilience;
-            crystalCore?.FullRepair();
+            crystalCore?.FullRepairCoreHealth();
+            crystalCore?.ResetChaos();
 
             UpdateHealthTier();
-            UpdateResilienceState();
             UpdateLifeState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
-            OnResilienceChanged?.Invoke(currentResilience, maxResilience);
 
             Debug.Log("EnemyRuntimeStats: Full restore completed");
         }
@@ -561,13 +473,11 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// 获取保存数据
         /// </summary>
-        /// <returns>运行时属性保存数据</returns>
         public EnemyRuntimeStatsSaveData GetSaveData()
         {
             return new EnemyRuntimeStatsSaveData
             {
                 currentHealth = this.currentHealth,
-                currentResilience = this.currentResilience,
                 crystalCoreSaveData = crystalCore?.GetSaveData()
             };
         }
@@ -575,7 +485,6 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// 从保存数据加载
         /// </summary>
-        /// <param name="saveData">保存数据</param>
         public void LoadFromSaveData(EnemyRuntimeStatsSaveData saveData)
         {
             if (saveData == null)
@@ -585,7 +494,6 @@ namespace Resonance.Enemies.Data
             }
 
             currentHealth = Mathf.Clamp(saveData.currentHealth, 0f, maxHealth);
-            currentResilience = Mathf.Clamp(saveData.currentResilience, 0f, maxResilience);
 
             if (saveData.crystalCoreSaveData != null && crystalCore != null)
             {
@@ -593,12 +501,10 @@ namespace Resonance.Enemies.Data
             }
 
             UpdateHealthTier();
-            UpdateResilienceState();
             UpdateLifeState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
-            OnResilienceChanged?.Invoke(currentResilience, maxResilience);
 
-            Debug.Log($"EnemyRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}, Resilience: {currentResilience}/{maxResilience}");
+            Debug.Log($"EnemyRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}");
         }
 
         /// <summary>
@@ -607,9 +513,7 @@ namespace Resonance.Enemies.Data
         public void Cleanup()
         {
             OnHealthChanged = null;
-            OnResilienceChanged = null;
             OnHealthTierChanged = null;
-            OnResilienceStateChanged = null;
             OnLifeStateChanged = null;
             crystalCore?.Cleanup();
         }
@@ -622,13 +526,11 @@ namespace Resonance.Enemies.Data
     public class EnemyRuntimeStatsSaveData
     {
         public float currentHealth;
-        public float currentResilience;
         public CrystalCoreSaveData crystalCoreSaveData;
 
         public EnemyRuntimeStatsSaveData()
         {
             currentHealth = 100f;
-            currentResilience = 100f;
             crystalCoreSaveData = null;
         }
     }

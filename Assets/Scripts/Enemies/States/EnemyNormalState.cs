@@ -6,7 +6,7 @@ using Resonance.Enemies.Actions;
 namespace Resonance.Enemies.States
 {
     /// <summary>
-    /// Enemy正常状态，包含Patrol、Chase、Combat三个子状态
+    /// Enemy正常状态, 包含Patrol、Chase、Combat三个子状态
     /// 每个子状态使用对应的Action执行具体行为
     /// </summary>
     public class EnemyNormalState : IState
@@ -299,7 +299,7 @@ namespace Resonance.Enemies.States
             
             if (!actionController.HasAction("Attack"))
             {
-                actionController.RegisterAction(new EnemyAttackAction());
+                actionController.RegisterAction(new EnemyNormalAttackAction());
             }
         }
         

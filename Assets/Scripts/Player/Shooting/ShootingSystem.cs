@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Resonance.Items;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -84,7 +85,7 @@ namespace Resonance.Player.Shooting
             _mouseRaycastLayerMask = (1 << 6) | (1 << 8); // Environment, Enemy
             
             // Shooting target detection layer
-            _targetLayerMask = (1 << 6) | (1 << 8); // Environment，Enemy
+            _targetLayerMask = (1 << 6) | (1 << 8); // Environment, Enemy
             
             Debug.Log($"ShootingSystem: Set default layer masks - Mouse: {_mouseRaycastLayerMask}, Target: {_targetLayerMask}");
         }
@@ -218,17 +219,29 @@ namespace Resonance.Player.Shooting
             bool hasHit = Physics.Raycast(shootOrigin, shootDirection, out hitInfo, gunData.range, _targetLayerMask);
             Vector3 endPoint = hasHit ? hitInfo.point : baseTargetPoint;
             
-            // Step 4: Calculate final damage with accuracy bonus
-            float baseDamage = gunData.damage;
+            // Step 4: Get damage multiplier from accuracy system
             float damageMultiplier = 1.0f;
             if (_accuracySystem != null && _accuracySystem.IsInitialized())
             {
                 damageMultiplier = _accuracySystem.GetDamageMultiplier();
             }
-            float finalDamage = baseDamage * damageMultiplier;
+            
+            // Create base damage dictionary (weapon's raw damage without multipliers)
+            Dictionary<DamageType, float> baseDamages = new Dictionary<DamageType, float>();
+            if (gunData.physicalHealthDamage > 0)
+                baseDamages[DamageType.PhysicalHealth] = gunData.physicalHealthDamage;
+            if (gunData.coreHealthDamage > 0)
+                baseDamages[DamageType.CoreHealth] = gunData.coreHealthDamage;
+            if (gunData.chaosDamage > 0)
+                baseDamages[DamageType.Chaos] = gunData.chaosDamage;
+            
+            // Calculate total base damage for logging
+            float baseTotalDamage = gunData.GetTotalDamage();
+            float finalTotalDamage = baseTotalDamage * damageMultiplier;
             
             // Debug information
-            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {baseTargetPoint} (damage: {finalDamage:F1} (base: {baseDamage}, multiplier: {damageMultiplier:F2})");
+            Debug.Log($"ShootingSystem: Shooting from {shootOrigin} to {baseTargetPoint} " +
+                     $"(total damage: {finalTotalDamage:F1} (base: {baseTotalDamage}, multiplier: {damageMultiplier:F2}))");
             
             // Show shooting line
             if (_showShootingLine)
@@ -252,8 +265,8 @@ namespace Resonance.Player.Shooting
             // Play shooting audio
             PlayShootingAudio(shootOrigin, gunData);
             
-            // Trigger shooting event with final damage
-            OnShoot?.Invoke(shootOrigin, finalDamage);
+            // Trigger shooting event with total final damage
+            OnShoot?.Invoke(shootOrigin, finalTotalDamage);
             
             // Create shooting result
             ShootingResult result = new ShootingResult
@@ -264,8 +277,8 @@ namespace Resonance.Player.Shooting
                 endPosition = endPoint,
                 direction = shootDirection,
                 range = gunData.range,
-                damage = finalDamage,
-                actualDamage = 0f, // Updated in ProcessHit
+                baseDamages = new Dictionary<DamageType, float>(baseDamages), // Copy base damages
+                actualDamages = new Dictionary<DamageType, float>(), // Will be populated in ProcessHit
                 mouseTargetPoint = baseTargetPoint
             };
 
@@ -276,11 +289,13 @@ namespace Resonance.Player.Shooting
                 result.hitNormal = hitInfo.normal;
                 result.hitDistance = hitInfo.distance;
                 
-                // Process damage and get actual damage dealt
-                result.actualDamage = ProcessHit(hitInfo, gunData.damage, shootOrigin, gunData);
+                // Process damage and get actual damage dealt (pass damage multiplier to gunData.CreateDamageInfo)
+                result.actualDamages = ProcessHit(hitInfo, shootOrigin, gunData, damageMultiplier);
                 _hits++;
                 
-                Debug.Log($"ShootingSystem: Hit {hitInfo.collider.name} at distance {hitInfo.distance:F2}m for {result.actualDamage} actual damage (base: {gunData.damage})");
+                float totalActualDamage = result.GetTotalActualDamage();
+                Debug.Log($"ShootingSystem: Hit {hitInfo.collider.name} at distance {hitInfo.distance:F2}m " +
+                         $"for {totalActualDamage:F1} total actual damage (base total: {baseTotalDamage:F1}) - {result.GetDamageBreakdown()}");
             }
             else
             {
@@ -620,13 +635,14 @@ namespace Resonance.Player.Shooting
         /// Process hit target
         /// </summary>
         /// <param name="hitInfo">Raycast hit info</param>
-        /// <param name="damage">Damage value</param>
-        /// <param name="damageSource">Damage source</param>
-        /// <returns>Actual damage value</returns>
-        private float ProcessHit(RaycastHit hitInfo, float damage, Vector3 damageSource, GunDataAsset gunData = null)
+        /// <param name="damageSource">Damage source position</param>
+        /// <param name="gunData">Gun data asset (required)</param>
+        /// <param name="damageMultiplier">Damage multiplier from accuracy</param>
+        /// <returns>Dictionary of actual damage dealt by type</returns>
+        private Dictionary<DamageType, float> ProcessHit(RaycastHit hitInfo, Vector3 damageSource, GunDataAsset gunData, float damageMultiplier = 1f)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
-            float actualDamage = 0f; // Initialize actual damage to 0
+            Dictionary<DamageType, float> actualDamages = new Dictionary<DamageType, float>();
             
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
@@ -636,24 +652,27 @@ namespace Resonance.Player.Shooting
             {
                 Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
                 
-                // Create damage info
-                DamageInfo damageInfo;
-                if (gunData != null)
+                // Create damage info with all damage types and multiplier
+                DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject, damageMultiplier);
+                
+                // Let the weakpoint handle damage modification and application
+                DamageInfo modifiedDamageInfo = weakpointHitbox.ProcessDamageHit(damageInfo);
+                
+                // Extract actual damages from modified damage info
+                if (modifiedDamageInfo.damages != null)
                 {
-                    damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
-                }
-                else
-                {
-                    damageInfo = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
+                    foreach (var kvp in modifiedDamageInfo.damages)
+                    {
+                        actualDamages[kvp.Key] = kvp.Value;
+                    }
                 }
                 
-                // Let the weakpoint handle damage modification and application, and get the actual damage
-                actualDamage = weakpointHitbox.ProcessDamageHit(damageInfo);
+                float totalActualDamage = modifiedDamageInfo.GetTotalDamage();
                 
                 // Play audio and trigger event
                 PlayHitAudio(hitInfo.point, hitObject);
-                OnHit?.Invoke(hitInfo.point, hitObject, actualDamage);
-                return actualDamage;
+                OnHit?.Invoke(hitInfo.point, hitObject, totalActualDamage);
+                return actualDamages;
             }
             
             // If it's not a weakpoint, process IDamageable and IDestructible
@@ -697,46 +716,54 @@ namespace Resonance.Player.Shooting
             // Process damageable objects
             if (damageable != null)
             {
-                Debug.Log($"ShootingSystem: Found IDamageable on {damageableObject.name}, dealing {damage} damage");
+                Debug.Log($"ShootingSystem: Found IDamageable on {damageableObject.name}");
                 
-                if (gunData != null)
+                // Create damage info with all damage types and multiplier
+                DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject, damageMultiplier);
+                damageable.TakeDamage(damageInfo);
+                
+                // Extract actual damages - assume all damage was dealt (no reduction tracking for now)
+                if (damageInfo.damages != null)
                 {
-                    DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject);
-                    damageable.TakeDamage(damageInfo);
-                    actualDamage = damageInfo.amount; // Use the damage info amount
-                    Debug.Log($"ShootingSystem: Dealt {actualDamage} {gunData.damageType} damage to {damageableObject.name}");
+                    foreach (var kvp in damageInfo.damages)
+                    {
+                        actualDamages[kvp.Key] = kvp.Value;
+                    }
                 }
-                else
-                {
-                    // If there is no weapon data, create default physical damage
-                    DamageInfo defaultDamage = new DamageInfo(damage, DamageType.Health, damageSource, _playerTransform.gameObject, "Unknown weapon");
-                    damageable.TakeDamage(defaultDamage);
-                    actualDamage = damage;
-                    Debug.Log($"ShootingSystem: Dealt {actualDamage} default health damage to {damageableObject.name}");
-                }
+                
+                float totalActualDamage = damageInfo.GetTotalDamage();
+                
+                Debug.Log($"ShootingSystem: Dealt {totalActualDamage:F1} total damage to {damageableObject.name} " +
+                         $"({gunData.GetDamageTypeDescription()})");
                 
                 PlayHitAudio(hitInfo.point, damageableObject);
-                OnHit?.Invoke(hitInfo.point, damageableObject, actualDamage);
-                return actualDamage;
+                OnHit?.Invoke(hitInfo.point, damageableObject, totalActualDamage);
+                return actualDamages;
             }
 
             // Process destructible objects
             if (destructible != null)
             {
-                Debug.Log($"ShootingSystem: Found IDestructible on {destructibleObject.name}, dealing {damage} damage");
-                destructible.TakeDamage(damage, damageSource);
-                actualDamage = damage; // The destructible object takes full damage
+                Debug.Log($"ShootingSystem: Found IDestructible on {destructibleObject.name}");
+                
+                // For destructible objects, use total damage as physical damage
+                float totalDamage = gunData.GetTotalDamage() * damageMultiplier;
+                destructible.TakeDamage(totalDamage, damageSource);
+                
+                // Record as physical health damage (destructible objects only take physical damage)
+                actualDamages[DamageType.PhysicalHealth] = totalDamage;
+                
                 PlayHitAudio(hitInfo.point, destructibleObject);
-                OnHit?.Invoke(hitInfo.point, destructibleObject, actualDamage);
-                Debug.Log($"ShootingSystem: Dealt {actualDamage} damage to destructible {destructibleObject.name}");
-                return actualDamage;
+                OnHit?.Invoke(hitInfo.point, destructibleObject, totalDamage);
+                Debug.Log($"ShootingSystem: Dealt {totalDamage:F1} total damage to destructible {destructibleObject.name}");
+                return actualDamages;
             }
 
             // If it's not a damageable or destructible object, still trigger the hit event (for audio, particle effects, etc.)
             PlayHitAudio(hitInfo.point, hitObject);
             OnHit?.Invoke(hitInfo.point, hitObject, 0f);
             Debug.Log($"ShootingSystem: Hit non-damageable object {hitObject.name} - no damage dealt");
-            return 0f; // No damage dealt
+            return actualDamages; // Return empty dictionary
         }
 
         #endregion

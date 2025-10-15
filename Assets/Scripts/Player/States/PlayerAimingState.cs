@@ -125,7 +125,7 @@ namespace Resonance.Player.States
             
             if (result.success)
             {
-                Debug.Log($"PlayerAimingState: Shot fired! Damage: {result.damage:F1}, Hit: {result.hasHit}");
+                Debug.Log($"PlayerAimingState: Shot fired! Damage: {result.GetTotalActualDamage():F1}, Hit: {result.hasHit}");
             }
             else
             {

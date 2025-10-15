@@ -4,7 +4,7 @@ namespace Resonance.Interfaces
 {
     /// <summary>
     /// 可破坏物体的接口
-    /// 用于环境中的可破坏对象，如箱子、墙壁等
+    /// 用于环境中的可破坏对象, 如箱子、墙壁等
     /// </summary>
     public interface IDestructible
     {

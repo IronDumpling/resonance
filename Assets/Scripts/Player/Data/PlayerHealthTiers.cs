@@ -4,24 +4,14 @@ namespace Resonance.Player.Data
 {
     /// <summary>
     /// 玩家生命值等级
-    /// 基于生命值百分比阈值，影响韧性恢复速度
+    /// 基于生命值百分比阈值, 影响晶核紊乱值恢复速度
     /// </summary>
     public enum HealthTier
     {
-        Healthy,    // 80-100% - 健康状态，韧性恢复+10
-        Injured,    // 60-80% - 轻伤状态，韧性恢复+8
-        Wounded,    // 30-60% - 重伤状态，韧性恢复+3
-        Critical    // 0-30% - 濒死状态，韧性恢复+2
-    }
-
-    /// <summary>
-    /// 玩家韧性状态
-    /// 基于当前韧性值
-    /// </summary>
-    public enum ResilienceState
-    {
-        Normal,     // 韧性值 > 眩晕阈值
-        Stunned     // 韧性值 <= 眩晕阈值
+        Healthy,    // 80-100% - 健康状态, 紊乱值恢复 -3/s
+        Injured,    // 60-80% - 轻伤状态, 紊乱值恢复 -1/s
+        Wounded,    // 30-60% - 重伤状态, 紊乱值恢复 -0.5/s
+        Critical    // 0-30% - 濒死状态, 紊乱值恢复 -0.2/s
     }
 
     /// <summary>
@@ -35,11 +25,11 @@ namespace Resonance.Player.Data
         public const float INJURED_THRESHOLD = 0.6f;     // 60%
         public const float WOUNDED_THRESHOLD = 0.3f;     // 30%
         
-        // 韧性恢复速率
-        public const float HEALTHY_RESILIENCE_REGEN = 2f;
-        public const float INJURED_RESILIENCE_REGEN = 1.2f;
-        public const float WOUNDED_RESILIENCE_REGEN = 0.8f;
-        public const float CRITICAL_RESILIENCE_REGEN = 0.3f;
+        // 紊乱值恢复速率(负值表示下降)
+        public const float HEALTHY_CHAOS_RECOVERY = -3f;
+        public const float INJURED_CHAOS_RECOVERY = -1f;
+        public const float WOUNDED_CHAOS_RECOVERY = -0.5f;
+        public const float CRITICAL_CHAOS_RECOVERY = -0.2f;
 
         // 移动速度修正系数
         public const float WOUNDED_SPEED_MULTIPLIER = 0.7f;    // 重伤时移动速度70%
@@ -63,36 +53,25 @@ namespace Resonance.Player.Data
         }
 
         /// <summary>
-        /// 获取指定健康等级的韧性恢复速率
+        /// 获取指定健康等级的紊乱值恢复速率
         /// </summary>
         /// <param name="tier">健康等级</param>
-        /// <returns>韧性恢复速率</returns>
-        public static float GetResilienceRegenRate(HealthTier tier)
+        /// <returns>紊乱值恢复速率(负值表示下降)</returns>
+        public static float GetChaosRecoveryRate(HealthTier tier)
         {
             switch (tier)
             {
                 case HealthTier.Healthy:
-                    return HEALTHY_RESILIENCE_REGEN;
+                    return HEALTHY_CHAOS_RECOVERY;
                 case HealthTier.Injured:
-                    return INJURED_RESILIENCE_REGEN;
+                    return INJURED_CHAOS_RECOVERY;
                 case HealthTier.Wounded:
-                    return WOUNDED_RESILIENCE_REGEN;
+                    return WOUNDED_CHAOS_RECOVERY;
                 case HealthTier.Critical:
-                    return CRITICAL_RESILIENCE_REGEN;
+                    return CRITICAL_CHAOS_RECOVERY;
                 default:
-                    return CRITICAL_RESILIENCE_REGEN;
+                    return CRITICAL_CHAOS_RECOVERY;
             }
-        }
-
-        /// <summary>
-        /// 计算韧性状态
-        /// </summary>
-        /// <param name="currentResilience">当前韧性值</param>
-        /// <param name="stunThreshold">眩晕阈值</param>
-        /// <returns>韧性状态</returns>
-        public static ResilienceState CalculateResilienceState(float currentResilience, float stunThreshold)
-        {
-            return currentResilience > stunThreshold ? ResilienceState.Normal : ResilienceState.Stunned;
         }
 
         /// <summary>

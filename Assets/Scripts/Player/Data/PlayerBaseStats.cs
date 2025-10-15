@@ -14,12 +14,6 @@ namespace Resonance.Player.Data
         [Header("生存属性 - Survival Attributes")]
         [Tooltip("最大生命值")]
         [SerializeField] private float _maxHealth = 100f;
-        [Tooltip("最大韧性值")]
-        [SerializeField] private float _maxResilience = 20f;
-        [Tooltip("眩晕阈值")]
-        [SerializeField] private float _stunThreshold = 1f;
-        [Tooltip("无敌时间")]
-        [SerializeField] private float _invulnerabilityTime = 1f;
 
         [Header("晶核属性 - Crystal Core Attributes")]
         [Tooltip("晶核配置")]
@@ -38,9 +32,9 @@ namespace Resonance.Player.Data
         [SerializeField] private float _reloadMoveSpeed = 2.5f;
 
         [Header("装备属性 - Equipment Attributes")]
-        [Tooltip("背包初始格子数（宽）")]
+        [Tooltip("背包初始格子数(宽)")]
         [SerializeField] private int _inventoryGridWidth = 3;
-        [Tooltip("背包初始格子数（高）")]
+        [Tooltip("背包初始格子数(高)")]
         [SerializeField] private int _inventoryGridHeight = 3;
         [Tooltip("模块槽位数量")]
         [SerializeField] private int _moduleSlots = 2;
@@ -55,9 +49,6 @@ namespace Resonance.Player.Data
         
         // 生存属性访问器
         public float MaxHealth => _maxHealth;
-        public float MaxResilience => _maxResilience;
-        public float StunThreshold => _stunThreshold;
-        public float InvulnerabilityTime => _invulnerabilityTime;
 
         // 晶核属性访问器
         public CrystalCoreConfig CrystalCoreConfig => _crystalCoreConfig;
@@ -82,7 +73,6 @@ namespace Resonance.Player.Data
         /// <summary>
         /// 创建运行时属性实例
         /// </summary>
-        /// <returns>可修改的运行时属性</returns>
         public PlayerRuntimeStats CreateRuntimeStats()
         {
             return new PlayerRuntimeStats(this);
@@ -91,24 +81,11 @@ namespace Resonance.Player.Data
         /// <summary>
         /// 验证配置数据
         /// </summary>
-        /// <returns>是否有效</returns>
         public bool ValidateConfig()
         {
             if (_maxHealth <= 0f)
             {
                 Debug.LogError($"PlayerBaseStats: {name} has invalid maxHealth: {_maxHealth}");
-                return false;
-            }
-
-            if (_maxResilience <= 0f)
-            {
-                Debug.LogError($"PlayerBaseStats: {name} has invalid maxResilience: {_maxResilience}");
-                return false;
-            }
-
-            if (_stunThreshold < 0f || _stunThreshold >= _maxResilience)
-            {
-                Debug.LogError($"PlayerBaseStats: {name} has invalid stunThreshold: {_stunThreshold} (should be 0 <= stunThreshold < maxResilience)");
                 return false;
             }
 
@@ -133,9 +110,6 @@ namespace Resonance.Player.Data
         {
             // 确保数值在合理范围内
             _maxHealth = Mathf.Max(1f, _maxHealth);
-            _maxResilience = Mathf.Max(1f, _maxResilience);
-            _stunThreshold = Mathf.Clamp(_stunThreshold, 0f, _maxResilience - 1f);
-            _invulnerabilityTime = Mathf.Max(0f, _invulnerabilityTime);
             _healthRestoreValue = Mathf.Max(0f, _healthRestoreValue);
 
             // 移动速度验证
@@ -158,7 +132,7 @@ namespace Resonance.Player.Data
 
     /// <summary>
     /// 玩家运行时属性
-    /// 游戏过程中可修改的实际属性值，会受到装备、增益等影响
+    /// 游戏过程中可修改的实际属性值, 会受到装备、增益等影响
     /// </summary>
     [System.Serializable]
     public class PlayerRuntimeStats
@@ -166,15 +140,11 @@ namespace Resonance.Player.Data
         [Header("生存属性 - Survival Attributes")]
         public float currentHealth;
         public float maxHealth;
-        public float currentResilience;
-        public float maxResilience;
-        public float stunThreshold;
-        public float resilienceRegenRate;
-        public float invulnerabilityTime;
 
         [Header("晶核属性 - Crystal Core Attributes")]
         public CrystalCore crystalCore;
         public float healthRestoreValue;
+        public float chaosRecoveryRate;
 
         [Header("移动属性 - Movement Attributes")]
         public float walkSpeed;
@@ -194,20 +164,16 @@ namespace Resonance.Player.Data
 
         [Header("状态等级 - Status Tiers")]
         public HealthTier healthTier;
-        public ResilienceState resilienceState;
 
         // 事件系统
         public System.Action<float, float> OnHealthChanged; // current, max
-        public System.Action<float, float> OnResilienceChanged; // current, max
         public System.Action<HealthTier> OnHealthTierChanged;
-        public System.Action<ResilienceState> OnResilienceStateChanged;
 
         // 属性访问器
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
-        public float ResiliencePercentage => maxResilience > 0 ? currentResilience / maxResilience : 0f;
-        public bool IsAlive => currentHealth > 0f && crystalCore.IsIntact;
-        public bool IsDead => currentHealth <= 0f && crystalCore.IsDestroyed;
-        public bool IsStunned => resilienceState == ResilienceState.Stunned;
+        public bool IsAlive => currentHealth > 0f;
+        public bool IsDead => currentHealth <= 0f;
+        public bool IsCoreDestroyed => crystalCore == null || crystalCore.CoreHealthState == Resonance.Utilities.CoreHealthState.Destroyed;
         public bool CanUseHealthRestore => crystalCore != null && crystalCore.CanConsumeSlot();
 
         public PlayerRuntimeStats(PlayerBaseStats baseStats)
@@ -215,13 +181,10 @@ namespace Resonance.Player.Data
             // 复制生存属性
             maxHealth = baseStats.MaxHealth;
             currentHealth = maxHealth; // 开始时满生命值
-            maxResilience = baseStats.MaxResilience;
-            currentResilience = maxResilience; // 开始时满韧性值
-            stunThreshold = baseStats.StunThreshold;
-            invulnerabilityTime = baseStats.InvulnerabilityTime;
 
             // 复制晶核属性
-            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig);
+            // 玩家使用默认 QTE 配置
+            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig, null);
             healthRestoreValue = baseStats.HealthRestoreValue;
             
             // 复制移动属性
@@ -242,7 +205,6 @@ namespace Resonance.Player.Data
 
             // 初始化状态等级
             UpdateHealthTier();
-            UpdateResilienceState();
         }
 
         /// <summary>
@@ -252,7 +214,7 @@ namespace Resonance.Player.Data
         {
             var previousTier = healthTier;
             healthTier = HealthTierHelper.CalculateHealthTier(HealthPercentage);
-            resilienceRegenRate = HealthTierHelper.GetResilienceRegenRate(healthTier);
+            chaosRecoveryRate = HealthTierHelper.GetChaosRecoveryRate(healthTier);
 
             if (previousTier != healthTier)
             {
@@ -262,25 +224,8 @@ namespace Resonance.Player.Data
         }
 
         /// <summary>
-        /// 更新韧性状态
-        /// </summary>
-        public void UpdateResilienceState()
-        {
-            var previousState = resilienceState;
-            resilienceState = HealthTierHelper.CalculateResilienceState(currentResilience, stunThreshold);
-
-            if (previousState != resilienceState)
-            {
-                OnResilienceStateChanged?.Invoke(resilienceState);
-                Debug.Log($"PlayerRuntimeStats: Resilience state changed to {resilienceState}");
-            }
-        }
-
-        /// <summary>
         /// 受到生命伤害
         /// </summary>
-        /// <param name="damage">伤害值</param>
-        /// <returns>实际造成的伤害</returns>
         public float TakeHealthDamage(float damage)
         {
             if (damage <= 0f || !IsAlive) return 0f;
@@ -300,33 +245,8 @@ namespace Resonance.Player.Data
         }
 
         /// <summary>
-        /// 受到韧性伤害（硬直）
-        /// </summary>
-        /// <param name="damage">韧性伤害值</param>
-        /// <returns>实际造成的韧性损失</returns>
-        public float TakeResilienceDamage(float damage)
-        {
-            if (damage <= 0f) return 0f;
-
-            float previousResilience = currentResilience;
-            currentResilience = Mathf.Max(0f, currentResilience - damage);
-            float actualDamage = previousResilience - currentResilience;
-
-            if (actualDamage > 0f)
-            {
-                UpdateResilienceState();
-                OnResilienceChanged?.Invoke(currentResilience, maxResilience);
-                Debug.Log($"PlayerRuntimeStats: Took {actualDamage} resilience damage. Current: {currentResilience}/{maxResilience}");
-            }
-
-            return actualDamage;
-        }
-
-        /// <summary>
         /// 恢复生命值
         /// </summary>
-        /// <param name="amount">恢复量</param>
-        /// <returns>实际恢复的量</returns>
         public float RestoreHealth(float amount)
         {
             if (amount <= 0f) return 0f;
@@ -348,7 +268,6 @@ namespace Resonance.Player.Data
         /// <summary>
         /// 使用晶核能量恢复生命值
         /// </summary>
-        /// <returns>是否成功使用</returns>
         public bool UseHealthRestore()
         {
             if (crystalCore == null || !crystalCore.CanConsumeSlot()) return false;
@@ -364,36 +283,27 @@ namespace Resonance.Player.Data
         }
 
         /// <summary>
-        /// 更新韧性值（自然恢复）
+        /// 更新晶核紊乱值(每帧调用)
         /// </summary>
-        /// <param name="deltaTime">时间间隔</param>
-        public void UpdateResilience(float deltaTime)
+        public void UpdateChaos(float deltaTime)
         {
-            if (resilienceRegenRate <= 0f || currentResilience >= maxResilience) return;
-
-            float previousResilience = currentResilience;
-            currentResilience = Mathf.Min(currentResilience + resilienceRegenRate * deltaTime, maxResilience);
-            
-            if (currentResilience != previousResilience)
+            if (crystalCore != null)
             {
-                UpdateResilienceState();
-                OnResilienceChanged?.Invoke(currentResilience, maxResilience);
+                crystalCore.UpdateChaos(chaosRecoveryRate, deltaTime);
             }
         }
 
         /// <summary>
-        /// 完全恢复生命和韧性（存档点使用）
+        /// 完全恢复生命和晶核(存档点使用)
         /// </summary>
         public void FullRestore()
         {
             currentHealth = maxHealth;
-            currentResilience = maxResilience;
-            crystalCore?.FullRepair();
+            crystalCore?.FullRepairCoreHealth();
+            crystalCore?.ResetChaos();
 
             UpdateHealthTier();
-            UpdateResilienceState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
-            OnResilienceChanged?.Invoke(currentResilience, maxResilience);
 
             Debug.Log("PlayerRuntimeStats: Full restore completed");
         }
@@ -401,13 +311,11 @@ namespace Resonance.Player.Data
         /// <summary>
         /// 获取保存数据
         /// </summary>
-        /// <returns>运行时属性保存数据</returns>
         public PlayerRuntimeStatsSaveData GetSaveData()
         {
             return new PlayerRuntimeStatsSaveData
             {
                 currentHealth = this.currentHealth,
-                currentResilience = this.currentResilience,
                 crystalCoreSaveData = crystalCore?.GetSaveData(),
                 inventoryGridWidth = this.inventoryGridWidth,
                 inventoryGridHeight = this.inventoryGridHeight
@@ -417,7 +325,6 @@ namespace Resonance.Player.Data
         /// <summary>
         /// 从保存数据加载
         /// </summary>
-        /// <param name="saveData">保存数据</param>
         public void LoadFromSaveData(PlayerRuntimeStatsSaveData saveData)
         {
             if (saveData == null)
@@ -427,7 +334,6 @@ namespace Resonance.Player.Data
             }
 
             currentHealth = Mathf.Clamp(saveData.currentHealth, 0f, maxHealth);
-            currentResilience = Mathf.Clamp(saveData.currentResilience, 0f, maxResilience);
 
             if (saveData.crystalCoreSaveData != null && crystalCore != null)
             {
@@ -439,11 +345,9 @@ namespace Resonance.Player.Data
             if (saveData.inventoryGridHeight > 0) inventoryGridHeight = saveData.inventoryGridHeight;
 
             UpdateHealthTier();
-            UpdateResilienceState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
-            OnResilienceChanged?.Invoke(currentResilience, maxResilience);
 
-            Debug.Log($"PlayerRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}, Resilience: {currentResilience}/{maxResilience}");
+            Debug.Log($"PlayerRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}");
         }
 
         /// <summary>
@@ -452,9 +356,7 @@ namespace Resonance.Player.Data
         public void Cleanup()
         {
             OnHealthChanged = null;
-            OnResilienceChanged = null;
             OnHealthTierChanged = null;
-            OnResilienceStateChanged = null;
             crystalCore?.Cleanup();
         }
     }
@@ -466,7 +368,6 @@ namespace Resonance.Player.Data
     public class PlayerRuntimeStatsSaveData
     {
         public float currentHealth;
-        public float currentResilience;
         public CrystalCoreSaveData crystalCoreSaveData;
         public int inventoryGridWidth;
         public int inventoryGridHeight;
@@ -474,7 +375,6 @@ namespace Resonance.Player.Data
         public PlayerRuntimeStatsSaveData()
         {
             currentHealth = 100f;
-            currentResilience = 100f;
             crystalCoreSaveData = null;
             inventoryGridWidth = 5;
             inventoryGridHeight = 5;

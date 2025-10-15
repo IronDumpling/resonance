@@ -61,7 +61,7 @@ namespace Resonance.Core.GlobalServices
 
             Debug.Log($"SelectivePauseService: Successfully paused {pausedCount} components");
 
-            // 不设置 Time.timeScale = 0，这样UI动画等仍然可以运行
+            // 不设置 Time.timeScale = 0, 这样UI动画等仍然可以运行
             // 具体的暂停逻辑由各个组件自己实现
         }
 
@@ -134,7 +134,7 @@ namespace Resonance.Core.GlobalServices
             {
                 Debug.Log($"SelectivePauseService: Registered pausable component {pausable.GetType().Name}");
                 
-                // 如果当前已经暂停，立即暂停新注册的组件
+                // 如果当前已经暂停, 立即暂停新注册的组件
                 if (_isGameplayPaused)
                 {
                     pausable.Pause();

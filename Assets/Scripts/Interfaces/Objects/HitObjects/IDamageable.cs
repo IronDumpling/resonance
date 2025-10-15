@@ -5,79 +5,67 @@ namespace Resonance.Interfaces
 {
     /// <summary>
     /// Interface for objects that can be damaged
-    /// Implementing this interface allows objects to take damage
+    /// Simplified interface using only DamageInfo structure
     /// </summary>
     public interface IDamageable
     {
-        #region Damage Methods
-        
         /// <summary>
-        /// Take damage (supports health, resilience and core)
+        /// Take damage using the new damage system
+        /// Supports multiple damage types (Physical Health, Core Health, Chaos) in a single attack
         /// </summary>
-        /// <param name="damageInfo">Damage information</param>
+        /// <param name="damageInfo">Damage information containing damage types and amounts</param>
         void TakeDamage(DamageInfo damageInfo);
         
-        /// <summary>
-        /// 受到物理伤害
-        /// </summary>
-        /// <param name="damage">Damage value</param>
-        /// <param name="damageSource">Damage source position</param>
-        void TakeHealthDamage(float damage, Vector3 damageSource);
+        #region State Properties
         
         /// <summary>
-        /// 受到精神伤害
+        /// Physical health state
         /// </summary>
-        /// <param name="damage">Damage value</param>
-        /// <param name="damageSource">Damage source position</param>
-        void TakeCoreDamage(float damage, Vector3 damageSource);
-
+        PhysicalHealthState PhysicalState { get; }
+        
         /// <summary>
-        /// Take resilience damage
+        /// Core health state
         /// </summary>
-        /// <param name="damage">Damage value</param>
-        /// <param name="damageSource">Damage source position</param>
-        void TakeResilienceDamage(float damage, Vector3 damageSource);
+        CoreHealthState CoreState { get; }
+        
+        /// <summary>
+        /// Wave chaos state
+        /// </summary>
+        WaveChaosState ChaosState { get; }
         
         #endregion
         
-        #region Health Properties
+        #region Health Values
         
         /// <summary>
-        /// Is alive (health > 0)
-        /// TODO: refactor to IsHealthAlive
+        /// Current physical health
         /// </summary>
-        bool IsAlive { get; }
+        float CurrentPhysicalHealth { get; }
         
         /// <summary>
-        /// Is core alive (core capacity > 0)
+        /// Max physical health
         /// </summary>
-        bool IsCoreAlive { get; }
-        
-        /// <summary>
-        /// Is in death state (health = 0 but core capacity > 0)
-        /// TODO: refactor to OnlyHealthDeath, and add OnlyCoreDeath
-        /// </summary>
-        bool IsInDeathState { get; }
-        
-        /// <summary>
-        /// Current health
-        /// </summary>
-        float CurrentHealth { get; }
-        
-        /// <summary>
-        /// Max health
-        /// </summary>
-        float MaxHealth { get; }
+        float MaxPhysicalHealth { get; }
         
         /// <summary>
         /// Current core health
         /// </summary>
-        float CurrentCoreCapacity { get; }
+        float CurrentCoreHealth { get; }
         
         /// <summary>
         /// Max core health
         /// </summary>
-        float MaxCoreCapacity { get; }
+        float MaxCoreHealth { get; }
+        
+        /// <summary>
+        /// Current chaos value
+        /// </summary>
+        float CurrentChaos { get; }
+        
+        /// <summary>
+        /// Max chaos value
+        /// </summary>
+        float MaxChaos { get; }
         
         #endregion
     }

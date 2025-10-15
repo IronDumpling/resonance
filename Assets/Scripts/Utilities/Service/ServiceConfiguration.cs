@@ -65,7 +65,7 @@ namespace Resonance.Core
         /// 根据音效类型获取音频剪辑数据
         /// </summary>
         /// <param name="clipType">音效类型</param>
-        /// <returns>音频剪辑数据，如果没找到返回null</returns>
+        /// <returns>音频剪辑数据, 如果没找到返回null</returns>
         public AudioClipData GetAudioClipData(AudioClipType clipType)
         {
             if (audioClipEntries == null) return null;

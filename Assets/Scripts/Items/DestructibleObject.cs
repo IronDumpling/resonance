@@ -4,7 +4,7 @@ using Resonance.Interfaces;
 namespace Resonance.Items
 {
     /// <summary>
-    /// 可破坏的环境物体，如箱子、桶、墙壁等
+    /// 可破坏的环境物体, 如箱子、桶、墙壁等
     /// 实现IDestructible接口
     /// </summary>
     public class DestructibleObject : MonoBehaviour, IDestructible
@@ -213,11 +213,11 @@ namespace Resonance.Items
                 float barWidth = 1.5f;
                 float barHeight = 0.15f;
                 
-                // 背景（深色）
+                // 背景(深色)
                 Gizmos.color = Color.black;
                 Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight, 0.1f));
                 
-                // 当前耐久度（蓝色）
+                // 当前耐久度(蓝色)
                 float durabilityPercentage = _maxDurability > 0 ? _currentDurability / _maxDurability : 0f;
                 Gizmos.color = Color.cyan;
                 Vector3 durabilityBarSize = new Vector3(barWidth * durabilityPercentage, barHeight, 0.1f);
@@ -246,7 +246,7 @@ namespace Resonance.Items
         #region Public Utility Methods
 
         /// <summary>
-        /// 重置物体状态（用于测试）
+        /// 重置物体状态(用于测试)
         /// </summary>
         public void ResetObject()
         {

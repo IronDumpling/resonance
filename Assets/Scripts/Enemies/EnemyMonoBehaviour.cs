@@ -68,16 +68,6 @@ namespace Resonance.Enemies
         [SerializeField] private float _targetUpdateInterval = 0.5f;
         [Tooltip("How often to update the chase target position (seconds).")]
         
-        [Header("Attack System")]
-        [SerializeField] private float _attackDuration = 0.5f;
-        [Tooltip("How long the attack action stays active after performing the attack (seconds).")]
-        
-        [SerializeField] private float _attackDamage = 20f;
-        [Tooltip("Base damage amount for enemy attacks.")]
-        
-        [SerializeField] private float _attackCooldown = 1f;
-        [Tooltip("Cooldown time between attacks (seconds).")]
-
         [Header("Wave UI")]
         [SerializeField] private GameObject _resonanceUI;
         [SerializeField] private TextMeshProUGUI _resonanceUIText;
@@ -260,17 +250,11 @@ namespace Resonance.Enemies
         public float PatrolSpeed => _patrolSpeed;
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
+
         /// <summary>
         /// Chase configuration properties
         /// </summary>
         public float TargetUpdateInterval => _targetUpdateInterval;
-        
-        /// <summary>
-        /// Attack configuration properties
-        /// </summary>
-        public float AttackDuration => _attackDuration;
-        public float AttackDamage => _attackDamage;
-        public float AttackCooldown => _attackCooldown;
         
         #endregion
 
@@ -692,12 +676,6 @@ namespace Resonance.Enemies
                 _enemyController.SetChaseConfiguration(
                     _targetUpdateInterval
                 );
-                
-                _enemyController.SetAttackConfiguration(
-                    _attackDuration,
-                    _attackDamage,
-                    _attackCooldown
-                );
             }
             
             Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
@@ -771,80 +749,107 @@ namespace Resonance.Enemies
 
         #region IDamageable Implementation
 
+        /// <summary>
+        /// Take damage using the new damage system
+        /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            if (!IsInitialized) return;
+            if (!IsInitialized || damageInfo.damages == null) return;
 
-            switch (damageInfo.type)
+            // Process each damage type in the DamageInfo
+            foreach (var kvp in damageInfo.damages)
             {
-                case DamageType.Health:
-                    _enemyController.TakeHealthDamage(damageInfo.amount);
-                    break;
-                    
-                case DamageType.Core:
-                    _enemyController.TakeCoreDamage(damageInfo.amount);
-                    break;
+                DamageType damageType = kvp.Key;
+                float damageAmount = kvp.Value;
 
-                case DamageType.Resilience:
-                    _enemyController.TakeResilienceDamage(damageInfo.amount);
-                    break;
-                    
-                case DamageType.Mixed:
-                    float healthDamage = damageInfo.amount * damageInfo.healthRatio;
-                    float resilienceDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
-                    _enemyController.TakeHealthDamage(healthDamage);
-                    _enemyController.TakeResilienceDamage(resilienceDamage);
-                    break;
+                if (damageAmount <= 0f) continue;
+
+                switch (damageType)
+                {
+                    case DamageType.PhysicalHealth:
+                        _enemyController.TakeHealthDamage(damageAmount);
+                        break;
+                        
+                    case DamageType.CoreHealth:
+                        _enemyController.TakeCoreDamage(damageAmount);
+                        break;
+
+                    case DamageType.Chaos:
+                        _enemyController.TakeChaosDamage(damageAmount);
+                        break;
+                }
             }
 
             // Visual and audio feedback
             ShowDamageEffect(damageInfo);
             PlayHitAudio(damageInfo);
 
-            Debug.Log($"EnemyMonoBehaviour: Took {damageInfo.amount} {damageInfo.type} damage");
-        }
-
-        public void TakeHealthDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _enemyController.TakeHealthDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Health, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Health, damageSource));
-            }
-        }
-
-        public void TakeCoreDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _enemyController.TakeCoreDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Core, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Core, damageSource));
-            }
-        }
-
-        public void TakeResilienceDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _enemyController.TakeResilienceDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Resilience, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Resilience, damageSource));
-            }
+            Debug.Log($"EnemyMonoBehaviour: {damageInfo}");
         }
 
         #endregion
 
-        #region Health Properties
+        #region IDamageable Properties
 
-        public bool IsAlive => IsInitialized && _enemyController.IsAlive;
-        public bool IsCoreAlive => IsInitialized && _enemyController.IsCoreAlive;
-        public bool IsInDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
-        public float CurrentHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
-        public float MaxHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
-        public float CurrentCoreCapacity => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
-        public float MaxCoreCapacity => IsInitialized ? _enemyController.Stats.crystalCore.MaxEnergyCapacity : 0f;
+        /// <summary>
+        /// Physical health state
+        /// </summary>
+        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.Stats.IsAlive 
+            ? PhysicalHealthState.Alive 
+            : PhysicalHealthState.Dead;
+
+        /// <summary>
+        /// Core health state
+        /// </summary>
+        public CoreHealthState CoreState => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.CoreHealthState 
+            : CoreHealthState.Destroyed;
+
+        /// <summary>
+        /// Wave chaos state
+        /// </summary>
+        public WaveChaosState ChaosState => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.ChaosState 
+            : WaveChaosState.Order;
+
+        /// <summary>
+        /// Current physical health
+        /// </summary>
+        public float CurrentPhysicalHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
+
+        /// <summary>
+        /// Max physical health
+        /// </summary>
+        public float MaxPhysicalHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
+
+        /// <summary>
+        /// Current core health
+        /// </summary>
+        public float CurrentCoreHealth => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.CurrentCoreHealth 
+            : 0f;
+
+        /// <summary>
+        /// Max core health
+        /// </summary>
+        public float MaxCoreHealth => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.MaxCoreHealth 
+            : 0f;
+
+        /// <summary>
+        /// Current chaos value
+        /// </summary>
+        public float CurrentChaos => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.CurrentChaos 
+            : 0f;
+
+        /// <summary>
+        /// Max chaos value
+        /// </summary>
+        public float MaxChaos => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.MaxChaos 
+            : 0f;
 
         #endregion
 
@@ -1072,7 +1077,7 @@ namespace Resonance.Enemies
             if (!IsInitialized) return;
 
             _enemyController.Stats.FullRestore();
-            _enemyController.Stats.crystalCore.FullRepair();
+            _enemyController.Stats.crystalCore.FullRepairCoreHealth();
             _enemyController.StateMachine.ChangeState("Normal");
             SetMaterial(_normalMaterial);
             
@@ -1256,7 +1261,9 @@ namespace Resonance.Enemies
             }
             
             Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentHealth:F1}/{stats.maxHealth}, " +
-                     $"Core: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.CurrentEnergyCapacity}, {stateInfo}");
+                     $"Core Energy: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.MaxEnergy}, " +
+                     $"Core Health: {stats.crystalCore.CurrentCoreHealth:F1}/{stats.crystalCore.MaxCoreHealth}, " +
+                     $"{stateInfo}");
         }
 
         void OnDrawGizmos()
@@ -1371,16 +1378,6 @@ namespace Resonance.Enemies
             // Validate chase configuration
             if (_targetUpdateInterval < 0.1f)
                 _targetUpdateInterval = 0.1f;
-            
-            // Validate attack configuration
-            if (_attackDuration < 0.1f)
-                _attackDuration = 0.1f;
-                
-            if (_attackDamage < 0f)
-                _attackDamage = 0f;
-                
-            if (_attackCooldown < 0f)
-                _attackCooldown = 0f;
         }
         
         #endregion

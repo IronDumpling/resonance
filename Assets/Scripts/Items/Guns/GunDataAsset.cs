@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Objects;
 using Resonance.Items.Core;
@@ -105,17 +106,18 @@ namespace Resonance.Items
         [System.NonSerialized] private int _currentAmmo = -1; // -1 means not initialized
         
         [Header("Combat Stats")]
-        public float damage = 25f;
         public float range = 100f;
         public float fireRate = 1f; // shots per second
         
-        [Header("Damage Type")]
-        [Tooltip("Type of damage this weapon deals")]
-        public DamageType damageType = DamageType.Health;
+        [Header("Damage Configuration")]
+        [Tooltip("Physical health damage (affects physical health)")]
+        public float physicalHealthDamage = 25f;
         
-        [Tooltip("For Mixed damage type: ratio of health damage (0-1). 1.0 = all health, 0.0 = all core")]
-        [Range(0f, 1f)]
-        public float healthDamageRatio = 0.5f;
+        [Tooltip("Core health damage (affects crystal core health)")]
+        public float coreHealthDamage = 0f;
+        
+        [Tooltip("Chaos damage (affects crystal core chaos/disorder)")]
+        public float chaosDamage = 0f;
         
         [Header("Accuracy Settings")]
         [Tooltip("Weapon accuracy configuration (required)")]
@@ -162,9 +164,10 @@ namespace Resonance.Items
                 return false;
             }
 
-            if (damage <= 0)
+            // At least one damage type must be > 0
+            if (physicalHealthDamage <= 0 && coreHealthDamage <= 0 && chaosDamage <= 0)
             {
-                Debug.LogError($"GunDataAsset: {weaponName} has invalid damage: {damage}");
+                Debug.LogError($"GunDataAsset: {weaponName} has no valid damage (all damage types are 0)");
                 return false;
             }
 
@@ -245,37 +248,65 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// Create damage info structure
+        /// Create damage info structure with all configured damage types
         /// </summary>
         /// <param name="sourcePosition">Damage source position</param>
         /// <param name="sourceObject">Damage source object</param>
+        /// <param name="damageMultiplier">Optional damage multiplier (from accuracy system)</param>
         /// <returns>Damage info</returns>
-        public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null)
+        public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null, float damageMultiplier = 1f)
         {
+            Dictionary<DamageType, float> damages = new Dictionary<DamageType, float>();
+            
+            // Add each damage type if > 0
+            if (physicalHealthDamage > 0)
+            {
+                damages[DamageType.PhysicalHealth] = physicalHealthDamage * damageMultiplier;
+            }
+            
+            if (coreHealthDamage > 0)
+            {
+                damages[DamageType.CoreHealth] = coreHealthDamage * damageMultiplier;
+            }
+            
+            if (chaosDamage > 0)
+            {
+                damages[DamageType.Chaos] = chaosDamage * damageMultiplier;
+            }
+            
             return new DamageInfo(
-                amount: damage,
-                type: damageType,
+                damages: damages,
                 sourcePosition: sourcePosition,
-                healthRatio: damageType == DamageType.Mixed ? healthDamageRatio : (damageType == DamageType.Health ? 1.0f : 0.0f),
                 sourceObject: sourceObject,
                 description: $"{weaponName} shot"
             );
         }
         
         /// <summary>
-        /// Get damage type description text
+        /// Get damage type description text (lists all active damage types)
         /// </summary>
         /// <returns>Damage type description</returns>
         public string GetDamageTypeDescription()
         {
-            return damageType switch
-            {
-                DamageType.Health => "Health",
-                DamageType.Resilience => "Resilience",
-                DamageType.Core => "Core",
-                DamageType.Mixed => $"Mixed Damage - Health{healthDamageRatio:P0}/Resilience{(1-healthDamageRatio):P0}",
-                _ => "Unknown Damage Type"
-            };
+            List<string> damageTypes = new List<string>();
+            
+            if (physicalHealthDamage > 0)
+                damageTypes.Add($"Physical: {physicalHealthDamage:F0}");
+            if (coreHealthDamage > 0)
+                damageTypes.Add($"Core: {coreHealthDamage:F0}");
+            if (chaosDamage > 0)
+                damageTypes.Add($"Chaos: {chaosDamage:F0}");
+            
+            return damageTypes.Count > 0 ? string.Join(", ", damageTypes) : "No Damage";
+        }
+        
+        /// <summary>
+        /// Get total damage (sum of all damage types)
+        /// </summary>
+        /// <returns>Total damage</returns>
+        public float GetTotalDamage()
+        {
+            return physicalHealthDamage + coreHealthDamage + chaosDamage;
         }
 
         /// <summary>
@@ -292,11 +323,11 @@ namespace Resonance.Items
             copy.weaponDescription = this.weaponDescription;
             copy.maxAmmo = this.maxAmmo;
             copy.ammoType = this.ammoType;
-            copy.damage = this.damage;
             copy.range = this.range;
             copy.fireRate = this.fireRate;
-            copy.damageType = this.damageType;
-            copy.healthDamageRatio = this.healthDamageRatio;
+            copy.physicalHealthDamage = this.physicalHealthDamage;
+            copy.coreHealthDamage = this.coreHealthDamage;
+            copy.chaosDamage = this.chaosDamage;
             copy.accuracyConfig = this.accuracyConfig;
             copy.recoilConfig = this.recoilConfig;
             copy.weaponIcon = this.weaponIcon;
@@ -343,7 +374,9 @@ namespace Resonance.Items
         {
             // Ensure values are within reasonable range
             maxAmmo = Mathf.Max(1, maxAmmo);
-            damage = Mathf.Max(0.1f, damage);
+            physicalHealthDamage = Mathf.Max(0f, physicalHealthDamage);
+            coreHealthDamage = Mathf.Max(0f, coreHealthDamage);
+            chaosDamage = Mathf.Max(0f, chaosDamage);
             range = Mathf.Max(1f, range);
             fireRate = Mathf.Max(0.1f, fireRate);
             gridWidth = Mathf.Clamp(gridWidth, 1, 10);

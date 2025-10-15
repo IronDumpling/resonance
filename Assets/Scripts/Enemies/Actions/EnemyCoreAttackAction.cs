@@ -1,15 +1,17 @@
 using UnityEngine;
 using Resonance.Enemies.Core;
 using Resonance.Interfaces.Operations;
+using Resonance.Utilities;
+using System.Collections.Generic;
 
 namespace Resonance.Enemies.Actions
 {
     /// <summary>
-    /// Enemy attack action - triggers attack animation and manages attack flow
-    /// Only executed in Normal state's Attack sub-state
-    /// Damage is dealt through hitbox during animation window
+    /// Enemy core attack action - attacks player's core health
+    /// Only executed when player is stunned
+    /// Deals CoreHealth damage to break player's crystal core
     /// </summary>
-    public class EnemyAttackAction : IEnemyAction
+    public class EnemyCoreAttackAction : IEnemyAction
     {
         private float _actionTimer = 0f;
         private bool _isFinished = false;
@@ -19,22 +21,26 @@ namespace Resonance.Enemies.Actions
 
         private EnemyController _enemy;
 
-        public string Name => "Attack";
-        public int Priority => 90; // High priority - interrupts most other actions
-        public bool CanInterrupt => true; // Can be interrupted by damage or state changes
+        public string Name => "CoreAttack";
+        public int Priority => 95; // Higher priority than normal attack
+        public bool CanInterrupt => true;
         public bool IsFinished => _isFinished;
 
         public bool CanStart(EnemyController enemy)
         {
-            // Can only attack if:
+            // Can only core attack if:
             // 1. Enemy is alive and can attack
             // 2. Has player target in attack range
-            // 3. Not on attack cooldown
+            // 3. Player is stunned
+            // 4. Not on attack cooldown
             bool canAttack = enemy.CanAttack;
             bool hasTarget = enemy.HasPlayerTarget;
             bool inRange = enemy.IsPlayerInAttackRange();
             
-            bool result = canAttack && hasTarget && inRange;
+            // Check if player is stunned (requires player service)
+            bool playerStunned = IsPlayerStunned(enemy);
+            
+            bool result = canAttack && hasTarget && inRange && playerStunned;
             
             return result;
         }
@@ -64,7 +70,7 @@ namespace Resonance.Enemies.Actions
                 }
             }
             
-            Debug.Log("EnemyAttackAction: Started attack action - will trigger animation");
+            Debug.Log("EnemyCoreAttackAction: Started core attack action - targeting player's core");
         }
 
         public void Update(EnemyController enemy, float deltaTime)
@@ -79,7 +85,7 @@ namespace Resonance.Enemies.Actions
 
         public void Cancel(EnemyController enemy)
         {
-            Debug.Log("EnemyAttackAction: Attack action cancelled");
+            Debug.Log("EnemyCoreAttackAction: Core attack action cancelled");
             
             // Ensure hitbox is disabled when action is cancelled
             if (_hasActivatedHitbox)
@@ -92,25 +98,24 @@ namespace Resonance.Enemies.Actions
 
         public void OnDamageTaken(EnemyController enemy)
         {
-            // Attack action continues even when taking damage
-            // Could add flinch behavior here if needed
+            // Core attack continues even when taking damage
         }
 
         private void HandleWindowOpened()
         {
-            Debug.Log("EnemyAttackAction: Attack window opened");
+            Debug.Log("EnemyCoreAttackAction: Core attack window opened");
             _windowOpened = true;
         }
 
         private void HandleWindowClosed()
         {
-            Debug.Log("EnemyAttackAction: Attack window closed");
+            Debug.Log("EnemyCoreAttackAction: Core attack window closed");
             _windowOpened = false;
         }
 
         private void HandleSequenceFinished()
         {
-            Debug.Log("EnemyAttackAction: Attack sequence finished");
+            Debug.Log("EnemyCoreAttackAction: Core attack sequence finished");
             Finish();
         }
 
@@ -125,5 +130,21 @@ namespace Resonance.Enemies.Actions
                 _enemy.OnAttackWindowClosed -= () => HandleWindowClosed();
             }
         }
+
+        /// <summary>
+        /// Check if player is currently stunned
+        /// </summary>
+        private bool IsPlayerStunned(EnemyController enemy)
+        {
+            // Get player service to access player controller
+            var playerService = ServiceRegistry.Get<Interfaces.Services.IPlayerService>();
+            if (playerService == null || !playerService.HasPlayer) return false;
+            
+            var playerMonoBehaviour = playerService.CurrentPlayer;
+            if (playerMonoBehaviour == null || !playerMonoBehaviour.IsInitialized) return false;
+            
+            return playerMonoBehaviour.Controller.IsStunned;
+        }
     }
 }
+

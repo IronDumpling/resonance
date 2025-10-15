@@ -1,112 +1,171 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Resonance.Utilities
 {
     /// <summary>
     /// Damage type enumeration
-    /// Defines different types of damage and their impact on the new attribute system
+    /// Defines different types of damage in the new system
     /// </summary>
     public enum DamageType
     {
         /// <summary>
-        /// Health damage - Directly affects health value
-        /// For example: Gunshot, explosion, impact, etc.
+        /// Physical Health damage - Directly affects physical health value
+        /// Example: Gunshot, explosion, physical impact
         /// </summary>
-        Health,
+        PhysicalHealth,
         
         /// <summary>
-        /// Resilience damage - Affects resilience value (causes stuns/眩晕)
-        /// For example: Heavy hit, shockwave, counter-attack, etc.
+        /// Core Health damage - Affects crystal core health/capacity
+        /// Example: Core direct hit, resonance shattering attack
         /// </summary>
-        Resilience,
+        CoreHealth,
         
         /// <summary>
-        /// Core damage - Affects core capacity
-        /// For example: Resonance attack, core direct hit, etc.
+        /// Chaos/Disorder damage - Affects core wave chaos value (replaces resilience)
+        /// Example: Heavy hit, shockwave, disruptive attacks
         /// </summary>
-        Core,
-        
-        /// <summary>
-        /// Mixed damage - Affects both health and resilience
-        /// For example: Weapons, environmental damage, etc.
-        /// </summary>
-        Mixed
+        Chaos
     }
     
     /// <summary>
-    /// 伤害信息结构体
-    /// 包含伤害的详细信息
+    /// Damage information structure
+    /// Uses dictionary to support multiple damage types in a single attack
     /// </summary>
     [System.Serializable]
     public struct DamageInfo
     {
         /// <summary>
-        /// 伤害值
+        /// Dictionary of damage types and their values
+        /// Supports up to 3 different damage types per attack
         /// </summary>
-        public float amount;
+        public Dictionary<DamageType, float> damages;
         
         /// <summary>
-        /// 伤害类型
-        /// </summary>
-        public DamageType type;
-        
-        /// <summary>
-        /// 伤害来源位置
+        /// Damage source position
         /// </summary>
         public Vector3 sourcePosition;
         
         /// <summary>
-        /// 伤害来源对象
+        /// Damage source object
         /// </summary>
         public GameObject sourceObject;
         
         /// <summary>
-        /// 伤害描述（可选）
+        /// Optional description
         /// </summary>
         public string description;
         
         /// <summary>
-        /// 对于混合伤害，生命伤害的比例 (0-1)
-        /// 1.0 = 全部生命伤害，0.0 = 全部韧性伤害
+        /// Constructor - single damage type
         /// </summary>
-        public float healthRatio;
+        public DamageInfo(DamageType type, float amount, Vector3 sourcePosition, GameObject sourceObject = null, string description = "")
+        {
+            this.damages = new Dictionary<DamageType, float> { { type, amount } };
+            this.sourcePosition = sourcePosition;
+            this.sourceObject = sourceObject;
+            this.description = description;
+        }
         
         /// <summary>
-        /// 韧性伤害值（用于造成硬直/眩晕）
+        /// Constructor - two damage types
         /// </summary>
-        public float resilienceDamage;
-
-        public DamageInfo(float amount, DamageType type, Vector3 sourcePosition, GameObject sourceObject = null, string description = "")
+        public DamageInfo(DamageType type1, float amount1, DamageType type2, float amount2, 
+                         Vector3 sourcePosition, GameObject sourceObject = null, string description = "")
         {
-            this.amount = amount;
-            this.type = type;
+            this.damages = new Dictionary<DamageType, float> 
+            { 
+                { type1, amount1 },
+                { type2, amount2 }
+            };
             this.sourcePosition = sourcePosition;
             this.sourceObject = sourceObject;
             this.description = description;
-            this.healthRatio = type == DamageType.Health ? 1.0f : 0.0f;
-            this.resilienceDamage = type == DamageType.Resilience ? amount : 0.0f;
         }
         
-        public DamageInfo(float amount, DamageType type, Vector3 sourcePosition, float healthRatio, GameObject sourceObject = null, string description = "")
+        /// <summary>
+        /// Constructor - three damage types
+        /// </summary>
+        public DamageInfo(DamageType type1, float amount1, DamageType type2, float amount2, 
+                         DamageType type3, float amount3, Vector3 sourcePosition, 
+                         GameObject sourceObject = null, string description = "")
         {
-            this.amount = amount;
-            this.type = type;
+            this.damages = new Dictionary<DamageType, float> 
+            { 
+                { type1, amount1 },
+                { type2, amount2 },
+                { type3, amount3 }
+            };
             this.sourcePosition = sourcePosition;
             this.sourceObject = sourceObject;
             this.description = description;
-            this.healthRatio = Mathf.Clamp01(healthRatio);
-            this.resilienceDamage = type == DamageType.Resilience ? amount : 0.0f;
         }
-
-        public DamageInfo(float amount, DamageType type, Vector3 sourcePosition, float healthRatio, float resilienceDamage, GameObject sourceObject = null, string description = "")
+        
+        /// <summary>
+        /// Constructor - from dictionary
+        /// </summary>
+        public DamageInfo(Dictionary<DamageType, float> damages, Vector3 sourcePosition, 
+                         GameObject sourceObject = null, string description = "")
         {
-            this.amount = amount;
-            this.type = type;
+            this.damages = new Dictionary<DamageType, float>(damages);
             this.sourcePosition = sourcePosition;
             this.sourceObject = sourceObject;
             this.description = description;
-            this.healthRatio = Mathf.Clamp01(healthRatio);
-            this.resilienceDamage = Mathf.Max(0f, resilienceDamage);
+        }
+        
+        /// <summary>
+        /// Get damage amount for specific type
+        /// </summary>
+        public float GetDamage(DamageType type)
+        {
+            return damages != null && damages.ContainsKey(type) ? damages[type] : 0f;
+        }
+        
+        /// <summary>
+        /// Check if contains specific damage type
+        /// </summary>
+        public bool HasDamageType(DamageType type)
+        {
+            return damages != null && damages.ContainsKey(type);
+        }
+        
+        /// <summary>
+        /// Get total damage amount (sum of all types)
+        /// </summary>
+        public float GetTotalDamage()
+        {
+            if (damages == null) return 0f;
+            
+            float total = 0f;
+            foreach (var damage in damages.Values)
+            {
+                total += damage;
+            }
+            return total;
+        }
+        
+        /// <summary>
+        /// Get damage types count
+        /// </summary>
+        public int GetDamageTypesCount()
+        {
+            return damages?.Count ?? 0;
+        }
+        
+        /// <summary>
+        /// Get debug string
+        /// </summary>
+        public override string ToString()
+        {
+            if (damages == null || damages.Count == 0)
+                return "No damage";
+            
+            string result = "Damage: ";
+            foreach (var kvp in damages)
+            {
+                result += $"{kvp.Key}={kvp.Value:F1} ";
+            }
+            return result.TrimEnd();
         }
     }
 }

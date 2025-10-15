@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Resonance.Core;
+using Resonance.Core.Data;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
@@ -469,7 +470,7 @@ namespace Resonance.UI
             // Create damage information
             DamageInfo damageInfo = new DamageInfo(
                 amount: damage,
-                type: DamageType.Core,
+                type: DamageType.CoreHealth,
                 sourcePosition: playerPosition,
                 sourceObject: playerObject,
                 description: "Wave QTE Core Damage"
