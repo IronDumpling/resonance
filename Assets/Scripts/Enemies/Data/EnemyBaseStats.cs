@@ -47,12 +47,6 @@ namespace Resonance.Enemies.Data
         public float revivalRate = 20f;
         
         [Header("战斗属性 - Combat Attributes")]
-        // [Tooltip("普通攻击伤害")]
-        // public float physicalDamage = 20f;
-        // [Tooltip("晶核攻击伤害")]
-        // public float coreDamage = 10f;
-        // [Tooltip("紊乱伤害")]
-        // public float chaosDamage = 10f;
         [Tooltip("普通攻击伤害")]
         public AttackStats normalAttackStats;
         [Tooltip("晶核攻击伤害")]

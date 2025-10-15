@@ -991,12 +991,9 @@ namespace Resonance.Enemies
             if (_bodyRenderer != null && _damageMaterial != null)
             {
                 Material originalMaterial = _bodyRenderer.material;
-                _bodyRenderer.material = _damageMaterial;
-                
+                SetMaterial(_damageMaterial);
                 yield return new WaitForSeconds(_baseStats.damageFlashDuration);
-                
-                // Restore appropriate material based on state
-                RestoreStateMaterial();
+                SetMaterial(originalMaterial);
             }
         }
 
@@ -1005,24 +1002,6 @@ namespace Resonance.Enemies
             if (_bodyRenderer != null && material != null)
             {
                 _bodyRenderer.material = material;
-            }
-        }
-
-        private void RestoreStateMaterial()
-        {
-            if (!IsInitialized) return;
-
-            if (_enemyController.StateMachine.IsReviving())
-            {
-                SetMaterial(_revivalMaterial);
-            }
-            else if (_enemyController.StateMachine.IsPhysicallyDead() || _enemyController.StateMachine.IsTrulyDead())
-            {
-                SetMaterial(_damageMaterial);
-            }
-            else
-            {
-                SetMaterial(_normalMaterial);
             }
         }
 

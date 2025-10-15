@@ -1,8 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+using System.Collections;
 using System.Collections.Generic;
-
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Player.Triggers;
@@ -34,8 +33,9 @@ namespace Resonance.Player
         [SerializeField] private LayerMask _edgeDetectionLayerMask = 1;
         [SerializeField] private float _edgeRaycastHeight = 0.5f;
 
-        [Header("Player Rotation")]
+        [Header("Player Visual Components")]
         [SerializeField] private Transform _playerVisual;
+        [SerializeField] private Renderer _playerBodyRenderer;
         [SerializeField] private float _playerRotationSpeed = 8f;
         
         [Header("Right Arm Animation")]
@@ -56,6 +56,10 @@ namespace Resonance.Player
         private IInteractionService _interactionService;
         private CoreAttackTrigger _coreAttackTrigger;
         private PlayerInteractTrigger _playerInteractTrigger;
+
+        // Visual Materials
+        private Material _normalMaterial;
+        private Material _damageMaterial;
 
         // Physics
         private bool _isGrounded;
@@ -86,7 +90,7 @@ namespace Resonance.Player
             }
 
             // Ensure Visual child object is properly configured for interaction
-            SetupVisualForInteraction();
+            SetupVisualComponents();
 
             InitializePlayer();
         }
@@ -131,6 +135,12 @@ namespace Resonance.Player
 
             // Initialize PlayerInteractTrigger
             InitializePlayerInteractTrigger();
+
+            // Load materials
+            LoadResources();
+
+            // Set initial material
+            SetMaterial(_normalMaterial);
 
             Debug.Log("PlayerMonoBehaviour: Initialized and registered");
         }
@@ -181,7 +191,7 @@ namespace Resonance.Player
 
         #region Player Initialization
 
-        private void SetupVisualForInteraction()
+        private void SetupVisualComponents()
         {
             Debug.Log($"PlayerMonoBehaviour: Setting up Visual child for interaction");
             
@@ -234,6 +244,20 @@ namespace Resonance.Player
                     collider.tag = "Player";
                     Debug.Log($"PlayerMonoBehaviour: Set Player tag on child collider: {collider.name}");
                 }
+            }
+
+            Transform bodyTransform = visualChild.Find("Body");
+            if (bodyTransform != null)
+            {
+                _playerBodyRenderer = bodyTransform.GetComponent<Renderer>();
+                if (_playerBodyRenderer == null)
+                {
+                    Debug.LogError("PlayerMonoBehaviour: No Renderer found on Body child");
+                }
+            }
+            else
+            {
+                Debug.LogError("PlayerMonoBehaviour: No Body child found on Visual child");
             }
         }
 
@@ -980,14 +1004,10 @@ namespace Resonance.Player
                 _playerController.TakeChaosDamage(damageAmount);
             }
 
-            // TODO: Visual and audio feedback
+            ShowDamageEffect(damageInfo);
             
             Debug.Log($"PlayerMonoBehaviour: {damageInfo}");
         }
-
-        #endregion
-
-        #region IDamageable Properties
 
         /// <summary>
         /// Physical health state
@@ -1047,6 +1067,52 @@ namespace Resonance.Player
         public float MaxChaos => IsInitialized && _playerController.Stats.crystalCore != null 
             ? _playerController.Stats.crystalCore.MaxChaos 
             : 0f;
+
+        #endregion
+
+        #region Visual Effects
+
+        private void LoadResources()
+        {
+            _normalMaterial = Resources.Load<Material>(_baseStats.NormalMaterialPath);
+            if (_normalMaterial == null)
+            {
+                Debug.LogError($"PlayerMonoBehaviour: Failed to load normal material from {_baseStats.NormalMaterialPath}");
+            }
+
+            _damageMaterial = Resources.Load<Material>(_baseStats.DamageMaterialPath);
+            if (_damageMaterial == null)
+            {
+                Debug.LogError($"PlayerMonoBehaviour: Failed to load damage material from {_baseStats.DamageMaterialPath}");
+            }
+        }
+
+        private void SetMaterial(Material material)
+        {
+            if (_playerBodyRenderer != null && material != null)
+            {
+                _playerBodyRenderer.material = material;
+            }
+        }
+
+        private void ShowDamageEffect(DamageInfo damageInfo)
+        {
+            if (_playerBodyRenderer != null && _damageMaterial != null)
+            {
+                StartCoroutine(DamageFlashCoroutine());
+            }
+        }
+
+        private IEnumerator DamageFlashCoroutine()
+        {
+            if (_playerBodyRenderer != null && _damageMaterial != null)
+            {
+                Material originalMaterial = _playerBodyRenderer.material;
+                SetMaterial(_damageMaterial);
+                yield return new WaitForSeconds(_baseStats.DamageFlashDuration);
+                SetMaterial(originalMaterial);
+            }
+        }
 
         #endregion
 

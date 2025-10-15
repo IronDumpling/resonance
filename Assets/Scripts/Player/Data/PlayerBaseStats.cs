@@ -49,7 +49,15 @@ namespace Resonance.Player.Data
         [SerializeField] private LayerMask _interactionLayerMask = 1 << 7; // Layer 7 (Interactable)
         [Tooltip("晶核交互层级")]
         [SerializeField] private LayerMask _coreInteractionLayerMask = 1 << 8; // Layer 8 (Core Interactable)
-        
+
+        [Header("视觉效果 - Visual Effects")]
+        [Tooltip("正常状态材质路径")]
+        [SerializeField] private string _normalMaterialPath = "Art/Materials/Player_Body";
+        [Tooltip("受伤状态材质路径")]
+        [SerializeField] private string _damageMaterialPath = "Art/Materials/Damage_Body";
+        [Tooltip("受伤闪烁持续时间")]
+        [SerializeField] private float _damageFlashDuration = 0.2f;
+
         // 生存属性访问器
         public float MaxHealth => _maxHealth;
         public float InvulnerabilityTime => _invulnerabilityTime;
@@ -73,6 +81,11 @@ namespace Resonance.Player.Data
         public float InteractionRange => _interactionRange;
         public LayerMask InteractionLayerMask => _interactionLayerMask;
         public LayerMask CoreInteractionLayerMask => _coreInteractionLayerMask;
+
+        // 视觉效果访问器
+        public string NormalMaterialPath => _normalMaterialPath;
+        public string DamageMaterialPath => _damageMaterialPath;
+        public float DamageFlashDuration => _damageFlashDuration;
 
         /// <summary>
         /// 创建运行时属性实例
@@ -168,6 +181,11 @@ namespace Resonance.Player.Data
         public LayerMask interactionLayerMask;
         public LayerMask coreInteractionLayerMask;
 
+        [Header("视觉效果 - Visual Effects")]
+        public string normalMaterialPath;
+        public string damageMaterialPath;
+        public float damageFlashDuration;
+
         [Header("状态等级 - Status Tiers")]
         public HealthTier healthTier;
 
@@ -209,6 +227,11 @@ namespace Resonance.Player.Data
             interactionRange = baseStats.InteractionRange;
             interactionLayerMask = baseStats.InteractionLayerMask;
             coreInteractionLayerMask = baseStats.CoreInteractionLayerMask;
+
+            // 复制视觉效果
+            normalMaterialPath = baseStats.NormalMaterialPath;
+            damageMaterialPath = baseStats.DamageMaterialPath;
+            damageFlashDuration = baseStats.DamageFlashDuration;
 
             // 初始化状态等级
             UpdateHealthTier();

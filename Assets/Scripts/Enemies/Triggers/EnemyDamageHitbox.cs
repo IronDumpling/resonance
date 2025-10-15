@@ -214,17 +214,14 @@ namespace Resonance.Enemies
         /// </summary>
         private bool AttemptDamage(IDamageable target, Collider targetCollider)
         {
-            
-            Damages damages = new Damages();
-            damages.SetDamage(DamageType.Chaos, _enemyController.ChaosDamageValue);
-            damages.SetDamage(DamageType.PhysicalHealth, _enemyController.PhysicalDamageValue);
+            Damages damages = _enemyController.NormalAttackStats.damages;
 
             // Create damage info
             DamageInfo damageInfo = new DamageInfo(
                 damages: damages,
                 sourcePosition: transform.position,
                 sourceObject: gameObject,
-                description: "Enemy melee attack"
+                description: "Enemy normal attack"
             );
 
             // Use the controller's damage system (handles modifiers, cooldowns, etc.)

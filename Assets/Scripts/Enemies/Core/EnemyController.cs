@@ -137,11 +137,8 @@ namespace Resonance.Enemies.Core
         public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
         
         // Animation-driven combat properties (read-only for animation bridge)
-        public float PhysicalDamageValue => _stats.normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth);
-        public float ChaosDamageValue => _stats.normalAttackStats.damages.GetDamage(DamageType.Chaos);
-        public float CoreDamageValue => _stats.normalAttackStats.damages.GetDamage(DamageType.CoreHealth);
-        public float AttackCooldownValue => _stats.normalAttackStats.cooldown;
-        public float AttackDurationValue => _stats.normalAttackStats.duration;
+        public AttackStats NormalAttackStats => _stats.normalAttackStats;
+        public AttackStats CoreAttackStats => _stats.coreAttackStats;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
         public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
         public float LastAttackTime => _lastAttackTime;
