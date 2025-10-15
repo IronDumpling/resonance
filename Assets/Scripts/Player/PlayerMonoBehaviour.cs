@@ -957,18 +957,22 @@ namespace Resonance.Player
         /// <summary>
         /// Take damage using the new damage system
         /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// IMPORTANT: Chaos damage is processed LAST to avoid blocking other damage types with stun
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
             if (!IsInitialized || damageInfo.damages == null) return;
 
-            // Process each damage type in the DamageInfo
+            // Process non-Chaos damage types first
             foreach (var kvp in damageInfo.damages)
             {
                 DamageType damageType = kvp.Key;
                 float damageAmount = kvp.Value;
 
                 if (damageAmount <= 0f) continue;
+                
+                // Skip Chaos damage in first pass
+                if (damageType == DamageType.Chaos) continue;
 
                 switch (damageType)
                 {
@@ -979,10 +983,16 @@ namespace Resonance.Player
                     case DamageType.CoreHealth:
                         _playerController.TakeCoreDamage(damageAmount);
                         break;
-
-                    case DamageType.Chaos:
-                        _playerController.TakeChaosDamage(damageAmount);
-                        break;
+                }
+            }
+            
+            // Process Chaos damage LAST (after all other damage has been applied)
+            // This ensures other damage types are not blocked by the stun state triggered by Chaos
+            if (damageInfo.damages.TryGetValue(DamageType.Chaos, out float chaosDamage))
+            {
+                if (chaosDamage > 0f)
+                {
+                    _playerController.TakeChaosDamage(chaosDamage);
                 }
             }
             

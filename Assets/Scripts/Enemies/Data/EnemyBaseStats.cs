@@ -43,7 +43,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("晶核攻击伤害")]
         public float coreDamage = 10f;
         [Tooltip("紊乱伤害")]
-        public float chaosDamage = 15f;
+        public float chaosDamage = 10f;
         [Tooltip("攻击冷却时间")]
         public float attackCooldown = 2f;
         [Tooltip("攻击持续时间")]

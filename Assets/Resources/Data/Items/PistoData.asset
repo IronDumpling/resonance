@@ -16,11 +16,11 @@ MonoBehaviour:
   weaponDescription: A basic firearm
   maxAmmo: 8
   ammoType: Pisto
-  damage: 30
   range: 30
   fireRate: 1
-  damageType: 3
-  healthDamageRatio: 0.5
+  physicalHealthDamage: 20
+  coreHealthDamage: 0
+  chaosDamage: 0
   accuracyConfig:
     baseRadius: 50
     minRadius: 20

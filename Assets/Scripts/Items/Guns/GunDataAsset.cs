@@ -111,7 +111,7 @@ namespace Resonance.Items
         
         [Header("Damage Configuration")]
         [Tooltip("Physical health damage (affects physical health)")]
-        public float physicalHealthDamage = 25f;
+        public float physicalHealthDamage = 20f;
         
         [Tooltip("Core health damage (affects crystal core health)")]
         public float coreHealthDamage = 0f;

@@ -15,7 +15,7 @@ MonoBehaviour:
   initialMaxCoreHealth: 90
   energyPerSlot: 30
   startWithFullEnergy: 0
-  waveConfig: {fileID: 0}
+  waveConfig: {fileID: 11400000, guid: 9d985aa11fa0f2f47a9fe381d41dde3f, type: 2}
   canUpgradeMaxHealth: 1
   healthUpgradeStep: 30
   maxUpgradeableHealth: 300
