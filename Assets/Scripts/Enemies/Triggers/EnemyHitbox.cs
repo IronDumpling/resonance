@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Interfaces;
 using Resonance.Utilities;
-using Resonance.Utilities.Wave;
+using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies

@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Utilities;
 using DG.Tweening;
 
-namespace Resonance.Utilities.Wave
+namespace Resonance.Utilities.Waves
 {
     /// <summary>
     /// QTE configuration data structure

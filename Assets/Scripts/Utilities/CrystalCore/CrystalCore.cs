@@ -1,6 +1,6 @@
 using UnityEngine;
 using Resonance.Utilities;
-using Resonance.Utilities.Wave;
+using Resonance.Utilities.Waves;
 
 namespace Resonance.Utilities.CrystalCore
 {
@@ -34,7 +34,7 @@ namespace Resonance.Utilities.CrystalCore
         [SerializeField] private float _maxEnergy;
         
         [Header("Core Wave")]
-        [SerializeField] private Wave.Wave _wave;
+        [SerializeField] private Wave _wave;
         
         #endregion
         
@@ -70,7 +70,7 @@ namespace Resonance.Utilities.CrystalCore
         
         #region Properties - Core Wave
         
-        public Wave.Wave Wave => _wave;
+        public Wave Wave => _wave;
         public float CurrentChaos => _wave?.CurrentChaos ?? 0f;
         public float MaxChaos => _wave?.MaxChaos ?? 0f;
         public float ChaosThreshold => _wave?.ChaosThreshold ?? 0f;
@@ -121,12 +121,12 @@ namespace Resonance.Utilities.CrystalCore
                 // 波纹系统初始化 - 使用WaveConfig或legacy参数
                 if (config.waveConfig != null)
                 {
-                    _wave = new Wave.Wave(config.waveConfig);
+                    _wave = new Wave(config.waveConfig);
                 }
                 else
                 {
                     // Legacy fallback - 使用默认值
-                    _wave = new Wave.Wave(100f, 18f, qteConfig);
+                    _wave = new Wave(100f, 18f, qteConfig);
                 }
             }
             else
@@ -139,7 +139,7 @@ namespace Resonance.Utilities.CrystalCore
                 _currentEnergy = 0f;
                 
                 // 默认波纹配置
-                _wave = new Wave.Wave(100f, 18f, qteConfig);
+                _wave = new Wave(100f, 18f, qteConfig);
             }
 
             UpdateCalculatedValues();

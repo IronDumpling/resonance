@@ -248,12 +248,12 @@ namespace Resonance.Enemies.Data
         public bool showAttackRange;
 
         [Header("状态等级 - Status Tiers")]
-        public EnemyHealthTier healthTier;
+        public HealthTier healthTier;
         public EnemyLifeState lifeState;
 
         // 事件系统
         public System.Action<float, float> OnHealthChanged; // current, max
-        public System.Action<EnemyHealthTier> OnHealthTierChanged;
+        public System.Action<HealthTier> OnHealthTierChanged;
         public System.Action<EnemyLifeState> OnLifeStateChanged;
         
         // 属性访问器
@@ -325,8 +325,8 @@ namespace Resonance.Enemies.Data
         public void UpdateHealthTier()
         {
             var previousTier = healthTier;
-            healthTier = EnemyHealthTierHelper.CalculateHealthTier(HealthPercentage);
-            chaosRecoveryRate = EnemyHealthTierHelper.GetChaosRecoveryRate(healthTier);
+            healthTier = HealthTierHelper.CalculateHealthTier(HealthPercentage);
+            chaosRecoveryRate = HealthTierHelper.GetChaosRecoveryRate(healthTier);
 
             if (previousTier != healthTier)
             {
@@ -342,7 +342,7 @@ namespace Resonance.Enemies.Data
         {
             var previousState = lifeState;
             CoreHealthState coreState = crystalCore?.CoreHealthState ?? CoreHealthState.Destroyed;
-            lifeState = EnemyHealthTierHelper.CalculateLifeState(currentHealth, coreState);
+            lifeState = EnemyLifeStateHelper.CalculateLifeState(currentHealth, coreState);
 
             if (previousState != lifeState)
             {
@@ -412,7 +412,7 @@ namespace Resonance.Enemies.Data
         {
             if (!IsAlive) return 0f;
             
-            float speedMultiplier = EnemyHealthTierHelper.GetSpeedMultiplier(healthTier);
+            float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
             return moveSpeed * speedMultiplier;
         }
         
@@ -423,7 +423,7 @@ namespace Resonance.Enemies.Data
         {
             if (!IsAlive) return 0f;
             
-            float speedMultiplier = EnemyHealthTierHelper.GetSpeedMultiplier(healthTier);
+            float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
             return chaseMoveSpeed * speedMultiplier;
         }
 

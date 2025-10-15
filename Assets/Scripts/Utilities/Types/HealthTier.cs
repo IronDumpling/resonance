@@ -1,11 +1,7 @@
-using Resonance.Utilities.CrystalCore;
+using UnityEngine;
 
-namespace Resonance.Player.Data
+namespace Resonance.Utilities
 {
-    /// <summary>
-    /// 玩家生命值等级
-    /// 基于生命值百分比阈值, 影响晶核紊乱值恢复速度
-    /// </summary>
     public enum HealthTier
     {
         Healthy,    // 80-100% - 健康状态, 紊乱值恢复 -3/s
@@ -14,7 +10,7 @@ namespace Resonance.Player.Data
         Critical    // 0-30% - 濒死状态, 紊乱值恢复 -0.2/s
     }
 
-    /// <summary>
+     /// <summary>
     /// 健康等级辅助类
     /// 提供健康等级相关的计算和配置
     /// </summary>

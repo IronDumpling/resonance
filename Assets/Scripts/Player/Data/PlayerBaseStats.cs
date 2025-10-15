@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Resonance.Utilities;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Player.Data

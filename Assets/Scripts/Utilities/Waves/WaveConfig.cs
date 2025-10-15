@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Utilities.Wave
+namespace Resonance.Utilities.Waves
 {
     /// <summary>
     /// Wave configuration data structure

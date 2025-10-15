@@ -75,7 +75,7 @@ namespace Resonance.Enemies.Core
         public System.Action OnRevivalCompleted; // Revival completed
         
         // Health Tier Events
-        public System.Action<EnemyHealthTier> OnPhysicalTierChanged;
+        public System.Action<HealthTier> OnPhysicalTierChanged;
         public System.Action<CrystalEnergyTier> OnCoreTierChanged;
         
         // Combat Events
@@ -126,7 +126,7 @@ namespace Resonance.Enemies.Core
         public bool IsInPhysicalDeathState => _stats.IsAlive == false;
         
         // Health Tier Properties
-        public EnemyHealthTier HealthTier => _stats.healthTier;
+        public HealthTier HealthTier => _stats.healthTier;
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         
         // Combat Properties

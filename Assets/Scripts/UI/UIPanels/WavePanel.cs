@@ -4,7 +4,7 @@ using TMPro;
 using Resonance.Core;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
-using Resonance.Utilities.Wave;
+using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 using Resonance.Utilities;
 using Resonance.Enemies;
