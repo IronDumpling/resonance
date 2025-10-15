@@ -27,7 +27,96 @@ namespace Resonance.Utilities
         /// </summary>
         Chaos
     }
-    
+
+    [System.Serializable]
+    public class Damages
+    {
+        [SerializeField] private float physicalDamage = 0f;
+        [SerializeField] private float coreDamage = 0f;
+        [SerializeField] private float chaosDamage = 0f;
+
+        public Damages()
+        {
+            physicalDamage = 0f;
+            coreDamage = 0f;
+            chaosDamage = 0f;
+        }
+
+        public Damages(List<KeyValuePair<DamageType, float>> damages)
+        {
+            foreach (var damage in damages)
+            {
+                switch (damage.Key)
+                {
+                    case DamageType.PhysicalHealth:
+                        physicalDamage = damage.Value;
+                        break;
+                    case DamageType.CoreHealth:
+                        coreDamage = damage.Value;
+                        break;
+                    case DamageType.Chaos:
+                        chaosDamage = damage.Value;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        public float GetDamage(DamageType type)
+        {
+            switch (type)
+            {
+                case DamageType.PhysicalHealth:
+                    return physicalDamage;
+                case DamageType.CoreHealth:
+                    return coreDamage;
+                case DamageType.Chaos:
+                    return chaosDamage;
+                default:
+                    return 0f;
+            }
+        }
+
+        public int GetCount()
+        {
+            return (physicalDamage > 0 ? 1 : 0) + (coreDamage > 0 ? 1 : 0) + (chaosDamage > 0 ? 1 : 0);
+        }
+
+        public bool HasDamage(DamageType type)
+        {
+            return GetDamage(type) > 0f;
+        }
+
+        public float GetTotalDamage()
+        {
+            return physicalDamage + coreDamage + chaosDamage;
+        }
+
+        public override string ToString()
+        {
+            return $"Physical: {physicalDamage:F1}, Core: {coreDamage:F1}, Chaos: {chaosDamage:F1}";
+        }
+
+        public void SetDamage(DamageType type, float damage)
+        {
+            switch (type)
+            {
+                case DamageType.PhysicalHealth:
+                    physicalDamage = damage;
+                    break;
+                case DamageType.CoreHealth:
+                    coreDamage = damage;
+                    break;
+                case DamageType.Chaos:
+                    chaosDamage = damage;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     /// <summary>
     /// Damage information structure
     /// Uses dictionary to support multiple damage types in a single attack
@@ -39,7 +128,7 @@ namespace Resonance.Utilities
         /// Dictionary of damage types and their values
         /// Supports up to 3 different damage types per attack
         /// </summary>
-        public Dictionary<DamageType, float> damages;
+        public Damages damages;
         
         /// <summary>
         /// Damage source position
@@ -59,55 +148,22 @@ namespace Resonance.Utilities
         /// <summary>
         /// Constructor - single damage type
         /// </summary>
-        public DamageInfo(DamageType type, float amount, Vector3 sourcePosition, GameObject sourceObject = null, string description = "")
+        public DamageInfo(List<KeyValuePair<DamageType, float>> damages, Vector3 sourcePosition, 
+                        GameObject sourceObject = null, string description = "")
         {
-            this.damages = new Dictionary<DamageType, float> { { type, amount } };
+            this.damages = new Damages(damages);
             this.sourcePosition = sourcePosition;
             this.sourceObject = sourceObject;
             this.description = description;
         }
-        
+
         /// <summary>
-        /// Constructor - two damage types
+        /// Constructor - from damages
         /// </summary>
-        public DamageInfo(DamageType type1, float amount1, DamageType type2, float amount2, 
-                         Vector3 sourcePosition, GameObject sourceObject = null, string description = "")
+        public DamageInfo(Damages damages, Vector3 sourcePosition, 
+                        GameObject sourceObject = null, string description = "")
         {
-            this.damages = new Dictionary<DamageType, float> 
-            { 
-                { type1, amount1 },
-                { type2, amount2 }
-            };
-            this.sourcePosition = sourcePosition;
-            this.sourceObject = sourceObject;
-            this.description = description;
-        }
-        
-        /// <summary>
-        /// Constructor - three damage types
-        /// </summary>
-        public DamageInfo(DamageType type1, float amount1, DamageType type2, float amount2, 
-                         DamageType type3, float amount3, Vector3 sourcePosition, 
-                         GameObject sourceObject = null, string description = "")
-        {
-            this.damages = new Dictionary<DamageType, float> 
-            { 
-                { type1, amount1 },
-                { type2, amount2 },
-                { type3, amount3 }
-            };
-            this.sourcePosition = sourcePosition;
-            this.sourceObject = sourceObject;
-            this.description = description;
-        }
-        
-        /// <summary>
-        /// Constructor - from dictionary
-        /// </summary>
-        public DamageInfo(Dictionary<DamageType, float> damages, Vector3 sourcePosition, 
-                         GameObject sourceObject = null, string description = "")
-        {
-            this.damages = new Dictionary<DamageType, float>(damages);
+            this.damages = damages;
             this.sourcePosition = sourcePosition;
             this.sourceObject = sourceObject;
             this.description = description;
@@ -118,7 +174,8 @@ namespace Resonance.Utilities
         /// </summary>
         public float GetDamage(DamageType type)
         {
-            return damages != null && damages.ContainsKey(type) ? damages[type] : 0f;
+            if (damages == null) return 0f;
+            return damages.GetDamage(type);
         }
         
         /// <summary>
@@ -126,7 +183,7 @@ namespace Resonance.Utilities
         /// </summary>
         public bool HasDamageType(DamageType type)
         {
-            return damages != null && damages.ContainsKey(type);
+            return damages != null && damages.HasDamage(type);
         }
         
         /// <summary>
@@ -136,20 +193,7 @@ namespace Resonance.Utilities
         {
             if (damages == null) return 0f;
             
-            float total = 0f;
-            foreach (var damage in damages.Values)
-            {
-                total += damage;
-            }
-            return total;
-        }
-        
-        /// <summary>
-        /// Get damage types count
-        /// </summary>
-        public int GetDamageTypesCount()
-        {
-            return damages?.Count ?? 0;
+            return damages.GetTotalDamage();
         }
         
         /// <summary>
@@ -157,14 +201,11 @@ namespace Resonance.Utilities
         /// </summary>
         public override string ToString()
         {
-            if (damages == null || damages.Count == 0)
+            if (damages == null || damages.GetCount() == 0)
                 return "No damage";
             
             string result = "Damage: ";
-            foreach (var kvp in damages)
-            {
-                result += $"{kvp.Key}={kvp.Value:F1} ";
-            }
+            result += damages.ToString();
             return result.TrimEnd();
         }
     }

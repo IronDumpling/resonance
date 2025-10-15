@@ -227,13 +227,13 @@ namespace Resonance.Player.Shooting
             }
             
             // Create base damage dictionary (weapon's raw damage without multipliers)
-            Dictionary<DamageType, float> baseDamages = new Dictionary<DamageType, float>();
+            Damages baseDamages = new Damages();
             if (gunData.physicalHealthDamage > 0)
-                baseDamages[DamageType.PhysicalHealth] = gunData.physicalHealthDamage;
+                baseDamages.SetDamage(DamageType.PhysicalHealth, gunData.physicalHealthDamage);
             if (gunData.coreHealthDamage > 0)
-                baseDamages[DamageType.CoreHealth] = gunData.coreHealthDamage;
+                baseDamages.SetDamage(DamageType.CoreHealth, gunData.coreHealthDamage);
             if (gunData.chaosDamage > 0)
-                baseDamages[DamageType.Chaos] = gunData.chaosDamage;
+                baseDamages.SetDamage(DamageType.Chaos, gunData.chaosDamage);
             
             // Calculate total base damage for logging
             float baseTotalDamage = gunData.GetTotalDamage();
@@ -277,8 +277,8 @@ namespace Resonance.Player.Shooting
                 endPosition = endPoint,
                 direction = shootDirection,
                 range = gunData.range,
-                baseDamages = new Dictionary<DamageType, float>(baseDamages), // Copy base damages
-                actualDamages = new Dictionary<DamageType, float>(), // Will be populated in ProcessHit
+                baseDamages = baseDamages, // Copy base damages
+                actualDamages = new Damages(), // Will be populated in ProcessHit
                 mouseTargetPoint = baseTargetPoint
             };
 
@@ -639,10 +639,10 @@ namespace Resonance.Player.Shooting
         /// <param name="gunData">Gun data asset (required)</param>
         /// <param name="damageMultiplier">Damage multiplier from accuracy</param>
         /// <returns>Dictionary of actual damage dealt by type</returns>
-        private Dictionary<DamageType, float> ProcessHit(RaycastHit hitInfo, Vector3 damageSource, GunDataAsset gunData, float damageMultiplier = 1f)
+        private Damages ProcessHit(RaycastHit hitInfo, Vector3 damageSource, GunDataAsset gunData, float damageMultiplier = 1f)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
-            Dictionary<DamageType, float> actualDamages = new Dictionary<DamageType, float>();
+            Damages actualDamages = new Damages();
             
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
@@ -661,10 +661,7 @@ namespace Resonance.Player.Shooting
                 // Extract actual damages from modified damage info
                 if (modifiedDamageInfo.damages != null)
                 {
-                    foreach (var kvp in modifiedDamageInfo.damages)
-                    {
-                        actualDamages[kvp.Key] = kvp.Value;
-                    }
+                    actualDamages = modifiedDamageInfo.damages;
                 }
                 
                 float totalActualDamage = modifiedDamageInfo.GetTotalDamage();
@@ -725,10 +722,7 @@ namespace Resonance.Player.Shooting
                 // Extract actual damages - assume all damage was dealt (no reduction tracking for now)
                 if (damageInfo.damages != null)
                 {
-                    foreach (var kvp in damageInfo.damages)
-                    {
-                        actualDamages[kvp.Key] = kvp.Value;
-                    }
+                    actualDamages = damageInfo.damages;
                 }
                 
                 float totalActualDamage = damageInfo.GetTotalDamage();
@@ -751,7 +745,7 @@ namespace Resonance.Player.Shooting
                 destructible.TakeDamage(totalDamage, damageSource);
                 
                 // Record as physical health damage (destructible objects only take physical damage)
-                actualDamages[DamageType.PhysicalHealth] = totalDamage;
+                actualDamages.SetDamage(DamageType.PhysicalHealth, totalDamage);
                 
                 PlayHitAudio(hitInfo.point, destructibleObject);
                 OnHit?.Invoke(hitInfo.point, destructibleObject, totalDamage);

@@ -256,22 +256,22 @@ namespace Resonance.Items
         /// <returns>Damage info</returns>
         public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null, float damageMultiplier = 1f)
         {
-            Dictionary<DamageType, float> damages = new Dictionary<DamageType, float>();
+            Damages damages = new Damages();
             
             // Add each damage type if > 0
             if (physicalHealthDamage > 0)
             {
-                damages[DamageType.PhysicalHealth] = physicalHealthDamage * damageMultiplier;
+                damages.SetDamage(DamageType.PhysicalHealth, physicalHealthDamage * damageMultiplier);
             }
             
             if (coreHealthDamage > 0)
             {
-                damages[DamageType.CoreHealth] = coreHealthDamage * damageMultiplier;
+                damages.SetDamage(DamageType.CoreHealth, coreHealthDamage * damageMultiplier);
             }
             
             if (chaosDamage > 0)
             {
-                damages[DamageType.Chaos] = chaosDamage * damageMultiplier;
+                damages.SetDamage(DamageType.Chaos, chaosDamage * damageMultiplier);
             }
             
             return new DamageInfo(

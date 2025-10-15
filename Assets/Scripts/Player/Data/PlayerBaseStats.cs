@@ -15,6 +15,8 @@ namespace Resonance.Player.Data
         [Header("生存属性 - Survival Attributes")]
         [Tooltip("最大生命值")]
         [SerializeField] private float _maxHealth = 100f;
+        [Tooltip("无敌时间")]
+        [SerializeField] private float _invulnerabilityTime = 1f;
 
         [Header("晶核属性 - Crystal Core Attributes")]
         [Tooltip("晶核配置")]
@@ -50,6 +52,7 @@ namespace Resonance.Player.Data
         
         // 生存属性访问器
         public float MaxHealth => _maxHealth;
+        public float InvulnerabilityTime => _invulnerabilityTime;
 
         // 晶核属性访问器
         public CrystalCoreConfig CrystalCoreConfig => _crystalCoreConfig;
@@ -111,6 +114,7 @@ namespace Resonance.Player.Data
         {
             // 确保数值在合理范围内
             _maxHealth = Mathf.Max(1f, _maxHealth);
+            _invulnerabilityTime = Mathf.Max(0f, _invulnerabilityTime);
             _healthRestoreValue = Mathf.Max(0f, _healthRestoreValue);
 
             // 移动速度验证
@@ -141,7 +145,8 @@ namespace Resonance.Player.Data
         [Header("生存属性 - Survival Attributes")]
         public float currentHealth;
         public float maxHealth;
-
+        public float invulnerabilityTime;
+        
         [Header("晶核属性 - Crystal Core Attributes")]
         public CrystalCore crystalCore;
         public float healthRestoreValue;
@@ -182,6 +187,7 @@ namespace Resonance.Player.Data
             // 复制生存属性
             maxHealth = baseStats.MaxHealth;
             currentHealth = maxHealth; // 开始时满生命值
+            invulnerabilityTime = baseStats.InvulnerabilityTime;
 
             // 复制晶核属性
             // 玩家使用默认 QTE 配置

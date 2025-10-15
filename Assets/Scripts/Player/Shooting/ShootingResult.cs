@@ -19,10 +19,10 @@ namespace Resonance.Player.Shooting
         public float range;           // Shooting distance
         
         // Damage tracking - base damage (before multipliers/modifiers)
-        public Dictionary<DamageType, float> baseDamages;
+        public Damages baseDamages;
         
         // Damage tracking - actual damage dealt (after all multipliers/modifiers)
-        public Dictionary<DamageType, float> actualDamages;
+        public Damages actualDamages;
         
         public Vector3 mouseTargetPoint; // Mouse pointing target point (stage 1 result)
         
@@ -39,12 +39,7 @@ namespace Resonance.Player.Shooting
         {
             if (baseDamages == null) return 0f;
             
-            float total = 0f;
-            foreach (var damage in baseDamages.Values)
-            {
-                total += damage;
-            }
-            return total;
+            return baseDamages.GetTotalDamage();
         }
         
         /// <summary>
@@ -54,12 +49,7 @@ namespace Resonance.Player.Shooting
         {
             if (actualDamages == null) return 0f;
             
-            float total = 0f;
-            foreach (var damage in actualDamages.Values)
-            {
-                total += damage;
-            }
-            return total;
+            return actualDamages.GetTotalDamage();
         }
         
         /// <summary>
@@ -67,7 +57,7 @@ namespace Resonance.Player.Shooting
         /// </summary>
         public float GetBaseDamage(DamageType type)
         {
-            return baseDamages != null && baseDamages.ContainsKey(type) ? baseDamages[type] : 0f;
+            return baseDamages != null && baseDamages.HasDamage(type) ? baseDamages.GetDamage(type) : 0f;
         }
         
         /// <summary>
@@ -75,7 +65,7 @@ namespace Resonance.Player.Shooting
         /// </summary>
         public float GetActualDamage(DamageType type)
         {
-            return actualDamages != null && actualDamages.ContainsKey(type) ? actualDamages[type] : 0f;
+            return actualDamages != null && actualDamages.HasDamage(type) ? actualDamages.GetDamage(type) : 0f;
         }
         
         /// <summary>
@@ -83,15 +73,9 @@ namespace Resonance.Player.Shooting
         /// </summary>
         public string GetDamageBreakdown()
         {
-            if (actualDamages == null || actualDamages.Count == 0)
+            if (actualDamages == null || actualDamages.GetCount() == 0)
                 return "No damage";
-            
-            string result = "Actual: ";
-            foreach (var kvp in actualDamages)
-            {
-                result += $"{kvp.Key}={kvp.Value:F1} ";
-            }
-            return result.TrimEnd();
+            return actualDamages.ToString();
         }
     }
 }

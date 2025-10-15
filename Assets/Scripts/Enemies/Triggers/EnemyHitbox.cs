@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Resonance.Interfaces;
 using Resonance.Utilities;
 using Resonance.Utilities.Waves;
@@ -170,7 +171,7 @@ namespace Resonance.Enemies
                 {
                     Debug.LogWarning($"EnemyHitbox: Cannot process damage - not initialized or no enemy reference");
                 }
-                return new DamageInfo(new System.Collections.Generic.Dictionary<DamageType, float>(), Vector3.zero);
+                return new DamageInfo(new List<KeyValuePair<DamageType, float>>(), Vector3.zero);
             }
 
             if (_debugMode)
@@ -271,46 +272,31 @@ namespace Resonance.Enemies
         /// <returns>Modified damage info</returns>
         private DamageInfo ModifyDamage(DamageInfo originalDamage, Vector3 hitPoint)
         {
-            if (originalDamage.damages == null || originalDamage.damages.Count == 0)
+            if (originalDamage.damages == null || originalDamage.damages.GetCount() == 0)
             {
                 return originalDamage;
             }
 
             // Create new damage dictionary with modified values
-            var modifiedDamages = new System.Collections.Generic.Dictionary<DamageType, float>();
+            Damages modifiedDamages = new Damages();
 
-            foreach (var kvp in originalDamage.damages)
+            if (originalDamage.damages.HasDamage(DamageType.PhysicalHealth))
             {
-                DamageType damageType = kvp.Key;
-                float originalAmount = kvp.Value;
-                float modifiedAmount = originalAmount;
-
-                // Apply multipliers based on damage type
-                switch (damageType)
-                {
-                    case DamageType.PhysicalHealth:
-                        modifiedAmount *= physicalHealthMultiplier;
-                        break;
-                        
-                    case DamageType.CoreHealth:
-                        modifiedAmount *= coreHealthMultiplier;
-                        break;
-                        
-                    case DamageType.Chaos:
-                        modifiedAmount *= chaosMultiplier;
-                        break;
-                }
-
-                // Only add damage if the result is > 0
-                if (modifiedAmount > 0f)
-                {
-                    modifiedDamages[damageType] = modifiedAmount;
-                }
-
-                if (_debugMode && modifiedAmount != originalAmount)
-                {
-                    Debug.Log($"EnemyHitbox ({type}): Modified {damageType} damage from {originalAmount:F1} to {modifiedAmount:F1} (x{GetMultiplier(damageType):F2})");
-                }
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.PhysicalHealth);
+                float modifiedAmount = originalAmount * physicalHealthMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.PhysicalHealth, modifiedAmount);
+            }
+            if (originalDamage.damages.HasDamage(DamageType.CoreHealth))
+            {
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.CoreHealth);
+                float modifiedAmount = originalAmount * coreHealthMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.CoreHealth, modifiedAmount);
+            }
+            if (originalDamage.damages.HasDamage(DamageType.Chaos))
+            {
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
+                float modifiedAmount = originalAmount * chaosMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Chaos, modifiedAmount);
             }
 
             // Create modified damage info

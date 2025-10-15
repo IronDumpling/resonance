@@ -19,7 +19,7 @@ namespace Resonance.Enemies.Actions
 
         private EnemyController _enemy;
 
-        public string Name => "Attack";
+        public string Name => "NormalAttack";
         public int Priority => 90; // High priority - interrupts most other actions
         public bool CanInterrupt => true; // Can be interrupted by damage or state changes
         public bool IsFinished => _isFinished;

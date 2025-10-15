@@ -961,40 +961,26 @@ namespace Resonance.Player
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            if (!IsInitialized || damageInfo.damages == null) return;
-
-            // Process non-Chaos damage types first
-            foreach (var kvp in damageInfo.damages)
-            {
-                DamageType damageType = kvp.Key;
-                float damageAmount = kvp.Value;
-
-                if (damageAmount <= 0f) continue;
-                
-                // Skip Chaos damage in first pass
-                if (damageType == DamageType.Chaos) continue;
-
-                switch (damageType)
-                {
-                    case DamageType.PhysicalHealth:
-                        _playerController.TakeHealthDamage(damageAmount);
-                        break;
-                        
-                    case DamageType.CoreHealth:
-                        _playerController.TakeCoreDamage(damageAmount);
-                        break;
-                }
-            }
+            Damages damages = damageInfo.damages;
+            if (!IsInitialized || damages == null) return;
             
-            // Process Chaos damage LAST (after all other damage has been applied)
-            // This ensures other damage types are not blocked by the stun state triggered by Chaos
-            if (damageInfo.damages.TryGetValue(DamageType.Chaos, out float chaosDamage))
+            if (damages.HasDamage(DamageType.PhysicalHealth))
             {
-                if (chaosDamage > 0f)
-                {
-                    _playerController.TakeChaosDamage(chaosDamage);
-                }
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                _playerController.TakeHealthDamage(damageAmount);
             }
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                _playerController.TakeCoreDamage(damageAmount);
+            }
+            if (damages.HasDamage(DamageType.Chaos))
+            {
+                float damageAmount = damages.GetDamage(DamageType.Chaos);
+                _playerController.TakeChaosDamage(damageAmount);
+            }
+
+            // TODO: Visual and audio feedback
             
             Debug.Log($"PlayerMonoBehaviour: {damageInfo}");
         }

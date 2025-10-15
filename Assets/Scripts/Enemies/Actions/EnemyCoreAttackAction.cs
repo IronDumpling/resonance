@@ -31,16 +31,13 @@ namespace Resonance.Enemies.Actions
             // Can only core attack if:
             // 1. Enemy is alive and can attack
             // 2. Has player target in attack range
-            // 3. Player is stunned
-            // 4. Not on attack cooldown
+            // 3. Not on attack cooldown
+            // 5. Player wave is in chaos state
             bool canAttack = enemy.CanAttack;
             bool hasTarget = enemy.HasPlayerTarget;
             bool inRange = enemy.IsPlayerInAttackRange();
             
-            // Check if player is stunned (requires player service)
-            bool playerStunned = IsPlayerStunned(enemy);
-            
-            bool result = canAttack && hasTarget && inRange && playerStunned;
+            bool result = canAttack && hasTarget && inRange;
             
             return result;
         }
@@ -129,21 +126,6 @@ namespace Resonance.Enemies.Actions
                 _enemy.OnAttackWindowOpened -= () => HandleWindowOpened();
                 _enemy.OnAttackWindowClosed -= () => HandleWindowClosed();
             }
-        }
-
-        /// <summary>
-        /// Check if player is currently stunned
-        /// </summary>
-        private bool IsPlayerStunned(EnemyController enemy)
-        {
-            // Get player service to access player controller
-            var playerService = ServiceRegistry.Get<Interfaces.Services.IPlayerService>();
-            if (playerService == null || !playerService.HasPlayer) return false;
-            
-            var playerMonoBehaviour = playerService.CurrentPlayer;
-            if (playerMonoBehaviour == null || !playerMonoBehaviour.IsInitialized) return false;
-            
-            return playerMonoBehaviour.Controller.IsStunned;
         }
     }
 }

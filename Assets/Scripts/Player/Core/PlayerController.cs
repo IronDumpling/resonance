@@ -69,7 +69,11 @@ namespace Resonance.Player.Core
         public bool IsAlive => _stats.IsAlive;
         public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == Utilities.CoreHealthState.Intact;
         public bool IsCoreDestroyed => _stats.IsCoreDestroyed;
-        
+
+        // State Properties
+        public bool IsAiming => CurrentState == "Aiming";
+        public bool IsStunned => CurrentState == "Stun";
+
         // Health Tier Properties
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         public HealthTier HealthTier => _stats.healthTier;
@@ -78,8 +82,6 @@ namespace Resonance.Player.Core
         public bool CanConsumeSlot => _stats.crystalCore.CanConsumeSlot();
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
-        public bool IsAiming => CurrentState == "Aiming";
-        public bool IsStunned => CurrentState == "Stun";
         public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
         public PlayerActionController PlayerActionController => _actionController;
@@ -149,7 +151,7 @@ namespace Resonance.Player.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            UpdateChaos(deltaTime);
+            UpdateTimers(deltaTime);
             _movement.Update(deltaTime);
             _stateMachine?.Update();
             _actionController.Update(deltaTime);
@@ -161,10 +163,14 @@ namespace Resonance.Player.Core
         private float _stunEndTime = 0f;
         private bool _isInStun = false;
 
+        // Invulnerability tracking
+        private float _invulnerabilityEndTime = 0f;
+        private bool _isInvulnerable = false;
+
         /// <summary>
         /// Update chaos (natural recovery)
         /// </summary>
-        private void UpdateChaos(float deltaTime)
+        private void UpdateTimers(float deltaTime)
         {
             _stats.UpdateChaos(deltaTime);
             
@@ -172,6 +178,13 @@ namespace Resonance.Player.Core
             if (_isInStun && Time.time >= _stunEndTime)
             {
                 ExitStun();
+            }
+
+            // Check if invulnerability time has expired
+            if (_isInvulnerable && Time.time >= _invulnerabilityEndTime)
+            {
+                _isInvulnerable = false;
+                Debug.Log("PlayerController: Invulnerability ended");
             }
         }
 
@@ -227,7 +240,14 @@ namespace Resonance.Player.Core
         /// </summary>
         public void TakeHealthDamage(float damage)
         {
-            if (!IsAlive || _isInStun) return; // Cannot take damage while stunned
+            if (!IsAlive) return;
+
+            // Check invulnerability
+            if (_isInvulnerable)
+            {
+                Debug.Log("PlayerController: Damage blocked by invulnerability");
+                return;
+            }
 
             // Store old tier for comparison
             var oldHealthTier = _stats.healthTier;
@@ -257,6 +277,14 @@ namespace Resonance.Player.Core
             // Play hit audio effect
             PlayHitAudio();
 
+            // Start invulnerability period
+            if (_stats.invulnerabilityTime > 0f)
+            {
+                _isInvulnerable = true;
+                _invulnerabilityEndTime = Time.time + _stats.invulnerabilityTime;
+                Debug.Log($"PlayerController: Invulnerability started for {_stats.invulnerabilityTime}s");
+            }
+
             if (_stats.currentHealth <= 0f)
             {
                 HandleDeath();
@@ -272,7 +300,7 @@ namespace Resonance.Player.Core
         /// </summary>
         public void TakeCoreDamage(float damage)
         {
-            if (!IsCoreAlive || _isInStun) return; // Cannot take damage while stunned
+            if (!IsCoreAlive) return;
 
             // Store old tier for comparison
             var oldCoreTier = _stats.crystalCore.EnergyTier;
@@ -304,7 +332,14 @@ namespace Resonance.Player.Core
         /// </summary>
         public void TakeChaosDamage(float damage)
         {
-            if (!IsCoreAlive || _isInStun) return; // Cannot take damage while stunned
+            if (!IsCoreAlive) return;
+
+            // Check invulnerability
+            if (_isInvulnerable)
+            {
+                Debug.Log("PlayerController: Chaos damage blocked by invulnerability");
+                return;
+            }
             
             AddChaos(damage);
         }

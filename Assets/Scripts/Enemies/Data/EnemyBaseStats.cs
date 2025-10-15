@@ -5,6 +5,15 @@ using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Data
 {
+    [System.Serializable]
+    public struct AttackStats
+    {
+        public Damages damages;
+        public float cooldown;
+        public float duration;
+        public float range;
+    }
+    
     /// <summary>
     /// 敌人基础属性配置
     /// 定义敌人的基准属性数据
@@ -38,18 +47,17 @@ namespace Resonance.Enemies.Data
         public float revivalRate = 20f;
         
         [Header("战斗属性 - Combat Attributes")]
+        // [Tooltip("普通攻击伤害")]
+        // public float physicalDamage = 20f;
+        // [Tooltip("晶核攻击伤害")]
+        // public float coreDamage = 10f;
+        // [Tooltip("紊乱伤害")]
+        // public float chaosDamage = 10f;
         [Tooltip("普通攻击伤害")]
-        public float physicalDamage = 20f;
+        public AttackStats normalAttackStats;
         [Tooltip("晶核攻击伤害")]
-        public float coreDamage = 10f;
-        [Tooltip("紊乱伤害")]
-        public float chaosDamage = 10f;
-        [Tooltip("攻击冷却时间")]
-        public float attackCooldown = 2f;
-        [Tooltip("攻击持续时间")]
-        public float attackDuration = 0.5f;
-        [Tooltip("攻击范围")]
-        public float attackRange = 3f;
+        public AttackStats coreAttackStats;
+
         [Tooltip("检测范围")]
         public float detectionRange = 8f;
         
@@ -135,9 +143,15 @@ namespace Resonance.Enemies.Data
                 return false;
             }
 
-            if (physicalDamage <= 0)
+            if (normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth) <= 0)
             {
-                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid normal damage: {physicalDamage}");
+                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid normal damage: {normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth)}");
+                return false;
+            }
+
+            if (coreAttackStats.damages.GetDamage(DamageType.CoreHealth) <= 0)
+            {
+                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid core damage: {coreAttackStats.damages.GetDamage(DamageType.CoreHealth)}");
                 return false;
             }
 
@@ -163,12 +177,20 @@ namespace Resonance.Enemies.Data
             revivalRate = Mathf.Max(0.1f, revivalRate);
             
             // 战斗属性验证
-            physicalDamage = Mathf.Max(0.1f, physicalDamage);
-            coreDamage = Mathf.Max(0f, coreDamage);
-            chaosDamage = Mathf.Max(0f, chaosDamage);
-            attackCooldown = Mathf.Max(0.1f, attackCooldown);
-            attackDuration = Mathf.Max(0.1f, attackDuration);
-            attackRange = Mathf.Max(0.1f, attackRange);
+            float physicalDamage = Mathf.Max(0.1f, normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth));
+            float chaosDamage = Mathf.Max(0.1f, normalAttackStats.damages.GetDamage(DamageType.Chaos));
+            normalAttackStats.damages.SetDamage(DamageType.PhysicalHealth, physicalDamage);
+            normalAttackStats.damages.SetDamage(DamageType.Chaos, chaosDamage);
+            normalAttackStats.cooldown = Mathf.Max(0.1f, normalAttackStats.cooldown);
+            normalAttackStats.duration = Mathf.Max(0.1f, normalAttackStats.duration);
+            normalAttackStats.range = Mathf.Max(0.1f, normalAttackStats.range);
+
+            float coreDamage = Mathf.Max(0.1f, coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
+            coreAttackStats.damages.SetDamage(DamageType.CoreHealth, coreDamage);
+            coreAttackStats.cooldown = Mathf.Max(0.1f, coreAttackStats.cooldown);
+            coreAttackStats.duration = Mathf.Max(0.1f, coreAttackStats.duration);
+            coreAttackStats.range = Mathf.Max(0.1f, coreAttackStats.range);
+
             detectionRange = Mathf.Max(0.1f, detectionRange);
             
             // 移动属性验证
@@ -212,12 +234,8 @@ namespace Resonance.Enemies.Data
         public float revivalRate;
         
         [Header("战斗属性 - Combat Attributes")]
-        public float physicalDamage;
-        public float coreDamage;
-        public float chaosDamage;
-        public float attackCooldown;
-        public float attackDuration;
-        public float attackRange;
+        public AttackStats normalAttackStats;
+        public AttackStats coreAttackStats;
         public float detectionRange;
         
         [Header("移动属性 - Movement Attributes")]
@@ -280,12 +298,8 @@ namespace Resonance.Enemies.Data
             revivalRate = baseStats.revivalRate;
             
             // 战斗属性
-            physicalDamage = baseStats.physicalDamage;
-            coreDamage = baseStats.coreDamage;
-            chaosDamage = baseStats.chaosDamage;
-            attackCooldown = baseStats.attackCooldown;
-            attackDuration = baseStats.attackDuration;
-            attackRange = baseStats.attackRange;
+            normalAttackStats = baseStats.normalAttackStats;
+            coreAttackStats = baseStats.coreAttackStats;
             detectionRange = baseStats.detectionRange;
             
             // 移动属性

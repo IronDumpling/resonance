@@ -131,18 +131,17 @@ namespace Resonance.Enemies.Core
         
         // Combat Properties
         public bool CanAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                Time.time >= _lastAttackTime + _stats.attackCooldown &&
-                                !IsPlayerStunned(); // Cannot normal attack stunned player, can only do core attack
+                                Time.time >= _lastAttackTime + _stats.normalAttackStats.cooldown;
         
         // Position Properties
         public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
         
         // Animation-driven combat properties (read-only for animation bridge)
-        public float PhysicalDamageValue => _stats.physicalDamage;
-        public float CoreDamageValue => _stats.coreDamage;
-        public float ChaosDamageValue => _stats.chaosDamage;
-        public float AttackCooldownValue => _stats.attackCooldown;
-        public float AttackDurationValue => _stats.attackDuration;
+        public float PhysicalDamageValue => _stats.normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth);
+        public float ChaosDamageValue => _stats.normalAttackStats.damages.GetDamage(DamageType.Chaos);
+        public float CoreDamageValue => _stats.normalAttackStats.damages.GetDamage(DamageType.CoreHealth);
+        public float AttackCooldownValue => _stats.normalAttackStats.cooldown;
+        public float AttackDurationValue => _stats.normalAttackStats.duration;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
         public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
         public float LastAttackTime => _lastAttackTime;
@@ -410,7 +409,7 @@ namespace Resonance.Enemies.Core
             _attacksLaunched++;
             
             // Trigger attack started event (for animation system)
-            OnAttackLaunched?.Invoke(_stats.physicalDamage);
+            OnAttackLaunched?.Invoke(_stats.normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth));
             Debug.Log($"EnemyController: Attack process started - damage will be dealt through hitbox");
             
             return true;
@@ -538,25 +537,6 @@ namespace Resonance.Enemies.Core
         {
             // This will be set by the trigger system
             return HasPlayerTarget;
-        }
-
-        #endregion
-
-        #region Player State Checking
-
-        /// <summary>
-        /// Check if the player is currently stunned
-        /// </summary>
-        private bool IsPlayerStunned()
-        {
-            // Get player service to access player controller
-            var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService == null || !playerService.HasPlayer) return false;
-            
-            var playerMonoBehaviour = playerService.CurrentPlayer;
-            if (playerMonoBehaviour == null || !playerMonoBehaviour.IsInitialized) return false;
-            
-            return playerMonoBehaviour.Controller.IsStunned;
         }
 
         #endregion

@@ -692,7 +692,7 @@ namespace Resonance.Enemies
 
             if (_attackCollider != null)
             {
-                _attackCollider.radius = _baseStats.attackRange;
+                _attackCollider.radius = _baseStats.normalAttackStats.range;
             }
         }
         
@@ -755,30 +755,23 @@ namespace Resonance.Enemies
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            if (!IsInitialized || damageInfo.damages == null) return;
-
-            // Process each damage type in the DamageInfo
-            foreach (var kvp in damageInfo.damages)
+            Damages damages = damageInfo.damages;
+            if (!IsInitialized || damages == null) return;
+            
+            if (damages.HasDamage(DamageType.PhysicalHealth))
             {
-                DamageType damageType = kvp.Key;
-                float damageAmount = kvp.Value;
-
-                if (damageAmount <= 0f) continue;
-
-                switch (damageType)
-                {
-                    case DamageType.PhysicalHealth:
-                        _enemyController.TakeHealthDamage(damageAmount);
-                        break;
-                        
-                    case DamageType.CoreHealth:
-                        _enemyController.TakeCoreDamage(damageAmount);
-                        break;
-
-                    case DamageType.Chaos:
-                        _enemyController.TakeChaosDamage(damageAmount);
-                        break;
-                }
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                _enemyController.TakeHealthDamage(damageAmount);
+            }
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                _enemyController.TakeCoreDamage(damageAmount);
+            }
+            if (damages.HasDamage(DamageType.Chaos))
+            {
+                float damageAmount = damages.GetDamage(DamageType.Chaos);
+                _enemyController.TakeChaosDamage(damageAmount);
             }
 
             // Visual and audio feedback
@@ -1316,7 +1309,7 @@ namespace Resonance.Enemies
             if (_baseStats != null && _baseStats.showAttackRange)
             {
                 Gizmos.color = Color.red;
-                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.attackRange;
+                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.normalAttackStats.range;
                 Gizmos.DrawWireSphere(transform.position, attackRadius);
             }
             

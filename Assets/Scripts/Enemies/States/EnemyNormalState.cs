@@ -179,7 +179,7 @@ namespace Resonance.Enemies.States
             }
             
             // AttackAction handles the actual attacking behavior
-            EnsureActionIsRunning("Attack");
+            EnsureActionIsRunning("NormalAttack");
         }
 
         #endregion
@@ -272,9 +272,9 @@ namespace Resonance.Enemies.States
                     break;
                     
                 case EnemySubState.Combat:
-                    Debug.Log($"EnemyNormalState: Attempting to start Attack action");
-                    bool attackStarted = actionController.TryStartAction("Attack");
-                    Debug.Log($"EnemyNormalState: Attack action started: {attackStarted}");
+                    Debug.Log($"EnemyNormalState: Attempting to start NormalAttack action");
+                    bool attackStarted = actionController.TryStartAction("NormalAttack");
+                    Debug.Log($"EnemyNormalState: NormalAttack action started: {attackStarted}");
                     break;
             }
         }
@@ -297,9 +297,14 @@ namespace Resonance.Enemies.States
                 actionController.RegisterAction(new EnemyChaseAction());
             }
             
-            if (!actionController.HasAction("Attack"))
+            if (!actionController.HasAction("NormalAttack"))
             {
                 actionController.RegisterAction(new EnemyNormalAttackAction());
+            }
+
+            if (!actionController.HasAction("CoreAttack"))
+            {
+                actionController.RegisterAction(new EnemyCoreAttackAction());
             }
         }
         
@@ -332,7 +337,8 @@ namespace Resonance.Enemies.States
             // Unregister all actions
             actionController.UnregisterAction("Patrol");
             actionController.UnregisterAction("Chase");
-            actionController.UnregisterAction("Attack");
+            actionController.UnregisterAction("CoreAttack");
+            actionController.UnregisterAction("NormalAttack");
         }
         
         #endregion

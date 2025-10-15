@@ -467,11 +467,13 @@ namespace Resonance.UI
             var playerService = ServiceRegistry.Get<IPlayerService>();
             Vector3 playerPosition = playerService?.CurrentPlayer?.transform.position ?? Vector3.zero;
             GameObject playerObject = playerService?.CurrentPlayer?.gameObject;
+
+            Damages damages = new Damages();
+            damages.SetDamage(DamageType.CoreHealth, damage);
             
             // Create damage information
             DamageInfo damageInfo = new DamageInfo(
-                amount: damage,
-                type: DamageType.CoreHealth,
+                damages: damages,
                 sourcePosition: playerPosition,
                 sourceObject: playerObject,
                 description: "Wave QTE Core Damage"

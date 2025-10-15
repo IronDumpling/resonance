@@ -215,11 +215,9 @@ namespace Resonance.Enemies
         private bool AttemptDamage(IDamageable target, Collider targetCollider)
         {
             
-            Dictionary<DamageType, float> damages = new Dictionary<DamageType, float>
-            {
-                { DamageType.Chaos, _enemyController.ChaosDamageValue },
-                { DamageType.PhysicalHealth, _enemyController.PhysicalDamageValue }
-            };
+            Damages damages = new Damages();
+            damages.SetDamage(DamageType.Chaos, _enemyController.ChaosDamageValue);
+            damages.SetDamage(DamageType.PhysicalHealth, _enemyController.PhysicalDamageValue);
 
             // Create damage info
             DamageInfo damageInfo = new DamageInfo(
