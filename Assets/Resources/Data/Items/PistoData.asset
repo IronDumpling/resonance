@@ -18,9 +18,10 @@ MonoBehaviour:
   ammoType: Pisto
   range: 30
   fireRate: 1
-  physicalHealthDamage: 20
-  coreHealthDamage: 0
-  chaosDamage: 0
+  damages:
+    physicalDamage: 20
+    coreDamage: 0
+    chaosDamage: 0
   accuracyConfig:
     baseRadius: 50
     minRadius: 20

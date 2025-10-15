@@ -110,14 +110,7 @@ namespace Resonance.Items
         public float fireRate = 1f; // shots per second
         
         [Header("Damage Configuration")]
-        [Tooltip("Physical health damage (affects physical health)")]
-        public float physicalHealthDamage = 15f;
-        
-        [Tooltip("Core health damage (affects crystal core health)")]
-        public float coreHealthDamage = 0f;
-        
-        [Tooltip("Chaos damage (affects crystal core chaos/disorder)")]
-        public float chaosDamage = 10f;
+        public Damages damages;
         
         [Header("Accuracy Settings")]
         [Tooltip("Weapon accuracy configuration (required)")]
@@ -164,8 +157,7 @@ namespace Resonance.Items
                 return false;
             }
 
-            // At least one damage type must be > 0
-            if (physicalHealthDamage <= 0 && coreHealthDamage <= 0 && chaosDamage <= 0)
+            if (damages.GetCount() == 0)
             {
                 Debug.LogError($"WeaponDataAsset: {weaponName} has no valid damage (all damage types are 0)");
                 return false;
@@ -255,22 +247,23 @@ namespace Resonance.Items
         /// <param name="damageMultiplier">Optional damage multiplier (from accuracy system)</param>
         /// <returns>Damage info</returns>
         public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null, float damageMultiplier = 1f)
-        {
-            Damages damages = new Damages();
-            
+        {            
             // Add each damage type if > 0
-            if (physicalHealthDamage > 0)
+            if (damages.HasDamage(DamageType.PhysicalHealth))
             {
+                float physicalHealthDamage = damages.GetDamage(DamageType.PhysicalHealth);
                 damages.SetDamage(DamageType.PhysicalHealth, physicalHealthDamage * damageMultiplier);
             }
             
-            if (coreHealthDamage > 0)
+            if (damages.HasDamage(DamageType.CoreHealth))
             {
+                float coreHealthDamage = damages.GetDamage(DamageType.CoreHealth);
                 damages.SetDamage(DamageType.CoreHealth, coreHealthDamage * damageMultiplier);
             }
             
-            if (chaosDamage > 0)
+            if (damages.HasDamage(DamageType.Chaos))
             {
+                float chaosDamage = damages.GetDamage(DamageType.Chaos);
                 damages.SetDamage(DamageType.Chaos, chaosDamage * damageMultiplier);
             }
             
@@ -290,12 +283,12 @@ namespace Resonance.Items
         {
             List<string> damageTypes = new List<string>();
             
-            if (physicalHealthDamage > 0)
-                damageTypes.Add($"Physical: {physicalHealthDamage:F0}");
-            if (coreHealthDamage > 0)
-                damageTypes.Add($"Core: {coreHealthDamage:F0}");
-            if (chaosDamage > 0)
-                damageTypes.Add($"Chaos: {chaosDamage:F0}");
+            if (damages.HasDamage(DamageType.PhysicalHealth))
+                damageTypes.Add($"Physical: {damages.GetDamage(DamageType.PhysicalHealth):F0}");
+            if (damages.HasDamage(DamageType.CoreHealth))
+                damageTypes.Add($"Core: {damages.GetDamage(DamageType.CoreHealth):F0}");
+            if (damages.HasDamage(DamageType.Chaos))
+                damageTypes.Add($"Chaos: {damages.GetDamage(DamageType.Chaos):F0}");
             
             return damageTypes.Count > 0 ? string.Join(", ", damageTypes) : "No Damage";
         }
@@ -306,7 +299,7 @@ namespace Resonance.Items
         /// <returns>Total damage</returns>
         public float GetTotalDamage()
         {
-            return physicalHealthDamage + coreHealthDamage + chaosDamage;
+            return damages.GetTotalDamage();
         }
 
         /// <summary>
@@ -325,9 +318,7 @@ namespace Resonance.Items
             copy.ammoType = this.ammoType;
             copy.range = this.range;
             copy.fireRate = this.fireRate;
-            copy.physicalHealthDamage = this.physicalHealthDamage;
-            copy.coreHealthDamage = this.coreHealthDamage;
-            copy.chaosDamage = this.chaosDamage;
+            copy.damages = this.damages;
             copy.accuracyConfig = this.accuracyConfig;
             copy.recoilConfig = this.recoilConfig;
             copy.weaponIcon = this.weaponIcon;
@@ -374,9 +365,6 @@ namespace Resonance.Items
         {
             // Ensure values are within reasonable range
             maxAmmo = Mathf.Max(1, maxAmmo);
-            physicalHealthDamage = Mathf.Max(0f, physicalHealthDamage);
-            coreHealthDamage = Mathf.Max(0f, coreHealthDamage);
-            chaosDamage = Mathf.Max(0f, chaosDamage);
             range = Mathf.Max(1f, range);
             fireRate = Mathf.Max(0.1f, fireRate);
             gridWidth = Mathf.Clamp(gridWidth, 1, 10);

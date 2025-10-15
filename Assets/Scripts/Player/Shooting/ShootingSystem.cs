@@ -227,13 +227,7 @@ namespace Resonance.Player.Shooting
             }
             
             // Create base damage dictionary (weapon's raw damage without multipliers)
-            Damages baseDamages = new Damages();
-            if (gunData.physicalHealthDamage > 0)
-                baseDamages.SetDamage(DamageType.PhysicalHealth, gunData.physicalHealthDamage);
-            if (gunData.coreHealthDamage > 0)
-                baseDamages.SetDamage(DamageType.CoreHealth, gunData.coreHealthDamage);
-            if (gunData.chaosDamage > 0)
-                baseDamages.SetDamage(DamageType.Chaos, gunData.chaosDamage);
+            Damages baseDamages = gunData.damages;
             
             // Calculate total base damage for logging
             float baseTotalDamage = gunData.GetTotalDamage();
