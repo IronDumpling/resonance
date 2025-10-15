@@ -10,13 +10,13 @@ using Resonance.Core.GlobalServices;
 namespace Resonance.Items
 {
     /// <summary>
-    /// Gun MonoBehaviour - Handles the visual and interaction system for guns
+    /// Weapon MonoBehaviour - Handles the visual and interaction system for guns
     /// Responsibilities: pickup, equip, interact with gun, visual animations
     /// </summary>
-    public class GunMonoBehaviour : MonoBehaviour, IPickupable, IPausable
+    public class WeaponMonoBehaviour : MonoBehaviour, IPickupable, IPausable
     {
-        [Header("Gun Configuration")]
-        [SerializeField] private GunDataAsset _gunDataAsset;
+        [Header("Weapon Configuration")]
+        [SerializeField] private WeaponDataAsset _gunDataAsset;
         
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "E";
@@ -49,16 +49,16 @@ namespace Resonance.Items
         private IAudioService _audioService;
 
         // Properties
-        public GunDataAsset GunData => _gunDataAsset;
+        public WeaponDataAsset WeaponData => _gunDataAsset;
         public bool IsPickedUp => _isPickedUp;
         public string InteractionText => _interactionText;
 
         void Start()
         {
-            // Validate Gun data asset
+            // Validate Weapon data asset
             if (_gunDataAsset == null)
             {
-                Debug.LogError($"GunMonoBehaviour: No GunDataAsset assigned to {gameObject.name}!");
+                Debug.LogError($"WeaponMonoBehaviour: No WeaponDataAsset assigned to {gameObject.name}!");
                 return;
             }
 
@@ -115,11 +115,11 @@ namespace Resonance.Items
             _audioService = ServiceRegistry.Get<IAudioService>();
             if (_audioService == null)
             {
-                Debug.LogWarning("GunMonoBehaviour: AudioService not found. Audio effects will be disabled.");
+                Debug.LogWarning("WeaponMonoBehaviour: AudioService not found. Audio effects will be disabled.");
             }
             else
             {
-                Debug.Log("GunMonoBehaviour: AudioService connected successfully");
+                Debug.Log("WeaponMonoBehaviour: AudioService connected successfully");
             }
         }
 
@@ -135,13 +135,13 @@ namespace Resonance.Items
                 if (interactUIChild != null)
                 {
                     _interactUI = interactUIChild.gameObject;
-                    Debug.Log($"GunMonoBehaviour: Found InteractUI child object: {interactUIChild.name}");
+                    Debug.Log($"WeaponMonoBehaviour: Found InteractUI child object: {interactUIChild.name}");
                 }
             }
             
             if (_interactUI == null)
             {
-                Debug.LogWarning($"GunMonoBehaviour: No InteractUI found on {gameObject.name}. UI interaction will be disabled.");
+                Debug.LogWarning($"WeaponMonoBehaviour: No InteractUI found on {gameObject.name}. UI interaction will be disabled.");
                 return;
             }
             
@@ -157,11 +157,11 @@ namespace Resonance.Items
             
             if (_interactTextComponent == null)
             {
-                Debug.LogWarning($"GunMonoBehaviour: No TextMeshProUGUI component found in InteractUI on {gameObject.name}");
+                Debug.LogWarning($"WeaponMonoBehaviour: No TextMeshProUGUI component found in InteractUI on {gameObject.name}");
             }
             else
             {
-                Debug.Log($"GunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
+                Debug.Log($"WeaponMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
                 _interactTextComponent.text = _interactionText;
             }
             
@@ -170,7 +170,7 @@ namespace Resonance.Items
                 _interactUI.SetActive(false);
             }
 
-            Debug.Log($"GunMonoBehaviour: Interaction UI setup complete");
+            Debug.Log($"WeaponMonoBehaviour: Interaction UI setup complete");
         }
 
         private void RegisterInteractionService()
@@ -188,11 +188,11 @@ namespace Resonance.Items
             if (pauseService != null)
             {
                 pauseService.RegisterPausable(this);
-                Debug.Log("GunMonoBehaviour: Registered with SelectivePauseService");
+                Debug.Log("WeaponMonoBehaviour: Registered with SelectivePauseService");
             }
             else
             {
-                Debug.LogWarning("GunMonoBehaviour: SelectivePauseService not found, pause functionality will not work");
+                Debug.LogWarning("WeaponMonoBehaviour: SelectivePauseService not found, pause functionality will not work");
             }
         }
 
@@ -263,7 +263,7 @@ namespace Resonance.Items
             if (_isPaused) return;
             
             _isPaused = true;
-            Debug.Log("GunMonoBehaviour: Paused - animations stopped");
+            Debug.Log("WeaponMonoBehaviour: Paused - animations stopped");
             
             // Note: This only pauses visual animations in Update()
             // UI interactions and pickup functionality remain active
@@ -274,7 +274,7 @@ namespace Resonance.Items
             if (!_isPaused) return;
             
             _isPaused = false;
-            Debug.Log("GunMonoBehaviour: Resumed - animations restarted");
+            Debug.Log("WeaponMonoBehaviour: Resumed - animations restarted");
             
             // Animations will resume in the next Update() call
         }
@@ -384,7 +384,7 @@ namespace Resonance.Items
         /// </summary>
         public void OnInventoryFull()
         {
-            Debug.LogWarning($"GunMonoBehaviour: Inventory full! Please organize your inventory to pick up {_gunDataAsset.weaponName}");
+            Debug.LogWarning($"WeaponMonoBehaviour: Inventory full! Please organize your inventory to pick up {_gunDataAsset.weaponName}");
             
             // Reset pickup state but keep item in world
             _isPickedUp = false;
@@ -408,7 +408,7 @@ namespace Resonance.Items
         /// Internal pickup logic - handles cleanup and visual effects
         /// </summary>
         /// <returns>Weapon data copy</returns>
-        private GunDataAsset PerformPickup()
+        private WeaponDataAsset PerformPickup()
         {
             if (_isPickedUp) return null;
 
@@ -418,7 +418,7 @@ namespace Resonance.Items
             PlayPickupAudio(transform.position);
             
             // Create runtime copy
-            GunDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
+            WeaponDataAsset gunCopy = _gunDataAsset.CreateRuntimeCopy();
             
             // Stop all animations
             StopAllCoroutines();
@@ -443,7 +443,7 @@ namespace Resonance.Items
                 gameObject.SetActive(false);
             }
 
-            Debug.Log($"GunMonoBehaviour: PerformPickup complete");
+            Debug.Log($"WeaponMonoBehaviour: PerformPickup complete");
             
             return gunCopy;
         }

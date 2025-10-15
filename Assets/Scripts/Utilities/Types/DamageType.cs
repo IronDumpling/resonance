@@ -11,7 +11,7 @@ namespace Resonance.Utilities
     {
         /// <summary>
         /// Physical Health damage - Directly affects physical health value
-        /// Example: Gunshot, explosion, physical impact
+        /// Example: Weaponshot, explosion, physical impact
         /// </summary>
         PhysicalHealth,
         

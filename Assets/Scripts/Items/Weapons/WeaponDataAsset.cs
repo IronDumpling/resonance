@@ -51,13 +51,13 @@ namespace Resonance.Items
         
         [Header("Accuracy Damage Bonus")]
         [Tooltip("Damage multiplier at perfect aim (min radius)")]
-        public float perfectAimDamageMultiplier = 3.0f;
+        public float perfectAimDamageMultiplier = 2.0f;
         
         [Tooltip("Damage multiplier at base aim")]
         public float baseAimDamageMultiplier = 1.0f;
         
         [Tooltip("Damage multiplier curve (X: 0=worst aim, 1=perfect aim; Y: damage multiplier)")]
-        public AnimationCurve damageMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 1, 3.0f);
+        public AnimationCurve damageMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 1, 2.0f);
     }
     
     /// <summary>
@@ -87,14 +87,14 @@ namespace Resonance.Items
     }
 
     /// <summary>
-    /// Gun data ScriptableObject asset
-    /// Used to create and edit Gun configurations in Unity Editor
+    /// Weapon data ScriptableObject asset
+    /// Used to create and edit Weapon configurations in Unity Editor
     /// </summary>
-    [CreateAssetMenu(fileName = "New Gun Data", menuName = "Resonance/Items/Gun Data", order = 1)]
-    public class GunDataAsset : ScriptableObject, IInfoable
+    [CreateAssetMenu(fileName = "New Weapon Data", menuName = "Resonance/Items/Weapon Data", order = 1)]
+    public class WeaponDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]
-        public string weaponName = "Basic Gun";
+        public string weaponName = "Basic Weapon";
         [TextArea(2, 4)]
         public string weaponDescription = "A basic firearm";
         
@@ -106,18 +106,18 @@ namespace Resonance.Items
         [System.NonSerialized] private int _currentAmmo = -1; // -1 means not initialized
         
         [Header("Combat Stats")]
-        public float range = 100f;
+        public float range = 30f;
         public float fireRate = 1f; // shots per second
         
         [Header("Damage Configuration")]
         [Tooltip("Physical health damage (affects physical health)")]
-        public float physicalHealthDamage = 20f;
+        public float physicalHealthDamage = 15f;
         
         [Tooltip("Core health damage (affects crystal core health)")]
         public float coreHealthDamage = 0f;
         
         [Tooltip("Chaos damage (affects crystal core chaos/disorder)")]
-        public float chaosDamage = 0f;
+        public float chaosDamage = 10f;
         
         [Header("Accuracy Settings")]
         [Tooltip("Weapon accuracy configuration (required)")]
@@ -132,8 +132,8 @@ namespace Resonance.Items
         public GameObject itemPrefab;
         
         [Header("Inventory")]
-        public int gridWidth = 2;
-        public int gridHeight = 3;
+        public int gridWidth = 3;
+        public int gridHeight = 2;
 
         // Runtime Properties
         public int CurrentAmmo 
@@ -147,39 +147,39 @@ namespace Resonance.Items
         }
 
         /// <summary>
-        /// Validate Gun data
+        /// Validate Weapon data
         /// </summary>
         /// <returns>Validation result</returns>
         public bool ValidateData()
         {
             if (string.IsNullOrEmpty(weaponName))
             {
-                Debug.LogError($"GunDataAsset: {name} has empty weapon name");
+                Debug.LogError($"WeaponDataAsset: {name} has empty weapon name");
                 return false;
             }
 
             if (maxAmmo <= 0)
             {
-                Debug.LogError($"GunDataAsset: {weaponName} has invalid max ammo: {maxAmmo}");
+                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid max ammo: {maxAmmo}");
                 return false;
             }
 
             // At least one damage type must be > 0
             if (physicalHealthDamage <= 0 && coreHealthDamage <= 0 && chaosDamage <= 0)
             {
-                Debug.LogError($"GunDataAsset: {weaponName} has no valid damage (all damage types are 0)");
+                Debug.LogError($"WeaponDataAsset: {weaponName} has no valid damage (all damage types are 0)");
                 return false;
             }
 
             if (range <= 0)
             {
-                Debug.LogError($"GunDataAsset: {weaponName} has invalid range: {range}");
+                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid range: {range}");
                 return false;
             }
 
             if (fireRate <= 0)
             {
-                Debug.LogError($"GunDataAsset: {weaponName} has invalid fire rate: {fireRate}");
+                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid fire rate: {fireRate}");
                 return false;
             }
 
@@ -314,9 +314,9 @@ namespace Resonance.Items
         /// Note: This will create a new ScriptableObject instance, for runtime independent weapon state
         /// </summary>
         /// <returns>Weapon copy</returns>
-        public GunDataAsset CreateRuntimeCopy()
+        public WeaponDataAsset CreateRuntimeCopy()
         {
-            var copy = ScriptableObject.CreateInstance<GunDataAsset>();
+            var copy = ScriptableObject.CreateInstance<WeaponDataAsset>();
             
             // Copy all properties
             copy.weaponName = this.weaponName;

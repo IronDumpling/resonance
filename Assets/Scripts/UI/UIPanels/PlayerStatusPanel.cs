@@ -309,7 +309,7 @@ namespace Resonance.UI
             UpdateCoreSlotsUI();
         }
 
-        private void OnWeaponEquipped(GunDataAsset gunData)
+        private void OnWeaponEquipped(WeaponDataAsset gunData)
         {
             UpdateWeaponUI();
         }
@@ -354,14 +354,14 @@ namespace Resonance.UI
             if (_weaponManager == null) return;
             
             bool hasWeapon = _weaponManager.HasEquippedWeapon;
-            GunDataAsset currentGun = _weaponManager.CurrentGun;
+            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
             
             // Update weapon icon
             if (_weaponIcon != null)
             {
-                if (hasWeapon && currentGun != null && currentGun.weaponIcon != null)
+                if (hasWeapon && currentWeapon != null && currentWeapon.weaponIcon != null)
                 {
-                    _weaponIcon.sprite = currentGun.weaponIcon;
+                    _weaponIcon.sprite = currentWeapon.weaponIcon;
                     _weaponIcon.color = Color.white;
                 }
                 else

@@ -31,7 +31,7 @@ namespace Resonance.Player.Shooting
         // Weapon systems
         private WeaponAccuracySystem _accuracySystem;
         private WeaponRecoilSystem _recoilSystem;
-        private GunDataAsset _currentWeapon;
+        private WeaponDataAsset _currentWeapon;
         
         // Shooting line visual effect
         private LineRenderer _shootingLineRenderer;  // Flashing line during shooting
@@ -96,7 +96,7 @@ namespace Resonance.Player.Shooting
         /// Initialize weapon systems with gun data
         /// Called when equipping a weapon or entering aiming state
         /// </summary>
-        public void InitializeWeapon(GunDataAsset weaponData)
+        public void InitializeWeapon(WeaponDataAsset weaponData)
         {
             if (weaponData == null)
             {
@@ -192,11 +192,11 @@ namespace Resonance.Player.Shooting
         /// <param name="gunData">Weapon data</param>
         /// <param name="isAiming">Is aiming</param>
         /// <returns>Shooting result</returns>
-        public ShootingResult PerformShoot(Vector3 shootOrigin, GunDataAsset gunData, bool isAiming = true)
+        public ShootingResult PerformShoot(Vector3 shootOrigin, WeaponDataAsset gunData, bool isAiming = true)
         {
             if (gunData == null)
             {
-                Debug.LogError("ShootingSystem: GunData is null");
+                Debug.LogError("ShootingSystem: WeaponData is null");
                 return new ShootingResult { success = false };
             }
 
@@ -390,7 +390,7 @@ namespace Resonance.Player.Shooting
         /// <param name="shootOrigin">Shoot origin position</param>
         /// <param name="gunData">Weapon data for range</param>
         /// <returns>The actual end point (hit point or base target point)</returns>
-        public Vector3 PreviewShootingEndPoint(Vector3 shootOrigin, GunDataAsset gunData)
+        public Vector3 PreviewShootingEndPoint(Vector3 shootOrigin, WeaponDataAsset gunData)
         {
             if (gunData == null)
             {
@@ -636,10 +636,10 @@ namespace Resonance.Player.Shooting
         /// </summary>
         /// <param name="hitInfo">Raycast hit info</param>
         /// <param name="damageSource">Damage source position</param>
-        /// <param name="gunData">Gun data asset (required)</param>
+        /// <param name="gunData">Weapon data asset (required)</param>
         /// <param name="damageMultiplier">Damage multiplier from accuracy</param>
         /// <returns>Dictionary of actual damage dealt by type</returns>
-        private Damages ProcessHit(RaycastHit hitInfo, Vector3 damageSource, GunDataAsset gunData, float damageMultiplier = 1f)
+        private Damages ProcessHit(RaycastHit hitInfo, Vector3 damageSource, WeaponDataAsset gunData, float damageMultiplier = 1f)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
             Damages actualDamages = new Damages();
@@ -769,7 +769,7 @@ namespace Resonance.Player.Shooting
         /// </summary>
         /// <param name="shootOrigin">Shoot origin</param>
         /// <param name="gunData">Weapon data</param>
-        private void PlayShootingAudio(Vector3 shootOrigin, GunDataAsset gunData)
+        private void PlayShootingAudio(Vector3 shootOrigin, WeaponDataAsset gunData)
         {
             if (_audioService == null) return;
             
@@ -787,7 +787,7 @@ namespace Resonance.Player.Shooting
         /// </summary>
         /// <param name="gunData">Weapon data</param>
         /// <returns>Audio type</returns>
-        private AudioClipType GetShootingAudioClipType(GunDataAsset gunData)
+        private AudioClipType GetShootingAudioClipType(WeaponDataAsset gunData)
         {
             // According to the weapon name or type to select audio
             // Here can be extended according to the actual weapon system
@@ -795,12 +795,12 @@ namespace Resonance.Player.Shooting
             
             if (weaponName.Contains("rifle"))
             {
-                return AudioClipType.GunFireRifle;
+                return AudioClipType.WeaponFireRifle;
             }
             else
             {
                 // Default use pistol audio
-                return AudioClipType.GunFirePistol;
+                return AudioClipType.WeaponFirePistol;
             }
         }
         

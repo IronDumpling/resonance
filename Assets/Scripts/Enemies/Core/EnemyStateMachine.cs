@@ -51,6 +51,7 @@ namespace Resonance.Enemies.Core
             _stateMachine.AddState(new EnemyNormalState(_enemyController));
             _stateMachine.AddState(new EnemyRevivingState(_enemyController));
             _stateMachine.AddState(new EnemyTrueDeathState(_enemyController));
+            _stateMachine.AddState(new EnemyStunState(_enemyController));
 
             // Start with normal state
             _stateMachine.ChangeState("Normal");

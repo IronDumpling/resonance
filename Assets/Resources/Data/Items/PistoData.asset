@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd1531be4a079cb4591b153e7c959fd9, type: 3}
+  m_Script: {fileID: 11500000, guid: 708530a07cc85a342b681c1e50c06b92, type: 3}
   m_Name: PistoData
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Items.WeaponDataAsset
   weaponName: Pisto
   weaponDescription: A basic firearm
   maxAmmo: 8
@@ -30,16 +30,16 @@ MonoBehaviour:
     movementRadiusPenalty: 1
     rotationRadiusPenalty: 0.5
     shootRadiusIncrease: 1.5
-    shootRecoveryDelay: 0.2
+    shootRecoveryDelay: 0.3
     rotationThreshold: 100
-    perfectAimDamageMultiplier: 3
+    perfectAimDamageMultiplier: 2
     baseAimDamageMultiplier: 1
     damageMultiplierCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: -0.00023958832
-        value: 1.0042114
+        time: 0
+        value: 1
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -47,8 +47,8 @@ MonoBehaviour:
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
-        time: 1.0000024
-        value: 2.9922955
+        time: 0.99999994
+        value: 2
         inSlope: 2
         outSlope: 2
         tangentMode: 0

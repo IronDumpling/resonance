@@ -525,7 +525,7 @@ namespace Resonance.Player.Core
 
             _lastAttackTime = Time.time;
             
-            GunDataAsset currentGun = _weaponManager.CurrentGun;
+            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
             
             // Perform shoot
             ShootingResult result = new ShootingResult { success = false };
@@ -533,7 +533,7 @@ namespace Resonance.Player.Core
             {
                 // Pass aiming state to ShootingSystem
                 bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
-                result = _shootingSystem.PerformShoot(shootOrigin, currentGun, isAiming);
+                result = _shootingSystem.PerformShoot(shootOrigin, currentWeapon, isAiming);
                 
                 // Core energy gain: ONLY from actual physical health damage
                 // 10 physical health damage = 2 core energy gain
@@ -552,10 +552,10 @@ namespace Resonance.Player.Core
             // Trigger shooting event
             OnShoot?.Invoke();
             
-            Debug.Log($"PlayerController: Mouse-based shot fired with {currentGun.weaponName}. " +
+            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWeapon.weaponName}. " +
                      $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
                      $"Total Base: {result.GetTotalBaseDamage():F1}, Total Actual: {result.GetTotalActualDamage():F1}, " +
-                     $"Remaining ammo: {currentGun.CurrentAmmo}");
+                     $"Remaining ammo: {currentWeapon.CurrentAmmo}");
             
             return result;
         }

@@ -39,7 +39,7 @@ namespace Resonance.Player.States
             // Initialize weapon systems in ShootingSystem
             if (_playerController.ShootingSystem != null)
             {
-                _playerController.ShootingSystem.InitializeWeapon(_playerController.WeaponManager.CurrentGun);
+                _playerController.ShootingSystem.InitializeWeapon(_playerController.WeaponManager.CurrentWeapon);
                 Debug.Log("PlayerAimingState: Weapon systems initialized");
             }
             

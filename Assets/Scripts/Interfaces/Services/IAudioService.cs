@@ -154,12 +154,12 @@ namespace Resonance.Interfaces.Services
     public enum AudioClipType
     {
         // 射击音效
-        GunFirePistol,
-        GunFireRifle,
-        GunReloadPistol,
-        GunReloadRifle,
-        GunEmpty,
-        GunCock,
+        WeaponFirePistol,
+        WeaponFireRifle,
+        WeaponReloadPistol,
+        WeaponReloadRifle,
+        WeaponEmpty,
+        WeaponCock,
         PistoArming,
         RifleArming,
         

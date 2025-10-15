@@ -92,12 +92,12 @@ namespace Resonance.Core
             // 根据音效类型返回对应的混合器组
             switch (clipType)
             {
-                case AudioClipType.GunFirePistol:
-                case AudioClipType.GunFireRifle:
-                case AudioClipType.GunReloadPistol:
-                case AudioClipType.GunReloadRifle:
-                case AudioClipType.GunEmpty:
-                case AudioClipType.GunCock:
+                case AudioClipType.WeaponFirePistol:
+                case AudioClipType.WeaponFireRifle:
+                case AudioClipType.WeaponReloadPistol:
+                case AudioClipType.WeaponReloadRifle:
+                case AudioClipType.WeaponEmpty:
+                case AudioClipType.WeaponCock:
                 case AudioClipType.PistoArming:
                     return weaponsMixerGroup;
                 

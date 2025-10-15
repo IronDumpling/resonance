@@ -61,6 +61,8 @@ MeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -82,6 +84,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
@@ -251,7 +254,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4048396451169992661}
-  - component: {fileID: 5901040040052734863}
+  - component: {fileID: 6964742340360745531}
   m_Layer: 7
   m_Name: Pisto
   m_TagString: Untagged
@@ -276,7 +279,7 @@ Transform:
   - {fileID: 7092499692894446281}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5901040040052734863
+--- !u!114 &6964742340360745531
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -285,10 +288,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 4836290619508319174}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffebea79bc8437740b9f36f716f57471, type: 3}
+  m_Script: {fileID: 11500000, guid: ab58624a31e0a2046a7a80414ed5ba55, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  _gunDataAsset: {fileID: 11400000, guid: e7b2879db7522a44b9a005d420cb92d4, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Items.WeaponMonoBehaviour
+  _gunDataAsset: {fileID: 11400000, guid: 55487a2eeff4c7549b34e2eaadd2cbda, type: 2}
   _interactionText: E
   _interactionDuration: 0.2
   _pickupVisual: {fileID: 1012015472892952182}

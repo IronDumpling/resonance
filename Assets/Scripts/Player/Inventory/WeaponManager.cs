@@ -20,16 +20,16 @@ namespace Resonance.Player.Inventory
         private int _equippedWeaponID = -1;
         
         // Cached weapon data (loaded from inventory)
-        private GunDataAsset _cachedWeaponAsset;
+        private WeaponDataAsset _cachedWeaponAsset;
         
         // Events
-        public System.Action<GunDataAsset> OnWeaponEquipped;
+        public System.Action<WeaponDataAsset> OnWeaponEquipped;
         public System.Action OnWeaponUnequipped;
         public System.Action<int> OnAmmoChanged;
 
         // Properties
         public bool HasEquippedWeapon => _equippedWeaponID != -1 && _cachedWeaponAsset != null;
-        public GunDataAsset CurrentGun => _cachedWeaponAsset;
+        public WeaponDataAsset CurrentWeapon => _cachedWeaponAsset;
         public int CurrentAmmo => _cachedWeaponAsset?.CurrentAmmo ?? 0;
         public int MaxAmmo => _cachedWeaponAsset?.maxAmmo ?? 0;
         public string AmmoType => _cachedWeaponAsset?.ammoType ?? "None";
@@ -178,7 +178,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Load weapon asset from GridItem
         /// </summary>
-        private GunDataAsset LoadWeaponAssetFromData(GridItem weaponData)
+        private WeaponDataAsset LoadWeaponAssetFromData(GridItem weaponData)
         {
             Debug.Log($"WeaponManager: LoadWeaponAssetFromData called for '{weaponData.ItemName}'");
             Debug.Log($"WeaponManager: - AssetPath: '{weaponData.AssetPath}'");
@@ -189,9 +189,9 @@ namespace Resonance.Player.Inventory
             {
                 Debug.Log($"WeaponManager: Found 'originalAsset' in CustomData, type: {weaponData.CustomData["originalAsset"]?.GetType().Name ?? "null"}");
                 
-                if (weaponData.CustomData["originalAsset"] is GunDataAsset originalAsset)
+                if (weaponData.CustomData["originalAsset"] is WeaponDataAsset originalAsset)
                 {
-                    Debug.Log($"WeaponManager: Successfully retrieved GunDataAsset from CustomData: {originalAsset.weaponName}");
+                    Debug.Log($"WeaponManager: Successfully retrieved WeaponDataAsset from CustomData: {originalAsset.weaponName}");
                     return originalAsset;
                 }
             }
@@ -200,7 +200,7 @@ namespace Resonance.Player.Inventory
             if (!string.IsNullOrEmpty(weaponData.AssetPath))
             {
                 Debug.Log($"WeaponManager: Attempting to load from AssetPath: '{weaponData.AssetPath}'");
-                var asset = LoadAssetFromPath<GunDataAsset>(weaponData.AssetPath);
+                var asset = LoadAssetFromPath<WeaponDataAsset>(weaponData.AssetPath);
                 if (asset != null)
                 {
                     Debug.Log($"WeaponManager: Successfully loaded weapon: {asset.weaponName}");
@@ -281,7 +281,7 @@ namespace Resonance.Player.Inventory
                 {
                     $"Data/Items/{filename}",
                     $"Items/{filename}",
-                    $"Guns/{filename}"
+                    $"Weapons/{filename}"
                 };
                 
                 foreach (var tryPath in commonPaths)
@@ -312,7 +312,7 @@ namespace Resonance.Player.Inventory
         /// <summary>
         /// Play weapon equip audio based on weapon type
         /// </summary>
-        private void PlayWeaponEquipAudio(GunDataAsset gunData)
+        private void PlayWeaponEquipAudio(WeaponDataAsset gunData)
         {
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService == null) return;
