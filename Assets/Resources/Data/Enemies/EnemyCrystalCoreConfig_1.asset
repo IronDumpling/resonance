@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 445d400ca5cd923408e165696d2b14ba, type: 3}
-  m_Name: EnemyCrystalCoreConfig
+  m_Name: EnemyCrystalCoreConfig_1
   m_EditorClassIdentifier: 
   defaultPattern: 
   maxEnergyCapacity: 60

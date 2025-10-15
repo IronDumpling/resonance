@@ -1,7 +1,8 @@
 using UnityEngine;
 using Resonance.Utilities;
+using Resonance.Utilities.Wave;
 
-namespace Resonance.Core.Data
+namespace Resonance.Utilities.CrystalCore
 {
     /// <summary>
     /// 晶核配置数据
@@ -21,11 +22,8 @@ namespace Resonance.Core.Data
         public bool startWithFullEnergy = false;
         
         [Header("Core Wave Configuration")]
-        [Tooltip("最大紊乱值")]
-        public float maxChaos = 100f;
-        
-        [Tooltip("紊乱阈值(低于此值进入秩序状态)")]
-        public float chaosThreshold = 18f;
+        [Tooltip("Wave配置")]
+        public WaveConfig waveConfig;
         
         [Header("Upgrade Configuration")]
         [Tooltip("是否可以升级最大生命值")]
@@ -50,11 +48,6 @@ namespace Resonance.Core.Data
         [Tooltip("能量低下时的颜色")]
         public Color lowColor = Color.red;
         
-        [Tooltip("波纹秩序状态颜色")]
-        public Color orderColor = Color.blue;
-        
-        [Tooltip("波纹紊乱状态颜色")]
-        public Color chaosColor = Color.magenta;
         
         [Header("Audio Configuration")]
         [Tooltip("能量消耗音效")]
@@ -69,14 +62,6 @@ namespace Resonance.Core.Data
         [Tooltip("晶核生命修复音效")]
         public AudioClip coreHealthRepairSound;
         
-        [Tooltip("紊乱增加音效")]
-        public AudioClip chaosAddSound;
-        
-        [Tooltip("进入紊乱状态音效")]
-        public AudioClip enterChaosStateSound;
-        
-        [Tooltip("进入秩序状态音效")]
-        public AudioClip enterOrderStateSound;
 
         /// <summary>
         /// 验证配置数据
@@ -101,15 +86,9 @@ namespace Resonance.Core.Data
                 return false;
             }
             
-            if (maxChaos <= 0f)
+            if (waveConfig != null && !waveConfig.ValidateConfig())
             {
-                Debug.LogError($"CrystalCoreConfig: {name} has invalid maxChaos: {maxChaos}");
-                return false;
-            }
-            
-            if (chaosThreshold < 0f || chaosThreshold >= maxChaos)
-            {
-                Debug.LogError($"CrystalCoreConfig: {name} has invalid chaosThreshold: {chaosThreshold} (should be 0 < chaosThreshold < maxChaos)");
+                Debug.LogError($"CrystalCoreConfig: {name} has invalid wave config");
                 return false;
             }
 
@@ -191,12 +170,14 @@ namespace Resonance.Core.Data
         /// </summary>
         public Color GetColorForChaosState(WaveChaosState state)
         {
+            if (waveConfig == null) return Color.white;
+            
             switch (state)
             {
                 case WaveChaosState.Order:
-                    return orderColor;
+                    return waveConfig.orderColor;
                 case WaveChaosState.Chaos:
-                    return chaosColor;
+                    return waveConfig.chaosColor;
                 default:
                     return Color.white;
             }
@@ -209,8 +190,6 @@ namespace Resonance.Core.Data
             // 确保数值在合理范围内
             initialMaxCoreHealth = Mathf.Max(energyPerSlot, initialMaxCoreHealth);
             energyPerSlot = Mathf.Max(1f, energyPerSlot);
-            maxChaos = Mathf.Max(1f, maxChaos);
-            chaosThreshold = Mathf.Clamp(chaosThreshold, 0f, maxChaos - 1f);
             
             if (canUpgradeMaxHealth)
             {

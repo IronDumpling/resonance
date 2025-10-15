@@ -1,5 +1,5 @@
-using Resonance.Core.Data;
 using Resonance.Utilities;
+using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Data
 {

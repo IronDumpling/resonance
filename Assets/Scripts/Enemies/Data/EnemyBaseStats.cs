@@ -1,7 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
-using Resonance.Core.Data;
 using Resonance.Utilities;
+using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Data
 {
@@ -77,14 +77,6 @@ namespace Resonance.Enemies.Data
         [Tooltip("是否启用音频")]
         public bool enableAudio = true;
         
-        [Header("QTE配置 - QTE Configuration")]
-        [Tooltip("QTE动画缓动类型")]
-        public DG.Tweening.Ease qteEaseType = DG.Tweening.Ease.InOutSine;
-        [Tooltip("QTE循环持续时间")]
-        public float qteCycleDuration = 3f;
-        [Tooltip("QTE目标窗口大小")]
-        [Range(0.05f, 0.5f)]
-        public float qteTargetWindow = 0.2f;
         
         [Header("掉落系统 - Loot System")]
         [Tooltip("死亡时生成的掉落物预制体")]
@@ -188,9 +180,6 @@ namespace Resonance.Enemies.Data
             // 视觉效果验证
             damageFlashDuration = Mathf.Max(0.1f, damageFlashDuration);
             
-            // QTE配置验证
-            qteCycleDuration = Mathf.Max(0.5f, qteCycleDuration);
-            qteTargetWindow = Mathf.Clamp(qteTargetWindow, 0.05f, 0.5f);
             
             // 掉落系统验证
             lootCount = Mathf.Clamp(lootCount, 1, 5);
@@ -246,10 +235,6 @@ namespace Resonance.Enemies.Data
         [Header("音频配置 - Audio Configuration")]
         public bool enableAudio;
         
-        [Header("QTE配置 - QTE Configuration")]
-        public DG.Tweening.Ease qteEaseType;
-        public float qteCycleDuration;
-        public float qteTargetWindow;
         
         [Header("掉落系统 - Loot System")]
         public GameObject deathLootPrefab;
@@ -285,14 +270,7 @@ namespace Resonance.Enemies.Data
             currentHealth = maxHealth;
             
             // 复制晶核属性
-            // 创建 QTE 配置
-            var qteConfig = new Resonance.Core.Data.QTEConfig(
-                baseStats.qteEaseType,
-                baseStats.qteCycleDuration,
-                baseStats.qteTargetWindow
-            );
-            
-            crystalCore = new CrystalCore(baseStats.crystalCoreConfig, qteConfig);
+            crystalCore = new CrystalCore(baseStats.crystalCoreConfig);
             crystalCore.SetFullEnergy(); // 敌人拥有满能量
             corePattern = baseStats.corePattern;
             
@@ -324,11 +302,6 @@ namespace Resonance.Enemies.Data
             
             // 音频配置
             enableAudio = baseStats.enableAudio;
-            
-            // QTE配置
-            qteEaseType = baseStats.qteEaseType;
-            qteCycleDuration = baseStats.qteCycleDuration;
-            qteTargetWindow = baseStats.qteTargetWindow;
             
             // 掉落系统
             deathLootPrefab = baseStats.deathLootPrefab;

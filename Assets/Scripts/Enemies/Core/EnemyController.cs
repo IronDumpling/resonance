@@ -4,8 +4,8 @@ using Resonance.Enemies;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.States;
 using Resonance.Core;
-using Resonance.Core.Data;
 using Resonance.Utilities;
+using Resonance.Utilities.CrystalCore;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 

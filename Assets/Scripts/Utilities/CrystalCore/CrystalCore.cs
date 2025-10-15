@@ -1,7 +1,8 @@
 using UnityEngine;
 using Resonance.Utilities;
+using Resonance.Utilities.Wave;
 
-namespace Resonance.Core.Data
+namespace Resonance.Utilities.CrystalCore
 {
     /// <summary>
     /// 晶核能量等级
@@ -33,7 +34,7 @@ namespace Resonance.Core.Data
         [SerializeField] private float _maxEnergy;
         
         [Header("Core Wave")]
-        [SerializeField] private Wave _wave;
+        [SerializeField] private Wave.Wave _wave;
         
         #endregion
         
@@ -69,7 +70,7 @@ namespace Resonance.Core.Data
         
         #region Properties - Core Wave
         
-        public Wave Wave => _wave;
+        public Wave.Wave Wave => _wave;
         public float CurrentChaos => _wave?.CurrentChaos ?? 0f;
         public float MaxChaos => _wave?.MaxChaos ?? 0f;
         public float ChaosThreshold => _wave?.ChaosThreshold ?? 0f;
@@ -117,8 +118,16 @@ namespace Resonance.Core.Data
                 // 玩家从0能量开始, 敌人拥有满能量
                 _currentEnergy = config.startWithFullEnergy ? _maxEnergy : 0f;
                 
-                // 波纹系统初始化
-                _wave = new Wave(config.maxChaos, config.chaosThreshold, qteConfig);
+                // 波纹系统初始化 - 使用WaveConfig或legacy参数
+                if (config.waveConfig != null)
+                {
+                    _wave = new Wave.Wave(config.waveConfig);
+                }
+                else
+                {
+                    // Legacy fallback - 使用默认值
+                    _wave = new Wave.Wave(100f, 18f, qteConfig);
+                }
             }
             else
             {
@@ -130,7 +139,7 @@ namespace Resonance.Core.Data
                 _currentEnergy = 0f;
                 
                 // 默认波纹配置
-                _wave = new Wave(100f, 18f, qteConfig);
+                _wave = new Wave.Wave(100f, 18f, qteConfig);
             }
 
             UpdateCalculatedValues();

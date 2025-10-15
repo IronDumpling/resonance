@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Resonance.Enemies.Core;
 using Resonance.Interfaces;
 using Resonance.Utilities;
+using Resonance.Utilities.Wave;
 
 namespace Resonance.Enemies
 {

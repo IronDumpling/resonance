@@ -1,11 +1,11 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
-using System.Collections;
 
 namespace Resonance.Enemies
 {
@@ -475,9 +475,9 @@ namespace Resonance.Enemies
                 damageHitboxGO.layer = gameObject.layer;
                 
                 // Add a default collider (can be customized in inspector)
-                SphereCollider hitboxCollider = damageHitboxGO.AddComponent<SphereCollider>();
+                BoxCollider hitboxCollider = damageHitboxGO.AddComponent<BoxCollider>();
                 hitboxCollider.isTrigger = true;
-                hitboxCollider.radius = 1.5f; // Default attack hitbox radius
+                hitboxCollider.size = new Vector3(1.5f, 1.5f, 1.5f); // Default attack hitbox radius
                 
                 // Add damage hitbox component
                 SetupDamageHitboxComponent(damageHitboxGO);
