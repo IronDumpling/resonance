@@ -919,94 +919,23 @@ namespace Resonance.Player
 
         #endregion
 
-        #region Debug
-
-        private void DrawDebugInfo()
-        {
-            if (!IsInitialized) return;
-
-            // Display stats in scene view
-            var stats = _playerController.Stats;
-            string edgeInfo = _enableEdgeProtection ? 
-                $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
-                "Edge Protection: OFF";
-                
-            // CoreAttackTrigger debug info
-            string coreAttackInfo = GetCoreAttackRangeDebugInfo();
-            
-            Debug.Log($"Physical Health: {stats.currentHealth}/{stats.maxHealth}, " +
-                     $"Core Energy: {stats.crystalCore.CurrentEnergy}/{stats.crystalCore.MaxEnergy}, " +
-                     $"Core Health: {stats.crystalCore.CurrentCoreHealth}/{stats.crystalCore.MaxCoreHealth}, " +
-                     $"Core Tier: {_playerController.Stats.crystalCore.EnergyTier}, Physical Tier: {_playerController.Stats.healthTier}, " +
-                     $"Slots: {_playerController.Stats.crystalCore.GetEnergyInSlots():F1}/{stats.crystalCore.MaxSlots}, " +
-                     $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
-                     $"Can Move: {_playerController.StateMachine.CanMove()}, " +
-                     $"{edgeInfo}, {coreAttackInfo}");
-        }
-
-        void OnDrawGizmosSelected()
-        {            
-            // Draw edge detection rays
-            if (_enableEdgeProtection)
-            {
-                Vector3 rayOrigin = transform.position + Vector3.up * _edgeRaycastHeight;
-                Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-                
-                for (int i = 0; i < directions.Length; i++)
-                {
-                    Vector3 edgePosition = rayOrigin + directions[i] * _edgeDetectionDistance;
-                    
-                    // Real-time check for this direction
-                    bool isSafe = IsPositionSafe(transform.position, directions[i], 0.1f);
-                    
-                    // Draw horizontal ray
-                    Gizmos.color = isSafe ? Color.green : Color.red;
-                    Gizmos.DrawLine(rayOrigin, edgePosition);
-                    
-                    // Draw downward ray from edge (2米长度)
-                    Gizmos.color = isSafe ? Color.green : Color.red;
-                    Gizmos.DrawLine(edgePosition, edgePosition + Vector3.down * 2f);
-                    
-                    // Draw a small sphere at the check position for better visualization
-                    Gizmos.color = isSafe ? Color.green : Color.red;
-                    Gizmos.DrawWireSphere(edgePosition, 0.1f);
-                }
-            }
-        }
-
-        #endregion
-
         #region IDamageable Implementation
 
         /// <summary>
         /// Take damage using the new damage system
         /// Supports multiple damage types: Physical Health, Core Health, Chaos
-        /// IMPORTANT: Chaos damage is processed LAST to avoid blocking other damage types with stun
+        /// Invulnerability is handled at the DamageInfo level, not per damage type
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            Damages damages = damageInfo.damages;
-            if (!IsInitialized || damages == null) return;
+            if (!IsInitialized || damageInfo.damages == null) return;
             
-            if (damages.HasDamage(DamageType.PhysicalHealth))
-            {
-                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
-                _playerController.TakeHealthDamage(damageAmount);
-            }
-            if (damages.HasDamage(DamageType.CoreHealth))
-            {
-                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
-                _playerController.TakeCoreDamage(damageAmount);
-            }
-            if (damages.HasDamage(DamageType.Chaos))
-            {
-                float damageAmount = damages.GetDamage(DamageType.Chaos);
-                _playerController.TakeChaosDamage(damageAmount);
-            }
+            // Delegate to controller's unified damage handling
+            // Controller handles invulnerability check and applies all damage types
+            _playerController.TakeDamage(damageInfo);
 
+            // Show visual feedback
             ShowDamageEffect(damageInfo);
-            
-            Debug.Log($"PlayerMonoBehaviour: {damageInfo}");
         }
 
         /// <summary>
@@ -1196,6 +1125,63 @@ namespace Resonance.Player
         public string GetCoreAttackRangeDebugInfo()
         {
             return _coreAttackTrigger?.GetDebugInfo() ?? "CoreAttackTrigger not initialized";
+        }
+
+        #endregion
+
+         #region Debug
+
+        private void DrawDebugInfo()
+        {
+            if (!IsInitialized) return;
+
+            // Display stats in scene view
+            var stats = _playerController.Stats;
+            string edgeInfo = _enableEdgeProtection ? 
+                $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
+                "Edge Protection: OFF";
+                
+            // CoreAttackTrigger debug info
+            string coreAttackInfo = GetCoreAttackRangeDebugInfo();
+            
+            Debug.Log($"Physical Health: {stats.currentHealth}/{stats.maxHealth}, " +
+                     $"Core Energy: {stats.crystalCore.CurrentEnergy}/{stats.crystalCore.MaxEnergy}, " +
+                     $"Core Health: {stats.crystalCore.CurrentCoreHealth}/{stats.crystalCore.MaxCoreHealth}, " +
+                     $"Core Tier: {_playerController.Stats.crystalCore.EnergyTier}, Physical Tier: {_playerController.Stats.healthTier}, " +
+                     $"Slots: {_playerController.Stats.crystalCore.GetEnergyInSlots():F1}/{stats.crystalCore.MaxSlots}, " +
+                     $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
+                     $"Can Move: {_playerController.StateMachine.CanMove()}, " +
+                     $"{edgeInfo}, {coreAttackInfo}");
+        }
+
+        void OnDrawGizmosSelected()
+        {            
+            // Draw edge detection rays
+            if (_enableEdgeProtection)
+            {
+                Vector3 rayOrigin = transform.position + Vector3.up * _edgeRaycastHeight;
+                Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+                
+                for (int i = 0; i < directions.Length; i++)
+                {
+                    Vector3 edgePosition = rayOrigin + directions[i] * _edgeDetectionDistance;
+                    
+                    // Real-time check for this direction
+                    bool isSafe = IsPositionSafe(transform.position, directions[i], 0.1f);
+                    
+                    // Draw horizontal ray
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawLine(rayOrigin, edgePosition);
+                    
+                    // Draw downward ray from edge (2米长度)
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawLine(edgePosition, edgePosition + Vector3.down * 2f);
+                    
+                    // Draw a small sphere at the check position for better visualization
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawWireSphere(edgePosition, 0.1f);
+                }
+            }
         }
 
         #endregion

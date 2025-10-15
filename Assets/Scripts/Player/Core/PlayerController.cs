@@ -122,6 +122,9 @@ namespace Resonance.Player.Core
             _inventory = new PlayerInventory(_stats.inventoryGridWidth, _stats.inventoryGridHeight);
             _movement = new PlayerMovement(_stats);
             
+            // Initialize invulnerability duration
+            _invulnerabilityDuration = _stats.invulnerabilityTime;
+            
             // Initialize inventory managers
             _consumableManager = new ConsumableManager(_inventory);
             _weaponManager = new WeaponManager(_inventory);
@@ -163,12 +166,25 @@ namespace Resonance.Player.Core
         private float _stunEndTime = 0f;
         private bool _isInStun = false;
 
-        // Invulnerability tracking
-        private float _invulnerabilityEndTime = 0f;
-        private bool _isInvulnerable = false;
+        // Invulnerability tracking - DamageInfo-based system
+        // Tracks recent damage sources to prevent duplicate damage from the same attack
+        private class DamageSourceRecord
+        {
+            public GameObject sourceObject;
+            public float timestamp;
+            
+            public DamageSourceRecord(GameObject source, float time)
+            {
+                sourceObject = source;
+                timestamp = time;
+            }
+        }
+        
+        private List<DamageSourceRecord> _recentDamageSources = new List<DamageSourceRecord>();
+        private float _invulnerabilityDuration = 0f; // Cache the duration
 
         /// <summary>
-        /// Update chaos (natural recovery)
+        /// Update chaos (natural recovery) and clean up old damage records
         /// </summary>
         private void UpdateTimers(float deltaTime)
         {
@@ -180,12 +196,56 @@ namespace Resonance.Player.Core
                 ExitStun();
             }
 
-            // Check if invulnerability time has expired
-            if (_isInvulnerable && Time.time >= _invulnerabilityEndTime)
+            // Clean up old damage source records (remove entries older than invulnerability duration)
+            if (_recentDamageSources.Count > 0 && _invulnerabilityDuration > 0f)
             {
-                _isInvulnerable = false;
-                Debug.Log("PlayerController: Invulnerability ended");
+                float currentTime = Time.time;
+                _recentDamageSources.RemoveAll(record => 
+                    currentTime - record.timestamp > _invulnerabilityDuration
+                );
             }
+        }
+        
+        /// <summary>
+        /// Check if a DamageInfo should be blocked by invulnerability
+        /// Returns true if this damage source was already processed recently
+        /// </summary>
+        private bool ShouldBlockDamageInfo(DamageInfo damageInfo)
+        {
+            if (_invulnerabilityDuration <= 0f) return false; // No invulnerability system
+            if (damageInfo.sourceObject == null) return false; // No source to track
+            
+            float currentTime = Time.time;
+            
+            // Check if this source has hit recently
+            foreach (var record in _recentDamageSources)
+            {
+                if (record.sourceObject == damageInfo.sourceObject && 
+                    currentTime - record.timestamp < _invulnerabilityDuration)
+                {
+                    return true; // Block: this source already dealt damage recently
+                }
+            }
+            
+            return false; // Allow: new damage source
+        }
+        
+        /// <summary>
+        /// Register a damage source to prevent duplicate hits
+        /// Should be called once per DamageInfo, not per damage type
+        /// </summary>
+        private void RegisterDamageSource(DamageInfo damageInfo)
+        {
+            if (_invulnerabilityDuration <= 0f) return;
+            if (damageInfo.sourceObject == null) return;
+            
+            _recentDamageSources.Add(new DamageSourceRecord(
+                damageInfo.sourceObject, 
+                Time.time
+            ));
+            
+            Debug.Log($"PlayerController: Registered damage source '{damageInfo.sourceObject.name}', " +
+                     $"invulnerable for {_invulnerabilityDuration}s");
         }
 
         /// <summary>
@@ -236,18 +296,78 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Take physical health damage
+        /// Take damage from a DamageInfo (unified entry point)
+        /// Handles invulnerability check at the DamageInfo level, not per damage type
+        /// This ensures all damage types from the same attack are processed together
         /// </summary>
-        public void TakeHealthDamage(float damage)
+        public void TakeDamage(DamageInfo damageInfo)
         {
-            if (!IsAlive) return;
-
-            // Check invulnerability
-            if (_isInvulnerable)
+            // Check if this damage source should be blocked by invulnerability
+            if (ShouldBlockDamageInfo(damageInfo))
             {
-                Debug.Log("PlayerController: Damage blocked by invulnerability");
+                Debug.Log($"PlayerController: Damage from '{damageInfo.sourceObject?.name}' blocked by invulnerability");
                 return;
             }
+            
+            // Register this damage source for invulnerability tracking
+            RegisterDamageSource(damageInfo);
+            
+            // Process all damage types in the DamageInfo
+            Damages damages = damageInfo.damages;
+            if (damages == null) return;
+            
+            bool tookAnyDamage = false;
+            
+            // Apply Physical Health damage
+            if (damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                TakeHealthDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Core Health damage
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                TakeCoreDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Chaos damage (processed last to avoid stun blocking other damage)
+            if (damages.HasDamage(DamageType.Chaos))
+            {
+                float damageAmount = damages.GetDamage(DamageType.Chaos);
+                TakeChaosDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Trigger common effects only once per DamageInfo
+            if (tookAnyDamage)
+            {
+                // Notify PlayerActionController of damage taken (for interruption logic)
+                _actionController?.OnPlayerDamageTaken();
+                
+                // Interrupt aiming when taking damage
+                if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
+                {
+                    _stateMachine.StopAiming();
+                    Debug.Log("PlayerController: Aiming interrupted by damage");
+                }
+
+                // Play hit audio effect (once per DamageInfo)
+                PlayHitAudio();
+            }
+            
+            Debug.Log($"PlayerController: Processed DamageInfo - {damageInfo}");
+        }
+        
+        /// <summary>
+        /// Take physical health damage (internal method, called from TakeDamage)
+        /// </summary>
+        private void TakeHealthDamage(float damage)
+        {
+            if (!IsAlive) return;
 
             // Store old tier for comparison
             var oldHealthTier = _stats.healthTier;
@@ -264,27 +384,6 @@ namespace Resonance.Player.Core
 
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
 
-            // Notify PlayerActionController of damage taken (for interruption logic)
-            _actionController?.OnPlayerDamageTaken();
-            
-            // Interrupt aiming when taking damage
-            if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
-            {
-                _stateMachine.StopAiming();
-                Debug.Log("PlayerController: Aiming interrupted by damage");
-            }
-
-            // Play hit audio effect
-            PlayHitAudio();
-
-            // Start invulnerability period
-            if (_stats.invulnerabilityTime > 0f)
-            {
-                _isInvulnerable = true;
-                _invulnerabilityEndTime = Time.time + _stats.invulnerabilityTime;
-                Debug.Log($"PlayerController: Invulnerability started for {_stats.invulnerabilityTime}s");
-            }
-
             if (_stats.currentHealth <= 0f)
             {
                 HandleDeath();
@@ -296,9 +395,9 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Take core health damage
+        /// Take core health damage (internal method, called from TakeDamage)
         /// </summary>
-        public void TakeCoreDamage(float damage)
+        private void TakeCoreDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
@@ -328,18 +427,11 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Take chaos damage (causes stun)
+        /// Take chaos damage (causes stun) (internal method, called from TakeDamage)
         /// </summary>
-        public void TakeChaosDamage(float damage)
+        private void TakeChaosDamage(float damage)
         {
             if (!IsCoreAlive) return;
-
-            // Check invulnerability
-            if (_isInvulnerable)
-            {
-                Debug.Log("PlayerController: Chaos damage blocked by invulnerability");
-                return;
-            }
             
             AddChaos(damage);
         }

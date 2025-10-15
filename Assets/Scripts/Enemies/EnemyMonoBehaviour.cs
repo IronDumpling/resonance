@@ -752,33 +752,19 @@ namespace Resonance.Enemies
         /// <summary>
         /// Take damage using the new damage system
         /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// All damage types from the same attack are processed together
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            Damages damages = damageInfo.damages;
-            if (!IsInitialized || damages == null) return;
+            if (!IsInitialized || damageInfo.damages == null) return;
             
-            if (damages.HasDamage(DamageType.PhysicalHealth))
-            {
-                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
-                _enemyController.TakeHealthDamage(damageAmount);
-            }
-            if (damages.HasDamage(DamageType.CoreHealth))
-            {
-                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
-                _enemyController.TakeCoreDamage(damageAmount);
-            }
-            if (damages.HasDamage(DamageType.Chaos))
-            {
-                float damageAmount = damages.GetDamage(DamageType.Chaos);
-                _enemyController.TakeChaosDamage(damageAmount);
-            }
+            // Delegate to controller's unified damage handling
+            // Controller processes all damage types from the DamageInfo together
+            _enemyController.TakeDamage(damageInfo);
 
             // Visual and audio feedback
             ShowDamageEffect(damageInfo);
             PlayHitAudio(damageInfo);
-
-            Debug.Log($"EnemyMonoBehaviour: {damageInfo}");
         }
 
         #endregion
@@ -1246,32 +1232,32 @@ namespace Resonance.Enemies
             Vector3 barPosition = transform.position + Vector3.up * 2f;
             float barWidth = 2f;
             float barHeight = 0.2f;
-            
-            // health (bottom bar)
+
+            // physical health (top bar)
+            Vector3 healthBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
             Gizmos.color = Color.red;
-            Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
             float healthPercentage = _enemyController.Stats.HealthPercentage;
             Gizmos.color = Color.green;
             Vector3 healthBarSize = new Vector3(barWidth * healthPercentage, barHeight * 0.5f, 0.1f);
-            Vector3 healthBarPosition = barPosition + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
+            Vector3 healthBarPosition = healthBarCenter + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
             Gizmos.DrawCube(healthBarPosition, healthBarSize);
             
-            // core energy (top bar)
-            Vector3 coreBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
+            // core health (bottom bar)
             Gizmos.color = Color.blue;
-            Gizmos.DrawCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float corePercentage = _enemyController.Stats.crystalCore.EnergyPercentage;
+            float corePercentage = _enemyController.Stats.crystalCore.CoreHealthPercentage;
             Gizmos.color = Color.cyan;
             Vector3 coreBarSize = new Vector3(barWidth * corePercentage, barHeight * 0.5f, 0.1f);
-            Vector3 coreBarPosition = coreBarCenter + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
+            Vector3 coreBarPosition = barPosition + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
             Gizmos.DrawCube(coreBarPosition, coreBarSize);
             
             // Border
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
-            Gizmos.DrawWireCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
         }
 
         void OnDrawGizmosSelected()

@@ -244,9 +244,56 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
+        /// Take damage from a DamageInfo
+        /// Processes all damage types from the same attack together
+        /// Note: Enemies don't have invulnerability system currently
+        /// </summary>
+        public void TakeDamage(DamageInfo damageInfo)
+        {
+            // Process all damage types in the DamageInfo
+            Damages damages = damageInfo.damages;
+            if (damages == null) return;
+            
+            bool tookAnyDamage = false;
+            
+            // Apply Physical Health damage
+            if (damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                TakeHealthDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Core Health damage
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                TakeCoreDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Chaos damage (processed last)
+            if (damages.HasDamage(DamageType.Chaos))
+            {
+                float damageAmount = damages.GetDamage(DamageType.Chaos);
+                TakeChaosDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Trigger common effects only once per DamageInfo
+            if (tookAnyDamage)
+            {
+                // Notify action controller of damage taken (only once per DamageInfo)
+                _actionController?.OnEnemyDamageTaken();
+            }
+            
+            Debug.Log($"EnemyController: Processed DamageInfo - {damageInfo}");
+        }
+        
+        /// <summary>
         /// Take physical health damage
         /// </summary>
-        public void TakeHealthDamage(float damage)
+        private void TakeHealthDamage(float damage)
         {
             if (!IsCoreAlive) return;
             
@@ -264,9 +311,6 @@ namespace Resonance.Enemies.Core
             {
                 OnPhysicalTierChanged?.Invoke(_stats.healthTier);
             }
-            
-            // Notify action controller of damage taken
-            _actionController?.OnEnemyDamageTaken();
 
             if (_stats.currentHealth <= 0f)
             {
@@ -279,7 +323,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Take core health damage
         /// </summary>
-        public void TakeCoreDamage(float damage)
+        private void TakeCoreDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
@@ -297,9 +341,6 @@ namespace Resonance.Enemies.Core
             {
                 OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
             }
-            
-            // Notify action controller of damage taken
-            _actionController?.OnEnemyDamageTaken();
 
             if (_stats.crystalCore.CurrentCoreHealth <= 0f)
             {
@@ -312,7 +353,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Take chaos damage
         /// </summary>
-        public void TakeChaosDamage(float damage)
+        private void TakeChaosDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
