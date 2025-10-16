@@ -40,11 +40,8 @@ namespace Resonance.Enemies.Actions
             
             bool result = canCoreAttack && hasTarget && inRange && playerInChaos;
             
-            if (!result && hasTarget && inRange && _enemy != null)
-            {
-                Debug.Log($"EnemyCoreAttackAction: Cannot start - CanCoreAttack: {canCoreAttack}, PlayerInChaos: {playerInChaos}");
-            }
-            
+            Debug.Log($"EnemyCoreAttackAction.CanStart: CanCoreAttack={canCoreAttack}, HasTarget={hasTarget}, " +
+                      $"InRange={inRange}, PlayerInChaos={playerInChaos} => Result={result}");
             return result;
         }
 

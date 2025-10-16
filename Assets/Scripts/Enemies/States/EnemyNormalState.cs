@@ -279,9 +279,15 @@ namespace Resonance.Enemies.States
                     break;
                     
                 case EnemySubState.Combat:
-                    Debug.Log($"EnemyNormalState: Attempting to start NormalAttack action");
-                    bool attackStarted = actionController.TryStartAction("NormalAttack");
-                    Debug.Log($"EnemyNormalState: NormalAttack action started: {attackStarted}");
+                    // CoreAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
+                    bool actionStarted = actionController.TryStartBestAction();
+                    Debug.Log($"EnemyNormalState: Attempting to start best action: {actionStarted}");
+                    if (!actionStarted)
+                    {
+                        // Fallback: try to explicitly start NormalAttack if no other action could start
+                        Debug.Log($"EnemyNormalState: Fallback: Attempting to start NormalAttack action");
+                        actionController.TryStartAction("NormalAttack");
+                    }
                     break;
             }
         }

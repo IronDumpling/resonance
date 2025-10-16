@@ -24,7 +24,8 @@ namespace Resonance.Enemies.Core
         private EnemyMovement _movement;
         
         // Combat State
-        private float _lastAttackTime = 0f;
+        private float _lastNormalAttackTime = 0f;
+        private float _lastCoreAttackTime = 0f;
         private float _revivalTimer = 0f;
         private bool _hitboxEnabled = false;
         private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
@@ -132,10 +133,10 @@ namespace Resonance.Enemies.Core
         
         // Combat Properties
         public bool CanAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                Time.time >= _lastAttackTime + _stats.normalAttackStats.cooldown;
+                                Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
         
         public bool CanCoreAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                    Time.time >= _lastAttackTime + _stats.coreAttackStats.cooldown &&
+                                    Time.time >= _lastCoreAttackTime + _stats.coreAttackStats.cooldown &&
                                     IsPlayerInChaosState();
         
         public AttackType CurrentAttackType => _currentAttackType;
@@ -148,7 +149,6 @@ namespace Resonance.Enemies.Core
         public AttackStats CoreAttackStats => _stats.coreAttackStats;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
         public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
-        public float LastAttackTime => _lastAttackTime;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -494,7 +494,7 @@ namespace Resonance.Enemies.Core
             if (!CanAttack) return false;
 
             _currentAttackType = AttackType.Normal;
-            _lastAttackTime = Time.time;
+            _lastNormalAttackTime = Time.time;
             _attacksLaunched++;
             
             // Trigger attack started event (for animation system)
@@ -512,7 +512,7 @@ namespace Resonance.Enemies.Core
             if (!CanCoreAttack) return false;
 
             _currentAttackType = AttackType.Core;
-            _lastAttackTime = Time.time;
+            _lastCoreAttackTime = Time.time;
             _attacksLaunched++;
             
             // Trigger attack started event (for animation system)
@@ -635,8 +635,9 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void ResetAttackCooldown()
         {
-            _lastAttackTime = 0f;
-            Debug.Log("EnemyController: Attack cooldown reset");
+            _lastNormalAttackTime = 0f;
+            _lastCoreAttackTime = 0f;
+            Debug.Log("EnemyController: Attack cooldowns reset (Normal and Core)");
         }
 
         /// <summary>

@@ -145,6 +145,7 @@ namespace Resonance.Enemies.Core
             // Check if action can start
             if (!action.CanStart(_enemyController))
             {
+                Debug.Log($"EnemyActionController: Action {action.Name} cannot start - CanStart: {action.CanStart(_enemyController)}");
                 return false;
             }
 
@@ -186,8 +187,10 @@ namespace Resonance.Enemies.Core
 
             foreach (var action in availableActions)
             {
+                Debug.Log($"EnemyActionController: Trying to start action: {action.Name} (Priority: {action.Priority})");
                 if (TryStartAction(action))
                 {
+                    Debug.Log($"EnemyActionController: Started action: {action.Name} (Priority: {action.Priority})");
                     return true;
                 }
             }
