@@ -41,9 +41,9 @@ MonoBehaviour:
   chaseMoveSpeed: 2
   patrolRadius: 2
   arrivalThreshold: 1.2
-  normalMaterialPath: Art/Materials/Enemy_Body
+  normalMaterialPath: Art/Materials/Enemy/Enemy_Body
   damageMaterialPath: Art/Materials/Damage_Body
-  revivalMaterialPath: Art/Materials/Enemy_Revival
+  revivalMaterialPath: Art/Materials/Enemy/Enemy_Revival
   damageFlashDuration: 0.2
   enableAudio: 1
   deathLootPrefab: {fileID: 1888247229399058588, guid: 2c7fad3653d846c45aafee4c70bbade6, type: 3}

@@ -67,11 +67,11 @@ namespace Resonance.Enemies.Data
         
         [Header("视觉效果 - Visual Effects")]
         [Tooltip("正常状态材质路径")]
-        public string normalMaterialPath = "Art/Materials/Enemy_Body";
+        public string normalMaterialPath = "Art/Materials/Enemy/Enemy_Body";
         [Tooltip("受伤状态材质路径")]
         public string damageMaterialPath = "Art/Materials/Damage_Body";
         [Tooltip("复活状态材质路径")]
-        public string revivalMaterialPath = "Art/Materials/Revival_Body";
+        public string revivalMaterialPath = "Art/Materials/Enemy/Enemy_Revival";
         [Tooltip("受伤闪烁持续时间")]
         public float damageFlashDuration = 0.2f;
         

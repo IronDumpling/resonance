@@ -52,7 +52,7 @@ namespace Resonance.Player.Data
 
         [Header("视觉效果 - Visual Effects")]
         [Tooltip("正常状态材质路径")]
-        [SerializeField] private string _normalMaterialPath = "Art/Materials/Player_Body";
+        [SerializeField] private string _normalMaterialPath = "Art/Materials/Player/Player_Body";
         [Tooltip("受伤状态材质路径")]
         [SerializeField] private string _damageMaterialPath = "Art/Materials/Damage_Body";
         [Tooltip("受伤闪烁持续时间")]
