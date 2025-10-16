@@ -6,7 +6,12 @@ namespace Resonance.Enemies.Core
 {
     /// <summary>
     /// Enemy movement system that handles movement in XZ plane only (no jumping or Y-axis movement)
-    /// Similar to PlayerMovement but simplified for AI-controlled enemies
+    /// Similar to PlayerMovement with centralized speed management based on current state and action
+    /// 
+    /// Movement speed is determined by:
+    /// - Current enemy state (Normal, Reviving, TrueDeath, Stun)
+    /// - Current action (Chase, Patrol, NormalAttack, CoreAttack, Revive)
+    /// - Health tier modifiers (from EnemyBaseStats)
     /// </summary>
     public class EnemyMovement
     {
@@ -136,8 +141,17 @@ namespace Resonance.Enemies.Core
         {
             if (!IsMoving) return;
             
-            // Determine move speed based on current enemy state and substate
+            // Determine move speed based on current enemy state and action
             float moveSpeed = GetCurrentMoveSpeed();
+            
+            // If speed is 0 (stunned, attacking, dead, etc.), stop movement immediately
+            if (moveSpeed <= 0f)
+            {
+                _velocity = Vector3.zero;
+                // Debug.Log($"EnemyMovement: Movement blocked - speed is 0 (State: {_enemyController?.CurrentState}, Action: {_enemyController?.ActionController?.CurrentActionName})");
+                return;
+            }
+            
             MoveToTarget(moveSpeed, deltaTime);
         }
         
@@ -151,7 +165,19 @@ namespace Resonance.Enemies.Core
         }
         
         /// <summary>
-        /// Get the appropriate movement speed based on current enemy state and substate
+        /// Get the appropriate movement speed based on current enemy state and action.
+        /// This is the single source of truth for enemy movement speed calculation.
+        /// 
+        /// Speed Rules:
+        /// 1. Action-based speeds (higher priority):
+        ///    - Chase action: use chaseMoveSpeed
+        ///    - Patrol action: use moveSpeed
+        ///    - NormalAttack/CoreAttack/Revive actions: cannot move (speed = 0)
+        /// 2. State-based speeds (when no specific action rule):
+        ///    - Normal state: depends on current action (handled above)
+        ///    - Stun state: cannot move (speed = 0)
+        ///    - TrueDeath state: cannot move (speed = 0)
+        ///    - Reviving state: cannot move (speed = 0, handled by Revive action)
         /// </summary>
         private float GetCurrentMoveSpeed()
         {
@@ -161,32 +187,74 @@ namespace Resonance.Enemies.Core
                 return _stats.GetModifiedMoveSpeed();
             }
             
-            // Check if enemy is in Normal state and get substate
-            if (_enemyController.StateMachine.IsInState("Normal"))
+            // Get current state and action
+            string currentState = _enemyController.CurrentState;
+            string currentAction = _enemyController.ActionController?.CurrentActionName ?? "None";
+            
+            // Rule 2: State-based movement restrictions (highest priority)
+            // TrueDeath state - no movement
+            if (currentState == "TrueDeath")
             {
-                var normalState = _enemyController.StateMachine.CurrentState as EnemyNormalState;
-                if (normalState != null)
-                {
-                    // Use chase speed for Chase and Combat substates
-                    if (normalState.IsChasing() || normalState.IsAttacking())
-                    {
-                        return _stats.GetModifiedChaseMoveSpeed();
-                    }
-                    // Use normal speed for Patrol substate
-                    else if (normalState.IsPatrolling())
-                    {
-                        return _stats.GetModifiedMoveSpeed();
-                    }
-                }
+                // Debug.Log($"EnemyMovement: Cannot move - in TrueDeath state");
+                return 0f;
             }
             
-            // Default fallback to normal move speed for other states (Reviving, TrueDeath, etc.)
+            // Stun state - no movement
+            if (currentState == "Stun")
+            {
+                // Debug.Log($"EnemyMovement: Cannot move - in Stun state");
+                return 0f;
+            }
+            
+            // Reviving state - no movement (revival is stationary)
+            if (currentState == "Reviving")
+            {
+                // Debug.Log($"EnemyMovement: Cannot move - in Reviving state");
+                return 0f;
+            }
+            
+            // Rule 1: Action-based movement speeds
+            // Revive action - no movement (stationary revival)
+            if (currentAction == "Revive")
+            {
+                return 0f;
+            }
+            
+            // NormalAttack action - no movement (attack in place)
+            if (currentAction == "NormalAttack")
+            {
+                return 0f;
+            }
+            
+            // CoreAttack action - no movement (attack in place)
+            if (currentAction == "CoreAttack")
+            {
+                return 0f;
+            }
+            
+            // Chase action - use chase speed
+            if (currentAction == "Chase")
+            {
+                return _stats.GetModifiedChaseMoveSpeed();
+            }
+            
+            // Patrol action - use normal move speed
+            if (currentAction == "Patrol")
+            {
+                return _stats.GetModifiedMoveSpeed();
+            }
+            
+            // Default fallback to normal move speed (for Normal state with no action)
             return _stats.GetModifiedMoveSpeed();
         }
         
         private void UpdateRotation(float deltaTime)
         {
             if (!IsMoving) return;
+            
+            // Check if enemy can actually move (not stunned, attacking, etc.)
+            float moveSpeed = GetCurrentMoveSpeed();
+            if (moveSpeed <= 0f) return;
             
             // Rotate to face movement direction
             Vector3 direction = (_targetPosition - _transform.position).normalized;
@@ -236,6 +304,22 @@ namespace Resonance.Enemies.Core
             // For now, assume all positions are reachable
             // In a more complex system, this could check for obstacles, NavMesh, etc.
             return true;
+        }
+        
+        /// <summary>
+        /// Check if enemy can move in current state/action
+        /// </summary>
+        public bool CanMove()
+        {
+            return GetCurrentMoveSpeed() > 0f;
+        }
+        
+        /// <summary>
+        /// Get the current effective movement speed (for debugging/display)
+        /// </summary>
+        public float GetEffectiveMoveSpeed()
+        {
+            return GetCurrentMoveSpeed();
         }
         
         #endregion

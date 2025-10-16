@@ -184,6 +184,7 @@ namespace Resonance.Enemies.Core
         public void Update(float deltaTime)
         {
             UpdateRevivalTimer(deltaTime);
+            UpdateStunTimer();
             _stats.UpdateChaos(deltaTime);
             UpdatePlayerDetection();
             _actionController?.Update(deltaTime);
@@ -192,6 +193,16 @@ namespace Resonance.Enemies.Core
         }
 
         #region Health System
+
+        private float _stunEndTime = 0f;
+
+        private void UpdateStunTimer()
+        {
+            if (_stateMachine.IsStunned() && Time.time >= _stunEndTime)
+            {
+                ExitStun();
+            }
+        }
 
         /// <summary>
         /// Update revival timer
@@ -357,9 +368,41 @@ namespace Resonance.Enemies.Core
         {
             if (!IsCoreAlive) return;
 
-            _stats.crystalCore.AddChaos(damage);
+            float addedChaos = _stats.crystalCore.AddChaos(damage);
             
-            Debug.Log($"EnemyController: Took {damage:F1} chaos damage. Current chaos: {_stats.crystalCore.CurrentChaos:F1}/{_stats.crystalCore.MaxChaos}");
+            if (addedChaos > 0f)
+            {
+                EnterStun(addedChaos * 0.1f);
+                Debug.Log($"EnemyController: Took {damage:F1} chaos damage. Entering stun for {addedChaos * 0.1f:F2}s");
+            }
+        }
+
+        private void EnterStun(float duration)
+        {
+            if(!_stateMachine.CanEnterStun())
+            {
+                Debug.LogWarning($"EnemyController: Cannot enter stun - current state: {CurrentState}");
+                return;
+            }
+            
+            _stunEndTime = Time.time + duration;
+            bool stunEntered = _stateMachine?.EnterStun() ?? false;
+            
+            if (stunEntered)
+            {
+                Debug.Log($"EnemyController: Entered stun for {duration:F2}s");
+            }
+            else
+            {
+                Debug.LogError($"EnemyController: Failed to enter stun state! Current state: {CurrentState}");
+            }
+        }
+
+        private void ExitStun()
+        {
+            if(!_stateMachine.IsStunned()) return;
+            _stateMachine?.ExitStun();
+            Debug.Log("EnemyController: Exited stun");
         }
 
         /// <summary>

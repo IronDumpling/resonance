@@ -21,6 +21,13 @@ namespace Resonance.Enemies.States
         public void Enter()
         {
             Debug.Log("EnemyState: Entered Stun state");
+            
+            // Stop all movement when entering stun
+            _enemyController.Movement?.Stop();
+            
+            // Cancel any ongoing actions
+            // This will interrupt Chase, Patrol, NormalAttack, and CoreAttack actions
+            _enemyController.ActionController?.CancelCurrentAction();
         }
         
         public void Update()

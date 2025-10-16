@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: EnemyCrystalCoreConfig_1
   m_EditorClassIdentifier: 
   initialMaxCoreHealth: 90
-  energyPerSlot: 20
+  energyPerSlot: 30
   startWithFullEnergy: 1
   waveConfig: {fileID: 11400000, guid: b6c66e26fe2ce5a4aace0785275f3163, type: 2}
   canUpgradeMaxHealth: 1

@@ -120,7 +120,7 @@ namespace Resonance.Enemies.Core
             return CurrentStateName == stateName;
         }
 
-        #region Enemy-Specific State Transitions
+        #region State Transitions
 
         /// <summary>
         /// Start revival process when health health reaches 0
@@ -155,6 +155,36 @@ namespace Resonance.Enemies.Core
             return false;
         }
 
+        public bool EnterStun()
+        {
+            // Can enter stun from any state except already in stun
+            if (!IsInState("Stun"))
+            {
+                Debug.Log($"EnemyStateMachine: Attempting to enter Stun state from {CurrentStateName}");
+                bool result = ChangeState("Stun");
+                if (!result)
+                {
+                    Debug.LogError($"EnemyStateMachine: Failed to change to Stun state from {CurrentStateName}");
+                }
+                return result;
+            }
+            else
+            {
+                Debug.LogWarning("EnemyStateMachine: Already in Stun state, cannot enter again");
+            }
+            return false;
+        }
+
+        public bool ExitStun()
+        {
+            // Can exit stun from any state except already in stun
+            if (IsInState("Stun"))
+            {
+                return ChangeState("Normal");
+            }
+            return false;
+        }
+
         #endregion
 
         #region State Queries
@@ -167,17 +197,6 @@ namespace Resonance.Enemies.Core
         public bool CanAttack()
         {
             return IsInState("Normal");
-        }
-
-        public bool CanDetectPlayer()
-        {
-            return IsInState("Normal");
-        }
-
-        public bool IsPhysicallyDead()
-        {
-            // Physical death is now represented by the Reviving state
-            return IsInState("Reviving");
         }
 
         public bool IsReviving()
@@ -195,16 +214,14 @@ namespace Resonance.Enemies.Core
             return IsInState("Normal");
         }
 
-        public bool IsVulnerableToCoreAttacks()
+        public bool CanEnterStun()
         {
-            // Vulnerable when core is exposed (reviving state only)
-            return IsInState("Reviving");
+            return IsInState("Normal");
         }
 
-        public bool CanStartRevival()
+        public bool IsStunned()
         {
-            // Can start revival from normal state when health health reaches 0
-            return IsInState("Normal");
+            return IsInState("Stun");
         }
 
         #endregion

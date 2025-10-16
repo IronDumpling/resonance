@@ -16,6 +16,22 @@ using Resonance.Interfaces.Operations;
 namespace Resonance.Player.Core
 {
     /// <summary>
+    /// Invulnerability tracking - DamageInfo-based system
+    /// Tracks recent damage sources to prevent duplicate damage from the same attack
+    /// </summary>
+    public class DamageSourceRecord
+    {
+        public GameObject sourceObject;
+        public float timestamp;
+        
+        public DamageSourceRecord(GameObject source, float time)
+        {
+            sourceObject = source;
+            timestamp = time;
+        }
+    }
+    
+    /// <summary>
     /// Core player controller that manages player state and behavior.
     /// This is a Non-MonoBehaviour class that handles the player logic.
     /// </summary>
@@ -154,9 +170,12 @@ namespace Resonance.Player.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            UpdateTimers(deltaTime);
-            _movement.Update(deltaTime);
+            UpdateInvulnerabilityTimer();
             _stateMachine?.Update();
+
+            UpdateStunTimer();
+            _stats.UpdateChaos(deltaTime);
+            _movement.Update(deltaTime);
             _actionController.Update(deltaTime);
         }
 
@@ -164,21 +183,6 @@ namespace Resonance.Player.Core
 
         // Stun tracking
         private float _stunEndTime = 0f;
-        private bool _isInStun = false;
-
-        // Invulnerability tracking - DamageInfo-based system
-        // Tracks recent damage sources to prevent duplicate damage from the same attack
-        private class DamageSourceRecord
-        {
-            public GameObject sourceObject;
-            public float timestamp;
-            
-            public DamageSourceRecord(GameObject source, float time)
-            {
-                sourceObject = source;
-                timestamp = time;
-            }
-        }
         
         private List<DamageSourceRecord> _recentDamageSources = new List<DamageSourceRecord>();
         private float _invulnerabilityDuration = 0f; // Cache the duration
@@ -186,23 +190,25 @@ namespace Resonance.Player.Core
         /// <summary>
         /// Update chaos (natural recovery) and clean up old damage records
         /// </summary>
-        private void UpdateTimers(float deltaTime)
+        private void UpdateInvulnerabilityTimer()
         {
-            _stats.UpdateChaos(deltaTime);
-            
-            // Check if stun time has expired
-            if (_isInStun && Time.time >= _stunEndTime)
-            {
-                ExitStun();
-            }
-
-            // Clean up old damage source records (remove entries older than invulnerability duration)
+            // Clean up old damage source records
+            // remove entries older than invulnerability duration
             if (_recentDamageSources.Count > 0 && _invulnerabilityDuration > 0f)
             {
                 float currentTime = Time.time;
                 _recentDamageSources.RemoveAll(record => 
                     currentTime - record.timestamp > _invulnerabilityDuration
                 );
+            }
+        }
+
+        
+        private void UpdateStunTimer()
+        {
+            if (CurrentState == "Stun" && Time.time >= _stunEndTime)
+            {
+                ExitStun();
             }
         }
         
@@ -275,7 +281,6 @@ namespace Resonance.Player.Core
         {
             if (CurrentState == "Death") return;
             
-            _isInStun = true;
             _stunEndTime = Time.time + duration;
             _stateMachine?.EnterStun();
             
@@ -287,9 +292,8 @@ namespace Resonance.Player.Core
         /// </summary>
         private void ExitStun()
         {
-            if (!_isInStun) return;
+            if (CurrentState != "Stun") return;
             
-            _isInStun = false;
             _stateMachine?.ExitStun();
             
             Debug.Log("PlayerController: Exited stun state");

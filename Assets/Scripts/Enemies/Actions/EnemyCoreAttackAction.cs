@@ -82,12 +82,20 @@ namespace Resonance.Enemies.Actions
 
         public void Cancel(EnemyController enemy)
         {
-            Debug.Log("EnemyCoreAttackAction: Core attack action cancelled");
+            Debug.Log("EnemyCoreAttackAction: Core attack action cancelled (e.g. by stun)");
             
             // Ensure hitbox is disabled when action is cancelled
             if (_hasActivatedHitbox)
             {
                 enemy.DisableHitbox();
+            }
+            
+            // Clean up event subscriptions
+            if (_enemy != null)
+            {
+                _enemy.OnAttackSequenceFinished -= () => HandleSequenceFinished();
+                _enemy.OnAttackWindowOpened -= () => HandleWindowOpened();
+                _enemy.OnAttackWindowClosed -= () => HandleWindowClosed();
             }
             
             _isFinished = true;

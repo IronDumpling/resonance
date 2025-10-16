@@ -73,6 +73,8 @@ namespace Resonance.Enemies.Actions
         {
             Debug.Log("EnemyPatrolAction: Patrol action cancelled");
             enemy.StopPatrol();
+            enemy.Movement?.Stop();
+            
             _isFinished = true;
         }
 

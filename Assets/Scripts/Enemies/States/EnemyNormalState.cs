@@ -14,13 +14,9 @@ namespace Resonance.Enemies.States
         private EnemyController _enemyController;
         private EnemySubState _currentSubState;
         private float _stateTimer = 0f;
-        // private float _patrolTimer = 0f;
         private float _chaseTimer = 0f;
         
-        // Sub-state timings
-        private const float PATROL_INTERVAL = 3f;
         private const float ALERT_DURATION = 5f;
-        private const float ATTACK_INTERVAL = 0.1f; // Check attack every 0.1s
         
         public string Name => "Normal";
 
@@ -55,7 +51,6 @@ namespace Resonance.Enemies.States
             }
             
             _stateTimer = 0f;
-            // _patrolTimer = 0f;
             _chaseTimer = 0f;
             
             // Start the appropriate action for the initial sub-state
@@ -104,7 +99,7 @@ namespace Resonance.Enemies.States
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to revival and true death states from Normal
-            return newState.Name == "Reviving" || newState.Name == "TrueDeath";
+            return newState.Name == "Reviving" || newState.Name == "TrueDeath" || newState.Name == "Stun";
         }
 
         #region Sub-State Updates
@@ -194,7 +189,6 @@ namespace Resonance.Enemies.States
             StopCurrentAction();
             _currentSubState = EnemySubState.Patrol;
             _chaseTimer = 0f;
-            // _patrolTimer = 0f;
             StartActionForSubState(EnemySubState.Patrol);
         }
 

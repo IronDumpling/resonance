@@ -71,6 +71,10 @@ namespace Resonance.Enemies.Actions
         public void Cancel(EnemyController enemy)
         {
             Debug.Log("EnemyChaseAction: Chase action cancelled");
+            
+            // Stop movement when cancelled (e.g. by stun)
+            enemy.Movement?.Stop();
+            
             _isFinished = true;
         }
 
