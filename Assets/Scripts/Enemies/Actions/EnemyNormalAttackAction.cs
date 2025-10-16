@@ -106,19 +106,19 @@ namespace Resonance.Enemies.Actions
 
         private void HandleWindowOpened()
         {
-            Debug.Log("EnemyNormalAttackAction: Attack window opened");
+            // Debug.Log("EnemyNormalAttackAction: Attack window opened");
             _windowOpened = true;
         }
 
         private void HandleWindowClosed()
         {
-            Debug.Log("EnemyNormalAttackAction: Attack window closed");
+            // Debug.Log("EnemyNormalAttackAction: Attack window closed");
             _windowOpened = false;
         }
 
         private void HandleSequenceFinished()
         {
-            Debug.Log("EnemyNormalAttackAction: Attack sequence finished");
+            // Debug.Log("EnemyNormalAttackAction: Attack sequence finished");
             Finish();
         }
 

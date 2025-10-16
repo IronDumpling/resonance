@@ -19,6 +19,14 @@ namespace Resonance.Enemies.Core
         private EnemyDamageHitbox _damageHitbox;
         private bool _isInitialized = false;
 
+        void OnEnable()
+        {
+            if (_isInitialized)
+            {
+                Debug.Log($"EnemyAnimRelay: Component enabled on {gameObject.name}, ready for animation events");
+            }
+        }
+
         #region Initialization
 
         /// <summary>
@@ -77,11 +85,8 @@ namespace Resonance.Enemies.Core
                 return;
             }
 
-            if (_debugMode)
-            {
-                string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
-                Debug.Log($"EnemyAnimRelay: OnAttackCommit ({attackType}) - enabling hitbox");
-            }
+            string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+            Debug.Log($"EnemyAnimRelay: OnAttackCommit ({attackType}) - enabling hitbox");
 
             // Enable damage hitbox through controller (which now handles GameObject activation)
             _enemyController?.EnableHitbox();
@@ -93,18 +98,15 @@ namespace Resonance.Enemies.Core
         /// Works for both NormalAttack and CoreAttack
         /// </summary>
         public void OnAttackEnd()
-        {
+        { 
             if (!_isInitialized)
             {
                 Debug.LogError("EnemyAnimRelay: OnAttackEnd called but not initialized!");
                 return;
             }
 
-            if (_debugMode)
-            {
-                string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
-                Debug.Log($"EnemyAnimRelay: OnAttackEnd ({attackType}) - disabling hitbox");
-            }
+            string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+            Debug.Log($"EnemyAnimRelay: OnAttackEnd ({attackType}) - disabling hitbox");
 
             // Disable damage hitbox through controller (which now handles GameObject deactivation)
             _enemyController?.DisableHitbox();
@@ -123,11 +125,8 @@ namespace Resonance.Enemies.Core
                 return;
             }
 
-            if (_debugMode)
-            {
-                string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
-                Debug.Log($"EnemyAnimRelay: OnAttackSequenceFinished ({attackType}) - attack sequence complete");
-            }
+            string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+            Debug.Log($"EnemyAnimRelay: OnAttackSequenceFinished ({attackType}) - attack sequence complete");
 
             _enemyController?.AttackSequenceFinished();
         }

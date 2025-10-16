@@ -228,11 +228,4 @@ AnimationClip:
     flags: 0
   m_HasGenericRootTransform: 1
   m_HasMotionFloatCurves: 0
-  m_Events:
-  - time: 1
-    functionName: OnAttackCommit
-    data: 
-    objectReferenceParameter: {fileID: 11500000, guid: 5ff20b36588affe41b00774ec4718676, type: 3}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
+  m_Events: []
