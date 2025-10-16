@@ -67,6 +67,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Called by animation event when attack damage window starts
         /// Usually placed on the frame where the attack should start dealing damage
+        /// Works for both NormalAttack and CoreAttack
         /// </summary>
         public void OnAttackCommit()
         {
@@ -78,7 +79,8 @@ namespace Resonance.Enemies.Core
 
             if (_debugMode)
             {
-                Debug.Log("EnemyAnimRelay: OnAttackCommit - enabling hitbox");
+                string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+                Debug.Log($"EnemyAnimRelay: OnAttackCommit ({attackType}) - enabling hitbox");
             }
 
             // Enable damage hitbox through controller (which now handles GameObject activation)
@@ -88,6 +90,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Called by animation event when attack damage window ends
         /// Usually placed on the frame where the attack should stop dealing damage
+        /// Works for both NormalAttack and CoreAttack
         /// </summary>
         public void OnAttackEnd()
         {
@@ -99,7 +102,8 @@ namespace Resonance.Enemies.Core
 
             if (_debugMode)
             {
-                Debug.Log("EnemyAnimRelay: OnAttackEnd - disabling hitbox");
+                string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+                Debug.Log($"EnemyAnimRelay: OnAttackEnd ({attackType}) - disabling hitbox");
             }
 
             // Disable damage hitbox through controller (which now handles GameObject deactivation)
@@ -109,6 +113,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Called by animation event when attack sequence finishes
         /// Usually placed on the frame where the attack sequence should finish
+        /// Works for both NormalAttack and CoreAttack
         /// </summary>
         public void OnAttackSequenceFinished()
         {
@@ -116,6 +121,12 @@ namespace Resonance.Enemies.Core
             {
                 Debug.LogError("EnemyAnimRelay: OnAttackSequenceFinished called but not initialized!");
                 return;
+            }
+
+            if (_debugMode)
+            {
+                string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+                Debug.Log($"EnemyAnimRelay: OnAttackSequenceFinished ({attackType}) - attack sequence complete");
             }
 
             _enemyController?.AttackSequenceFinished();
@@ -228,10 +239,36 @@ namespace Resonance.Enemies.Core
             {
                 case "AttackWindupComplete":
                     // Attack windup finished, ready for damage window
+                    if (_debugMode)
+                    {
+                        string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+                        Debug.Log($"EnemyAnimRelay: AttackWindupComplete ({attackType}) - ready for damage window");
+                    }
                     break;
                     
                 case "AttackRecoveryStart":
                     // Attack recovery phase started
+                    if (_debugMode)
+                    {
+                        string attackType = _enemyController?.CurrentAttackType.ToString() ?? "Unknown";
+                        Debug.Log($"EnemyAnimRelay: AttackRecoveryStart ({attackType}) - recovery phase started");
+                    }
+                    break;
+                    
+                case "CoreAttackWindupComplete":
+                    // Core attack windup finished, ready for damage window
+                    if (_debugMode)
+                    {
+                        Debug.Log("EnemyAnimRelay: CoreAttackWindupComplete - core attack ready for damage window");
+                    }
+                    break;
+                    
+                case "CoreAttackRecoveryStart":
+                    // Core attack recovery phase started
+                    if (_debugMode)
+                    {
+                        Debug.Log("EnemyAnimRelay: CoreAttackRecoveryStart - core attack recovery phase started");
+                    }
                     break;
                     
                 default:

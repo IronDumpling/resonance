@@ -31,13 +31,19 @@ namespace Resonance.Enemies.Actions
             // Can only core attack if:
             // 1. Enemy is alive and can attack
             // 2. Has player target in attack range
-            // 3. Not on attack cooldown
-            // 5. Player wave is in chaos state
-            bool canAttack = enemy.CanAttack;
+            // 3. Not on attack cooldown (CoreAttack cooldown)
+            // 4. Player wave is in chaos state
+            bool canCoreAttack = enemy.CanCoreAttack;
             bool hasTarget = enemy.HasPlayerTarget;
             bool inRange = enemy.IsPlayerInAttackRange();
+            bool playerInChaos = enemy.IsPlayerInChaosState();
             
-            bool result = canAttack && hasTarget && inRange;
+            bool result = canCoreAttack && hasTarget && inRange && playerInChaos;
+            
+            if (!result && hasTarget && inRange && _enemy != null)
+            {
+                Debug.Log($"EnemyCoreAttackAction: Cannot start - CanCoreAttack: {canCoreAttack}, PlayerInChaos: {playerInChaos}");
+            }
             
             return result;
         }
@@ -57,7 +63,7 @@ namespace Resonance.Enemies.Actions
 
             if(!_hasTriggeredAnimation)
             {
-                if(_enemy.LaunchAttack())
+                if(_enemy.LaunchCoreAttack())
                 {
                     _hasTriggeredAnimation = true;
                 }

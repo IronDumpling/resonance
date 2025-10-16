@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Enemies.Core;
+using Resonance.Enemies.Data;
 using Resonance.Interfaces;
 using Resonance.Utilities;
 using Resonance.Utilities.Waves;
@@ -214,15 +215,37 @@ namespace Resonance.Enemies
         /// </summary>
         private bool AttemptDamage(IDamageable target, Collider targetCollider)
         {
-            Damages damages = _enemyController.NormalAttackStats.damages;
+            // Use current attack type's AttackStats
+            AttackStats currentAttackStats = _enemyController.GetCurrentAttackStats();
+            Damages damages = currentAttackStats.damages;
+            
+            string attackTypeName = "";
+
+            switch (_enemyController.CurrentAttackType)
+            {
+                case AttackType.Core:
+                    attackTypeName = "Core attack";
+                    break;
+                case AttackType.Normal:
+                    attackTypeName = "Normal attack";
+                    break;
+                default:
+                    attackTypeName = "Unknown attack";
+                    break;
+            }
 
             // Create damage info
             DamageInfo damageInfo = new DamageInfo(
                 damages: damages,
                 sourcePosition: transform.position,
                 sourceObject: gameObject,
-                description: "Enemy normal attack"
+                description: $"Enemy {attackTypeName.ToLower()}"
             );
+
+            if (_debugMode)
+            {
+                Debug.Log($"EnemyDamageHitbox: Attempting {attackTypeName} with damages: {damages}");
+            }
 
             // Use the controller's damage system (handles modifiers, cooldowns, etc.)
             return _enemyController.TryApplyDamage(target, damageInfo);

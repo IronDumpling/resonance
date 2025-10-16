@@ -28,6 +28,7 @@ namespace Resonance.Enemies.Core
         private float _revivalTimer = 0f;
         private bool _hitboxEnabled = false;
         private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
+        private AttackType _currentAttackType = AttackType.Normal;
         
         // Target Tracking
         private Transform _playerTarget;
@@ -132,6 +133,12 @@ namespace Resonance.Enemies.Core
         // Combat Properties
         public bool CanAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
                                 Time.time >= _lastAttackTime + _stats.normalAttackStats.cooldown;
+        
+        public bool CanCoreAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+                                    Time.time >= _lastAttackTime + _stats.coreAttackStats.cooldown &&
+                                    IsPlayerInChaosState();
+        
+        public AttackType CurrentAttackType => _currentAttackType;
         
         // Position Properties
         public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
@@ -486,14 +493,41 @@ namespace Resonance.Enemies.Core
         {
             if (!CanAttack) return false;
 
+            _currentAttackType = AttackType.Normal;
             _lastAttackTime = Time.time;
             _attacksLaunched++;
             
             // Trigger attack started event (for animation system)
             OnAttackLaunched?.Invoke(_stats.normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth));
-            Debug.Log($"EnemyController: Attack process started - damage will be dealt through hitbox");
+            Debug.Log($"EnemyController: Normal attack process started - damage will be dealt through hitbox");
             
             return true;
+        }
+
+        /// <summary>
+        /// Start core attack process - targets player's core when they are in chaos state
+        /// </summary>
+        public bool LaunchCoreAttack()
+        {
+            if (!CanCoreAttack) return false;
+
+            _currentAttackType = AttackType.Core;
+            _lastAttackTime = Time.time;
+            _attacksLaunched++;
+            
+            // Trigger attack started event (for animation system)
+            OnAttackLaunched?.Invoke(_stats.coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
+            Debug.Log($"EnemyController: Core attack process started - targeting player's core");
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Get the attack stats for the current attack type
+        /// </summary>
+        public AttackStats GetCurrentAttackStats()
+        {
+            return _currentAttackType == AttackType.Core ? _stats.coreAttackStats : _stats.normalAttackStats;
         }
 
         /// <summary>
@@ -526,6 +560,9 @@ namespace Resonance.Enemies.Core
             
             // Clear hit tracking when attack window ends
             _currentAttackHits.Clear();
+            
+            // Reset attack type to normal
+            _currentAttackType = AttackType.Normal;
             
             // Find and disable the actual damage hitbox GameObject
             if (_damageHitboxChild != null)
@@ -670,6 +707,30 @@ namespace Resonance.Enemies.Core
         public void SetPlayerInAttackRange(bool inRange)
         {
             _isPlayerInAttackRange = inRange;
+        }
+
+        /// <summary>
+        /// Check if player target is in chaos state (for core attack condition)
+        /// </summary>
+        public bool IsPlayerInChaosState()
+        {
+            if (!HasPlayerTarget) return false;
+            
+            // Try to get IDamageable from player target
+            var damageable = _playerTarget.GetComponent<IDamageable>();
+            if (damageable == null)
+            {
+                damageable = _playerTarget.GetComponentInParent<IDamageable>();
+            }
+            
+            if (damageable == null)
+            {
+                return false;
+            }
+            
+            bool isInChaos = damageable.ChaosState == WaveChaosState.Chaos;
+            
+            return isInChaos;
         }
 
         #endregion
@@ -900,10 +961,6 @@ namespace Resonance.Enemies.Core
             
             _isPaused = true;
             Debug.Log("EnemyController: Paused");
-            
-            // 暂停状态机更新
-            // 暂停移动
-            // 暂停动作控制器
         }
 
         public void Resume()
@@ -912,10 +969,6 @@ namespace Resonance.Enemies.Core
             
             _isPaused = false;
             Debug.Log("EnemyController: Resumed");
-            
-            // 恢复状态机更新
-            // 恢复移动
-            // 恢复动作控制器
         }
 
         #endregion

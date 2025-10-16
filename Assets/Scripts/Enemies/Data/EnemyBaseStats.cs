@@ -13,6 +13,15 @@ namespace Resonance.Enemies.Data
         public float duration;
         public float range;
     }
+
+    /// <summary>
+    /// Enemy attack type enumeration
+    /// </summary>
+    public enum AttackType
+    {
+        Normal,  // Normal physical attack
+        Core     // Core attack targeting player's crystal core
+    }
     
     /// <summary>
     /// 敌人基础属性配置

@@ -173,8 +173,21 @@ namespace Resonance.Enemies.States
                 return;
             }
             
-            // AttackAction handles the actual attacking behavior
-            EnsureActionIsRunning("NormalAttack");
+            // Use TryStartBestAction to automatically select the highest priority available action
+            // CoreAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
+            var actionController = _enemyController.ActionController;
+            
+            if (!actionController.IsActive || actionController.CurrentAction.IsFinished)
+            {
+                // Try to start the best action (CoreAttack if player is in chaos, otherwise NormalAttack)
+                bool actionStarted = actionController.TryStartBestAction();
+                
+                if (!actionStarted)
+                {
+                    // Fallback: try to explicitly start NormalAttack if no other action could start
+                    actionController.TryStartAction("NormalAttack");
+                }
+            }
         }
 
         #endregion

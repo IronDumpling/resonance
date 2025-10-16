@@ -947,10 +947,19 @@ namespace Resonance.Enemies
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} launched attack for {damage} damage");
             
-            // Trigger attack animation
+            // Trigger attack animation based on attack type
             if (_animator != null && _animator.isActiveAndEnabled)
             {
-                _animator.SetTrigger("AttackStart");
+                if (_enemyController.CurrentAttackType == AttackType.Core)
+                {
+                    _animator.SetTrigger("CoreAttackStart");
+                    Debug.Log($"EnemyMonoBehaviour: Triggering CoreAttackStart animation");
+                }
+                else
+                {
+                    _animator.SetTrigger("AttackStart");
+                    Debug.Log($"EnemyMonoBehaviour: Triggering AttackStart animation");
+                }
             }
         }
 
