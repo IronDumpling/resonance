@@ -83,7 +83,7 @@ namespace Resonance.Player.Core
         
         // Health Properties
         public bool IsAlive => _stats.IsAlive;
-        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == Utilities.CoreHealthState.Intact;
+        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == CoreHealthState.Intact;
         public bool IsCoreDestroyed => _stats.IsCoreDestroyed;
 
         // State Properties
@@ -632,13 +632,12 @@ namespace Resonance.Player.Core
                 result = _shootingSystem.PerformShoot(shootOrigin, currentWeapon, isAiming);
                 
                 // Core energy gain: ONLY from actual physical health damage
-                // 10 physical health damage = 2 core energy gain
                 if (result.success && result.hasHit)
                 {
                     float actualPhysicalDamage = result.GetActualDamage(DamageType.PhysicalHealth);
                     if (actualPhysicalDamage > 0)
                     {
-                        float coreGain = actualPhysicalDamage * 0.2f; // 10 physical damage = 2 core energy gain
+                        float coreGain = actualPhysicalDamage * _stats.physicalDamageToCoreEnergyRatio;
                         GainCoreEnergy(coreGain);
                         Debug.Log($"PlayerController: Gained {coreGain:F1} core energy from dealing {actualPhysicalDamage:F1} actual physical health damage");
                     }

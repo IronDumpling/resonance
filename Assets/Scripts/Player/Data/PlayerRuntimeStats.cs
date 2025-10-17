@@ -20,6 +20,7 @@ namespace Resonance.Player.Data
         [Header("Crystal Core Attributes")]
         public CrystalCore crystalCore;
         public float healthRestoreValue;
+        public float physicalDamageToCoreEnergyRatio;
         public float chaosRecoveryRate;
 
         [Header("Movement Attributes")]
@@ -68,6 +69,7 @@ namespace Resonance.Player.Data
             // Player uses default QTE configuration
             crystalCore = new CrystalCore(baseStats.CrystalCoreConfig, null);
             healthRestoreValue = baseStats.HealthRestoreValue;
+            physicalDamageToCoreEnergyRatio = baseStats.PhysicalDamageToCoreEnergyRatio;
             
             // Copy movement attributes
             walkSpeed = baseStats.WalkSpeed;

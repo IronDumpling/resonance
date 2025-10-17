@@ -23,6 +23,8 @@ namespace Resonance.Player.Data
         [SerializeField] private CrystalCoreConfig _crystalCoreConfig;
         [Tooltip("每格晶核能量恢复的生命值")]
         [SerializeField] private float _healthRestoreValue = 30f;
+        [Tooltip("物理伤害转化为晶核能量的比例")]
+        [SerializeField] private float _physicalDamageToCoreEnergyRatio = 0.4f;
 
         [Header("Movement Attributes")]
         [Tooltip("行走速度")]
@@ -65,6 +67,7 @@ namespace Resonance.Player.Data
         // Crystal core attributes accessors
         public CrystalCoreConfig CrystalCoreConfig => _crystalCoreConfig;
         public float HealthRestoreValue => _healthRestoreValue;
+        public float PhysicalDamageToCoreEnergyRatio => _physicalDamageToCoreEnergyRatio;
 
         // Movement attributes accessors
         public float WalkSpeed => _walkSpeed;
