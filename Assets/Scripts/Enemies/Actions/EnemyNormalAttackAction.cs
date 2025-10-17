@@ -27,14 +27,12 @@ namespace Resonance.Enemies.Actions
         public bool CanStart(EnemyController enemy)
         {
             // Can only attack if:
-            // 1. Enemy is alive and can attack
-            // 2. Has player target in attack range
-            // 3. Not on attack cooldown
-            bool canAttack = enemy.CanAttack;
-            bool hasTarget = enemy.HasPlayerTarget;
+            // 1. Enemy is alive and can normal attack
+            // 2. Player is in attack range
+            bool canAttack = enemy.CanNormalAttack;
             bool inRange = enemy.IsPlayerInAttackRange();
             
-            bool result = canAttack && hasTarget && inRange;
+            bool result = canAttack && inRange;
             
             return result;
         }

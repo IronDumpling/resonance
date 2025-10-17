@@ -194,7 +194,7 @@ namespace Resonance.Enemies.Core
             return IsInState("Normal");
         }
 
-        public bool CanAttack()
+        public bool CanNormalAttack()
         {
             return IsInState("Normal");
         }

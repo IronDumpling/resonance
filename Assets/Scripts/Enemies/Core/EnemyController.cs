@@ -64,9 +64,9 @@ namespace Resonance.Enemies.Core
         
         // Statistics
         private int _timesHit = 0;
-        private float _totalDamageTaken = 0f;
-        private float _totalDamageDealt = 0f;
-        private int _attacksLaunched = 0;
+        private Dictionary<DamageType, float> _totalDamageTaken;
+        private Dictionary<DamageType, float> _totalDamageDealt;
+        private Dictionary<AttackType, int> _attacksLaunchedCount;
         
         // Dual Health Events
         public System.Action<float, float> OnHealthChanged; // current, max
@@ -132,12 +132,21 @@ namespace Resonance.Enemies.Core
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         
         // Combat Properties
-        public bool CanAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+        // Can only normal attack if:
+        // 1. Enemy is alive, has core alive, and has player target
+        // 2. Player is in attack range
+        // 3. Not on attack cooldown
+        public bool CanNormalAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
                                 Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
         
+        // Can only core attack if:
+        // 1. Enemy is alive, has core alive, and has player target
+        // 2. Player is in attack range
+        // 3. Not on attack cooldown
+        // 4. Player is in chaos state OR every 3rd normal attack
         public bool CanCoreAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
                                     Time.time >= _lastCoreAttackTime + _stats.coreAttackStats.cooldown &&
-                                    IsPlayerInChaosState();
+                                    (IsPlayerInChaosState() || _attacksLaunchedCount[AttackType.Normal] % 3 == 0);
         
         public AttackType CurrentAttackType => _currentAttackType;
         
@@ -182,7 +191,34 @@ namespace Resonance.Enemies.Core
             // Register with SelectivePauseService
             RegisterWithPauseService();
 
+            InitializeStatistics();
+
             Debug.Log($"EnemyController: Initialized at {spawnPosition}");
+        }
+
+        private void InitializeStatistics()
+        {
+            _timesHit = 0;
+
+            _totalDamageTaken = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+
+            _totalDamageDealt = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+            
+            _attacksLaunchedCount = new Dictionary<AttackType, int>()
+            {
+                { AttackType.Normal, 0 },
+                { AttackType.Core, 0 }
+            };
         }
 
         /// <summary>
@@ -320,7 +356,7 @@ namespace Resonance.Enemies.Core
             _stats.UpdateHealthTier();
             
             _timesHit++;
-            _totalDamageTaken += damage;
+            _totalDamageTaken[DamageType.PhysicalHealth] += damage;
             
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
             
@@ -350,7 +386,7 @@ namespace Resonance.Enemies.Core
             _stats.crystalCore.UpdateCalculatedValues();
             
             _timesHit++;
-            _totalDamageTaken += damage;
+            _totalDamageTaken[DamageType.CoreHealth] += damage;
             
             OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             
@@ -491,11 +527,11 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public bool LaunchAttack()
         {
-            if (!CanAttack) return false;
+            if (!CanNormalAttack) return false;
 
             _currentAttackType = AttackType.Normal;
             _lastNormalAttackTime = Time.time;
-            _attacksLaunched++;
+            _attacksLaunchedCount[AttackType.Normal]++;
             
             // Trigger attack started event (for animation system)
             OnAttackLaunched?.Invoke(_stats.normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth));
@@ -513,7 +549,7 @@ namespace Resonance.Enemies.Core
 
             _currentAttackType = AttackType.Core;
             _lastCoreAttackTime = Time.time;
-            _attacksLaunched++;
+            _attacksLaunchedCount[AttackType.Core]++;
             
             // Trigger attack started event (for animation system)
             OnAttackLaunched?.Invoke(_stats.coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
@@ -619,9 +655,20 @@ namespace Resonance.Enemies.Core
             _currentAttackHits.Add(target);
             
             // Update statistics
-            _totalDamageDealt += damageInfo.GetTotalDamage();
+            if(damageInfo.damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                _totalDamageDealt[DamageType.PhysicalHealth] += damageInfo.damages.GetDamage(DamageType.PhysicalHealth);
+            }
+            if(damageInfo.damages.HasDamage(DamageType.CoreHealth))
+            {
+                _totalDamageDealt[DamageType.CoreHealth] += damageInfo.damages.GetDamage(DamageType.CoreHealth);
+            }
+            if(damageInfo.damages.HasDamage(DamageType.Chaos))
+            {
+                _totalDamageDealt[DamageType.Chaos] += damageInfo.damages.GetDamage(DamageType.Chaos);
+            }
             
-            Debug.Log($"EnemyController: Applied {damageInfo.GetTotalDamage():F1} damage to target");
+            Debug.Log($"EnemyController: Applied {damageInfo.damages.ToString()} damage to target");
             return true;
         }
 
@@ -883,8 +930,8 @@ namespace Resonance.Enemies.Core
             return $"Physical Health: {_stats.currentHealth:F1}/{_stats.maxHealth}, " +
                    $"Core Energy: {_stats.crystalCore.CurrentEnergy:F1}/{_stats.crystalCore.MaxEnergy}, " +
                    $"Core Health: {_stats.crystalCore.CurrentCoreHealth:F1}/{_stats.crystalCore.MaxCoreHealth}, " +
-                   $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken:F1}, " +
-                   $"Attacks: {_attacksLaunched}, Damage Dealt: {_totalDamageDealt:F1}";
+                   $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken.ToString()}, " +
+                   $"Attacks: {_attacksLaunchedCount.ToString()}, Damage Dealt: {_totalDamageDealt.ToString()}";
         }
 
         /// <summary>
@@ -893,9 +940,26 @@ namespace Resonance.Enemies.Core
         public void ResetStats()
         {
             _timesHit = 0;
-            _totalDamageTaken = 0f;
-            _totalDamageDealt = 0f;
-            _attacksLaunched = 0;
+
+            _totalDamageTaken = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+
+            _totalDamageDealt = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+            
+            _attacksLaunchedCount = new Dictionary<AttackType, int>()
+            {
+                { AttackType.Normal, 0 },
+                { AttackType.Core, 0 }
+            };
         }
 
         #endregion
