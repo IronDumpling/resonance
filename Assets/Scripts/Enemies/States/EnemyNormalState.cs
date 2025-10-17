@@ -179,13 +179,9 @@ namespace Resonance.Enemies.States
             
             if (!actionController.IsActive || actionController.CurrentAction.IsFinished)
             {
-                // Try to start the best action (WaveAttack if player is in chaos, otherwise NormalAttack)
-                bool actionStarted = actionController.TryStartBestAction();
-                
-                if (!actionStarted)
+                if (!actionController.TryStartBestAction())
                 {
-                    // Fallback: try to explicitly start NormalAttack if no other action could start
-                    actionController.TryStartAction("NormalAttack");
+                    // Debug.LogWarning("EnemyNormalState: TryStartBestAction failed - no action could be started in combat state");
                 }
             }
         }
