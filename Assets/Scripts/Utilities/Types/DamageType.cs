@@ -115,6 +115,19 @@ namespace Resonance.Utilities
                     break;
             }
         }
+
+        /// <summary>
+        /// Create a deep copy of this Damages instance
+        /// </summary>
+        /// <returns>A new Damages instance with the same values</returns>
+        public Damages Clone()
+        {
+            var copy = new Damages();
+            copy.physicalDamage = this.physicalDamage;
+            copy.coreDamage = this.coreDamage;
+            copy.chaosDamage = this.chaosDamage;
+            return copy;
+        }
     }
 
     /// <summary>

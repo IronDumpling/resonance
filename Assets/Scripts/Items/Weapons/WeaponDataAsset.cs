@@ -248,27 +248,30 @@ namespace Resonance.Items
         /// <returns>Damage info</returns>
         public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null, float damageMultiplier = 1f)
         {            
-            // Add each damage type if > 0
-            if (damages.HasDamage(DamageType.PhysicalHealth))
+            // Clone damages to avoid modifying the original
+            Damages damagesForThisShot = damages.Clone();
+            
+            // Apply multiplier to the cloned damages
+            if (damagesForThisShot.HasDamage(DamageType.PhysicalHealth))
             {
-                float physicalHealthDamage = damages.GetDamage(DamageType.PhysicalHealth);
-                damages.SetDamage(DamageType.PhysicalHealth, physicalHealthDamage * damageMultiplier);
+                float physicalHealthDamage = damagesForThisShot.GetDamage(DamageType.PhysicalHealth);
+                damagesForThisShot.SetDamage(DamageType.PhysicalHealth, physicalHealthDamage * damageMultiplier);
             }
             
-            if (damages.HasDamage(DamageType.CoreHealth))
+            if (damagesForThisShot.HasDamage(DamageType.CoreHealth))
             {
-                float coreHealthDamage = damages.GetDamage(DamageType.CoreHealth);
-                damages.SetDamage(DamageType.CoreHealth, coreHealthDamage * damageMultiplier);
+                float coreHealthDamage = damagesForThisShot.GetDamage(DamageType.CoreHealth);
+                damagesForThisShot.SetDamage(DamageType.CoreHealth, coreHealthDamage * damageMultiplier);
             }
             
-            if (damages.HasDamage(DamageType.Chaos))
+            if (damagesForThisShot.HasDamage(DamageType.Chaos))
             {
-                float chaosDamage = damages.GetDamage(DamageType.Chaos);
-                damages.SetDamage(DamageType.Chaos, chaosDamage * damageMultiplier);
+                float chaosDamage = damagesForThisShot.GetDamage(DamageType.Chaos);
+                damagesForThisShot.SetDamage(DamageType.Chaos, chaosDamage * damageMultiplier);
             }
             
             return new DamageInfo(
-                damages: damages,
+                damages: damagesForThisShot,
                 sourcePosition: sourcePosition,
                 sourceObject: sourceObject,
                 description: $"{weaponName} shot"
@@ -318,7 +321,7 @@ namespace Resonance.Items
             copy.ammoType = this.ammoType;
             copy.range = this.range;
             copy.fireRate = this.fireRate;
-            copy.damages = this.damages;
+            copy.damages = this.damages.Clone(); // Deep copy damages
             copy.accuracyConfig = this.accuracyConfig;
             copy.recoilConfig = this.recoilConfig;
             copy.weaponIcon = this.weaponIcon;
