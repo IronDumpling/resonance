@@ -143,12 +143,8 @@ namespace Resonance.Enemies.Core
             if (action == null) return false;
 
             // Check if action can start
-            if (!action.CanStart(_enemyController))
-            {
-                Debug.Log($"EnemyActionController: Action {action.Name} cannot start - CanStart: {action.CanStart(_enemyController)}");
-                return false;
-            }
-
+            if (!action.CanStart(_enemyController)) return false;
+            
             // Check if we need to interrupt current action
             if (_currentAction != null)
             {
