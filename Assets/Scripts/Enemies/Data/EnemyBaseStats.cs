@@ -9,14 +9,13 @@ namespace Resonance.Enemies.Data
 {
     /// <summary>
     /// Attack stats configuration
-    /// Defines the damage, cooldown, duration, and range of an attack
+    /// Defines the damage, cooldown, and range of an attack
     /// </summary>
     [System.Serializable]
     public struct AttackStats
     {
         public Damages damages;
         public float cooldown;
-        public float duration;
         public float range;
 
         /// <summary>
@@ -30,7 +29,6 @@ namespace Resonance.Enemies.Data
             {
                 damages = this.damages?.Clone(),
                 cooldown = this.cooldown,
-                duration = this.duration,
                 range = this.range
             };
         }
@@ -62,7 +60,7 @@ namespace Resonance.Enemies.Data
     public enum AttackType
     {
         Normal,  // Normal physical attack
-        Core     // Core attack targeting player's crystal core
+        Wave     // Wave attack targeting player's core health
     }
     
     /// <summary>
@@ -99,7 +97,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("普通攻击伤害")]
         public AttackStats normalAttackStats;
         [Tooltip("晶核攻击伤害")]
-        public AttackStats coreAttackStats;
+        public AttackStats waveAttackStats;
         [Tooltip("检测范围")]
         public float detectionRange = 8f;
         
@@ -195,7 +193,7 @@ namespace Resonance.Enemies.Data
                 return false;
             }
 
-            float coreDamage = coreAttackStats.damages.GetDamage(DamageType.CoreHealth);
+            float coreDamage = waveAttackStats.damages.GetDamage(DamageType.CoreHealth);
             if (coreDamage <= 0)
             {
                 Debug.LogError($"EnemyBaseStats: {enemyName} has invalid core damage: {coreDamage}");
@@ -316,14 +314,12 @@ namespace Resonance.Enemies.Data
             normalAttackStats.damages.SetDamage(DamageType.PhysicalHealth, physicalDamage);
             normalAttackStats.damages.SetDamage(DamageType.Chaos, chaosDamage);
             normalAttackStats.cooldown = Mathf.Max(0.1f, normalAttackStats.cooldown);
-            normalAttackStats.duration = Mathf.Max(0.1f, normalAttackStats.duration);
             normalAttackStats.range = Mathf.Max(0.1f, normalAttackStats.range);
 
-            float coreDamage = Mathf.Max(0.1f, coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
-            coreAttackStats.damages.SetDamage(DamageType.CoreHealth, coreDamage);
-            coreAttackStats.cooldown = Mathf.Max(0.1f, coreAttackStats.cooldown);
-            coreAttackStats.duration = Mathf.Max(0.1f, coreAttackStats.duration);
-            coreAttackStats.range = Mathf.Max(0.1f, coreAttackStats.range);
+            float coreDamage = Mathf.Max(0.1f, waveAttackStats.damages.GetDamage(DamageType.CoreHealth));
+            waveAttackStats.damages.SetDamage(DamageType.CoreHealth, coreDamage);
+            waveAttackStats.cooldown = Mathf.Max(0.1f, waveAttackStats.cooldown);
+            waveAttackStats.range = Mathf.Max(0.1f, waveAttackStats.range);
 
             detectionRange = Mathf.Max(0.1f, detectionRange);
             

@@ -90,8 +90,8 @@ namespace Resonance.Cameras
         /// </summary>
         private void SubscribeToWaveEvents()
         {
-            PlayerWaveAction.OnWaveActionStarted += OnWaveStarted;
-            PlayerWaveAction.OnWaveActionEnded += OnWaveEnded;
+            PlayerWaveAttackAction.OnWaveAttackActionStarted += OnWaveStarted;
+            PlayerWaveAttackAction.OnWaveAttackActionEnded += OnWaveEnded;
         }
         
         /// <summary>
@@ -99,8 +99,8 @@ namespace Resonance.Cameras
         /// </summary>
         private void UnsubscribeFromWaveEvents()
         {
-            PlayerWaveAction.OnWaveActionStarted -= OnWaveStarted;
-            PlayerWaveAction.OnWaveActionEnded -= OnWaveEnded;
+            PlayerWaveAttackAction.OnWaveAttackActionStarted -= OnWaveStarted;
+            PlayerWaveAttackAction.OnWaveAttackActionEnded -= OnWaveEnded;
         }
         
         /// <summary>

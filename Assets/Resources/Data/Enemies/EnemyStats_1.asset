@@ -11,29 +11,27 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6d88202ff14a50a4cbf8cae1cac29b31, type: 3}
   m_Name: EnemyStats_1
-  m_EditorClassIdentifier: 
-  enemyName: Basic Enemy
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Enemies.Data.EnemyBaseStats
+  enemyName: Enemy_1
   enemyDescription: A basic enemy
   maxHealth: 100
   crystalCoreConfig: {fileID: 11400000, guid: 4a3be431e36760b4f86a5f8d78d79497, type: 2}
-  corePattern: Enemy_Basic
+  corePattern: Enemy_1
   revivalDelay: 2
-  revivalRate: 10
+  revivalRate: 20
   normalAttackStats:
     damages:
       physicalDamage: 20
       coreDamage: 0
       chaosDamage: 10
     cooldown: 2
-    duration: 0.5
     range: 1.5
-  coreAttackStats:
+  waveAttackStats:
     damages:
       physicalDamage: 0
       coreDamage: 10
       chaosDamage: 0
     cooldown: 10
-    duration: 1
     range: 1.5
   detectionRange: 4
   hitboxMultipliers:
@@ -55,14 +53,14 @@ MonoBehaviour:
     chaosMultiplier: 0
   moveSpeed: 1
   chaseMoveSpeed: 2
-  patrolRadius: 2
+  patrolRadius: 5
   arrivalThreshold: 1.2
   normalMaterialPath: Art/Materials/Enemy/Enemy_Body
   damageMaterialPath: Art/Materials/Damage_Body
   revivalMaterialPath: Art/Materials/Enemy/Enemy_Revival
   damageFlashDuration: 0.2
   enableAudio: 1
-  deathLootPrefab: {fileID: 1888247229399058588, guid: 2c7fad3653d846c45aafee4c70bbade6, type: 3}
+  deathLootPrefab: {fileID: 0}
   lootCount: 1
   lootSpawnRadius: 1.5
   lootDropChance: 1

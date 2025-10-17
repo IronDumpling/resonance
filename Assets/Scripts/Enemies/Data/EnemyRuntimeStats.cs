@@ -29,7 +29,7 @@ namespace Resonance.Enemies.Data
         
         [Header("Combat Attributes")]
         public AttackStats normalAttackStats;
-        public AttackStats coreAttackStats;
+        public AttackStats waveAttackStats;
         public float detectionRange;
         
         [Header("Hitbox Damage Multipliers")]
@@ -94,7 +94,7 @@ namespace Resonance.Enemies.Data
             
             // 战斗属性 - Clone to avoid sharing damages reference with other instances
             normalAttackStats = baseStats.normalAttackStats.Clone();
-            coreAttackStats = baseStats.coreAttackStats.Clone();
+            waveAttackStats = baseStats.waveAttackStats.Clone();
             detectionRange = baseStats.detectionRange;
             
             // Hitbox multipliers - Copy the list for independent configuration

@@ -141,7 +141,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: EnemyCoreAttackWindup
+  m_Name: EnemyWaveAttackWindup
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -186,16 +186,16 @@ AnimatorStateMachine:
   m_AnyStateTransitions: []
   m_EntryTransitions: []
   m_StateMachineTransitions:
-  - first: {fileID: 8529562663924593658}
-    second:
-    - {fileID: -3599615995510690583}
-    - {fileID: -1885746311669270607}
-    - {fileID: 6030804367576524997}
   - first: {fileID: 6676376831391025680}
     second:
     - {fileID: 795782120780021818}
     - {fileID: -2846235596244430150}
     - {fileID: -137448718308035077}
+  - first: {fileID: 8529562663924593658}
+    second:
+    - {fileID: -3599615995510690583}
+    - {fileID: -1885746311669270607}
+    - {fileID: 6030804367576524997}
   m_StateMachineBehaviours: []
   m_AnyStatePosition: {x: 50, y: -120, z: 0}
   m_EntryPosition: {x: 50, y: 120, z: 0}
@@ -325,7 +325,7 @@ AnimatorStateTransition:
   m_Name: 
   m_Conditions:
   - m_ConditionMode: 1
-    m_ConditionEvent: CoreAttackStart
+    m_ConditionEvent: WaveAttackStart
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 8529562663924593658}
   m_DstState: {fileID: 0}
@@ -415,37 +415,11 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: EnemyCoreAttackActive
+  m_Name: EnemyWaveAttackActive
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
   - {fileID: 1594538753487784389}
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: 151afde5739df7449bc22030cad95a9b, type: 2}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
---- !u!1102 &-1520685347393513187
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: EnemyCoreAttackActive
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
   m_StateMachineBehaviours: []
   m_Position: {x: 50, y: 50, z: 0}
   m_IKOnFeet: 0
@@ -579,13 +553,13 @@ AnimatorController:
     m_DefaultInt: 0
     m_DefaultBool: 0
     m_Controller: {fileID: 9100000}
-  - m_Name: AttackStart
+  - m_Name: NormalAttackStart
     m_Type: 9
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
     m_Controller: {fileID: 9100000}
-  - m_Name: CoreAttackStart
+  - m_Name: WaveAttackStart
     m_Type: 9
     m_DefaultFloat: 0
     m_DefaultInt: 0
@@ -708,32 +682,6 @@ AnimatorTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 1
---- !u!1102 &2278708576808794898
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: EnemyCoreAttackWindup
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: a764fa77c3042a448a7246e2af62da96, type: 2}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
 --- !u!1102 &3166415031335491163
 AnimatorState:
   serializedVersion: 6
@@ -851,7 +799,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: EnemyCoreAttackRecover
+  m_Name: EnemyWaveAttackRecover
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -925,7 +873,7 @@ AnimatorStateTransition:
     m_ConditionEvent: InAttackRange
     m_EventTreshold: 0
   - m_ConditionMode: 1
-    m_ConditionEvent: AttackStart
+    m_ConditionEvent: NormalAttackStart
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 6676376831391025680}
   m_DstState: {fileID: 0}
@@ -1000,32 +948,6 @@ AnimatorState:
   m_MirrorParameter: 
   m_CycleOffsetParameter: 
   m_TimeParameter: 
---- !u!1102 &8073480758498255955
-AnimatorState:
-  serializedVersion: 6
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: EnemyCoreAttackRecover
-  m_Speed: 1
-  m_CycleOffset: 0
-  m_Transitions: []
-  m_StateMachineBehaviours: []
-  m_Position: {x: 50, y: 50, z: 0}
-  m_IKOnFeet: 0
-  m_WriteDefaultValues: 1
-  m_Mirror: 0
-  m_SpeedParameterActive: 0
-  m_MirrorParameterActive: 0
-  m_CycleOffsetParameterActive: 0
-  m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: a408fa37793af6b49a35f7f577472bfd, type: 2}
-  m_Tag: 
-  m_SpeedParameter: 
-  m_MirrorParameter: 
-  m_CycleOffsetParameter: 
-  m_TimeParameter: 
 --- !u!1107 &8529562663924593658
 AnimatorStateMachine:
   serializedVersion: 6
@@ -1033,7 +955,7 @@ AnimatorStateMachine:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: CoreAttackSM
+  m_Name: WaveAttackSM
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: -5742034897663022672}
@@ -1069,15 +991,6 @@ AnimatorStateMachine:
   - serializedVersion: 1
     m_State: {fileID: -4777244272735999436}
     m_Position: {x: 680, y: 50, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 2278708576808794898}
-    m_Position: {x: 715, y: 115, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: -1520685347393513187}
-    m_Position: {x: 750, y: 180, z: 0}
-  - serializedVersion: 1
-    m_State: {fileID: 8073480758498255955}
-    m_Position: {x: 785, y: 245, z: 0}
   m_ChildStateMachines:
   - serializedVersion: 1
     m_StateMachine: {fileID: -5093607002169102006}
@@ -1093,6 +1006,6 @@ AnimatorStateMachine:
   m_StateMachineBehaviours: []
   m_AnyStatePosition: {x: 50, y: 10, z: 0}
   m_EntryPosition: {x: 40, y: 120, z: 0}
-  m_ExitPosition: {x: 1000, y: 210, z: 0}
+  m_ExitPosition: {x: 1050, y: 210, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
   m_DefaultState: {fileID: 6353178846127257935}

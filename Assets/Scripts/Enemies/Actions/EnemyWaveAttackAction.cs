@@ -7,11 +7,11 @@ using System.Collections.Generic;
 namespace Resonance.Enemies.Actions
 {
     /// <summary>
-    /// Enemy core attack action - attacks player's core health
+    /// Enemy wave attack action - attacks player's core health
     /// Only executed when player is stunned
     /// Deals CoreHealth damage to break player's crystal core
     /// </summary>
-    public class EnemyCoreAttackAction : IEnemyAction
+    public class EnemyWaveAttackAction : IEnemyAction
     {
         private float _actionTimer = 0f;
         private bool _isFinished = false;
@@ -21,20 +21,20 @@ namespace Resonance.Enemies.Actions
 
         private EnemyController _enemy;
 
-        public string Name => "CoreAttack";
+        public string Name => "WaveAttack";
         public int Priority => 95; // Higher priority than normal attack
         public bool CanInterrupt => true;
         public bool IsFinished => _isFinished;
 
         public bool CanStart(EnemyController enemy)
         {
-            // Can only core attack if:
+            // Can only wave attack if:
             // 1. Enemy has cooldown ready, is alive, has core alive, and target is in range
             // 2. Triggered by: player in chaos state OR every 3rd normal attack
-            bool canCoreAttack = enemy.CanCoreAttack;
+            bool canWaveAttack = enemy.CanWaveAttack;
             bool inRange = enemy.IsPlayerInAttackRange();
             
-            bool result = canCoreAttack && inRange;
+            bool result = canWaveAttack && inRange;
             
             return result;
         }
@@ -54,7 +54,7 @@ namespace Resonance.Enemies.Actions
 
             if(!_hasTriggeredAnimation)
             {
-                if(_enemy.LaunchCoreAttack())
+                if(_enemy.LaunchWaveAttack())
                 {
                     _hasTriggeredAnimation = true;
                 }
@@ -64,7 +64,7 @@ namespace Resonance.Enemies.Actions
                 }
             }
             
-            Debug.Log("EnemyCoreAttackAction: Started core attack action - targeting player's core");
+            Debug.Log("EnemyWaveAttackAction: Started wave attack action - targeting player's core");
         }
 
         public void Update(EnemyController enemy, float deltaTime)
@@ -79,7 +79,7 @@ namespace Resonance.Enemies.Actions
 
         public void Cancel(EnemyController enemy)
         {
-            Debug.Log("EnemyCoreAttackAction: Core attack action cancelled (e.g. by stun)");
+            Debug.Log("EnemyWaveAttackAction: Wave attack action cancelled (e.g. by stun)");
             
             // Ensure hitbox is disabled when action is cancelled
             if (_hasActivatedHitbox)
@@ -100,24 +100,24 @@ namespace Resonance.Enemies.Actions
 
         public void OnDamageTaken(EnemyController enemy)
         {
-            // Core attack continues even when taking damage
+            // Wave attack continues even when taking damage
         }
 
         private void HandleWindowOpened()
         {
-            Debug.Log("EnemyCoreAttackAction: Core attack window opened");
+            Debug.Log("EnemyWaveAttackAction: Wave attack window opened");
             _windowOpened = true;
         }
 
         private void HandleWindowClosed()
         {
-            Debug.Log("EnemyCoreAttackAction: Core attack window closed");
+            Debug.Log("EnemyWaveAttackAction: Wave attack window closed");
             _windowOpened = false;
         }
 
         private void HandleSequenceFinished()
         {
-            Debug.Log("EnemyCoreAttackAction: Core attack sequence finished");
+            Debug.Log("EnemyWaveAttackAction: Wave attack sequence finished");
             Finish();
         }
 

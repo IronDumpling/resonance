@@ -75,7 +75,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Called by animation event when attack damage window starts
         /// Usually placed on the frame where the attack should start dealing damage
-        /// Works for both NormalAttack and CoreAttack
+        /// Works for both NormalAttack and WaveAttack
         /// </summary>
         public void OnAttackCommit()
         {
@@ -95,7 +95,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Called by animation event when attack damage window ends
         /// Usually placed on the frame where the attack should stop dealing damage
-        /// Works for both NormalAttack and CoreAttack
+        /// Works for both NormalAttack and WaveAttack
         /// </summary>
         public void OnAttackEnd()
         { 
@@ -115,7 +115,7 @@ namespace Resonance.Enemies.Core
         /// <summary>
         /// Called by animation event when attack sequence finishes
         /// Usually placed on the frame where the attack sequence should finish
-        /// Works for both NormalAttack and CoreAttack
+        /// Works for both NormalAttack and WaveAttack
         /// </summary>
         public void OnAttackSequenceFinished()
         {
@@ -254,19 +254,19 @@ namespace Resonance.Enemies.Core
                     }
                     break;
                     
-                case "CoreAttackWindupComplete":
-                    // Core attack windup finished, ready for damage window
+                case "WaveAttackWindupComplete":
+                    // Wave attack windup finished, ready for damage window
                     if (_debugMode)
                     {
-                        Debug.Log("EnemyAnimRelay: CoreAttackWindupComplete - core attack ready for damage window");
+                        Debug.Log("EnemyAnimRelay: WaveAttackWindupComplete - wave attack ready for damage window");
                     }
                     break;
                     
-                case "CoreAttackRecoveryStart":
-                    // Core attack recovery phase started
+                case "WaveAttackRecoveryStart":
+                    // Wave attack recovery phase started
                     if (_debugMode)
                     {
-                        Debug.Log("EnemyAnimRelay: CoreAttackRecoveryStart - core attack recovery phase started");
+                        Debug.Log("EnemyAnimRelay: WaveAttackRecoveryStart - wave attack recovery phase started");
                     }
                     break;
                     

@@ -174,12 +174,12 @@ namespace Resonance.Enemies.States
             }
             
             // Use TryStartBestAction to automatically select the highest priority available action
-            // CoreAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
+            // WaveAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
             var actionController = _enemyController.ActionController;
             
             if (!actionController.IsActive || actionController.CurrentAction.IsFinished)
             {
-                // Try to start the best action (CoreAttack if player is in chaos, otherwise NormalAttack)
+                // Try to start the best action (WaveAttack if player is in chaos, otherwise NormalAttack)
                 bool actionStarted = actionController.TryStartBestAction();
                 
                 if (!actionStarted)
@@ -279,7 +279,7 @@ namespace Resonance.Enemies.States
                     break;
                     
                 case EnemySubState.Combat:
-                    // CoreAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
+                    // WaveAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
                     bool actionStarted = actionController.TryStartBestAction();
                     Debug.Log($"EnemyNormalState: Attempting to start best action: {actionStarted}");
                     if (!actionStarted)
@@ -315,9 +315,9 @@ namespace Resonance.Enemies.States
                 actionController.RegisterAction(new EnemyNormalAttackAction());
             }
 
-            if (!actionController.HasAction("CoreAttack"))
+            if (!actionController.HasAction("WaveAttack"))
             {
-                actionController.RegisterAction(new EnemyCoreAttackAction());
+                actionController.RegisterAction(new EnemyWaveAttackAction());
             }
         }
         
@@ -350,7 +350,7 @@ namespace Resonance.Enemies.States
             // Unregister all actions
             actionController.UnregisterAction("Patrol");
             actionController.UnregisterAction("Chase");
-            actionController.UnregisterAction("CoreAttack");
+            actionController.UnregisterAction("WaveAttack");
             actionController.UnregisterAction("NormalAttack");
         }
         

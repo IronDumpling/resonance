@@ -7,7 +7,7 @@ namespace Resonance.Interfaces.Services
     {
         event Action<Vector2> OnMove;
         event Action OnInteract;
-        event Action OnWave;
+        event Action OnWaveAttack;
         event Action<bool> OnHeal;
         event Action<bool> OnRun; // true when starting to run, false when stopping
         event Action<bool> OnAim; // true when starting to aim, false when stopping

@@ -405,7 +405,7 @@ namespace Resonance.UI
             }
             
             // Continue QTE sequence instead of stopping - player can perform multiple QTEs
-            // The QTE will only end when the WaveAction itself ends (enemy state change, etc.)
+            // The QTE will only end when the WaveAttackAction itself ends (enemy state change, etc.)
             Debug.Log("WavePanel: QTE success processed, continuing sequence for more attempts");
         }
         

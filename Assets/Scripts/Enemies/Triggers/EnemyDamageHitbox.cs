@@ -223,8 +223,8 @@ namespace Resonance.Enemies
 
             switch (_enemyController.CurrentAttackType)
             {
-                case AttackType.Core:
-                    attackTypeName = "Core attack";
+                case AttackType.Wave:
+                    attackTypeName = "Wave attack";
                     break;
                 case AttackType.Normal:
                     attackTypeName = "Normal attack";

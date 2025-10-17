@@ -25,7 +25,7 @@ namespace Resonance.Enemies.Core
         
         // Combat State
         private float _lastNormalAttackTime = 0f;
-        private float _lastCoreAttackTime = 0f;
+        private float _lastWaveAttackTime = 0f;
         private float _revivalTimer = 0f;
         private bool _hitboxEnabled = false;
         private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
@@ -137,15 +137,15 @@ namespace Resonance.Enemies.Core
         // 2. Player is in attack range
         // 3. Not on attack cooldown
         public bool CanNormalAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
+                                    Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
         
-        // Can only core attack if:
+        // Can only wave attack if:
         // 1. Enemy is alive, has core alive, and has player target
         // 2. Player is in attack range
         // 3. Not on attack cooldown
         // 4. Player is in chaos state OR every 3rd normal attack
-        public bool CanCoreAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                    Time.time >= _lastCoreAttackTime + _stats.coreAttackStats.cooldown &&
+        public bool CanWaveAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+                                    Time.time >= _lastWaveAttackTime + _stats.waveAttackStats.cooldown &&
                                     (IsPlayerInChaosState() || _attacksLaunchedCount[AttackType.Normal] % 3 == 0);
         
         public AttackType CurrentAttackType => _currentAttackType;
@@ -155,7 +155,7 @@ namespace Resonance.Enemies.Core
         
         // Animation-driven combat properties (read-only for animation bridge)
         public AttackStats NormalAttackStats => _stats.normalAttackStats;
-        public AttackStats CoreAttackStats => _stats.coreAttackStats;
+        public AttackStats WaveAttackStats => _stats.waveAttackStats;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
         public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
 
@@ -217,7 +217,7 @@ namespace Resonance.Enemies.Core
             _attacksLaunchedCount = new Dictionary<AttackType, int>()
             {
                 { AttackType.Normal, 0 },
-                { AttackType.Core, 0 }
+                { AttackType.Wave, 0 }
             };
         }
 
@@ -541,19 +541,19 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Start core attack process - targets player's core when they are in chaos state
+        /// Start wave attack process - targets player's core when they are in chaos state
         /// </summary>
-        public bool LaunchCoreAttack()
+        public bool LaunchWaveAttack()
         {
-            if (!CanCoreAttack) return false;
+            if (!CanWaveAttack) return false;
 
-            _currentAttackType = AttackType.Core;
-            _lastCoreAttackTime = Time.time;
-            _attacksLaunchedCount[AttackType.Core]++;
+            _currentAttackType = AttackType.Wave;
+            _lastWaveAttackTime = Time.time;
+            _attacksLaunchedCount[AttackType.Wave]++;
             
             // Trigger attack started event (for animation system)
-            OnAttackLaunched?.Invoke(_stats.coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
-            Debug.Log($"EnemyController: Core attack process started - targeting player's core");
+            OnAttackLaunched?.Invoke(_stats.waveAttackStats.damages.GetDamage(DamageType.CoreHealth));
+            Debug.Log($"EnemyController: Wave attack process started - targeting player's core");
             
             return true;
         }
@@ -563,7 +563,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public AttackStats GetCurrentAttackStats()
         {
-            return _currentAttackType == AttackType.Core ? _stats.coreAttackStats : _stats.normalAttackStats;
+            return _currentAttackType == AttackType.Wave ? _stats.waveAttackStats : _stats.normalAttackStats;
         }
 
         /// <summary>
@@ -683,7 +683,7 @@ namespace Resonance.Enemies.Core
         public void ResetAttackCooldown()
         {
             _lastNormalAttackTime = 0f;
-            _lastCoreAttackTime = 0f;
+            _lastWaveAttackTime = 0f;
             Debug.Log("EnemyController: Attack cooldowns reset (Normal and Core)");
         }
 
@@ -758,7 +758,7 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Check if player target is in chaos state (for core attack condition)
+        /// Check if player target is in chaos state (for wave attack condition)
         /// </summary>
         public bool IsPlayerInChaosState()
         {
@@ -958,7 +958,7 @@ namespace Resonance.Enemies.Core
             _attacksLaunchedCount = new Dictionary<AttackType, int>()
             {
                 { AttackType.Normal, 0 },
-                { AttackType.Core, 0 }
+                { AttackType.Wave, 0 }
             };
         }
 

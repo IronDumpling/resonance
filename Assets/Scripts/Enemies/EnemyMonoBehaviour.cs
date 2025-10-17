@@ -950,15 +950,15 @@ namespace Resonance.Enemies
             // Trigger attack animation based on attack type
             if (_animator != null && _animator.isActiveAndEnabled)
             {
-                if (_enemyController.CurrentAttackType == AttackType.Core)
+                if (_enemyController.CurrentAttackType == AttackType.Wave)
                 {
-                    _animator.SetTrigger("CoreAttackStart");
-                    Debug.Log($"EnemyMonoBehaviour: Triggering CoreAttackStart animation");
+                    _animator.SetTrigger("WaveAttackStart");
+                    Debug.Log($"EnemyMonoBehaviour: Triggering WaveAttackStart animation");
                 }
                 else
                 {
-                    _animator.SetTrigger("AttackStart");
-                    Debug.Log($"EnemyMonoBehaviour: Triggering AttackStart animation");
+                    _animator.SetTrigger("NormalAttackStart");
+                    Debug.Log($"EnemyMonoBehaviour: Triggering NormalAttackStart animation");
                 }
             }
         }
@@ -1195,7 +1195,7 @@ namespace Resonance.Enemies
         }
 
         /// <summary>
-        /// Set resonance UI text color (called by CoreAttackTrigger for closest target indication)
+        /// Set resonance UI text color (called by WaveAttackTrigger for closest target indication)
         /// </summary>
         /// <param name="color">Color to set (red for closest target, white for others)</param>
         public void SetWaveUIColor(Color color)

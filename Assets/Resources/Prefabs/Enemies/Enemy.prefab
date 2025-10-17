@@ -689,7 +689,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 773eb02e4a459874487c9b06c4ce0839, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _baseStats: {fileID: 11400000, guid: 5fb68305d3d8aed4192352c8f046812e, type: 2}
+  _baseStats: {fileID: 11400000, guid: e17b8ab8a8a48f14f9af893c40c8f50a, type: 2}
   _visualTransform: {fileID: 3203894000571929562}
   _bodyRenderer: {fileID: 1294134832740095054}
   _detectionCollider: {fileID: 3598880275413671006}

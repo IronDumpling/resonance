@@ -26,7 +26,7 @@ namespace Resonance.Enemies.States
             _enemyController.Movement?.Stop();
             
             // Cancel any ongoing actions
-            // This will interrupt Chase, Patrol, NormalAttack, and CoreAttack actions
+            // This will interrupt Chase, Patrol, NormalAttack, and WaveAttack actions
             _enemyController.ActionController?.CancelCurrentAction();
         }
         

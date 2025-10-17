@@ -54,7 +54,7 @@ namespace Resonance.Player
         private PlayerController _playerController;
         private IInputService _inputService;
         private IInteractionService _interactionService;
-        private CoreAttackTrigger _coreAttackTrigger;
+        private WaveAttackTrigger _waveAttackTrigger;
         private PlayerInteractTrigger _playerInteractTrigger;
 
         // Visual Materials
@@ -130,8 +130,8 @@ namespace Resonance.Player
             var playerService = ServiceRegistry.Get<IPlayerService>();
             playerService?.RegisterPlayer(this);
 
-            // Initialize CoreAttackTrigger
-            InitializeCoreAttackTrigger();
+            // Initialize WaveAttackTrigger
+            InitializeWaveAttackTrigger();
 
             // Initialize PlayerInteractTrigger
             InitializePlayerInteractTrigger();
@@ -168,12 +168,12 @@ namespace Resonance.Player
         {
             UnsubscribeFromInput();
             
-            // Cleanup CoreAttackTrigger events
-            if (_coreAttackTrigger != null)
+            // Cleanup WaveAttackTrigger events
+            if (_waveAttackTrigger != null)
             {
-                _coreAttackTrigger.OnCoreHitboxEntered -= OnCoreHitboxEnteredRange;
-                _coreAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
-                _coreAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
+                _waveAttackTrigger.OnCoreHitboxEntered -= OnCoreHitboxEnteredRange;
+                _waveAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
+                _waveAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
             }
 
             // Cleanup PlayerInteractTrigger
@@ -276,42 +276,42 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Initialize the CoreAttackTrigger component
+        /// Initialize the WaveAttackTrigger component
         /// </summary>
-        private void InitializeCoreAttackTrigger()
+        private void InitializeWaveAttackTrigger()
         {
             if (_playerController == null)
             {
-                Debug.LogError("PlayerMonoBehaviour: Cannot initialize CoreAttackTrigger - PlayerController is null");
+                Debug.LogError("PlayerMonoBehaviour: Cannot initialize WaveAttackTrigger - PlayerController is null");
                 return;
             }
 
-            // Find the CoreAttackRange GameObject
-            Transform coreAttackRangeTransform = transform.Find("CoreAttackRange");
-            if (coreAttackRangeTransform == null)
+            // Find the WaveAttackRange GameObject
+            Transform waveAttackRangeTransform = transform.Find("WaveAttackRange");
+            if (waveAttackRangeTransform == null)
             {
-                Debug.LogError("PlayerMonoBehaviour: CoreAttackRange GameObject not found as child of Player");
+                Debug.LogError("PlayerMonoBehaviour: WaveAttackRange GameObject not found as child of Player");
                 return;
             }
 
-            // Get or add the CoreAttackTrigger component
-            _coreAttackTrigger = coreAttackRangeTransform.GetComponent<CoreAttackTrigger>();
-            if (_coreAttackTrigger == null)
+            // Get or add the WaveAttackTrigger component
+            _waveAttackTrigger = waveAttackRangeTransform.GetComponent<WaveAttackTrigger>();
+            if (_waveAttackTrigger == null)
             {
-                _coreAttackTrigger = coreAttackRangeTransform.gameObject.AddComponent<CoreAttackTrigger>();
-                Debug.Log("PlayerMonoBehaviour: Added CoreAttackTrigger component to CoreAttackRange GameObject");
+                _waveAttackTrigger = waveAttackRangeTransform.gameObject.AddComponent<WaveAttackTrigger>();
+                Debug.Log("PlayerMonoBehaviour: Added WaveAttackTrigger component to WaveAttackRange GameObject");
             }
 
             // Initialize with player controller and range from base stats
-            float coreAttackRange = _baseStats?.InteractionRange ?? 1.5f;
-            _coreAttackTrigger.Initialize(_playerController, coreAttackRange);
+            float waveAttackRange = _baseStats?.InteractionRange ?? 1.5f;
+            _waveAttackTrigger.Initialize(_playerController, waveAttackRange);
 
             // Subscribe to events for debugging
-            _coreAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
-            _coreAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
-            _coreAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
+            _waveAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
+            _waveAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
+            _waveAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
 
-            Debug.Log($"PlayerMonoBehaviour: CoreAttackTrigger initialized with range {coreAttackRange}");
+            Debug.Log($"PlayerMonoBehaviour: WaveAttackTrigger initialized with range {waveAttackRange}");
         }
 
         /// <summary>
@@ -365,7 +365,7 @@ namespace Resonance.Player
 
             _inputService.OnMove += HandleMoveInput;
             _inputService.OnInteract += HandleInteractInput;
-            _inputService.OnWave += HandleWaveInput; // F key short press (Wave)
+            _inputService.OnWaveAttack += HandleWaveAttackInput; // F key short press (WaveAttack)
             _inputService.OnHeal += HandleHealInput; // F key press/release (Heal)
             _inputService.OnRun += HandleRunInput;
             _inputService.OnAim += HandleAimInput;
@@ -379,7 +379,7 @@ namespace Resonance.Player
 
             _inputService.OnMove -= HandleMoveInput;
             _inputService.OnInteract -= HandleInteractInput;
-            _inputService.OnWave -= HandleWaveInput;
+            _inputService.OnWaveAttack -= HandleWaveAttackInput;
             _inputService.OnHeal -= HandleHealInput;
             _inputService.OnRun -= HandleRunInput;
             _inputService.OnAim -= HandleAimInput;
@@ -391,7 +391,7 @@ namespace Resonance.Player
         {
             if (!IsInitialized) return;
             
-            // Check if current action blocks movement (e.g., WaveAction, HealAction)
+            // Check if current action blocks movement (e.g., WaveAttackAction, HealAction)
             if (_playerController.PlayerActionController.IsBlocking)
             {
                 Debug.Log("PlayerMonoBehaviour: Movement input blocked by action");
@@ -418,24 +418,24 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// Handle Wave press input (F key short press) - WaveAction
+        /// Handle WaveAttack press input (F key short press) - WaveAttackAction
         /// </summary>
-        private void HandleWaveInput()
+        private void HandleWaveAttackInput()
         {
             if (!IsInitialized) return;
 
-            // Short press F -> WaveAction only when Core hitboxes are in range
-            if (HasCoreHitboxesInCoreAttackRange())
+            // Short press F -> WaveAttackAction only when Core hitboxes are in range
+            if (HasCoreHitboxesInWaveAttackRange())
             {
-                // Try to start WaveAction
-                bool resonanceStarted = _playerController.TryStartAction("Wave");
-                if (resonanceStarted)
+                // Try to start WaveAttackAction
+                bool waveAttackStarted = _playerController.TryStartAction("WaveAttack");
+                if (waveAttackStarted)
                 {
-                    Debug.Log("PlayerMonoBehaviour: Started WaveAction via short press F");
+                    Debug.Log("PlayerMonoBehaviour: Started WaveAttackAction via short press F");
                 }
                 else
                 {
-                    Debug.Log("PlayerMonoBehaviour: WaveAction conditions not met");
+                    Debug.Log("PlayerMonoBehaviour: WaveAttackAction conditions not met");
                 }
             }
             else
@@ -456,7 +456,7 @@ namespace Resonance.Player
             if (isPressed)
             {
                 // F key pressed - try to start HealAction only when no Core hitboxes in range
-                if (!HasCoreHitboxesInCoreAttackRange())
+                if (!HasCoreHitboxesInWaveAttackRange())
                 {
                     bool recoverStarted = _playerController.TryStartAction("Heal");
                     if (recoverStarted)
@@ -1045,29 +1045,29 @@ namespace Resonance.Player
 
         #endregion
 
-        #region CoreAttackTrigger Events
+        #region WaveAttackTrigger Events
 
         /// <summary>
-        /// Called when a Core hitbox enters core attack range
+        /// Called when a Core hitbox enters wave attack range
         /// </summary>
         /// <param name="hitbox">The Core hitbox that entered range</param>
         private void OnCoreHitboxEnteredRange(EnemyHitbox hitbox)
         {
             if (hitbox != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} entered core attack range");
+                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} entered wave attack range");
             }
         }
 
         /// <summary>
-        /// Called when a Core hitbox exits core attack range
+        /// Called when a Core hitbox exits wave attack range
         /// </summary>
         /// <param name="hitbox">The Core hitbox that exited range</param>
         private void OnCoreHitboxExitedRange(EnemyHitbox hitbox)
         {
             if (hitbox != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} exited core attack range");
+                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} exited wave attack range");
             }
         }
 
@@ -1076,55 +1076,55 @@ namespace Resonance.Player
         /// </summary>
         private void OnCoreHitboxesChangedInRange()
         {
-            int coreHitboxCount = _coreAttackTrigger?.CoreHitboxCount ?? 0;
-            Debug.Log($"PlayerMonoBehaviour: Core hitboxes in core attack range: {coreHitboxCount}");
+            int coreHitboxCount = _waveAttackTrigger?.CoreHitboxCount ?? 0;
+            Debug.Log($"PlayerMonoBehaviour: Core hitboxes in wave attack range: {coreHitboxCount}");
         }
 
         /// <summary>
-        /// Public method to check if there are Core hitboxes in core attack range
+        /// Public method to check if there are Core hitboxes in wave attack range
         /// Used by PlayerActionController for priority logic
         /// </summary>
         /// <returns>True if there are Core hitboxes in range</returns>
-        public bool HasCoreHitboxesInCoreAttackRange()
+        public bool HasCoreHitboxesInWaveAttackRange()
         {
-            return _coreAttackTrigger?.HasCoreHitboxesInRange ?? false;
+            return _waveAttackTrigger?.HasCoreHitboxesInRange ?? false;
         }
 
         /// <summary>
-        /// Get the number of Core hitboxes in core attack range
+        /// Get the number of Core hitboxes in wave attack range
         /// </summary>
         /// <returns>Number of Core hitboxes in range</returns>
         public int GetCoreHitboxCount()
         {
-            return _coreAttackTrigger?.CoreHitboxCount ?? 0;
+            return _waveAttackTrigger?.CoreHitboxCount ?? 0;
         }
 
         /// <summary>
-        /// Get the closest Core hitbox in core attack range
-        /// Used by PlayerWaveAction to find target
+        /// Get the closest Core hitbox in wave attack range
+        /// Used by PlayerWaveAttackAction to find target
         /// </summary>
         /// <returns>Closest Core hitbox or null if none</returns>
         public EnemyHitbox GetClosestCoreHitbox()
         {
-            return _coreAttackTrigger?.GetClosestCoreHitbox();
+            return _waveAttackTrigger?.GetClosestCoreHitbox();
         }
 
         /// <summary>
-        /// Get all Core hitboxes in core attack range
+        /// Get all Core hitboxes in wave attack range
         /// </summary>
         /// <returns>List of Core hitboxes in range</returns>
         public List<EnemyHitbox> GetCoreHitboxesInRange()
         {
-            return _coreAttackTrigger?.CoreHitboxesInRange ?? new List<EnemyHitbox>();
+            return _waveAttackTrigger?.CoreHitboxesInRange ?? new List<EnemyHitbox>();
         }
 
         /// <summary>
-        /// Get debug information about core attack range detection
+        /// Get debug information about wave attack range detection
         /// </summary>
         /// <returns>Debug info string</returns>
-        public string GetCoreAttackRangeDebugInfo()
+        public string GetWaveAttackRangeDebugInfo()
         {
-            return _coreAttackTrigger?.GetDebugInfo() ?? "CoreAttackTrigger not initialized";
+            return _waveAttackTrigger?.GetDebugInfo() ?? "WaveAttackTrigger not initialized";
         }
 
         #endregion
@@ -1141,8 +1141,8 @@ namespace Resonance.Player
                 $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
                 "Edge Protection: OFF";
                 
-            // CoreAttackTrigger debug info
-            string coreAttackInfo = GetCoreAttackRangeDebugInfo();
+            // WaveAttackTrigger debug info
+            string waveAttackInfo = GetWaveAttackRangeDebugInfo();
             
             Debug.Log($"Physical Health: {stats.currentHealth}/{stats.maxHealth}, " +
                      $"Core Energy: {stats.crystalCore.CurrentEnergy}/{stats.crystalCore.MaxEnergy}, " +
@@ -1151,7 +1151,7 @@ namespace Resonance.Player
                      $"Slots: {_playerController.Stats.crystalCore.GetEnergyInSlots():F1}/{stats.crystalCore.MaxSlots}, " +
                      $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
                      $"Can Move: {_playerController.StateMachine.CanMove()}, " +
-                     $"{edgeInfo}, {coreAttackInfo}");
+                     $"{edgeInfo}, {waveAttackInfo}");
         }
 
         void OnDrawGizmosSelected()

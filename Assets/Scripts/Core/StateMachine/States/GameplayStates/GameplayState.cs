@@ -36,10 +36,10 @@ namespace Resonance.Core.StateMachine.States
             // Initialize substate machine
             SetupSubStateMachine();
             
-            // Subscribe to PlayerWaveAction events
-            PlayerWaveAction.OnWaveActionStarted += OnWaveStarted;
-            PlayerWaveAction.OnWaveActionEnded += OnWaveEnded;
-            Debug.Log("GameplayState: Subscribed to PlayerWaveAction events");
+            // Subscribe to PlayerWaveAttackAction events
+            PlayerWaveAttackAction.OnWaveAttackActionStarted += OnWaveStarted;
+            PlayerWaveAttackAction.OnWaveAttackActionEnded += OnWaveEnded;
+            Debug.Log("GameplayState: Subscribed to PlayerWaveAttackAction events");
             
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
@@ -124,9 +124,9 @@ namespace Resonance.Core.StateMachine.States
                 _uiService.OnSceneUIPanelsReady -= OnSceneUIPanelsReady;
             }
             
-            PlayerWaveAction.OnWaveActionStarted -= OnWaveStarted;
-            PlayerWaveAction.OnWaveActionEnded -= OnWaveEnded;
-            Debug.Log("GameplayState: Unsubscribed from PlayerWaveAction events");
+            PlayerWaveAttackAction.OnWaveAttackActionStarted -= OnWaveStarted;
+            PlayerWaveAttackAction.OnWaveAttackActionEnded -= OnWaveEnded;
+            Debug.Log("GameplayState: Unsubscribed from PlayerWaveAttackAction events");
             
             // Unsubscribe from InfoReadingState events
             InfoReadingState.OnInfoReadingEnded -= OnInfoReadingEnded;

@@ -791,7 +791,7 @@ namespace Resonance.Player.Core
         private void RegisterPlayerActions()
         {
             // Register core actions
-            RegisterAction(new PlayerWaveAction());
+            RegisterAction(new PlayerWaveAttackAction());
             RegisterAction(new PlayerHealAction());
             RegisterAction(new PlayerInteractAction());
             RegisterAction(new PlayerReloadAction());

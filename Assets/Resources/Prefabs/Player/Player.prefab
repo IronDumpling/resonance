@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 2977560670499066947}
   - component: {fileID: 6428683155455555653}
   m_Layer: 3
-  m_Name: CoreAttackRange
+  m_Name: WaveAttackRange
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

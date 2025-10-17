@@ -7,10 +7,10 @@ using Resonance.Enemies;
 namespace Resonance.Player.Triggers
 {
     /// <summary>
-    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within core attack range.
-    /// Should be attached to the CoreAttackRange GameObject under the Player.
+    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within wave attack range.
+    /// Should be attached to the WaveAttackRange GameObject under the Player.
     /// </summary>
-    public class CoreAttackTrigger : MonoBehaviour
+    public class WaveAttackTrigger : MonoBehaviour
     {
         // Core references
         private PlayerController _playerController;
@@ -38,17 +38,17 @@ namespace Resonance.Player.Triggers
             var collider = GetComponent<SphereCollider>();
             if (collider == null)
             {
-                Debug.LogError("CoreAttackTrigger: No SphereCollider found! Please add a SphereCollider component.");
+                Debug.LogError("WaveAttackTrigger: No SphereCollider found! Please add a SphereCollider component.");
                 return;
             }
 
             if (!collider.isTrigger)
             {
-                Debug.LogWarning("CoreAttackTrigger: SphereCollider is not set as trigger. Setting it now.");
+                Debug.LogWarning("WaveAttackTrigger: SphereCollider is not set as trigger. Setting it now.");
                 collider.isTrigger = true;
             }
 
-            Debug.Log($"CoreAttackTrigger: Initialized with range {collider.radius}");
+            Debug.Log($"WaveAttackTrigger: Initialized with range {collider.radius}");
         }
 
         void OnDestroy()
@@ -69,7 +69,7 @@ namespace Resonance.Player.Triggers
         {
             if (_isInitialized)
             {
-                Debug.LogWarning("CoreAttackTrigger: Already initialized");
+                Debug.LogWarning("WaveAttackTrigger: Already initialized");
                 return;
             }
 
@@ -80,11 +80,11 @@ namespace Resonance.Player.Triggers
             if (collider != null)
             {
                 collider.radius = range;
-                Debug.Log($"CoreAttackTrigger: Set detection range to {range}");
+                Debug.Log($"WaveAttackTrigger: Set detection range to {range}");
             }
 
             _isInitialized = true;
-            Debug.Log("CoreAttackTrigger: Initialized successfully");
+            Debug.Log("WaveAttackTrigger: Initialized successfully");
         }
 
         #endregion
@@ -108,7 +108,7 @@ namespace Resonance.Player.Triggers
                     OnCoreHitboxEntered?.Invoke(hitbox);
                     OnCoreHitboxesChanged?.Invoke();
                     UpdateClosestCoreNotification();
-                    Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} entered range");
+                    Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} entered range");
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace Resonance.Player.Triggers
                 OnCoreHitboxExited?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} exited range");
+                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} exited range");
             }
         }
 
@@ -150,7 +150,7 @@ namespace Resonance.Player.Triggers
                 OnCoreHitboxEntered?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} collider enabled");
+                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} collider enabled");
             }
             else if (!shouldBeInList && isInList)
             {
@@ -159,7 +159,7 @@ namespace Resonance.Player.Triggers
                 OnCoreHitboxExited?.Invoke(hitbox);
                 OnCoreHitboxesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"CoreAttackTrigger: Core hitbox {hitbox.name} collider disabled");
+                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} collider disabled");
             }
         }
 
@@ -200,7 +200,7 @@ namespace Resonance.Player.Triggers
                 {
                     var oldEnemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
                     oldEnemyMono?.SetWaveUIColor(Color.white);
-                    Debug.Log($"CoreAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
+                    Debug.Log($"WaveAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
                 }
                 
                 // Notify new closest target to change to red
@@ -208,7 +208,7 @@ namespace Resonance.Player.Triggers
                 {
                     var newEnemyMono = GetEnemyMonoFromHitbox(currentClosest);
                     newEnemyMono?.SetWaveUIColor(Color.red);
-                    Debug.Log($"CoreAttackTrigger: {currentClosest.name} is now closest target, set to red");
+                    Debug.Log($"WaveAttackTrigger: {currentClosest.name} is now closest target, set to red");
                 }
                 
                 _lastClosestCore = currentClosest;
@@ -234,7 +234,7 @@ namespace Resonance.Player.Triggers
                     if (!IsValidCoreHitbox(hitbox, collider))
                     {
                         hitboxesToRemove.Add(hitbox);
-                        Debug.Log($"CoreAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
+                        Debug.Log($"WaveAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
                     }
                     else
                     {
@@ -266,7 +266,7 @@ namespace Resonance.Player.Triggers
             _lastClosestCore = null;
             UpdateClosestCoreNotification();
             
-            Debug.Log($"CoreAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
+            Debug.Log($"WaveAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace Resonance.Player.Triggers
                 current = current.parent;
             }
             
-            Debug.LogWarning($"CoreAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
+            Debug.LogWarning($"WaveAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
             return null;
         }
 
@@ -326,12 +326,12 @@ namespace Resonance.Player.Triggers
                         _coreHitboxesInRange.Remove(hitbox);
                         OnCoreHitboxExited?.Invoke(hitbox);
                         OnCoreHitboxesChanged?.Invoke();
-                        Debug.Log($"CoreAttackTrigger: Removed invalid core hitbox {hitbox.name}");
+                        Debug.Log($"WaveAttackTrigger: Removed invalid core hitbox {hitbox.name}");
                     }
                 }
             }
 
-            Debug.Log($"CoreAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
+            Debug.Log($"WaveAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
         }
 
         /// <summary>
@@ -407,7 +407,7 @@ namespace Resonance.Player.Triggers
             _lastClosestCore = null;
 
             _isInitialized = false;
-            Debug.Log("CoreAttackTrigger: Cleaned up");
+            Debug.Log("WaveAttackTrigger: Cleaned up");
         }
 
         #endregion

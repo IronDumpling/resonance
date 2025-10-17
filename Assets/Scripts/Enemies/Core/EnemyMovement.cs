@@ -10,7 +10,7 @@ namespace Resonance.Enemies.Core
     /// 
     /// Movement speed is determined by:
     /// - Current enemy state (Normal, Reviving, TrueDeath, Stun)
-    /// - Current action (Chase, Patrol, NormalAttack, CoreAttack, Revive)
+    /// - Current action (Chase, Patrol, NormalAttack, WaveAttack, Revive)
     /// - Health tier modifiers (from EnemyBaseStats)
     /// </summary>
     public class EnemyMovement
@@ -172,7 +172,7 @@ namespace Resonance.Enemies.Core
         /// 1. Action-based speeds (higher priority):
         ///    - Chase action: use chaseMoveSpeed
         ///    - Patrol action: use moveSpeed
-        ///    - NormalAttack/CoreAttack/Revive actions: cannot move (speed = 0)
+        ///    - NormalAttack/WaveAttack/Revive actions: cannot move (speed = 0)
         /// 2. State-based speeds (when no specific action rule):
         ///    - Normal state: depends on current action (handled above)
         ///    - Stun state: cannot move (speed = 0)
@@ -226,8 +226,8 @@ namespace Resonance.Enemies.Core
                 return 0f;
             }
             
-            // CoreAttack action - no movement (attack in place)
-            if (currentAction == "CoreAttack")
+            // WaveAttack action - no movement (attack in place)
+            if (currentAction == "WaveAttack")
             {
                 return 0f;
             }
