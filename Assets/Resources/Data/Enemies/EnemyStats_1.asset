@@ -18,7 +18,7 @@ MonoBehaviour:
   crystalCoreConfig: {fileID: 11400000, guid: 4a3be431e36760b4f86a5f8d78d79497, type: 2}
   corePattern: Enemy_1
   revivalDelay: 2
-  revivalRate: 20
+  revivalRate: 10
   normalAttackStats:
     damages:
       physicalDamage: 20
@@ -60,10 +60,10 @@ MonoBehaviour:
   revivalMaterialPath: Art/Materials/Enemy/Enemy_Revival
   damageFlashDuration: 0.2
   enableAudio: 1
-  deathLootPrefab: {fileID: 0}
+  deathLootPrefab: {fileID: 1888247229399058588, guid: 2c7fad3653d846c45aafee4c70bbade6, type: 3}
   lootCount: 1
-  lootSpawnRadius: 1.5
+  lootSpawnRadius: 1
   lootDropChance: 1
   showHealthBar: 1
-  showDetectionRange: 0
-  showAttackRange: 0
+  showDetectionRange: 1
+  showAttackRange: 1

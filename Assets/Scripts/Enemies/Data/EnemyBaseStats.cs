@@ -91,7 +91,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("复活前等待时间")]
         public float revivalDelay = 2f;
         [Tooltip("复活时生命恢复速率")]
-        public float revivalRate = 20f;
+        public float revivalRate = 10f;
         
         [Header("Combat Attributes")]
         [Tooltip("普通攻击伤害")]
