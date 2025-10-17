@@ -108,8 +108,8 @@ namespace Resonance.Utilities.CrystalCore
         {
             if (config != null)
             {
-                _energyPerSlot = config.energyPerSlot;
-                _maxCoreHealth = config.initialMaxCoreHealth;
+                _energyPerSlot = Mathf.Round(config.energyPerSlot);
+                _maxCoreHealth = Mathf.Round(config.initialMaxCoreHealth);
                 _currentCoreHealth = _maxCoreHealth;
                 
                 // 最大能量值 = 当前晶核生命值
@@ -132,8 +132,8 @@ namespace Resonance.Utilities.CrystalCore
             else
             {
                 // 默认配置：3格生命值 = 90点
-                _energyPerSlot = 30f;
-                _maxCoreHealth = 90f; // 3 slots * 30 per slot
+                _energyPerSlot = Mathf.Round(30f);
+                _maxCoreHealth = Mathf.Round(90f); // 3 slots * 30 per slot
                 _currentCoreHealth = _maxCoreHealth;
                 _maxEnergy = _maxCoreHealth;
                 _currentEnergy = 0f;
@@ -183,7 +183,7 @@ namespace Resonance.Utilities.CrystalCore
             if (damage <= 0f || _currentCoreHealth <= 0f) return 0f;
 
             float previousHealth = _currentCoreHealth;
-            _currentCoreHealth = Mathf.Max(0f, _currentCoreHealth - damage);
+            _currentCoreHealth = Mathf.Round(Mathf.Max(0f, _currentCoreHealth - damage));
             float actualDamage = previousHealth - _currentCoreHealth;
 
             if (actualDamage > 0f)
@@ -214,14 +214,14 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 修复晶核生命(在医疗舱调用)
+        /// 修复晶核生命
         /// </summary>
         public float RepairCoreHealth(float repairAmount)
         {
             if (repairAmount <= 0f) return 0f;
 
             float previousHealth = _currentCoreHealth;
-            _currentCoreHealth = Mathf.Min(_currentCoreHealth + repairAmount, _maxCoreHealth);
+            _currentCoreHealth = Mathf.Round(Mathf.Min(_currentCoreHealth + repairAmount, _maxCoreHealth));
             float actualRepair = _currentCoreHealth - previousHealth;
 
             if (actualRepair > 0f)
@@ -253,7 +253,7 @@ namespace Resonance.Utilities.CrystalCore
         {
             if (amount <= 0f) return;
             
-            _maxCoreHealth += amount;
+            _maxCoreHealth = Mathf.Round(_maxCoreHealth + amount);
             
             // 如果当前生命值等于之前的最大值, 也提升当前生命值
             if (_currentCoreHealth >= _maxCoreHealth - amount)
@@ -281,7 +281,7 @@ namespace Resonance.Utilities.CrystalCore
             if (amount <= 0f) return 0f;
 
             float previousEnergy = _currentEnergy;
-            _currentEnergy = Mathf.Min(_currentEnergy + amount, _maxEnergy);
+            _currentEnergy = Mathf.Round(Mathf.Min(_currentEnergy + amount, _maxEnergy));
             float actualAdded = _currentEnergy - previousEnergy;
 
             if (actualAdded > 0f)
@@ -301,7 +301,7 @@ namespace Resonance.Utilities.CrystalCore
         {
             if (amount <= 0f || _currentEnergy < amount) return false;
 
-            _currentEnergy = Mathf.Max(0f, _currentEnergy - amount);
+            _currentEnergy = Mathf.Round(Mathf.Max(0f, _currentEnergy - amount));
             UpdateCalculatedValues();
             OnEnergyChanged?.Invoke(_currentEnergy, _maxEnergy);
             
@@ -410,11 +410,11 @@ namespace Resonance.Utilities.CrystalCore
                 return;
             }
 
-            _maxCoreHealth = Mathf.Max(1f, saveData.maxCoreHealth);
-            _currentCoreHealth = Mathf.Clamp(saveData.currentCoreHealth, 0f, _maxCoreHealth);
+            _maxCoreHealth = Mathf.Round(Mathf.Max(1f, saveData.maxCoreHealth));
+            _currentCoreHealth = Mathf.Round(Mathf.Clamp(saveData.currentCoreHealth, 0f, _maxCoreHealth));
             _maxEnergy = _currentCoreHealth;
-            _energyPerSlot = Mathf.Max(1f, saveData.energyPerSlot);
-            _currentEnergy = Mathf.Clamp(saveData.currentEnergy, 0f, _maxEnergy);
+            _energyPerSlot = Mathf.Round(Mathf.Max(1f, saveData.energyPerSlot));
+            _currentEnergy = Mathf.Round(Mathf.Clamp(saveData.currentEnergy, 0f, _maxEnergy));
 
             // Load wave data
             if (saveData.waveSaveData != null)
