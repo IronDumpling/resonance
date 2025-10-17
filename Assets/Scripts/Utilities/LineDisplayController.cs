@@ -4,7 +4,7 @@ using System.Collections;
 namespace Resonance.Utilities
 {
     /// <summary>
-    /// 简单的控制器，用于管理LineRenderer的临时显示
+    /// 简单的控制器, 用于管理LineRenderer的临时显示
     /// </summary>
     public class LineDisplayController : MonoBehaviour
     {

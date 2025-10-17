@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Interfaces.Objects;
 using Resonance.Enemies;
 using Resonance.Enemies.Core;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Enemies.Actions
 {
@@ -73,6 +73,8 @@ namespace Resonance.Enemies.Actions
         {
             Debug.Log("EnemyPatrolAction: Patrol action cancelled");
             enemy.StopPatrol();
+            enemy.Movement?.Stop();
+            
             _isFinished = true;
         }
 

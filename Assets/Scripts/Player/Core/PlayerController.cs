@@ -6,14 +6,31 @@ using Resonance.Player.Actions;
 using Resonance.Player.Shooting;
 using Resonance.Player.Inventory;
 using Resonance.Core;
-using Resonance.Core.Data;
 using Resonance.Utilities;
+using Resonance.Utilities.CrystalCore;
 using Resonance.Items;
 using Resonance.Interfaces.Objects;
 using Resonance.Interfaces.Services;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Player.Core
 {
+    /// <summary>
+    /// Invulnerability tracking - DamageInfo-based system
+    /// Tracks recent damage sources to prevent duplicate damage from the same attack
+    /// </summary>
+    public class DamageSourceRecord
+    {
+        public GameObject sourceObject;
+        public float timestamp;
+        
+        public DamageSourceRecord(GameObject source, float time)
+        {
+            sourceObject = source;
+            timestamp = time;
+        }
+    }
+    
     /// <summary>
     /// Core player controller that manages player state and behavior.
     /// This is a Non-MonoBehaviour class that handles the player logic.
@@ -32,15 +49,13 @@ namespace Resonance.Player.Core
 
         // Player State Management
         private PlayerStateMachine _stateMachine;
-        private ActionController _actionController;
+        private PlayerActionController _actionController;
 
         // Services
         private IAudioService _audioService;
         private GameObject _playerGameObject; // For 3D audio positioning
 
         // Combat State
-        private bool _isInvulnerable = false;
-        private float _invulnerabilityTimer = 0f;
         private float _lastAttackTime = 0f;
 
         // Dual Health Events
@@ -64,14 +79,17 @@ namespace Resonance.Player.Core
         public ShootingSystem ShootingSystem => _shootingSystem;
         public ConsumableManager ConsumableManager => _consumableManager;
         public InventoryOperationManager InventoryOperationManager => _gridOperationManager;
-        public bool IsInvulnerable => _isInvulnerable;
         public GameObject PlayerGameObject => _playerGameObject;
         
-        // Dual Health Properties
+        // Health Properties
         public bool IsAlive => _stats.IsAlive;
-        public bool IsCoreAlive => _stats.crystalCore.IsIntact;
-        public bool IsInDeathState => _stats.IsDead;
-        
+        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == CoreHealthState.Intact;
+        public bool IsCoreDestroyed => _stats.IsCoreDestroyed;
+
+        // State Properties
+        public bool IsAiming => CurrentState == "Aiming";
+        public bool IsStunned => CurrentState == "Stun";
+
         // Health Tier Properties
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         public HealthTier HealthTier => _stats.healthTier;
@@ -80,11 +98,9 @@ namespace Resonance.Player.Core
         public bool CanConsumeSlot => _stats.crystalCore.CanConsumeSlot();
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
-        public bool IsAiming => CurrentState == "Aiming";
-        public bool IsStunned => CurrentState == "Stun";
         public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
-        public ActionController ActionController => _actionController;
+        public PlayerActionController PlayerActionController => _actionController;
 
         public PlayerController(PlayerBaseStats baseStats)
         {
@@ -122,6 +138,9 @@ namespace Resonance.Player.Core
             _inventory = new PlayerInventory(_stats.inventoryGridWidth, _stats.inventoryGridHeight);
             _movement = new PlayerMovement(_stats);
             
+            // Initialize invulnerability duration
+            _invulnerabilityDuration = _stats.invulnerabilityTime;
+            
             // Initialize inventory managers
             _consumableManager = new ConsumableManager(_inventory);
             _weaponManager = new WeaponManager(_inventory);
@@ -136,7 +155,7 @@ namespace Resonance.Player.Core
             _stateMachine.Initialize();
 
             // Initialize action controller
-            _actionController = new ActionController(this);
+            _actionController = new PlayerActionController(this);
             _actionController.Initialize();
             
             // Register available actions
@@ -151,59 +170,208 @@ namespace Resonance.Player.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            UpdateInvulnerability(deltaTime);
-            UpdateResilience(deltaTime);
-            _movement.Update(deltaTime);
+            UpdateInvulnerabilityTimer();
             _stateMachine?.Update();
+
+            UpdateStunTimer();
+            _stats.UpdateChaos(deltaTime);
+            _movement.Update(deltaTime);
             _actionController.Update(deltaTime);
         }
 
         #region Health System
 
+        // Stun tracking
+        private float _stunEndTime = 0f;
+        
+        private List<DamageSourceRecord> _recentDamageSources = new List<DamageSourceRecord>();
+        private float _invulnerabilityDuration = 0f; // Cache the duration
+
         /// <summary>
-        /// Update invulnerability timer
+        /// Update chaos (natural recovery) and clean up old damage records
         /// </summary>
-        private void UpdateInvulnerability(float deltaTime)
+        private void UpdateInvulnerabilityTimer()
         {
-            if (_isInvulnerable)
+            // Clean up old damage source records
+            // remove entries older than invulnerability duration
+            if (_recentDamageSources.Count > 0 && _invulnerabilityDuration > 0f)
             {
-                _invulnerabilityTimer -= deltaTime;
-                if (_invulnerabilityTimer <= 0f)
+                float currentTime = Time.time;
+                _recentDamageSources.RemoveAll(record => 
+                    currentTime - record.timestamp > _invulnerabilityDuration
+                );
+            }
+        }
+
+        
+        private void UpdateStunTimer()
+        {
+            if (CurrentState == "Stun" && Time.time >= _stunEndTime)
+            {
+                ExitStun();
+            }
+        }
+        
+        /// <summary>
+        /// Check if a DamageInfo should be blocked by invulnerability
+        /// Returns true if this damage source was already processed recently
+        /// </summary>
+        private bool ShouldBlockDamageInfo(DamageInfo damageInfo)
+        {
+            if (_invulnerabilityDuration <= 0f) return false; // No invulnerability system
+            if (damageInfo.sourceObject == null) return false; // No source to track
+            
+            float currentTime = Time.time;
+            
+            // Check if this source has hit recently
+            foreach (var record in _recentDamageSources)
+            {
+                if (record.sourceObject == damageInfo.sourceObject && 
+                    currentTime - record.timestamp < _invulnerabilityDuration)
                 {
-                    _isInvulnerable = false;
+                    return true; // Block: this source already dealt damage recently
                 }
             }
+            
+            return false; // Allow: new damage source
+        }
+        
+        /// <summary>
+        /// Register a damage source to prevent duplicate hits
+        /// Should be called once per DamageInfo, not per damage type
+        /// </summary>
+        private void RegisterDamageSource(DamageInfo damageInfo)
+        {
+            if (_invulnerabilityDuration <= 0f) return;
+            if (damageInfo.sourceObject == null) return;
+            
+            _recentDamageSources.Add(new DamageSourceRecord(
+                damageInfo.sourceObject, 
+                Time.time
+            ));
+            
+            Debug.Log($"PlayerController: Registered damage source '{damageInfo.sourceObject.name}', " +
+                     $"invulnerable for {_invulnerabilityDuration}s");
         }
 
         /// <summary>
-        /// Update resilience
+        /// Add chaos value (when taking chaos damage)
         /// </summary>
-        private void UpdateResilience(float deltaTime)
+        private void AddChaos(float amount)
         {
-            _stats.UpdateResilience(deltaTime);
-
-            // Empty resilience -> enter stun
-            if (_stats.currentResilience <= 0.1f && CurrentState != "Stun" && CurrentState != "Death")
+            if (amount <= 0f) return;
+            
+            float actualAdded = _stats.crystalCore.AddChaos(amount);
+            
+            if (actualAdded > 0f)
             {
-                HandleStun();
+                // Enter stun state proportional to chaos damage
+                // Each point of chaos = 0.1 seconds of stun (adjustable)
+                float stunDuration = actualAdded * 0.1f;
+                EnterStun(stunDuration);
+                
+                Debug.Log($"PlayerController: Added {actualAdded} chaos, entering stun for {stunDuration:F2}s");
+            }
+        }
+
+        /// <summary>
+        /// Enter stun state
+        /// </summary>
+        private void EnterStun(float duration)
+        {
+            if (CurrentState == "Death") return;
+            
+            _stunEndTime = Time.time + duration;
+            _stateMachine?.EnterStun();
+            
+            Debug.Log($"PlayerController: Entered stun state for {duration:F2}s");
+        }
+
+        /// <summary>
+        /// Exit stun state
+        /// </summary>
+        private void ExitStun()
+        {
+            if (CurrentState != "Stun") return;
+            
+            _stateMachine?.ExitStun();
+            
+            Debug.Log("PlayerController: Exited stun state");
+        }
+
+        /// <summary>
+        /// Take damage from a DamageInfo (unified entry point)
+        /// Handles invulnerability check at the DamageInfo level, not per damage type
+        /// This ensures all damage types from the same attack are processed together
+        /// </summary>
+        public void TakeDamage(DamageInfo damageInfo)
+        {
+            // Check if this damage source should be blocked by invulnerability
+            if (ShouldBlockDamageInfo(damageInfo))
+            {
+                Debug.Log($"PlayerController: Damage from '{damageInfo.sourceObject?.name}' blocked by invulnerability");
+                return;
             }
             
-            // Resilience > stun threshold -> exit stun
-            if (_stats.currentResilience > _stats.stunThreshold && CurrentState == "Stun" && CurrentState != "Death")
+            // Register this damage source for invulnerability tracking
+            RegisterDamageSource(damageInfo);
+            
+            // Process all damage types in the DamageInfo
+            Damages damages = damageInfo.damages;
+            if (damages == null) return;
+            
+            bool tookAnyDamage = false;
+            
+            // Apply Physical Health damage
+            if (damages.HasDamage(DamageType.PhysicalHealth))
             {
-                HandleStunEnd();
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                TakeHealthDamage(damageAmount);
+                tookAnyDamage = true;
             }
+            
+            // Apply Core Health damage
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                TakeCoreDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Chaos damage (processed last to avoid stun blocking other damage)
+            if (damages.HasDamage(DamageType.Chaos))
+            {
+                float damageAmount = damages.GetDamage(DamageType.Chaos);
+                TakeChaosDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Trigger common effects only once per DamageInfo
+            if (tookAnyDamage)
+            {
+                // Notify PlayerActionController of damage taken (for interruption logic)
+                _actionController?.OnPlayerDamageTaken();
+                
+                // Interrupt aiming when taking damage
+                if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
+                {
+                    _stateMachine.StopAiming();
+                    Debug.Log("PlayerController: Aiming interrupted by damage");
+                }
+
+                // Play hit audio effect (once per DamageInfo)
+                PlayHitAudio();
+            }
+            
+            Debug.Log($"PlayerController: Processed DamageInfo - {damageInfo}");
         }
-
+        
         /// <summary>
-        /// Take health damage (affects health health)
+        /// Take physical health damage (internal method, called from TakeDamage)
         /// </summary>
-        public void TakeHealthDamage(float damage)
+        private void TakeHealthDamage(float damage)
         {
-            if (_isInvulnerable || !IsCoreAlive) return;
-
-            // Check Action system invulnerability
-            if (_actionController?.IsInvulnerable == true) return;
+            if (!IsAlive) return;
 
             // Store old tier for comparison
             var oldHealthTier = _stats.healthTier;
@@ -220,43 +388,27 @@ namespace Resonance.Player.Core
 
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
 
-            // Notify ActionController of damage taken (for interruption logic)
-            _actionController?.OnPlayerDamageTaken();
-            
-            // Interrupt aiming when taking damage
-            if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
-            {
-                _stateMachine.StopAiming();
-                Debug.Log("PlayerController: Aiming interrupted by damage");
-            }
-
-            // Play hit audio effect
-            PlayHitAudio();
-
             if (_stats.currentHealth <= 0f)
             {
                 HandleDeath();
             }
             else
             {
-                // Start invulnerability period for health damage
-                _isInvulnerable = true;
-                _invulnerabilityTimer = _stats.invulnerabilityTime;
-                Debug.Log($"PlayerController: Took {damage} health damage, health health: {_stats.currentHealth}");
+                Debug.Log($"PlayerController: Took {damage} health damage. Current: {_stats.currentHealth}/{_stats.maxHealth}");
             }
         }
 
         /// <summary>
-        /// Take core damage (affects core capacity)
+        /// Take core health damage (internal method, called from TakeDamage)
         /// </summary>
-        public void TakeCoreDamage(float damage)
+        private void TakeCoreDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
             // Store old tier for comparison
             var oldCoreTier = _stats.crystalCore.EnergyTier;
 
-            _stats.crystalCore.DamageCapacity(damage);
+            _stats.crystalCore.TakeCoreHealthDamage(damage);
             _stats.crystalCore.UpdateCalculatedValues();
             
             // Fire tier change event if tier changed
@@ -266,28 +418,26 @@ namespace Resonance.Player.Core
                 Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier}");
             }
 
-            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
 
-            if (_stats.crystalCore.CurrentEnergyCapacity <= 0f)
+            if (_stats.crystalCore.CurrentCoreHealth <= 0f)
             {
-                HandleDeath();
+                HandleCoreDeath();
             }
             else
             {
-                Debug.Log($"PlayerController: Took {damage} core damage, core capacity: {_stats.crystalCore.CurrentEnergyCapacity}");
+                Debug.Log($"PlayerController: Took {damage} core health damage. Current: {_stats.crystalCore.CurrentCoreHealth}/{_stats.crystalCore.MaxCoreHealth}");
             }
         }
 
         /// <summary>
-        /// Take resilience damage
+        /// Take chaos damage (causes stun) (internal method, called from TakeDamage)
         /// </summary>
-        public void TakeResilienceDamage(float damage)
+        private void TakeChaosDamage(float damage)
         {
             if (!IsCoreAlive) return;
-
-            _stats.TakeResilienceDamage(damage);
-
-            Debug.Log($"PlayerController: Took {damage} resilience damage, resilience: {_stats.currentResilience}");
+            
+            AddChaos(damage);
         }
 
         /// <summary>
@@ -334,12 +484,12 @@ namespace Resonance.Player.Core
                 Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier}");
             }
 
-            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             Debug.Log($"PlayerController: Gained {amount} core energy, current: {_stats.crystalCore.CurrentEnergy}");
         }
 
         /// <summary>
-        /// Handle death (health reaches 0)
+        /// Handle physical health death
         /// </summary>
         private void HandleDeath()
         {
@@ -349,25 +499,19 @@ namespace Resonance.Player.Core
                 return;
             }
             
-            Debug.Log("PlayerController: Death - game over");
+            Debug.Log("PlayerController: Physical health depleted - Player death");
             OnDeath?.Invoke();
             _stateMachine?.EnterDeath();
         }
 
         /// <summary>
-        /// Handle stun (resilience reaches stun threshold)
+        /// Handle core health death (core destroyed)
         /// </summary>
-        private void HandleStun()
+        private void HandleCoreDeath()
         {
-            _stateMachine?.EnterStun();
-        }
-
-        /// <summary>
-        /// Handle stun end (resilience reaches normal threshold)
-        /// </summary>
-        private void HandleStunEnd()
-        {
-            _stateMachine?.ExitStun();
+            Debug.Log("PlayerController: Core health depleted - Core destroyed (player can continue)");
+            // Core destroyed but player doesn't die
+            // This could trigger special effects or UI updates
         }
 
         /// <summary>
@@ -376,9 +520,9 @@ namespace Resonance.Player.Core
         public void RestoreToFullHealth()
         {
             _stats.FullRestore();
-            _stats.crystalCore.FullRepair();
+            _stats.crystalCore.FullRepairCoreHealth();
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             Debug.Log("PlayerController: All health restored to full");
         }
 
@@ -397,8 +541,8 @@ namespace Resonance.Player.Core
         /// </summary>
         public void RestoreCoreHealth()
         {
-            _stats.crystalCore.FullRepair();
-            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            _stats.crystalCore.FullRepairCoreHealth();
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             Debug.Log("PlayerController: Core health restored to full");
         }
 
@@ -477,7 +621,7 @@ namespace Resonance.Player.Core
 
             _lastAttackTime = Time.time;
             
-            GunDataAsset currentGun = _weaponManager.CurrentGun;
+            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
             
             // Perform shoot
             ShootingResult result = new ShootingResult { success = false };
@@ -485,23 +629,28 @@ namespace Resonance.Player.Core
             {
                 // Pass aiming state to ShootingSystem
                 bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
-                result = _shootingSystem.PerformShoot(shootOrigin, currentGun, isAiming);
+                result = _shootingSystem.PerformShoot(shootOrigin, currentWeapon, isAiming);
                 
-                // Core energy gain: 10 health damage = 2 core energy gain
-                if (result.success && result.hasHit && result.actualDamage > 0)
+                // Core energy gain: ONLY from actual physical health damage
+                if (result.success && result.hasHit)
                 {
-                    float coreGain = result.actualDamage * 0.2f; // 10 damage = 2 gain
-                    GainCoreEnergy(coreGain);
-                    Debug.Log($"PlayerController: Gained {coreGain} core energy from dealing {result.actualDamage} actual damage (base: {result.damage})");
+                    float actualPhysicalDamage = result.GetActualDamage(DamageType.PhysicalHealth);
+                    if (actualPhysicalDamage > 0)
+                    {
+                        float coreGain = actualPhysicalDamage * _stats.physicalDamageToCoreEnergyRatio;
+                        GainCoreEnergy(coreGain);
+                        Debug.Log($"PlayerController: Gained {coreGain:F1} core energy from dealing {actualPhysicalDamage:F1} actual physical health damage");
+                    }
                 }
             }
             
             // Trigger shooting event
             OnShoot?.Invoke();
             
-            Debug.Log($"PlayerController: Mouse-based shot fired with {currentGun.weaponName}. " +
+            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWeapon.weaponName}. " +
                      $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
-                     $"Damage: {currentGun.damage}, Remaining ammo: {currentGun.CurrentAmmo}");
+                     $"Total Base: {result.GetTotalBaseDamage():F1}, Total Actual: {result.GetTotalActualDamage():F1}, " +
+                     $"Remaining ammo: {currentWeapon.CurrentAmmo}");
             
             return result;
         }
@@ -551,7 +700,7 @@ namespace Resonance.Player.Core
 
             // Notify UI of dual health changes
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
         }
 
         public PlayerSaveData CreateSaveData(string savePointID, Vector3 position, Vector3 rotation)
@@ -582,7 +731,7 @@ namespace Resonance.Player.Core
         #region Action Management
         
         /// <summary>
-        /// Register a new action with the ActionController
+        /// Register a new action with the PlayerActionController
         /// </summary>
         /// <param name="action">The action to register</param>
         public void RegisterAction(IPlayerAction action)
@@ -637,7 +786,7 @@ namespace Resonance.Player.Core
         }
 
         /// <summary>
-        /// Register all available player actions with the ActionController
+        /// Register all available player actions with the PlayerActionController
         /// </summary>
         private void RegisterPlayerActions()
         {
@@ -666,7 +815,7 @@ namespace Resonance.Player.Core
             if (success)
             {
                 // Fire events
-                OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+                OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
                 
                 if (oldCoreTier != _stats.crystalCore.EnergyTier)
                 {
@@ -675,7 +824,7 @@ namespace Resonance.Player.Core
                 }
                 
                 Debug.Log($"PlayerController: Consumed 1 slot ({_stats.crystalCore.EnergyPerSlot} core energy)." +
-                $"Remaining: {_stats.crystalCore.CurrentEnergy}/{_stats.crystalCore.CurrentEnergyCapacity} ({_stats.crystalCore.GetEnergyInSlots():F1} slots)");
+                $"Remaining: {_stats.crystalCore.CurrentEnergy}/{_stats.crystalCore.CurrentCoreHealth} ({_stats.crystalCore.GetEnergyInSlots():F1} slots)");
             }
             
             return success;

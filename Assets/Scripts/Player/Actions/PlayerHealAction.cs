@@ -1,10 +1,10 @@
 using UnityEngine;
+using Resonance.Core;
+using Resonance.Utilities;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
-using Resonance.Interfaces.Objects;
-using Resonance.Core;
 using Resonance.Interfaces.Services;
-using Resonance.Utilities;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Player.Actions
 {
@@ -54,7 +54,11 @@ namespace Resonance.Player.Actions
             }
 
             // Must have at least 1 core health slot available
-            if (!player.CanConsumeSlot) return false;
+            if (!player.CanConsumeSlot)
+            {
+                Debug.Log("PlayerHealAction: Cannot start - core energy/energy per slot: " + player.Stats.crystalCore.CurrentEnergy + " / " + player.Stats.crystalCore.EnergyPerSlot);
+                return false;
+            }
 
             // Must NOT have Core hitboxes in core attack range (WaveAction has priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
@@ -191,7 +195,7 @@ namespace Resonance.Player.Actions
             if (_isActive)
             {
                 Debug.Log("PlayerHealAction: Interrupted by damage");
-                _isFinished = true; // Will be cleaned up by ActionController
+                _isFinished = true; // Will be cleaned up by PlayerActionController
             }
         }
 

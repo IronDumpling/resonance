@@ -1,8 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+using System.Collections;
 using System.Collections.Generic;
-
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Player.Triggers;
@@ -34,8 +33,9 @@ namespace Resonance.Player
         [SerializeField] private LayerMask _edgeDetectionLayerMask = 1;
         [SerializeField] private float _edgeRaycastHeight = 0.5f;
 
-        [Header("Player Rotation")]
+        [Header("Player Visual Components")]
         [SerializeField] private Transform _playerVisual;
+        [SerializeField] private Renderer _playerBodyRenderer;
         [SerializeField] private float _playerRotationSpeed = 8f;
         
         [Header("Right Arm Animation")]
@@ -56,6 +56,10 @@ namespace Resonance.Player
         private IInteractionService _interactionService;
         private CoreAttackTrigger _coreAttackTrigger;
         private PlayerInteractTrigger _playerInteractTrigger;
+
+        // Visual Materials
+        private Material _normalMaterial;
+        private Material _damageMaterial;
 
         // Physics
         private bool _isGrounded;
@@ -86,7 +90,7 @@ namespace Resonance.Player
             }
 
             // Ensure Visual child object is properly configured for interaction
-            SetupVisualForInteraction();
+            SetupVisualComponents();
 
             InitializePlayer();
         }
@@ -131,6 +135,12 @@ namespace Resonance.Player
 
             // Initialize PlayerInteractTrigger
             InitializePlayerInteractTrigger();
+
+            // Load materials
+            LoadResources();
+
+            // Set initial material
+            SetMaterial(_normalMaterial);
 
             Debug.Log("PlayerMonoBehaviour: Initialized and registered");
         }
@@ -181,7 +191,7 @@ namespace Resonance.Player
 
         #region Player Initialization
 
-        private void SetupVisualForInteraction()
+        private void SetupVisualComponents()
         {
             Debug.Log($"PlayerMonoBehaviour: Setting up Visual child for interaction");
             
@@ -234,6 +244,20 @@ namespace Resonance.Player
                     collider.tag = "Player";
                     Debug.Log($"PlayerMonoBehaviour: Set Player tag on child collider: {collider.name}");
                 }
+            }
+
+            Transform bodyTransform = visualChild.Find("Body");
+            if (bodyTransform != null)
+            {
+                _playerBodyRenderer = bodyTransform.GetComponent<Renderer>();
+                if (_playerBodyRenderer == null)
+                {
+                    Debug.LogError("PlayerMonoBehaviour: No Renderer found on Body child");
+                }
+            }
+            else
+            {
+                Debug.LogError("PlayerMonoBehaviour: No Body child found on Visual child");
             }
         }
 
@@ -368,7 +392,7 @@ namespace Resonance.Player
             if (!IsInitialized) return;
             
             // Check if current action blocks movement (e.g., WaveAction, HealAction)
-            if (_playerController.ActionController.IsBlocking)
+            if (_playerController.PlayerActionController.IsBlocking)
             {
                 Debug.Log("PlayerMonoBehaviour: Movement input blocked by action");
                 _playerController.Movement.SetMovementInput(Vector2.zero);
@@ -492,7 +516,7 @@ namespace Resonance.Player
                 return;
             }
             
-            // 计算射击起始位置（从玩家中心稍微前方）
+            // 计算射击起始位置(从玩家中心稍微前方)
             // Vector3 shootOrigin = transform.position + Vector3.up + transform.forward * 0.5f;
             Vector3 shootOrigin = transform.position + _shootOriginOffset;
             
@@ -605,20 +629,20 @@ namespace Resonance.Player
         {
             if (_playerVisual == null) return;
 
-            // 使用ShootingSystem的鼠标目标点逻辑，确保玩家朝向和射击方向一致
+            // 使用ShootingSystem的鼠标目标点逻辑, 确保玩家朝向和射击方向一致
             Vector3 mouseTargetPoint = GetMouseTargetPointFromShootingSystem();
             if (mouseTargetPoint == Vector3.zero) return;
 
-            // 计算Player Visual的Y轴旋转角度（仅使用XZ平面）
+            // 计算Player Visual的Y轴旋转角度(仅使用XZ平面)
             float targetYRotation = CalculatePlayerYRotation(transform.position, mouseTargetPoint);
             
-            // 应用平滑旋转（仅Y轴）
+            // 应用平滑旋转(仅Y轴)
             ApplyPlayerYRotation(targetYRotation);
         }
 
         /// <summary>
         /// 从ShootingSystem获取鼠标目标点
-        /// 使用与射击系统相同的逻辑，确保玩家朝向和射击方向一致
+        /// 使用与射击系统相同的逻辑, 确保玩家朝向和射击方向一致
         /// </summary>
         /// <returns>鼠标指向的世界坐标点</returns>
         private Vector3 GetMouseTargetPointFromShootingSystem()
@@ -631,27 +655,27 @@ namespace Resonance.Player
 
         /// <summary>
         /// 计算Player Visual应该面向的Y轴旋转角度
-        /// 使用与ShootingSystem相同的鼠标目标点，确保玩家朝向和射击方向一致
+        /// 使用与ShootingSystem相同的鼠标目标点, 确保玩家朝向和射击方向一致
         /// 算法说明：
-        /// 1. 计算从Player到目标点的方向向量（仅考虑XZ平面）
+        /// 1. 计算从Player到目标点的方向向量(仅考虑XZ平面)
         /// 2. 使用Atan2函数计算该方向在XZ平面的角度
         /// 3. 转换为Unity的Y轴旋转角度
         /// </summary>
         /// <param name="playerPosition">玩家位置</param>
-        /// <param name="targetPosition">目标点世界坐标（来自ShootingSystem）</param>
-        /// <returns>Y轴旋转角度（度数）</returns>
+        /// <param name="targetPosition">目标点世界坐标(来自ShootingSystem)</param>
+        /// <returns>Y轴旋转角度(度数)</returns>
         private float CalculatePlayerYRotation(Vector3 playerPosition, Vector3 targetPosition)
         {
             // 步骤1: 计算从Player到目标点的方向向量
             Vector3 directionToTarget = targetPosition - playerPosition;
             
-            // 步骤2: 将Y轴分量设为0，确保只考虑XZ平面的旋转
+            // 步骤2: 将Y轴分量设为0, 确保只考虑XZ平面的旋转
             directionToTarget.y = 0f;
             
-            // 步骤3: 确保方向向量有效（避免除零错误）
+            // 步骤3: 确保方向向量有效(避免除零错误)
             if (directionToTarget.sqrMagnitude < 0.001f)
             {
-                // 如果目标点和玩家位置过于接近，保持当前旋转
+                // 如果目标点和玩家位置过于接近, 保持当前旋转
                 return _playerVisual.eulerAngles.y;
             }
             
@@ -660,7 +684,7 @@ namespace Resonance.Player
             
             // 步骤5: 使用Atan2计算角度
             // Atan2(z, x) 计算从X轴正方向到(x,z)点的角度
-            // Unity的前方是Z轴正方向，所以我们使用 Atan2(x, z)
+            // Unity的前方是Z轴正方向, 所以我们使用 Atan2(x, z)
             float angleInRadians = Mathf.Atan2(directionToTarget.x, directionToTarget.z);
             
             // 步骤6: 转换为度数
@@ -677,7 +701,7 @@ namespace Resonance.Player
 
         /// <summary>
         /// 平滑地旋转Player Visual到目标Y轴角度
-        /// 使用Quaternion.Slerp进行球面线性插值，确保旋转自然
+        /// 使用Quaternion.Slerp进行球面线性插值, 确保旋转自然
         /// </summary>
         /// <param name="targetYRotation">目标Y轴旋转角度</param>
         private void ApplyPlayerYRotation(float targetYRotation)
@@ -685,7 +709,7 @@ namespace Resonance.Player
             // 获取当前旋转
             Vector3 currentEulerAngles = _playerVisual.eulerAngles;
             
-            // 创建目标旋转（保持X和Z轴不变，只改变Y轴）
+            // 创建目标旋转(保持X和Z轴不变, 只改变Y轴)
             Vector3 targetEulerAngles = new Vector3(
                 currentEulerAngles.x,  // 保持X轴旋转
                 targetYRotation,       // 设置新的Y轴旋转
@@ -718,7 +742,7 @@ namespace Resonance.Player
             // 只在瞄准状态下显示瞄准线
             if (_playerController.IsAiming)
             {
-                // 计算射击起始位置（与射击时相同）
+                // 计算射击起始位置(与射击时相同)
                 Vector3 shootOrigin = transform.position + _shootOriginOffset;
                 
                 // 更新瞄准线
@@ -748,32 +772,32 @@ namespace Resonance.Player
                     // 计算Right Arm的全方向旋转
                     Quaternion targetArmRotation = CalculateRightArmRotation(_rightArm.position, mouseWorldPosition);
                     
-                    // 应用平滑旋转（全方向）
+                    // 应用平滑旋转(全方向)
                     ApplyRightArmRotation(targetArmRotation);
                 }
             }
-            // 当不在瞄准状态时，可以添加返回默认位置的逻辑
+            // 当不在瞄准状态时, 可以添加返回默认位置的逻辑
         }
 
         /// <summary>
         /// 计算Right Arm应该指向的全方向旋转
         /// 算法说明：
-        /// 1. 计算从手臂到鼠标的方向向量（3D全方向）
+        /// 1. 计算从手臂到鼠标的方向向量(3D全方向)
         /// 2. 使用Quaternion.LookRotation计算旋转
-        /// 3. 保持Up向量为世界坐标的上方向，确保旋转自然
+        /// 3. 保持Up向量为世界坐标的上方向, 确保旋转自然
         /// </summary>
         /// <param name="armPosition">手臂位置</param>
         /// <param name="mousePosition">鼠标世界坐标</param>
         /// <returns>目标旋转四元数</returns>
         private Quaternion CalculateRightArmRotation(Vector3 armPosition, Vector3 mousePosition)
         {
-            // 步骤1: 计算从手臂到鼠标的方向向量（全3D方向）
+            // 步骤1: 计算从手臂到鼠标的方向向量(全3D方向)
             Vector3 directionToMouse = mousePosition - armPosition;
             
             // 步骤2: 检查方向向量是否有效
             if (directionToMouse.sqrMagnitude < 0.001f)
             {
-                // 如果距离过近，保持当前旋转
+                // 如果距离过近, 保持当前旋转
                 return _rightArm.rotation;
             }
             
@@ -781,8 +805,8 @@ namespace Resonance.Player
             directionToMouse.Normalize();
             
             // 步骤4: 使用LookRotation计算目标旋转
-            // LookRotation(forward, up) 创建一个旋转，使前方指向forward方向
-            // 使用Vector3.up作为上方向，确保旋转看起来自然
+            // LookRotation(forward, up) 创建一个旋转, 使前方指向forward方向
+            // 使用Vector3.up作为上方向, 确保旋转看起来自然
             Quaternion targetRotation = Quaternion.LookRotation(directionToMouse, Vector3.up);
             
             return targetRotation;
@@ -795,7 +819,7 @@ namespace Resonance.Player
         /// <param name="targetRotation">目标旋转四元数</param>
         private void ApplyRightArmRotation(Quaternion targetRotation)
         {
-            // 使用球面线性插值进行平滑旋转（全方向）
+            // 使用球面线性插值进行平滑旋转(全方向)
             _rightArm.rotation = Quaternion.Slerp(
                 _rightArm.rotation, 
                 targetRotation, 
@@ -893,213 +917,131 @@ namespace Resonance.Player
             transform.eulerAngles = rotation;
         }
 
-        /// <summary>
-        /// Take health damage
-        /// </summary>
-        public void TakeHealthDamage(float damage)
-        {
-            if (IsInitialized)
-            {
-                _playerController.TakeHealthDamage(damage);
-            }
-        }
-
-        /// <summary>
-        /// Decrease core energy
-        /// </summary>
-        public void TakeCoreDamage(float damage)
-        {
-            if (IsInitialized)
-            {
-                _playerController.TakeCoreDamage(damage);
-            }
-        }
-
-        /// <summary>
-        /// Heal health
-        /// </summary>
-        public void HealHealth(float amount)
-        {
-            if (IsInitialized)
-            {
-                _playerController.HealHealth(amount);
-            }
-        }
-
-        /// <summary>
-        /// Gain core energy
-        /// </summary>
-        public void GainCoreEnergy(float amount)
-        {
-            if (IsInitialized)
-            {
-                _playerController.GainCoreEnergy(amount);
-            }
-        }
-
-        #endregion
-
-        #region Debug
-
-        private void DrawDebugInfo()
-        {
-            if (!IsInitialized) return;
-
-            // Display stats in scene view
-            var stats = _playerController.Stats;
-            string edgeInfo = _enableEdgeProtection ? 
-                $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
-                "Edge Protection: OFF";
-                
-            // CoreAttackTrigger debug info
-            string coreAttackInfo = GetCoreAttackRangeDebugInfo();
-            
-            Debug.Log($"Physical Health: {stats.currentHealth}/{stats.maxHealth}, " +
-                     $"Core Health: {stats.crystalCore.CurrentEnergy}/{stats.crystalCore.CurrentEnergyCapacity}, " +
-                     $"Core Tier: {_playerController.Stats.crystalCore.EnergyTier}, Physical Tier: {_playerController.Stats.healthTier}, " +
-                     $"Slots: {_playerController.Stats.crystalCore.GetEnergyInSlots():F1}/{stats.crystalCore.MaxSlots}, " +
-                     $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
-                     $"Can Move: {_playerController.StateMachine.CanMove()}, " +
-                     $"{edgeInfo}, {coreAttackInfo}");
-        }
-
-        void OnDrawGizmosSelected()
-        {            
-            // Draw edge detection rays
-            if (_enableEdgeProtection)
-            {
-                Vector3 rayOrigin = transform.position + Vector3.up * _edgeRaycastHeight;
-                Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-                
-                for (int i = 0; i < directions.Length; i++)
-                {
-                    Vector3 edgePosition = rayOrigin + directions[i] * _edgeDetectionDistance;
-                    
-                    // Real-time check for this direction
-                    bool isSafe = IsPositionSafe(transform.position, directions[i], 0.1f);
-                    
-                    // Draw horizontal ray
-                    Gizmos.color = isSafe ? Color.green : Color.red;
-                    Gizmos.DrawLine(rayOrigin, edgePosition);
-                    
-                    // Draw downward ray from edge (2米长度)
-                    Gizmos.color = isSafe ? Color.green : Color.red;
-                    Gizmos.DrawLine(edgePosition, edgePosition + Vector3.down * 2f);
-                    
-                    // Draw a small sphere at the check position for better visualization
-                    Gizmos.color = isSafe ? Color.green : Color.red;
-                    Gizmos.DrawWireSphere(edgePosition, 0.1f);
-                }
-            }
-        }
-
         #endregion
 
         #region IDamageable Implementation
 
         /// <summary>
-        /// Take damage using the new dual health system
+        /// Take damage using the new damage system
+        /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// Invulnerability is handled at the DamageInfo level, not per damage type
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            if (!IsInitialized) return;
-
-            switch (damageInfo.type)
-            {
-                case DamageType.Health:
-                    _playerController.TakeHealthDamage(damageInfo.amount);
-                    break;
-                    
-                case DamageType.Core:
-                    _playerController.TakeCoreDamage(damageInfo.amount);
-                    break;
-
-                case DamageType.Resilience:
-                    _playerController.TakeResilienceDamage(damageInfo.amount);
-                    break;
-                    
-                case DamageType.Mixed:
-                    float healthDamage = damageInfo.amount * damageInfo.healthRatio;
-                    float resilienceDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
-                    _playerController.TakeHealthDamage(healthDamage);
-                    _playerController.TakeResilienceDamage(resilienceDamage);
-                    break;
-            }
+            if (!IsInitialized || damageInfo.damages == null) return;
             
-            Debug.Log($"PlayerMonoBehaviour: Took {damageInfo.amount} {damageInfo.type} damage from {damageInfo.sourcePosition}");
+            // Delegate to controller's unified damage handling
+            // Controller handles invulnerability check and applies all damage types
+            _playerController.TakeDamage(damageInfo);
+
+            // Show visual feedback
+            ShowDamageEffect(damageInfo);
         }
 
         /// <summary>
-        /// Take health damage
+        /// Physical health state
         /// </summary>
-        public void TakeHealthDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _playerController.TakeHealthDamage(damage);
-            }
-        }
+        public PhysicalHealthState PhysicalState => IsInitialized && _playerController.Stats.IsAlive 
+            ? PhysicalHealthState.Alive 
+            : PhysicalHealthState.Dead;
 
         /// <summary>
-        /// Take core damage
+        /// Core health state
         /// </summary>
-        public void TakeCoreDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _playerController.TakeCoreDamage(damage);
-            }
-        }
+        public CoreHealthState CoreState => IsInitialized && _playerController.Stats.crystalCore != null 
+            ? _playerController.Stats.crystalCore.CoreHealthState 
+            : CoreHealthState.Destroyed;
 
         /// <summary>
-        /// Take resilience damage
+        /// Wave chaos state
         /// </summary>
-        public void TakeResilienceDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _playerController.TakeResilienceDamage(damage);
-            }
-        }
-
-        #endregion
-
-        #region Health Properties
+        public WaveChaosState ChaosState => IsInitialized && _playerController.Stats.crystalCore != null 
+            ? _playerController.Stats.crystalCore.ChaosState 
+            : WaveChaosState.Order;
 
         /// <summary>
-        /// Is healthly alive (health health > 0)
+        /// Current physical health
         /// </summary>
-        public bool IsAlive => IsInitialized && _playerController.IsAlive;
+        public float CurrentPhysicalHealth => IsInitialized ? _playerController.Stats.currentHealth : 0f;
 
         /// <summary>
-        /// Is corely alive (core health > 0)
+        /// Max physical health
         /// </summary>
-        public bool IsCoreAlive => IsInitialized && _playerController.IsCoreAlive;
-
-        /// <summary>
-        /// Is in death state (health health = 0 but core health > 0)
-        /// </summary>
-        public bool IsInDeathState => IsInitialized && _playerController.IsInDeathState;
-
-        /// <summary>
-        /// Current health health
-        /// </summary>
-        public float CurrentHealth => IsInitialized ? _playerController.Stats.currentHealth : 0f;
-
-        /// <summary>
-        /// Max health health
-        /// </summary>
-        public float MaxHealth => IsInitialized ? _playerController.Stats.maxHealth : 0f;
+        public float MaxPhysicalHealth => IsInitialized ? _playerController.Stats.maxHealth : 0f;
 
         /// <summary>
         /// Current core health
         /// </summary>
-        public float CurrentCoreCapacity => IsInitialized ? _playerController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
+        public float CurrentCoreHealth => IsInitialized && _playerController.Stats.crystalCore != null 
+            ? _playerController.Stats.crystalCore.CurrentCoreHealth 
+            : 0f;
 
         /// <summary>
         /// Max core health
         /// </summary>
-        public float MaxCoreCapacity => IsInitialized ? _playerController.Stats.crystalCore.MaxEnergyCapacity : 0f;
+        public float MaxCoreHealth => IsInitialized && _playerController.Stats.crystalCore != null 
+            ? _playerController.Stats.crystalCore.MaxCoreHealth 
+            : 0f;
+
+        /// <summary>
+        /// Current chaos value
+        /// </summary>
+        public float CurrentChaos => IsInitialized && _playerController.Stats.crystalCore != null 
+            ? _playerController.Stats.crystalCore.CurrentChaos 
+            : 0f;
+
+        /// <summary>
+        /// Max chaos value
+        /// </summary>
+        public float MaxChaos => IsInitialized && _playerController.Stats.crystalCore != null 
+            ? _playerController.Stats.crystalCore.MaxChaos 
+            : 0f;
+
+        #endregion
+
+        #region Visual Effects
+
+        private void LoadResources()
+        {
+            _normalMaterial = Resources.Load<Material>(_baseStats.NormalMaterialPath);
+            if (_normalMaterial == null)
+            {
+                Debug.LogError($"PlayerMonoBehaviour: Failed to load normal material from {_baseStats.NormalMaterialPath}");
+            }
+
+            _damageMaterial = Resources.Load<Material>(_baseStats.DamageMaterialPath);
+            if (_damageMaterial == null)
+            {
+                Debug.LogError($"PlayerMonoBehaviour: Failed to load damage material from {_baseStats.DamageMaterialPath}");
+            }
+        }
+
+        private void SetMaterial(Material material)
+        {
+            if (_playerBodyRenderer != null && material != null)
+            {
+                _playerBodyRenderer.material = material;
+            }
+        }
+
+        private void ShowDamageEffect(DamageInfo damageInfo)
+        {
+            if (_playerBodyRenderer != null && _damageMaterial != null)
+            {
+                StartCoroutine(DamageFlashCoroutine());
+            }
+        }
+
+        private IEnumerator DamageFlashCoroutine()
+        {
+            if (_playerBodyRenderer != null && _damageMaterial != null)
+            {
+                Material originalMaterial = _playerBodyRenderer.material;
+                SetMaterial(_damageMaterial);
+                yield return new WaitForSeconds(_baseStats.DamageFlashDuration);
+                SetMaterial(originalMaterial);
+            }
+        }
 
         #endregion
 
@@ -1140,7 +1082,7 @@ namespace Resonance.Player
 
         /// <summary>
         /// Public method to check if there are Core hitboxes in core attack range
-        /// Used by ActionController for priority logic
+        /// Used by PlayerActionController for priority logic
         /// </summary>
         /// <returns>True if there are Core hitboxes in range</returns>
         public bool HasCoreHitboxesInCoreAttackRange()
@@ -1183,6 +1125,63 @@ namespace Resonance.Player
         public string GetCoreAttackRangeDebugInfo()
         {
             return _coreAttackTrigger?.GetDebugInfo() ?? "CoreAttackTrigger not initialized";
+        }
+
+        #endregion
+
+         #region Debug
+
+        private void DrawDebugInfo()
+        {
+            if (!IsInitialized) return;
+
+            // Display stats in scene view
+            var stats = _playerController.Stats;
+            string edgeInfo = _enableEdgeProtection ? 
+                $"Edges: F:{_canMoveForward} B:{_canMoveBackward} L:{_canMoveLeft} R:{_canMoveRight}" : 
+                "Edge Protection: OFF";
+                
+            // CoreAttackTrigger debug info
+            string coreAttackInfo = GetCoreAttackRangeDebugInfo();
+            
+            Debug.Log($"Physical Health: {stats.currentHealth}/{stats.maxHealth}, " +
+                     $"Core Energy: {stats.crystalCore.CurrentEnergy}/{stats.crystalCore.MaxEnergy}, " +
+                     $"Core Health: {stats.crystalCore.CurrentCoreHealth}/{stats.crystalCore.MaxCoreHealth}, " +
+                     $"Core Tier: {_playerController.Stats.crystalCore.EnergyTier}, Physical Tier: {_playerController.Stats.healthTier}, " +
+                     $"Slots: {_playerController.Stats.crystalCore.GetEnergyInSlots():F1}/{stats.crystalCore.MaxSlots}, " +
+                     $"State: {_playerController.CurrentState}, Action: {_playerController.GetCurrentActionName()}, " +
+                     $"Can Move: {_playerController.StateMachine.CanMove()}, " +
+                     $"{edgeInfo}, {coreAttackInfo}");
+        }
+
+        void OnDrawGizmosSelected()
+        {            
+            // Draw edge detection rays
+            if (_enableEdgeProtection)
+            {
+                Vector3 rayOrigin = transform.position + Vector3.up * _edgeRaycastHeight;
+                Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+                
+                for (int i = 0; i < directions.Length; i++)
+                {
+                    Vector3 edgePosition = rayOrigin + directions[i] * _edgeDetectionDistance;
+                    
+                    // Real-time check for this direction
+                    bool isSafe = IsPositionSafe(transform.position, directions[i], 0.1f);
+                    
+                    // Draw horizontal ray
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawLine(rayOrigin, edgePosition);
+                    
+                    // Draw downward ray from edge (2米长度)
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawLine(edgePosition, edgePosition + Vector3.down * 2f);
+                    
+                    // Draw a small sphere at the check position for better visualization
+                    Gizmos.color = isSafe ? Color.green : Color.red;
+                    Gizmos.DrawWireSphere(edgePosition, 0.1f);
+                }
+            }
         }
 
         #endregion

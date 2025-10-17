@@ -5,8 +5,8 @@ using Resonance.Enemies.Core;
 namespace Resonance.Enemies.States
 {
     /// <summary>
-    /// Enemy真死亡状态，精神血量归零时进入
-    /// 完全死亡，播放死亡动画，掉落物品，销毁对象
+    /// Enemy真死亡状态, 精神血量归零时进入
+    /// 完全死亡, 播放死亡动画, 掉落物品, 销毁对象
     /// </summary>
     public class EnemyTrueDeathState : IState
     {

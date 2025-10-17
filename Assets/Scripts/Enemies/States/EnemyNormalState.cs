@@ -6,7 +6,7 @@ using Resonance.Enemies.Actions;
 namespace Resonance.Enemies.States
 {
     /// <summary>
-    /// Enemy正常状态，包含Patrol、Chase、Combat三个子状态
+    /// Enemy正常状态, 包含Patrol、Chase、Combat三个子状态
     /// 每个子状态使用对应的Action执行具体行为
     /// </summary>
     public class EnemyNormalState : IState
@@ -14,13 +14,9 @@ namespace Resonance.Enemies.States
         private EnemyController _enemyController;
         private EnemySubState _currentSubState;
         private float _stateTimer = 0f;
-        // private float _patrolTimer = 0f;
         private float _chaseTimer = 0f;
         
-        // Sub-state timings
-        private const float PATROL_INTERVAL = 3f;
         private const float ALERT_DURATION = 5f;
-        private const float ATTACK_INTERVAL = 0.1f; // Check attack every 0.1s
         
         public string Name => "Normal";
 
@@ -55,7 +51,6 @@ namespace Resonance.Enemies.States
             }
             
             _stateTimer = 0f;
-            // _patrolTimer = 0f;
             _chaseTimer = 0f;
             
             // Start the appropriate action for the initial sub-state
@@ -104,7 +99,7 @@ namespace Resonance.Enemies.States
         public bool CanTransitionTo(IState newState)
         {
             // Can transition to revival and true death states from Normal
-            return newState.Name == "Reviving" || newState.Name == "TrueDeath";
+            return newState.Name == "Reviving" || newState.Name == "TrueDeath" || newState.Name == "Stun";
         }
 
         #region Sub-State Updates
@@ -178,8 +173,21 @@ namespace Resonance.Enemies.States
                 return;
             }
             
-            // AttackAction handles the actual attacking behavior
-            EnsureActionIsRunning("Attack");
+            // Use TryStartBestAction to automatically select the highest priority available action
+            // CoreAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
+            var actionController = _enemyController.ActionController;
+            
+            if (!actionController.IsActive || actionController.CurrentAction.IsFinished)
+            {
+                // Try to start the best action (CoreAttack if player is in chaos, otherwise NormalAttack)
+                bool actionStarted = actionController.TryStartBestAction();
+                
+                if (!actionStarted)
+                {
+                    // Fallback: try to explicitly start NormalAttack if no other action could start
+                    actionController.TryStartAction("NormalAttack");
+                }
+            }
         }
 
         #endregion
@@ -194,7 +202,6 @@ namespace Resonance.Enemies.States
             StopCurrentAction();
             _currentSubState = EnemySubState.Patrol;
             _chaseTimer = 0f;
-            // _patrolTimer = 0f;
             StartActionForSubState(EnemySubState.Patrol);
         }
 
@@ -272,9 +279,15 @@ namespace Resonance.Enemies.States
                     break;
                     
                 case EnemySubState.Combat:
-                    Debug.Log($"EnemyNormalState: Attempting to start Attack action");
-                    bool attackStarted = actionController.TryStartAction("Attack");
-                    Debug.Log($"EnemyNormalState: Attack action started: {attackStarted}");
+                    // CoreAttack (Priority 95) will be chosen over NormalAttack (Priority 90) when conditions are met
+                    bool actionStarted = actionController.TryStartBestAction();
+                    Debug.Log($"EnemyNormalState: Attempting to start best action: {actionStarted}");
+                    if (!actionStarted)
+                    {
+                        // Fallback: try to explicitly start NormalAttack if no other action could start
+                        Debug.Log($"EnemyNormalState: Fallback: Attempting to start NormalAttack action");
+                        actionController.TryStartAction("NormalAttack");
+                    }
                     break;
             }
         }
@@ -297,9 +310,14 @@ namespace Resonance.Enemies.States
                 actionController.RegisterAction(new EnemyChaseAction());
             }
             
-            if (!actionController.HasAction("Attack"))
+            if (!actionController.HasAction("NormalAttack"))
             {
-                actionController.RegisterAction(new EnemyAttackAction());
+                actionController.RegisterAction(new EnemyNormalAttackAction());
+            }
+
+            if (!actionController.HasAction("CoreAttack"))
+            {
+                actionController.RegisterAction(new EnemyCoreAttackAction());
             }
         }
         
@@ -332,7 +350,8 @@ namespace Resonance.Enemies.States
             // Unregister all actions
             actionController.UnregisterAction("Patrol");
             actionController.UnregisterAction("Chase");
-            actionController.UnregisterAction("Attack");
+            actionController.UnregisterAction("CoreAttack");
+            actionController.UnregisterAction("NormalAttack");
         }
         
         #endregion

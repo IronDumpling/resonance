@@ -1,26 +1,37 @@
 using UnityEngine;
+using System.Collections.Generic;
 using Resonance.Interfaces;
 using Resonance.Utilities;
-using DG.Tweening;
+using Resonance.Utilities.Waves;
+using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies
 {
     public enum EnemyHitboxType 
     { 
         Head,
-        Body, 
+        Body,
+        Knee,
         Core, 
     }
 
     /// <summary>
-    /// QTE configuration data structure for WavePanel
+    /// Hitbox damage multiplier configuration
+    /// Defines how each hitbox type modifies incoming damage
     /// </summary>
     [System.Serializable]
-    public class QTEConfig
+    public class HitboxMultipliers
     {
-        public Ease easeType;
-        public float cycleDuration;
-        public float targetWindow;
+        public float physicalHealthMultiplier = 1f;
+        public float coreHealthMultiplier = 0f;
+        public float chaosMultiplier = 1f;
+
+        public HitboxMultipliers(float physical, float core, float chaos)
+        {
+            physicalHealthMultiplier = physical;
+            coreHealthMultiplier = core;
+            chaosMultiplier = chaos;
+        }
     }
 
     /// <summary>
@@ -31,11 +42,18 @@ namespace Resonance.Enemies
     public class EnemyHitbox : MonoBehaviour
     {
         public EnemyHitboxType type;
-        public float healthMultiplier = 2f;     // 打到时对物理部分的倍率
-        public float coreMultiplier   = 2f;     // 打到时对精神部分的倍率
-        public float resilienceMultiplier = 2f;     // 打到时对韧性部分的倍率
         
-        public float poiseBonus = 0f;             // 额外韧性值
+        [Header("Damage Multipliers")]
+        [Tooltip("Physical health damage multiplier")]
+        public float physicalHealthMultiplier = 1f;
+        
+        [Tooltip("Core health damage multiplier (only Core hitbox should have > 0)")]
+        public float coreHealthMultiplier = 0f;
+        
+        [Tooltip("Chaos damage multiplier")]
+        public float chaosMultiplier = 1f;
+        
+        [Header("Effects")]
         public GameObject hitVFX; 
         public AudioClip hitSFX;
         
@@ -140,12 +158,12 @@ namespace Resonance.Enemies
         #region Public Interface
 
         /// <summary>
-        /// Process damage hit on this weakpoint and apply to enemy
+        /// Process damage hit on this hitbox and apply to enemy
         /// Called by ShootingSystem when this collider is hit
         /// </summary>
         /// <param name="damageInfo">Original damage information</param>
-        /// <returns>Actual damage dealt after weakpoint modifications</returns>
-        public float ProcessDamageHit(DamageInfo damageInfo)
+        /// <returns>Modified damage info after hitbox multipliers applied</returns>
+        public DamageInfo ProcessDamageHit(DamageInfo damageInfo)
         {
             if (!_isInitialized || _enemyMono == null)
             {
@@ -153,15 +171,15 @@ namespace Resonance.Enemies
                 {
                     Debug.LogWarning($"EnemyHitbox: Cannot process damage - not initialized or no enemy reference");
                 }
-                return 0f; // No damage dealt
+                return new DamageInfo(new List<KeyValuePair<DamageType, float>>(), Vector3.zero);
             }
 
             if (_debugMode)
             {
-                Debug.Log($"EnemyHitbox: Processing {damageInfo.amount} {damageInfo.type} damage on {type} weakpoint");
+                Debug.Log($"EnemyHitbox ({type}): Processing damage - {damageInfo}");
             }
 
-            // Modify damage based on weakpoint properties
+            // Modify damage based on hitbox multipliers
             DamageInfo modifiedDamage = ModifyDamage(damageInfo, damageInfo.sourcePosition);
             
             // Play hit effects
@@ -172,10 +190,10 @@ namespace Resonance.Enemies
             
             if (_debugMode)
             {
-                Debug.Log($"EnemyHitbox: Applied modified damage {modifiedDamage.amount} {modifiedDamage.type} to {_enemyMono.name}");
+                Debug.Log($"EnemyHitbox ({type}): Applied modified damage - {modifiedDamage}");
             }
             
-            return modifiedDamage.amount;
+            return modifiedDamage;
         }
 
         /// <summary>
@@ -184,7 +202,7 @@ namespace Resonance.Enemies
         public bool IsInitialized => _isInitialized && _enemyMono != null;
 
         /// <summary>
-        /// Get enemy's runtime stats for QTE configuration
+        /// Get enemy's runtime stats
         /// </summary>
         /// <returns>Enemy runtime stats or null if not initialized</returns>
         public Enemies.Data.EnemyRuntimeStats GetEnemyStats()
@@ -213,20 +231,15 @@ namespace Resonance.Enemies
         }
 
         /// <summary>
-        /// Get QTE configuration data for this enemy
+        /// Get QTE configuration data from enemy's Wave system
         /// </summary>
         /// <returns>QTE configuration data or null if not available</returns>
         public QTEConfig GetQTEConfig()
         {
             var enemyStats = GetEnemyStats();
-            if (enemyStats == null) return null;
+            if (enemyStats?.crystalCore?.Wave == null) return null;
 
-            return new QTEConfig
-            {
-                easeType = enemyStats.qteEaseType,
-                cycleDuration = enemyStats.qteCycleDuration,
-                targetWindow = enemyStats.qteTargetWindow
-            };
+            return enemyStats.crystalCore.Wave.GetQTEConfig();
         }
 
         /// <summary>
@@ -241,7 +254,9 @@ namespace Resonance.Enemies
                    _collider != null && 
                    _collider.enabled &&
                    _enemyMono.Controller != null &&
-                   _enemyMono.Controller.Stats != null;
+                   _enemyMono.Controller.Stats != null &&
+                   _enemyMono.Controller.Stats.crystalCore != null &&
+                   _enemyMono.Controller.Stats.crystalCore.Wave != null;
         }
 
         #endregion
@@ -249,58 +264,70 @@ namespace Resonance.Enemies
         #region Damage Modification
 
         /// <summary>
-        /// Modify damage based on weakpoint properties
+        /// Modify damage based on hitbox multipliers
+        /// Applies specific multipliers for each damage type
         /// </summary>
-        /// <param name="d">Original damage info</param>
+        /// <param name="originalDamage">Original damage info</param>
         /// <param name="hitPoint">Hit point position</param>
         /// <returns>Modified damage info</returns>
-        private DamageInfo ModifyDamage(DamageInfo d, Vector3 hitPoint)
+        private DamageInfo ModifyDamage(DamageInfo originalDamage, Vector3 hitPoint)
         {
-            // Create a copy to avoid modifying the original
-            DamageInfo modifiedDamage = new DamageInfo(
-                d.amount,
-                d.type,
-                d.sourcePosition,
-                d.healthRatio,
-                d.sourceObject,
-                d.description
+            if (originalDamage.damages == null || originalDamage.damages.GetCount() == 0)
+            {
+                return originalDamage;
+            }
+
+            // Create new damage dictionary with modified values
+            Damages modifiedDamages = new Damages();
+
+            if (originalDamage.damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.PhysicalHealth);
+                float modifiedAmount = originalAmount * physicalHealthMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.PhysicalHealth, modifiedAmount);
+            }
+            if (originalDamage.damages.HasDamage(DamageType.CoreHealth))
+            {
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.CoreHealth);
+                float modifiedAmount = originalAmount * coreHealthMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.CoreHealth, modifiedAmount);
+            }
+            if (originalDamage.damages.HasDamage(DamageType.Chaos))
+            {
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
+                float modifiedAmount = originalAmount * chaosMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Chaos, modifiedAmount);
+            }
+
+            // Create modified damage info
+            string newDescription = string.IsNullOrEmpty(originalDamage.description)
+                ? $"Hitbox:{type}"
+                : $"{originalDamage.description}|Hitbox:{type}";
+
+            return new DamageInfo(
+                modifiedDamages,
+                hitPoint,
+                originalDamage.sourceObject,
+                newDescription
             );
+        }
 
-            switch (modifiedDamage.type)
+        /// <summary>
+        /// Get multiplier for specific damage type
+        /// </summary>
+        private float GetMultiplier(DamageType damageType)
+        {
+            switch (damageType)
             {
-                case DamageType.Health:
-                    if (type != EnemyHitboxType.Core)  
-                        modifiedDamage.amount *= healthMultiplier;
-                    break;
-                    
-                case DamageType.Core:
-                    modifiedDamage.amount *= coreMultiplier;
-                    break;
-                    
-                case DamageType.Resilience:
-                    modifiedDamage.amount *= resilienceMultiplier;
-                    break;
-                    
-                case DamageType.Mixed:
-                    // Apply multipliers separately to health and resilience portions
-                    float healthDamage = modifiedDamage.amount * modifiedDamage.healthRatio * healthMultiplier;
-                    float resilienceDamage = modifiedDamage.amount * (1f - modifiedDamage.healthRatio) * resilienceMultiplier;
-                    modifiedDamage.amount = healthDamage + resilienceDamage;
-                    break;
+                case DamageType.PhysicalHealth:
+                    return physicalHealthMultiplier;
+                case DamageType.CoreHealth:
+                    return coreHealthMultiplier;
+                case DamageType.Chaos:
+                    return chaosMultiplier;
+                default:
+                    return 1f;
             }
-
-            // Update hit point and description
-            modifiedDamage.sourcePosition = hitPoint;
-            modifiedDamage.description = string.IsNullOrEmpty(modifiedDamage.description)
-                ? $"Weakpoint:{type}"
-                : $"{modifiedDamage.description}|Weakpoint:{type}";
-
-            if (_debugMode)
-            {
-                Debug.Log($"EnemyHitbox: Modified damage from {d.amount} to {modifiedDamage.amount} ({d.type} -> {modifiedDamage.type})");
-            }
-
-            return modifiedDamage;
         }
 
         #endregion

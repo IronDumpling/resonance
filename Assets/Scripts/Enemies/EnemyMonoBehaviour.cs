@@ -1,11 +1,11 @@
 using UnityEngine;
 using TMPro;
+using System.Collections;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
-using System.Collections;
 
 namespace Resonance.Enemies
 {
@@ -68,16 +68,6 @@ namespace Resonance.Enemies
         [SerializeField] private float _targetUpdateInterval = 0.5f;
         [Tooltip("How often to update the chase target position (seconds).")]
         
-        [Header("Attack System")]
-        [SerializeField] private float _attackDuration = 0.5f;
-        [Tooltip("How long the attack action stays active after performing the attack (seconds).")]
-        
-        [SerializeField] private float _attackDamage = 20f;
-        [Tooltip("Base damage amount for enemy attacks.")]
-        
-        [SerializeField] private float _attackCooldown = 1f;
-        [Tooltip("Cooldown time between attacks (seconds).")]
-
         [Header("Wave UI")]
         [SerializeField] private GameObject _resonanceUI;
         [SerializeField] private TextMeshProUGUI _resonanceUIText;
@@ -260,17 +250,11 @@ namespace Resonance.Enemies
         public float PatrolSpeed => _patrolSpeed;
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
+
         /// <summary>
         /// Chase configuration properties
         /// </summary>
         public float TargetUpdateInterval => _targetUpdateInterval;
-        
-        /// <summary>
-        /// Attack configuration properties
-        /// </summary>
-        public float AttackDuration => _attackDuration;
-        public float AttackDamage => _attackDamage;
-        public float AttackCooldown => _attackCooldown;
         
         #endregion
 
@@ -491,9 +475,9 @@ namespace Resonance.Enemies
                 damageHitboxGO.layer = gameObject.layer;
                 
                 // Add a default collider (can be customized in inspector)
-                SphereCollider hitboxCollider = damageHitboxGO.AddComponent<SphereCollider>();
+                BoxCollider hitboxCollider = damageHitboxGO.AddComponent<BoxCollider>();
                 hitboxCollider.isTrigger = true;
-                hitboxCollider.radius = 1.5f; // Default attack hitbox radius
+                hitboxCollider.size = new Vector3(1.5f, 1.5f, 1.5f); // Default attack hitbox radius
                 
                 // Add damage hitbox component
                 SetupDamageHitboxComponent(damageHitboxGO);
@@ -649,7 +633,7 @@ namespace Resonance.Enemies
             }
             else
             {
-                Debug.Log($"GunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
+                Debug.Log($"WeaponMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
                 _resonanceUIText.text = "F";
             }
 
@@ -692,12 +676,6 @@ namespace Resonance.Enemies
                 _enemyController.SetChaseConfiguration(
                     _targetUpdateInterval
                 );
-                
-                _enemyController.SetAttackConfiguration(
-                    _attackDuration,
-                    _attackDamage,
-                    _attackCooldown
-                );
             }
             
             Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
@@ -714,7 +692,7 @@ namespace Resonance.Enemies
 
             if (_attackCollider != null)
             {
-                _attackCollider.radius = _baseStats.attackRange;
+                _attackCollider.radius = _baseStats.normalAttackStats.range;
             }
         }
         
@@ -771,80 +749,86 @@ namespace Resonance.Enemies
 
         #region IDamageable Implementation
 
+        /// <summary>
+        /// Take damage using the new damage system
+        /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// All damage types from the same attack are processed together
+        /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
         {
-            if (!IsInitialized) return;
-
-            switch (damageInfo.type)
-            {
-                case DamageType.Health:
-                    _enemyController.TakeHealthDamage(damageInfo.amount);
-                    break;
-                    
-                case DamageType.Core:
-                    _enemyController.TakeCoreDamage(damageInfo.amount);
-                    break;
-
-                case DamageType.Resilience:
-                    _enemyController.TakeResilienceDamage(damageInfo.amount);
-                    break;
-                    
-                case DamageType.Mixed:
-                    float healthDamage = damageInfo.amount * damageInfo.healthRatio;
-                    float resilienceDamage = damageInfo.amount * (1f - damageInfo.healthRatio);
-                    _enemyController.TakeHealthDamage(healthDamage);
-                    _enemyController.TakeResilienceDamage(resilienceDamage);
-                    break;
-            }
+            if (!IsInitialized || damageInfo.damages == null) return;
+            
+            // Delegate to controller's unified damage handling
+            // Controller processes all damage types from the DamageInfo together
+            _enemyController.TakeDamage(damageInfo);
 
             // Visual and audio feedback
             ShowDamageEffect(damageInfo);
             PlayHitAudio(damageInfo);
-
-            Debug.Log($"EnemyMonoBehaviour: Took {damageInfo.amount} {damageInfo.type} damage");
-        }
-
-        public void TakeHealthDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _enemyController.TakeHealthDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Health, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Health, damageSource));
-            }
-        }
-
-        public void TakeCoreDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _enemyController.TakeCoreDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Core, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Core, damageSource));
-            }
-        }
-
-        public void TakeResilienceDamage(float damage, Vector3 damageSource)
-        {
-            if (IsInitialized)
-            {
-                _enemyController.TakeResilienceDamage(damage);
-                ShowDamageEffect(new DamageInfo(damage, DamageType.Resilience, damageSource));
-                PlayHitAudio(new DamageInfo(damage, DamageType.Resilience, damageSource));
-            }
         }
 
         #endregion
 
-        #region Health Properties
+        #region IDamageable Properties
 
-        public bool IsAlive => IsInitialized && _enemyController.IsAlive;
-        public bool IsCoreAlive => IsInitialized && _enemyController.IsCoreAlive;
-        public bool IsInDeathState => IsInitialized && _enemyController.IsInPhysicalDeathState;
-        public float CurrentHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
-        public float MaxHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
-        public float CurrentCoreCapacity => IsInitialized ? _enemyController.Stats.crystalCore.CurrentEnergyCapacity : 0f;
-        public float MaxCoreCapacity => IsInitialized ? _enemyController.Stats.crystalCore.MaxEnergyCapacity : 0f;
+        /// <summary>
+        /// Physical health state
+        /// </summary>
+        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.Stats.IsAlive 
+            ? PhysicalHealthState.Alive 
+            : PhysicalHealthState.Dead;
+
+        /// <summary>
+        /// Core health state
+        /// </summary>
+        public CoreHealthState CoreState => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.CoreHealthState 
+            : CoreHealthState.Destroyed;
+
+        /// <summary>
+        /// Wave chaos state
+        /// </summary>
+        public WaveChaosState ChaosState => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.ChaosState 
+            : WaveChaosState.Order;
+
+        /// <summary>
+        /// Current physical health
+        /// </summary>
+        public float CurrentPhysicalHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
+
+        /// <summary>
+        /// Max physical health
+        /// </summary>
+        public float MaxPhysicalHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
+
+        /// <summary>
+        /// Current core health
+        /// </summary>
+        public float CurrentCoreHealth => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.CurrentCoreHealth 
+            : 0f;
+
+        /// <summary>
+        /// Max core health
+        /// </summary>
+        public float MaxCoreHealth => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.MaxCoreHealth 
+            : 0f;
+
+        /// <summary>
+        /// Current chaos value
+        /// </summary>
+        public float CurrentChaos => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.CurrentChaos 
+            : 0f;
+
+        /// <summary>
+        /// Max chaos value
+        /// </summary>
+        public float MaxChaos => IsInitialized && _enemyController.Stats.crystalCore != null 
+            ? _enemyController.Stats.crystalCore.MaxChaos 
+            : 0f;
 
         #endregion
 
@@ -963,10 +947,19 @@ namespace Resonance.Enemies
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} launched attack for {damage} damage");
             
-            // Trigger attack animation
+            // Trigger attack animation based on attack type
             if (_animator != null && _animator.isActiveAndEnabled)
             {
-                _animator.SetTrigger("AttackStart");
+                if (_enemyController.CurrentAttackType == AttackType.Core)
+                {
+                    _animator.SetTrigger("CoreAttackStart");
+                    Debug.Log($"EnemyMonoBehaviour: Triggering CoreAttackStart animation");
+                }
+                else
+                {
+                    _animator.SetTrigger("AttackStart");
+                    Debug.Log($"EnemyMonoBehaviour: Triggering AttackStart animation");
+                }
             }
         }
 
@@ -993,12 +986,9 @@ namespace Resonance.Enemies
             if (_bodyRenderer != null && _damageMaterial != null)
             {
                 Material originalMaterial = _bodyRenderer.material;
-                _bodyRenderer.material = _damageMaterial;
-                
+                SetMaterial(_damageMaterial);
                 yield return new WaitForSeconds(_baseStats.damageFlashDuration);
-                
-                // Restore appropriate material based on state
-                RestoreStateMaterial();
+                SetMaterial(originalMaterial);
             }
         }
 
@@ -1007,24 +997,6 @@ namespace Resonance.Enemies
             if (_bodyRenderer != null && material != null)
             {
                 _bodyRenderer.material = material;
-            }
-        }
-
-        private void RestoreStateMaterial()
-        {
-            if (!IsInitialized) return;
-
-            if (_enemyController.StateMachine.IsReviving())
-            {
-                SetMaterial(_revivalMaterial);
-            }
-            else if (_enemyController.StateMachine.IsPhysicallyDead() || _enemyController.StateMachine.IsTrulyDead())
-            {
-                SetMaterial(_damageMaterial);
-            }
-            else
-            {
-                SetMaterial(_normalMaterial);
             }
         }
 
@@ -1072,7 +1044,7 @@ namespace Resonance.Enemies
             if (!IsInitialized) return;
 
             _enemyController.Stats.FullRestore();
-            _enemyController.Stats.crystalCore.FullRepair();
+            _enemyController.Stats.crystalCore.FullRepairCoreHealth();
             _enemyController.StateMachine.ChangeState("Normal");
             SetMaterial(_normalMaterial);
             
@@ -1256,7 +1228,9 @@ namespace Resonance.Enemies
             }
             
             Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentHealth:F1}/{stats.maxHealth}, " +
-                     $"Core: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.CurrentEnergyCapacity}, {stateInfo}");
+                     $"Core Energy: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.MaxEnergy}, " +
+                     $"Core Health: {stats.crystalCore.CurrentCoreHealth:F1}/{stats.crystalCore.MaxCoreHealth}, " +
+                     $"{stateInfo}");
         }
 
         void OnDrawGizmos()
@@ -1267,32 +1241,32 @@ namespace Resonance.Enemies
             Vector3 barPosition = transform.position + Vector3.up * 2f;
             float barWidth = 2f;
             float barHeight = 0.2f;
-            
-            // health (bottom bar)
+
+            // physical health (top bar)
+            Vector3 healthBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
             Gizmos.color = Color.red;
-            Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
             float healthPercentage = _enemyController.Stats.HealthPercentage;
             Gizmos.color = Color.green;
             Vector3 healthBarSize = new Vector3(barWidth * healthPercentage, barHeight * 0.5f, 0.1f);
-            Vector3 healthBarPosition = barPosition + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
+            Vector3 healthBarPosition = healthBarCenter + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
             Gizmos.DrawCube(healthBarPosition, healthBarSize);
             
-            // core energy (top bar)
-            Vector3 coreBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
+            // core health (bottom bar)
             Gizmos.color = Color.blue;
-            Gizmos.DrawCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float corePercentage = _enemyController.Stats.crystalCore.EnergyPercentage;
+            float corePercentage = _enemyController.Stats.crystalCore.CoreHealthPercentage;
             Gizmos.color = Color.cyan;
             Vector3 coreBarSize = new Vector3(barWidth * corePercentage, barHeight * 0.5f, 0.1f);
-            Vector3 coreBarPosition = coreBarCenter + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
+            Vector3 coreBarPosition = barPosition + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
             Gizmos.DrawCube(coreBarPosition, coreBarSize);
             
             // Border
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
-            Gizmos.DrawWireCube(coreBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
         }
 
         void OnDrawGizmosSelected()
@@ -1309,7 +1283,7 @@ namespace Resonance.Enemies
             if (_baseStats != null && _baseStats.showAttackRange)
             {
                 Gizmos.color = Color.red;
-                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.attackRange;
+                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.normalAttackStats.range;
                 Gizmos.DrawWireSphere(transform.position, attackRadius);
             }
             
@@ -1371,16 +1345,6 @@ namespace Resonance.Enemies
             // Validate chase configuration
             if (_targetUpdateInterval < 0.1f)
                 _targetUpdateInterval = 0.1f;
-            
-            // Validate attack configuration
-            if (_attackDuration < 0.1f)
-                _attackDuration = 0.1f;
-                
-            if (_attackDamage < 0f)
-                _attackDamage = 0f;
-                
-            if (_attackCooldown < 0f)
-                _attackCooldown = 0f;
         }
         
         #endregion

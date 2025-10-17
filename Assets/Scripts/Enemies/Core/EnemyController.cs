@@ -4,8 +4,8 @@ using Resonance.Enemies;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.States;
 using Resonance.Core;
-using Resonance.Core.Data;
 using Resonance.Utilities;
+using Resonance.Utilities.CrystalCore;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 
@@ -24,10 +24,12 @@ namespace Resonance.Enemies.Core
         private EnemyMovement _movement;
         
         // Combat State
-        private float _lastAttackTime = 0f;
+        private float _lastNormalAttackTime = 0f;
+        private float _lastCoreAttackTime = 0f;
         private float _revivalTimer = 0f;
         private bool _hitboxEnabled = false;
         private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
+        private AttackType _currentAttackType = AttackType.Normal;
         
         // Target Tracking
         private Transform _playerTarget;
@@ -60,16 +62,11 @@ namespace Resonance.Enemies.Core
         // Chase Configuration
         private float _targetUpdateInterval = 0.5f;
         
-        // Attack Configuration
-        private float _attackDuration = 1f;
-        private float _attackDamage = 25f;
-        private float _attackCooldown = 2f;
-        
         // Statistics
         private int _timesHit = 0;
-        private float _totalDamageTaken = 0f;
-        private float _totalDamageDealt = 0f;
-        private int _attacksLaunched = 0;
+        private Dictionary<DamageType, float> _totalDamageTaken;
+        private Dictionary<DamageType, float> _totalDamageDealt;
+        private Dictionary<AttackType, int> _attacksLaunchedCount;
         
         // Dual Health Events
         public System.Action<float, float> OnHealthChanged; // current, max
@@ -80,7 +77,7 @@ namespace Resonance.Enemies.Core
         public System.Action OnRevivalCompleted; // Revival completed
         
         // Health Tier Events
-        public System.Action<EnemyHealthTier> OnPhysicalTierChanged;
+        public System.Action<HealthTier> OnPhysicalTierChanged;
         public System.Action<CrystalEnergyTier> OnCoreTierChanged;
         
         // Combat Events
@@ -117,40 +114,50 @@ namespace Resonance.Enemies.Core
         public float PatrolSpeed => _patrolSpeed;
         public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
+        public int CurrentPatrolCycles => _currentPatrolCycles;
         
         // Chase Configuration Properties
         public float TargetUpdateInterval => _targetUpdateInterval;
         
-        // Attack Configuration Properties
-        public float AttackDuration => _attackDuration;
-        public float AttackDamage => _attackDamage;
-        public float AttackCooldown => _attackCooldown;
-        public int CurrentPatrolCycles => _currentPatrolCycles;
+        // Revival Configuration Properties
         public float RevivalTimer => _revivalTimer;
         
         // Health Properties
         public bool IsAlive => _stats.IsAlive;
-        public bool IsCoreAlive => _stats.crystalCore.IsIntact;
-        public bool IsInPhysicalDeathState => _stats.IsDead;
+        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == Utilities.CoreHealthState.Intact;
+        public bool IsInPhysicalDeathState => _stats.IsAlive == false;
         
         // Health Tier Properties
-        public EnemyHealthTier HealthTier => _stats.healthTier;
+        public HealthTier HealthTier => _stats.healthTier;
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         
         // Combat Properties
-        public bool CanAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                Time.time >= _lastAttackTime + _attackCooldown &&
-                                !IsPlayerStunned(); // Cannot normal attack stunned player, can only do core attack
+        // Can only normal attack if:
+        // 1. Enemy is alive, has core alive, and has player target
+        // 2. Player is in attack range
+        // 3. Not on attack cooldown
+        public bool CanNormalAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+                                Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
+        
+        // Can only core attack if:
+        // 1. Enemy is alive, has core alive, and has player target
+        // 2. Player is in attack range
+        // 3. Not on attack cooldown
+        // 4. Player is in chaos state OR every 3rd normal attack
+        public bool CanCoreAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+                                    Time.time >= _lastCoreAttackTime + _stats.coreAttackStats.cooldown &&
+                                    (IsPlayerInChaosState() || _attacksLaunchedCount[AttackType.Normal] % 3 == 0);
+        
+        public AttackType CurrentAttackType => _currentAttackType;
         
         // Position Properties
         public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
         
         // Animation-driven combat properties (read-only for animation bridge)
-        public float AttackDamageValue => _attackDamage;
-        public float AttackCooldownValue => _attackCooldown;
+        public AttackStats NormalAttackStats => _stats.normalAttackStats;
+        public AttackStats CoreAttackStats => _stats.coreAttackStats;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
         public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
-        public float LastAttackTime => _lastAttackTime;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -184,7 +191,34 @@ namespace Resonance.Enemies.Core
             // Register with SelectivePauseService
             RegisterWithPauseService();
 
+            InitializeStatistics();
+
             Debug.Log($"EnemyController: Initialized at {spawnPosition}");
+        }
+
+        private void InitializeStatistics()
+        {
+            _timesHit = 0;
+
+            _totalDamageTaken = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+
+            _totalDamageDealt = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+            
+            _attacksLaunchedCount = new Dictionary<AttackType, int>()
+            {
+                { AttackType.Normal, 0 },
+                { AttackType.Core, 0 }
+            };
         }
 
         /// <summary>
@@ -193,7 +227,8 @@ namespace Resonance.Enemies.Core
         public void Update(float deltaTime)
         {
             UpdateRevivalTimer(deltaTime);
-            _stats.UpdateResilience(deltaTime);
+            UpdateStunTimer();
+            _stats.UpdateChaos(deltaTime);
             UpdatePlayerDetection();
             _actionController?.Update(deltaTime);
             _movement?.Update(deltaTime);
@@ -201,6 +236,16 @@ namespace Resonance.Enemies.Core
         }
 
         #region Health System
+
+        private float _stunEndTime = 0f;
+
+        private void UpdateStunTimer()
+        {
+            if (_stateMachine.IsStunned() && Time.time >= _stunEndTime)
+            {
+                ExitStun();
+            }
+        }
 
         /// <summary>
         /// Update revival timer
@@ -253,10 +298,56 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Take health damage (affects health health)
-        /// Apply core health tier damage modifiers
+        /// Take damage from a DamageInfo
+        /// Processes all damage types from the same attack together
+        /// Note: Enemies don't have invulnerability system currently
         /// </summary>
-        public void TakeHealthDamage(float damage)
+        public void TakeDamage(DamageInfo damageInfo)
+        {
+            // Process all damage types in the DamageInfo
+            Damages damages = damageInfo.damages;
+            if (damages == null) return;
+            
+            bool tookAnyDamage = false;
+            
+            // Apply Physical Health damage
+            if (damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                TakeHealthDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Core Health damage
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                TakeCoreDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Chaos damage (processed last)
+            if (damages.HasDamage(DamageType.Chaos))
+            {
+                float damageAmount = damages.GetDamage(DamageType.Chaos);
+                TakeChaosDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Trigger common effects only once per DamageInfo
+            if (tookAnyDamage)
+            {
+                // Notify action controller of damage taken (only once per DamageInfo)
+                _actionController?.OnEnemyDamageTaken();
+            }
+            
+            Debug.Log($"EnemyController: Processed DamageInfo - {damageInfo}");
+        }
+        
+        /// <summary>
+        /// Take physical health damage
+        /// </summary>
+        private void TakeHealthDamage(float damage)
         {
             if (!IsCoreAlive) return;
             
@@ -265,7 +356,7 @@ namespace Resonance.Enemies.Core
             _stats.UpdateHealthTier();
             
             _timesHit++;
-            _totalDamageTaken += damage;
+            _totalDamageTaken[DamageType.PhysicalHealth] += damage;
             
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
             
@@ -274,65 +365,91 @@ namespace Resonance.Enemies.Core
             {
                 OnPhysicalTierChanged?.Invoke(_stats.healthTier);
             }
-            
-            // Notify action controller of damage taken
-            _actionController?.OnEnemyDamageTaken();
 
             if (_stats.currentHealth <= 0f)
             {
                 HandlePhysicalDeath();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} health damage, current health: {_stats.currentHealth:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} physical health damage. Current: {_stats.currentHealth:F1}/{_stats.maxHealth}");
         }
 
         /// <summary>
-        /// Take core damage (affects core capacity)
+        /// Take core health damage
         /// </summary>
-        public void TakeCoreDamage(float damage)
+        private void TakeCoreDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
             var previousTier = _stats.crystalCore.EnergyTier;
-            _stats.crystalCore.DamageCapacity(damage);
+            _stats.crystalCore.TakeCoreHealthDamage(damage);
             _stats.crystalCore.UpdateCalculatedValues();
             
             _timesHit++;
-            _totalDamageTaken += damage;
+            _totalDamageTaken[DamageType.CoreHealth] += damage;
             
-            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentEnergyCapacity);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             
             // Check for core tier change
             if (_stats.crystalCore.EnergyTier != previousTier)
             {
                 OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
             }
-            
-            // Notify action controller of damage taken
-            _actionController?.OnEnemyDamageTaken();
 
-            if (_stats.crystalCore.CurrentEnergyCapacity <= 0f)
+            if (_stats.crystalCore.CurrentCoreHealth <= 0f)
             {
                 HandleTrueDeath();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} core damage, core capacity: {_stats.crystalCore.CurrentEnergyCapacity:F1}");
+            Debug.Log($"EnemyController: Took {damage:F1} core health damage. Current: {_stats.crystalCore.CurrentCoreHealth:F1}/{_stats.crystalCore.MaxCoreHealth}");
         }
 
         /// <summary>
-        /// Take resilience damage
+        /// Take chaos damage
         /// </summary>
-        public void TakeResilienceDamage(float damage)
+        private void TakeChaosDamage(float damage)
         {
             if (!IsCoreAlive) return;
 
-            _stats.TakeResilienceDamage(damage);
+            float addedChaos = _stats.crystalCore.AddChaos(damage);
             
-            Debug.Log($"EnemyController: Took {damage:F1} resilience damage, resilience: {_stats.currentResilience:F1}");
+            if (addedChaos > 0f)
+            {
+                EnterStun(addedChaos * 0.1f);
+                Debug.Log($"EnemyController: Took {damage:F1} chaos damage. Entering stun for {addedChaos * 0.1f:F2}s");
+            }
+        }
+
+        private void EnterStun(float duration)
+        {
+            if(!_stateMachine.CanEnterStun())
+            {
+                Debug.LogWarning($"EnemyController: Cannot enter stun - current state: {CurrentState}");
+                return;
+            }
+            
+            _stunEndTime = Time.time + duration;
+            bool stunEntered = _stateMachine?.EnterStun() ?? false;
+            
+            if (stunEntered)
+            {
+                Debug.Log($"EnemyController: Entered stun for {duration:F2}s");
+            }
+            else
+            {
+                Debug.LogError($"EnemyController: Failed to enter stun state! Current state: {CurrentState}");
+            }
+        }
+
+        private void ExitStun()
+        {
+            if(!_stateMachine.IsStunned()) return;
+            _stateMachine?.ExitStun();
+            Debug.Log("EnemyController: Exited stun");
         }
 
         /// <summary>
-        /// Handle health death (health health reaches 0)
+        /// Handle physical health death (physical health reaches 0)
         /// Check core health to determine next state: Revival if core > 0, TrueDeath if core <= 0
         /// </summary>
         private void HandlePhysicalDeath()
@@ -343,14 +460,14 @@ namespace Resonance.Enemies.Core
                 return;
             }
             
-            Debug.Log("EnemyController: Physical death - checking core health for state transition");
+            Debug.Log("EnemyController: Physical health depleted - checking core health for state transition");
             OnPhysicalDeath?.Invoke();
             
             // Check core health to determine next state
             if (IsCoreAlive)
             {
                 // Core health > 0: Enter revival state
-                Debug.Log("EnemyController: Core health > 0, entering revival state");
+                Debug.Log("EnemyController: Core intact, entering revival state");
                 bool revivalStarted = _stateMachine?.StartRevival() ?? false;
                 if (revivalStarted)
                 {
@@ -360,7 +477,7 @@ namespace Resonance.Enemies.Core
             else
             {
                 // Core health <= 0: Enter true death state
-                Debug.Log("EnemyController: Core health <= 0, entering true death state");
+                Debug.Log("EnemyController: Core destroyed, entering true death state");
                 HandleTrueDeath();
             }
         }
@@ -370,7 +487,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void HandleTrueDeath()
         {
-            Debug.Log("EnemyController: True death - enemy destroyed");
+            Debug.Log("EnemyController: Core health depleted - enemy truly dead");
             OnTrueDeath?.Invoke();
             _stateMachine?.EnterTrueDeath();
         }
@@ -410,16 +527,43 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public bool LaunchAttack()
         {
-            if (!CanAttack) return false;
+            if (!CanNormalAttack) return false;
 
-            _lastAttackTime = Time.time;
-            _attacksLaunched++;
+            _currentAttackType = AttackType.Normal;
+            _lastNormalAttackTime = Time.time;
+            _attacksLaunchedCount[AttackType.Normal]++;
             
             // Trigger attack started event (for animation system)
-            OnAttackLaunched?.Invoke(_attackDamage);
-            Debug.Log($"EnemyController: Attack process started - damage will be dealt through hitbox");
+            OnAttackLaunched?.Invoke(_stats.normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth));
+            Debug.Log($"EnemyController: Normal attack process started - damage will be dealt through hitbox");
             
             return true;
+        }
+
+        /// <summary>
+        /// Start core attack process - targets player's core when they are in chaos state
+        /// </summary>
+        public bool LaunchCoreAttack()
+        {
+            if (!CanCoreAttack) return false;
+
+            _currentAttackType = AttackType.Core;
+            _lastCoreAttackTime = Time.time;
+            _attacksLaunchedCount[AttackType.Core]++;
+            
+            // Trigger attack started event (for animation system)
+            OnAttackLaunched?.Invoke(_stats.coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
+            Debug.Log($"EnemyController: Core attack process started - targeting player's core");
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Get the attack stats for the current attack type
+        /// </summary>
+        public AttackStats GetCurrentAttackStats()
+        {
+            return _currentAttackType == AttackType.Core ? _stats.coreAttackStats : _stats.normalAttackStats;
         }
 
         /// <summary>
@@ -452,6 +596,9 @@ namespace Resonance.Enemies.Core
             
             // Clear hit tracking when attack window ends
             _currentAttackHits.Clear();
+            
+            // Reset attack type to normal
+            _currentAttackType = AttackType.Normal;
             
             // Find and disable the actual damage hitbox GameObject
             if (_damageHitboxChild != null)
@@ -508,9 +655,20 @@ namespace Resonance.Enemies.Core
             _currentAttackHits.Add(target);
             
             // Update statistics
-            _totalDamageDealt += damageInfo.amount;
+            if(damageInfo.damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                _totalDamageDealt[DamageType.PhysicalHealth] += damageInfo.damages.GetDamage(DamageType.PhysicalHealth);
+            }
+            if(damageInfo.damages.HasDamage(DamageType.CoreHealth))
+            {
+                _totalDamageDealt[DamageType.CoreHealth] += damageInfo.damages.GetDamage(DamageType.CoreHealth);
+            }
+            if(damageInfo.damages.HasDamage(DamageType.Chaos))
+            {
+                _totalDamageDealt[DamageType.Chaos] += damageInfo.damages.GetDamage(DamageType.Chaos);
+            }
             
-            Debug.Log($"EnemyController: Applied {damageInfo.amount:F1} damage to target");
+            Debug.Log($"EnemyController: Applied {damageInfo.damages.ToString()} damage to target");
             return true;
         }
 
@@ -524,8 +682,9 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void ResetAttackCooldown()
         {
-            _lastAttackTime = 0f;
-            Debug.Log("EnemyController: Attack cooldown reset");
+            _lastNormalAttackTime = 0f;
+            _lastCoreAttackTime = 0f;
+            Debug.Log("EnemyController: Attack cooldowns reset (Normal and Core)");
         }
 
         /// <summary>
@@ -544,25 +703,6 @@ namespace Resonance.Enemies.Core
         {
             // This will be set by the trigger system
             return HasPlayerTarget;
-        }
-
-        #endregion
-
-        #region Player State Checking
-
-        /// <summary>
-        /// Check if the player is currently stunned
-        /// </summary>
-        private bool IsPlayerStunned()
-        {
-            // Get player service to access player controller
-            var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService == null || !playerService.HasPlayer) return false;
-            
-            var playerMonoBehaviour = playerService.CurrentPlayer;
-            if (playerMonoBehaviour == null || !playerMonoBehaviour.IsInitialized) return false;
-            
-            return playerMonoBehaviour.Controller.IsStunned;
         }
 
         #endregion
@@ -615,6 +755,30 @@ namespace Resonance.Enemies.Core
         public void SetPlayerInAttackRange(bool inRange)
         {
             _isPlayerInAttackRange = inRange;
+        }
+
+        /// <summary>
+        /// Check if player target is in chaos state (for core attack condition)
+        /// </summary>
+        public bool IsPlayerInChaosState()
+        {
+            if (!HasPlayerTarget) return false;
+            
+            // Try to get IDamageable from player target
+            var damageable = _playerTarget.GetComponent<IDamageable>();
+            if (damageable == null)
+            {
+                damageable = _playerTarget.GetComponentInParent<IDamageable>();
+            }
+            
+            if (damageable == null)
+            {
+                return false;
+            }
+            
+            bool isInChaos = damageable.ChaosState == WaveChaosState.Chaos;
+            
+            return isInChaos;
         }
 
         #endregion
@@ -728,21 +892,6 @@ namespace Resonance.Enemies.Core
         }
         
         /// <summary>
-        /// Set attack configuration
-        /// </summary>
-        public void SetAttackConfiguration(
-            float attackDuration,
-            float attackDamage,
-            float attackCooldown)
-        {
-            _attackDuration = attackDuration;
-            _attackDamage = attackDamage;
-            _attackCooldown = attackCooldown;
-            
-            Debug.Log($"EnemyController: Attack configuration set - Duration: {attackDuration:F1}s, Damage: {attackDamage:F1}, Cooldown: {attackCooldown:F1}s");
-        }
-        
-        /// <summary>
         /// Check if patrol should stop (for Limited mode)
         /// </summary>
         public bool ShouldStopPatrol()
@@ -779,9 +928,10 @@ namespace Resonance.Enemies.Core
         public string GetStats()
         {
             return $"Physical Health: {_stats.currentHealth:F1}/{_stats.maxHealth}, " +
-                   $"Core Health: {_stats.crystalCore.CurrentEnergy:F1}/{_stats.crystalCore.CurrentEnergyCapacity}, " +
-                   $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken:F1}, " +
-                   $"Attacks: {_attacksLaunched}, Damage Dealt: {_totalDamageDealt:F1}";
+                   $"Core Energy: {_stats.crystalCore.CurrentEnergy:F1}/{_stats.crystalCore.MaxEnergy}, " +
+                   $"Core Health: {_stats.crystalCore.CurrentCoreHealth:F1}/{_stats.crystalCore.MaxCoreHealth}, " +
+                   $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken.ToString()}, " +
+                   $"Attacks: {_attacksLaunchedCount.ToString()}, Damage Dealt: {_totalDamageDealt.ToString()}";
         }
 
         /// <summary>
@@ -790,9 +940,26 @@ namespace Resonance.Enemies.Core
         public void ResetStats()
         {
             _timesHit = 0;
-            _totalDamageTaken = 0f;
-            _totalDamageDealt = 0f;
-            _attacksLaunched = 0;
+
+            _totalDamageTaken = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+
+            _totalDamageDealt = new Dictionary<DamageType, float>()
+            {
+                { DamageType.PhysicalHealth, 0f },
+                { DamageType.CoreHealth, 0f },
+                { DamageType.Chaos, 0f }
+            };
+            
+            _attacksLaunchedCount = new Dictionary<AttackType, int>()
+            {
+                { AttackType.Normal, 0 },
+                { AttackType.Core, 0 }
+            };
         }
 
         #endregion
@@ -859,10 +1026,6 @@ namespace Resonance.Enemies.Core
             
             _isPaused = true;
             Debug.Log("EnemyController: Paused");
-            
-            // 暂停状态机更新
-            // 暂停移动
-            // 暂停动作控制器
         }
 
         public void Resume()
@@ -871,10 +1034,6 @@ namespace Resonance.Enemies.Core
             
             _isPaused = false;
             Debug.Log("EnemyController: Resumed");
-            
-            // 恢复状态机更新
-            // 恢复移动
-            // 恢复动作控制器
         }
 
         #endregion

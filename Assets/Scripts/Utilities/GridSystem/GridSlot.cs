@@ -81,7 +81,7 @@ namespace Resonance.Utilities.GridSystem
         }
         
         /// <summary>
-        /// 设置当前物品（仅用于引用，不显示视觉）
+        /// 设置当前物品(仅用于引用, 不显示视觉)
         /// </summary>
         /// <param name="item">物品</param>
         public void SetItem(GridItem item)

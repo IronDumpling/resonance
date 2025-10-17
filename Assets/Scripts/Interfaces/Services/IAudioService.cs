@@ -12,32 +12,32 @@ namespace Resonance.Interfaces.Services
         #region Audio Playback
         
         /// <summary>
-        /// 播放3D音效，具有空间定位
+        /// 播放3D音效, 具有空间定位
         /// </summary>
         /// <param name="clipType">音效类型</param>
         /// <param name="position">播放位置</param>
         /// <param name="volume">音量 (0-1)</param>
         /// <param name="pitch">音调 (0.1-3)</param>
-        /// <returns>音频源引用，可用于控制播放</returns>
+        /// <returns>音频源引用, 可用于控制播放</returns>
         AudioSource PlaySFX3D(AudioClipType clipType, Vector3 position, float volume = 1f, float pitch = 1f);
         
         /// <summary>
-        /// 播放2D音效，无空间定位
+        /// 播放2D音效, 无空间定位
         /// </summary>
         /// <param name="clipType">音效类型</param>
         /// <param name="volume">音量 (0-1)</param>
         /// <param name="pitch">音调 (0.1-3)</param>
-        /// <returns>音频源引用，可用于控制播放</returns>
+        /// <returns>音频源引用, 可用于控制播放</returns>
         AudioSource PlaySFX2D(AudioClipType clipType, float volume = 1f, float pitch = 1f);
         
         /// <summary>
-        /// 播放循环音效（如脚步声）
+        /// 播放循环音效(如脚步声)
         /// </summary>
         /// <param name="clipType">音效类型</param>
         /// <param name="position">播放位置</param>
         /// <param name="volume">音量 (0-1)</param>
         /// <param name="pitch">音调 (0.1-3)</param>
-        /// <returns>音频源引用，可用于控制播放</returns>
+        /// <returns>音频源引用, 可用于控制播放</returns>
         AudioSource PlayLoopingSFX(AudioClipType clipType, Vector3 position, float volume = 1f, float pitch = 1f);
         
         /// <summary>
@@ -154,12 +154,12 @@ namespace Resonance.Interfaces.Services
     public enum AudioClipType
     {
         // 射击音效
-        GunFirePistol,
-        GunFireRifle,
-        GunReloadPistol,
-        GunReloadRifle,
-        GunEmpty,
-        GunCock,
+        WeaponFirePistol,
+        WeaponFireRifle,
+        WeaponReloadPistol,
+        WeaponReloadRifle,
+        WeaponEmpty,
+        WeaponCock,
         PistoArming,
         RifleArming,
         

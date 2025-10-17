@@ -69,7 +69,7 @@ namespace Resonance.Environments
         }
         
         /// <summary>
-        /// 重置触发状态（用于调试或特殊情况）
+        /// 重置触发状态(用于调试或特殊情况)
         /// </summary>
         public void ResetTrigger()
         {

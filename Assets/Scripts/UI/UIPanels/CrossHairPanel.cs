@@ -243,9 +243,30 @@ namespace Resonance.UI
 
         /// <summary>
         /// Get current aim point from shooting system
+        /// Now returns the actual shooting end point (with raycast) instead of just mouse position
+        /// This shows where the shot will actually land
         /// </summary>
         private Vector3 GetCurrentAimPoint()
         {
+            // Try to get actual shooting end point preview
+            if (_playerController?.ShootingSystem != null && 
+                _playerController?.WeaponManager?.CurrentWeapon != null &&
+                _playerController?.PlayerGameObject != null)
+            {
+                // Get shoot origin from player transform (same position used in actual shooting)
+                Vector3 shootOrigin = _playerController.PlayerGameObject.transform.position + Vector3.up * 1.5f;
+                
+                // Preview the actual end point using the same logic as PerformShoot
+                Vector3 endPoint = _playerController.ShootingSystem.PreviewShootingEndPoint(
+                    shootOrigin, 
+                    _playerController.WeaponManager.CurrentWeapon
+                );
+                
+                _lastAimPoint = endPoint;
+                return endPoint;
+            }
+            
+            // Fallback 1: use mouse target point (with recoil) if shooting system available
             if (_playerController?.ShootingSystem != null)
             {
                 Vector3 aimPoint = _playerController.ShootingSystem.GetCurrentMouseTargetPoint();
@@ -253,7 +274,7 @@ namespace Resonance.UI
                 return aimPoint;
             }
             
-            // Fallback: use mouse world position
+            // Fallback 2: use mouse world position
             if (_mainCamera != null)
             {
                 Vector2 mousePos = UnityEngine.InputSystem.Mouse.current?.position.ReadValue() ?? Vector2.zero;
@@ -307,14 +328,14 @@ namespace Resonance.UI
         /// </summary>
         private void UpdateCrosshairSize()
         {
-            if (_playerController?.ShootingSystem == null || _playerController?.WeaponManager?.CurrentGun == null)
+            if (_playerController?.ShootingSystem == null || _playerController?.WeaponManager?.CurrentWeapon == null)
             {
                 _targetSize = _baseCrosshairSize;
                 return;
             }
             
             // Get current weapon's accuracy configuration
-            var weapon = _playerController.WeaponManager.CurrentGun;
+            var weapon = _playerController.WeaponManager.CurrentWeapon;
             var accuracyConfig = weapon.accuracyConfig;
             
             if (accuracyConfig == null)
@@ -416,12 +437,12 @@ namespace Resonance.UI
         /// </summary>
         public (float min, float max) GetCrosshairSizeRange()
         {
-            if (_playerController?.WeaponManager?.CurrentGun?.accuracyConfig == null)
+            if (_playerController?.WeaponManager?.CurrentWeapon?.accuracyConfig == null)
             {
                 return (_baseCrosshairSize * 0.2f, _baseCrosshairSize * 3f);
             }
             
-            var config = _playerController.WeaponManager.CurrentGun.accuracyConfig;
+            var config = _playerController.WeaponManager.CurrentWeapon.accuracyConfig;
             float minSize = _baseCrosshairSize * (config.minRadius / config.baseRadius);
             float maxSize = _baseCrosshairSize * (config.maxRadius / config.baseRadius);
             

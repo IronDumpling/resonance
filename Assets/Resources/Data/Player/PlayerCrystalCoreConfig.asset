@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 445d400ca5cd923408e165696d2b14ba, type: 3}
   m_Name: PlayerCrystalCoreConfig
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.Core.Data.CrystalCoreConfig
-  defaultPattern: 
-  maxEnergyCapacity: 60
-  energyPerSlot: 20
+  initialMaxCoreHealth: 90
+  energyPerSlot: 30
   startWithFullEnergy: 0
-  canUpgradeCapacity: 1
-  capacityUpgradeStep: 20
-  maxUpgradeableCapacity: 200
+  waveConfig: {fileID: 11400000, guid: 9d985aa11fa0f2f47a9fe381d41dde3f, type: 2}
+  canUpgradeMaxHealth: 1
+  healthUpgradeStep: 30
+  maxUpgradeableHealth: 300
   coreMaterialPath: Art/Materials/CrystalCore
   abundantColor: {r: 0, g: 1, b: 1, a: 1}
   normalColor: {r: 0, g: 0, b: 1, a: 1}
   lowColor: {r: 1, g: 0, b: 0, a: 1}
   energyConsumeSound: {fileID: 0}
   energyGainSound: {fileID: 0}
-  capacityDamageSound: {fileID: 0}
-  capacityRepairSound: {fileID: 0}
+  coreHealthDamageSound: {fileID: 0}
+  coreHealthRepairSound: {fileID: 0}

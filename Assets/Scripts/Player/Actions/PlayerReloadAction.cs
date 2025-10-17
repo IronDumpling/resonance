@@ -1,6 +1,6 @@
 using UnityEngine;
 using Resonance.Player.Core;
-using Resonance.Interfaces.Objects;
+using Resonance.Interfaces.Operations;
 using Resonance.Core;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
@@ -63,23 +63,23 @@ namespace Resonance.Player.Actions
             }
 
             var weaponManager = playerController.WeaponManager;
-            if (weaponManager?.CurrentGun == null)
+            if (weaponManager?.CurrentWeapon == null)
             {
                 Debug.Log("PlayerReloadAction: Cannot reload - no current gun");
                 return false;
             }
 
-            var currentGun = weaponManager.CurrentGun;
+            var currentWeapon = weaponManager.CurrentWeapon;
             
             // Check if weapon is already full
-            if (currentGun.CurrentAmmo >= currentGun.maxAmmo)
+            if (currentWeapon.CurrentAmmo >= currentWeapon.maxAmmo)
             {
                 Debug.Log("PlayerReloadAction: Cannot reload - weapon already full");
                 return false;
             }
 
             // Check if player has compatible ammo in inventory
-            string weaponAmmoType = currentGun.ammoType;
+            string weaponAmmoType = currentWeapon.ammoType;
             int playerAmmoCount = playerController.Inventory?.GetAmmoCount(weaponAmmoType) ?? 0;
             
             if (playerAmmoCount <= 0)
@@ -88,7 +88,7 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            Debug.Log($"PlayerReloadAction: Can start reload - weapon needs {currentGun.maxAmmo - currentGun.CurrentAmmo} ammo, player has {playerAmmoCount}");
+            Debug.Log($"PlayerReloadAction: Can start reload - weapon needs {currentWeapon.maxAmmo - currentWeapon.CurrentAmmo} ammo, player has {playerAmmoCount}");
             return true;
         }
 
@@ -101,9 +101,9 @@ namespace Resonance.Player.Actions
             // Get audio service
             _audioService = ServiceRegistry.Get<IAudioService>();
 
-            var currentGun = playerController.WeaponManager.CurrentGun;
-            _ammoType = currentGun.ammoType;
-            _ammoNeeded = currentGun.maxAmmo - currentGun.CurrentAmmo;
+            var currentWeapon = playerController.WeaponManager.CurrentWeapon;
+            _ammoType = currentWeapon.ammoType;
+            _ammoNeeded = currentWeapon.maxAmmo - currentWeapon.CurrentAmmo;
             _playerAmmoAvailable = playerController.Inventory?.GetAmmoCount(_ammoType) ?? 0;
 
             Debug.Log($"PlayerReloadAction: Started reload - need {_ammoNeeded} {_ammoType} ammo, player has {_playerAmmoAvailable}");
@@ -149,7 +149,7 @@ namespace Resonance.Player.Actions
         {
             if (!_isActive) return;
 
-            var currentGun = playerController.WeaponManager.CurrentGun;
+            var currentWeapon = playerController.WeaponManager.CurrentWeapon;
             var inventory = playerController.Inventory;
 
             if (inventory == null)
@@ -165,19 +165,19 @@ namespace Resonance.Player.Actions
             {
                 // Player has enough ammo to fill weapon completely
                 ammoToTransfer = _ammoNeeded;
-                currentGun.SetCurrentAmmo(currentGun.maxAmmo);
+                currentWeapon.SetCurrentAmmo(currentWeapon.maxAmmo);
                 inventory.ConsumeAmmo(_ammoType, _ammoNeeded);
             }
             else
             {
                 // Player doesn't have enough ammo, transfer all available
                 ammoToTransfer = _playerAmmoAvailable;
-                currentGun.SetCurrentAmmo(currentGun.CurrentAmmo + _playerAmmoAvailable);
+                currentWeapon.SetCurrentAmmo(currentWeapon.CurrentAmmo + _playerAmmoAvailable);
                 inventory.ConsumeAmmo(_ammoType, _playerAmmoAvailable);
             }
 
             Debug.Log($"PlayerReloadAction: Reload completed - transferred {ammoToTransfer} {_ammoType} ammo");
-            Debug.Log($"PlayerReloadAction: Weapon ammo: {currentGun.CurrentAmmo}/{currentGun.maxAmmo}");
+            Debug.Log($"PlayerReloadAction: Weapon ammo: {currentWeapon.CurrentAmmo}/{currentWeapon.maxAmmo}");
             Debug.Log($"PlayerReloadAction: Player {_ammoType} ammo remaining: {inventory.GetAmmoCount(_ammoType)}");
 
             // Play reload complete audio
@@ -191,15 +191,15 @@ namespace Resonance.Player.Actions
         {
             if (_audioService == null) return;
 
-            // Play reload start sound - using existing GunReload type
-            string weaponAmmoType = playerController.WeaponManager.CurrentGun.ammoType;
+            // Play reload start sound - using existing WeaponReload type
+            string weaponAmmoType = playerController.WeaponManager.CurrentWeapon.ammoType;
             if (weaponAmmoType == "Pisto")
             {
-                _audioService.PlaySFX2D(AudioClipType.GunReloadPistol, 0.8f, 1f);
+                _audioService.PlaySFX2D(AudioClipType.WeaponReloadPistol, 0.8f, 1f);
             }
             else if (weaponAmmoType == "Rifle")
             {
-                _audioService.PlaySFX2D(AudioClipType.GunReloadRifle, 0.8f, 1f);
+                _audioService.PlaySFX2D(AudioClipType.WeaponReloadRifle, 0.8f, 1f);
             }
         }
 
@@ -207,16 +207,16 @@ namespace Resonance.Player.Actions
         {
             if (_audioService == null) return;
 
-            // Play reload complete sound - using GunCock for completion sound
-            _audioService.PlaySFX2D(AudioClipType.GunCock, 0.8f, 1f);
+            // Play reload complete sound - using WeaponCock for completion sound
+            _audioService.PlaySFX2D(AudioClipType.WeaponCock, 0.8f, 1f);
         }
 
         private void PlayReloadCancelAudio(PlayerController playerController)
         {
             if (_audioService == null) return;
 
-            // Play reload cancel sound - using lower volume GunEmpty for cancel
-            _audioService.PlaySFX2D(AudioClipType.GunEmpty, 0.4f, 1f);
+            // Play reload cancel sound - using lower volume WeaponEmpty for cancel
+            _audioService.PlaySFX2D(AudioClipType.WeaponEmpty, 0.4f, 1f);
         }
     }
 }

@@ -1,8 +1,8 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System.Linq;
-using Resonance.Interfaces.Objects;
+using System.Collections.Generic;
 using Resonance.Enemies.Core;
+using Resonance.Interfaces.Operations;
 
 namespace Resonance.Enemies.Core
 {
@@ -143,11 +143,8 @@ namespace Resonance.Enemies.Core
             if (action == null) return false;
 
             // Check if action can start
-            if (!action.CanStart(_enemyController))
-            {
-                return false;
-            }
-
+            if (!action.CanStart(_enemyController)) return false;
+            
             // Check if we need to interrupt current action
             if (_currentAction != null)
             {
@@ -186,8 +183,10 @@ namespace Resonance.Enemies.Core
 
             foreach (var action in availableActions)
             {
+                Debug.Log($"EnemyActionController: Trying to start action: {action.Name} (Priority: {action.Priority})");
                 if (TryStartAction(action))
                 {
+                    Debug.Log($"EnemyActionController: Started action: {action.Name} (Priority: {action.Priority})");
                     return true;
                 }
             }

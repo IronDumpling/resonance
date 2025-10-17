@@ -13,14 +13,12 @@ MonoBehaviour:
   m_Name: PlayerBaseStats
   m_EditorClassIdentifier: 
   _maxHealth: 100
-  _maxResilience: 20
-  _stunThreshold: 1
   _invulnerabilityTime: 1
   _crystalCoreConfig: {fileID: 11400000, guid: 453a00548ef9b1947971284857e7ed8b, type: 2}
   _healthRestoreValue: 30
   _walkSpeed: 3
-  _runSpeed: 4
-  _aimMoveSpeed: 1
+  _runSpeed: 5
+  _aimMoveSpeed: 1.5
   _reloadMoveSpeed: 2
   _inventoryGridWidth: 3
   _inventoryGridHeight: 3
@@ -32,3 +30,6 @@ MonoBehaviour:
   _coreInteractionLayerMask:
     serializedVersion: 2
     m_Bits: 256
+  _normalMaterialPath: Art/Materials/Player/Player_Body
+  _damageMaterialPath: Art/Materials/Damage_Body
+  _damageFlashDuration: 0.2

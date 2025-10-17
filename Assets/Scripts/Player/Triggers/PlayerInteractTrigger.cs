@@ -40,7 +40,7 @@ namespace Resonance.Player.Triggers
                 return;
             }
 
-            // 监听InteractionService的事件，保持同步
+            // 监听InteractionService的事件, 保持同步
             _interactionService.OnInteractableChanged += OnInteractionServiceChanged;
             
             Debug.Log($"PlayerInteractTrigger: Initialized successfully on {gameObject.name}");
@@ -60,13 +60,13 @@ namespace Resonance.Player.Triggers
             // 检查是否是可交互对象
             IInteractable interactable = other.GetComponent<IInteractable>();
             
-            // 如果没找到，尝试在父对象上查找（处理Gun的Visual子对象情况）
+            // 如果没找到, 尝试在父对象上查找(处理Weapon的Visual子对象情况)
             if (interactable == null && other.transform.parent != null)
             {
                 interactable = other.transform.parent.GetComponent<IInteractable>();
             }
             
-            // 如果还没找到，尝试在根对象上查找
+            // 如果还没找到, 尝试在根对象上查找
             if (interactable == null)
             {
                 interactable = other.transform.root.GetComponent<IInteractable>();
@@ -133,7 +133,7 @@ namespace Resonance.Player.Triggers
                 _interactionService.OnInteractableEnteredRange(gameObject, interactable);
             }
 
-            // 如果当前没有可交互对象，设置这个为当前对象
+            // 如果当前没有可交互对象, 设置这个为当前对象
             if (_currentInteractable == null)
             {
                 _currentInteractable = interactable;
@@ -161,7 +161,7 @@ namespace Resonance.Player.Triggers
                 _interactionService.OnInteractableExitedRange(gameObject, interactable);
             }
 
-            // 如果离开的是当前可交互对象，清除它
+            // 如果离开的是当前可交互对象, 清除它
             if (_currentInteractable == interactable)
             {
                 HideInteractionUI(interactable);
@@ -199,8 +199,8 @@ namespace Resonance.Player.Triggers
         {
             if (interactable == null) return;
 
-            // 如果可交互对象有UI显示方法，调用它
-            var gunMono = interactable as GunMonoBehaviour;
+            // 如果可交互对象有UI显示方法, 调用它
+            var gunMono = interactable as WeaponMonoBehaviour;
             if (gunMono != null)
             {
                 gunMono.ShowInteractionUI();
@@ -227,8 +227,8 @@ namespace Resonance.Player.Triggers
         {
             if (interactable == null) return;
 
-            // 如果可交互对象有UI隐藏方法，调用它
-            var gunMono = interactable as GunMonoBehaviour;
+            // 如果可交互对象有UI隐藏方法, 调用它
+            var gunMono = interactable as WeaponMonoBehaviour;
             if (gunMono != null)
             {
                 gunMono.HideInteractionUI();
@@ -250,14 +250,14 @@ namespace Resonance.Player.Triggers
         /// <summary>
         /// 获取当前可交互对象
         /// </summary>
-        /// <returns>当前可交互对象，如果没有则为null</returns>
+        /// <returns>当前可交互对象, 如果没有则为null</returns>
         public IInteractable GetCurrentInteractable()
         {
             return _currentInteractable;
         }
 
         /// <summary>
-        /// 清除当前可交互对象（例如当对象被拾取后）
+        /// 清除当前可交互对象(例如当对象被拾取后)
         /// </summary>
         public void ClearCurrentInteractable()
         {
@@ -286,7 +286,7 @@ namespace Resonance.Player.Triggers
         /// <param name="interactionText">交互文本</param>
         private void OnInteractionServiceChanged(GameObject interactableGameObject, string interactionText)
         {
-            // 如果InteractionService清除了当前对象，我们也清除
+            // 如果InteractionService清除了当前对象, 我们也清除
             if (interactableGameObject == null)
             {
                 if (_currentInteractable != null)
@@ -306,7 +306,7 @@ namespace Resonance.Player.Triggers
         }
 
         /// <summary>
-        /// 清理触发器，取消事件订阅
+        /// 清理触发器, 取消事件订阅
         /// </summary>
         public void Cleanup()
         {

@@ -12,7 +12,7 @@ namespace Resonance.Enemies
     }
 
     /// <summary>
-    /// 敌人检测触发器组件，用于标识和处理不同类型的触发器事件
+    /// 敌人检测触发器组件, 用于标识和处理不同类型的触发器事件
     /// </summary>
     public class EnemyDetectionTrigger : MonoBehaviour
     {

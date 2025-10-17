@@ -145,9 +145,13 @@ namespace Resonance.Enemies
 
         /// <summary>
         /// Setup EnemyHitbox component for a weakpoint GameObject
+        /// Configures damage multipliers based on hitbox type
         /// </summary>
         private void SetupEnemyHitbox(GameObject weakpointObject, EnemyHitboxType type)
         {
+            // Get hitbox multiplier configuration from enemy runtime stats
+            var multiplierConfig = _enemyController.Stats.GetHitboxMultiplierConfig(type);
+            
             EnemyHitbox existingHitbox = weakpointObject.GetComponent<EnemyHitbox>();
             
             if (existingHitbox == null)
@@ -155,42 +159,38 @@ namespace Resonance.Enemies
                 EnemyHitbox newHitbox = weakpointObject.AddComponent<EnemyHitbox>();
                 newHitbox.type = type;
                 
-                switch (type)
-                {
-                    case EnemyHitboxType.Head:
-                        newHitbox.healthMultiplier = 2f;
-                        newHitbox.coreMultiplier = 0f;
-                        newHitbox.resilienceMultiplier = 2f;
-                        break;
-                    case EnemyHitboxType.Body:
-                        newHitbox.healthMultiplier = 1f;
-                        newHitbox.coreMultiplier = 0f;
-                        newHitbox.resilienceMultiplier = 1f;
-                        break;
-                    case EnemyHitboxType.Core:
-                        newHitbox.healthMultiplier = 0f;
-                        newHitbox.coreMultiplier = 1.5f;
-                        newHitbox.resilienceMultiplier = 0f; 
-                        break;
-                }
+                // Apply multipliers from configuration
+                newHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
+                newHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
+                newHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
                 
-                // Initialize the weakpoint hitbox with enemy reference
+                // Initialize the hitbox with enemy reference
                 newHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitboxManager: Added and initialized EnemyHitbox ({type}) to {weakpointObject.name}");
+                    Debug.Log($"EnemyHitboxManager: Added EnemyHitbox ({type}) with multipliers from configuration - " +
+                             $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
+                             $"Core: x{newHitbox.coreHealthMultiplier:F1}, " +
+                             $"Chaos: x{newHitbox.chaosMultiplier:F1}");
                 }
             }
             else
             {
-                // Ensure existing hitbox has correct type and is initialized
+                // Update existing hitbox multipliers from configuration
                 existingHitbox.type = type;
+                existingHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
+                existingHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
+                existingHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
+                
                 existingHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitboxManager: Updated and initialized existing EnemyHitbox on {weakpointObject.name}");
+                    Debug.Log($"EnemyHitboxManager: Updated EnemyHitbox ({type}) with multipliers from configuration - " +
+                             $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
+                             $"Core: x{existingHitbox.coreHealthMultiplier:F1}, " +
+                             $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
                 }
             }
         }
