@@ -179,8 +179,6 @@ namespace Resonance.Player.Actions
             string enemyState = enemyController.CurrentState;
             bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
             
-            // Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} state: {enemyState}, valid: {isValidState}");
-            
             return isValidState;
         }
 
@@ -260,12 +258,6 @@ namespace Resonance.Player.Actions
             bool targetCoreNull = _targetCoreHitbox == null;
             bool targetCoreValid = !targetCoreNull && IsValidTargetCore(_targetCoreHitbox);
             bool targetCoreInRange = !targetCoreNull && IsTargetCoreStillInRange(_targetCoreHitbox);
-            
-            // Debug log every few seconds to track state
-            // if (Mathf.FloorToInt(actionDuration * 2) % 10 == 0) // Every 5 seconds
-            // {
-            //     Debug.Log($"PlayerWaveAttackAction: Update - Duration: {actionDuration:F1}s, Target null: {targetCoreNull}, Valid: {targetCoreValid}, In range: {targetCoreInRange}");
-            // }
 
             if (targetCoreNull || !targetCoreValid || !targetCoreInRange)
             {

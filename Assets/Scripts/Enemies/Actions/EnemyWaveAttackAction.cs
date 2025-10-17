@@ -1,8 +1,9 @@
 using UnityEngine;
+using System.Collections.Generic;
+using Resonance.Core;
 using Resonance.Enemies.Core;
 using Resonance.Interfaces.Operations;
 using Resonance.Utilities;
-using System.Collections.Generic;
 
 namespace Resonance.Enemies.Actions
 {
