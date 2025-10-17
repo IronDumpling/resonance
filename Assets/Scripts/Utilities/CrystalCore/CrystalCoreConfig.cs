@@ -33,7 +33,7 @@ namespace Resonance.Utilities.CrystalCore
         public float healthUpgradeStep = 30f;
         
         [Tooltip("最大可升级到的生命值")]
-        public float maxUpgradeableHealth = 300f;
+        public float maxUpgradeableHealth = 180f;
         
         [Header("Visual Configuration")]
         [Tooltip("晶核材质路径")]

@@ -150,8 +150,9 @@ namespace Resonance.Utilities.CrystalCore
         /// </summary>
         public void UpdateCalculatedValues()
         {
-            // 计算槽位数量
-            _maxSlots = Mathf.FloorToInt(_maxEnergy / _energyPerSlot);
+            // max slots is the max core health (ideal max energy) / energy per slot
+            _maxSlots = Mathf.FloorToInt(_maxCoreHealth / _energyPerSlot);
+            // current slots is the current energy / energy per slot
             _currentSlots = Mathf.FloorToInt(_currentEnergy / _energyPerSlot);
             
             // 计算能量等级

@@ -19,7 +19,7 @@ MonoBehaviour:
   range: 30
   fireRate: 1
   damages:
-    physicalDamage: 20
+    physicalDamage: 15
     coreDamage: 0
     chaosDamage: 5
   accuracyConfig:

@@ -21,8 +21,8 @@ namespace Resonance.Utilities
         public const float INJURED_THRESHOLD = 0.6f;     // 60%
         public const float WOUNDED_THRESHOLD = 0.3f;     // 30%
         
-        // 紊乱值恢复速率(负值表示下降)
-        public const float HEALTHY_CHAOS_RECOVERY = -3f;
+        // 紊乱值恢复速率
+        public const float HEALTHY_CHAOS_RECOVERY = -2f;
         public const float INJURED_CHAOS_RECOVERY = -1f;
         public const float WOUNDED_CHAOS_RECOVERY = -0.5f;
         public const float CRITICAL_CHAOS_RECOVERY = -0.2f;

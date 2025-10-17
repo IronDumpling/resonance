@@ -14,7 +14,7 @@ namespace Resonance.Utilities.Waves
         public float maxChaos = 20f;
         
         [Tooltip("紊乱阈值(低于此值进入秩序状态)")]
-        public float chaosThreshold = 18f;
+        public float chaosThreshold = 16f;
         
         [Header("Wave Visual Configuration")]
         [Tooltip("波纹秩序状态颜色")]
