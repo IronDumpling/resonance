@@ -13,12 +13,14 @@ namespace Resonance.Enemies.States
     {
         private EnemyController _enemyController;
         private float _revivalTimer = 0f;
+        private float _maxReviveTime;
         
         public string Name => "Reviving";
 
         public EnemyRevivingState(EnemyController enemyController)
         {
             _enemyController = enemyController;
+            _maxReviveTime = 3f * enemyController.Stats.maxHealth / enemyController.Stats.revivalRate;
         }
 
         public void Enter()
@@ -54,7 +56,7 @@ namespace Resonance.Enemies.States
             }
             
             // Check if revival duration exceeded (safety check)
-            if (_revivalTimer > _enemyController.Stats.revivalDuration * 2f)
+            if (_revivalTimer > _maxReviveTime)
             {
                 Debug.LogWarning("EnemyRevivingState: Revival taking too long, forcing completion");
                 _enemyController.Stats.FullRestore();

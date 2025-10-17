@@ -18,7 +18,6 @@ MonoBehaviour:
   crystalCoreConfig: {fileID: 11400000, guid: 4a3be431e36760b4f86a5f8d78d79497, type: 2}
   corePattern: Enemy_Basic
   revivalDelay: 2
-  revivalDuration: 5
   revivalRate: 10
   normalAttackStats:
     damages:
@@ -37,6 +36,23 @@ MonoBehaviour:
     duration: 1
     range: 1.5
   detectionRange: 4
+  hitboxMultipliers:
+  - hitboxType: 0
+    physicalHealthMultiplier: 1.5
+    coreHealthMultiplier: 0
+    chaosMultiplier: 1.5
+  - hitboxType: 1
+    physicalHealthMultiplier: 1
+    coreHealthMultiplier: 0
+    chaosMultiplier: 0.5
+  - hitboxType: 2
+    physicalHealthMultiplier: 0.5
+    coreHealthMultiplier: 0
+    chaosMultiplier: 2
+  - hitboxType: 3
+    physicalHealthMultiplier: 0
+    coreHealthMultiplier: 1
+    chaosMultiplier: 0
   moveSpeed: 1
   chaseMoveSpeed: 2
   patrolRadius: 2

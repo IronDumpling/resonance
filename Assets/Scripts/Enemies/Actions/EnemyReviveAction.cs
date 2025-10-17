@@ -12,6 +12,7 @@ namespace Resonance.Enemies.Actions
     {
         private bool _isFinished = false;
         private float _reviveTimer = 0f;
+        private float _maxReviveTime;
         
         public string Name => "Revive";
         public int Priority => 100; // Highest priority - cannot be interrupted
@@ -33,6 +34,7 @@ namespace Resonance.Enemies.Actions
         {
             _isFinished = false;
             _reviveTimer = 0f;
+            _maxReviveTime = 3f * enemy.Stats.maxHealth / enemy.Stats.revivalRate;
             
             Debug.Log("EnemyReviveAction: Started revival process");
             
@@ -62,7 +64,7 @@ namespace Resonance.Enemies.Actions
             }
             
             // Safety timeout - if revival takes too long
-            if (_reviveTimer > enemy.Stats.revivalDuration * 3f)
+            if (_reviveTimer > _maxReviveTime)
             {
                 Debug.LogWarning("EnemyReviveAction: Revival timeout - forcing completion");
                 enemy.Stats.FullRestore();

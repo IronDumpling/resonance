@@ -149,6 +149,9 @@ namespace Resonance.Enemies
         /// </summary>
         private void SetupEnemyHitbox(GameObject weakpointObject, EnemyHitboxType type)
         {
+            // Get hitbox multiplier configuration from enemy runtime stats
+            var multiplierConfig = _enemyController.Stats.GetHitboxMultiplierConfig(type);
+            
             EnemyHitbox existingHitbox = weakpointObject.GetComponent<EnemyHitbox>();
             
             if (existingHitbox == null)
@@ -156,45 +159,17 @@ namespace Resonance.Enemies
                 EnemyHitbox newHitbox = weakpointObject.AddComponent<EnemyHitbox>();
                 newHitbox.type = type;
                 
-                // Set damage multipliers based on hitbox type
-                // Format: (PhysicalHealth, CoreHealth, Chaos)
-                switch (type)
-                {
-                    case EnemyHitboxType.Core:
-                        // Core: Only CoreHealth damage is effective
-                        newHitbox.physicalHealthMultiplier = 0f;
-                        newHitbox.coreHealthMultiplier = 1f;
-                        newHitbox.chaosMultiplier = 0f;
-                        break;
-                        
-                    case EnemyHitboxType.Head:
-                        // Head: High damage to both PhysicalHealth and Chaos
-                        newHitbox.physicalHealthMultiplier = 1.5f;
-                        newHitbox.coreHealthMultiplier = 0f;
-                        newHitbox.chaosMultiplier = 1.5f;
-                        break;
-                        
-                    case EnemyHitboxType.Knee:
-                        // Knee: Very high Chaos damage, reduced PhysicalHealth
-                        newHitbox.physicalHealthMultiplier = 0.5f;
-                        newHitbox.coreHealthMultiplier = 0f;
-                        newHitbox.chaosMultiplier = 2f;
-                        break;
-                        
-                    case EnemyHitboxType.Body:
-                        // Body: Normal PhysicalHealth, low Chaos
-                        newHitbox.physicalHealthMultiplier = 1f;
-                        newHitbox.coreHealthMultiplier = 0f;
-                        newHitbox.chaosMultiplier = 0.5f;
-                        break;
-                }
+                // Apply multipliers from configuration
+                newHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
+                newHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
+                newHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
                 
                 // Initialize the hitbox with enemy reference
                 newHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitboxManager: Added and initialized EnemyHitbox ({type}) - " +
+                    Debug.Log($"EnemyHitboxManager: Added EnemyHitbox ({type}) with multipliers from configuration - " +
                              $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
                              $"Core: x{newHitbox.coreHealthMultiplier:F1}, " +
                              $"Chaos: x{newHitbox.chaosMultiplier:F1}");
@@ -202,41 +177,17 @@ namespace Resonance.Enemies
             }
             else
             {
-                // Update existing hitbox multipliers
+                // Update existing hitbox multipliers from configuration
                 existingHitbox.type = type;
-                
-                switch (type)
-                {
-                    case EnemyHitboxType.Core:
-                        existingHitbox.physicalHealthMultiplier = 0f;
-                        existingHitbox.coreHealthMultiplier = 1f;
-                        existingHitbox.chaosMultiplier = 0f;
-                        break;
-                        
-                    case EnemyHitboxType.Head:
-                        existingHitbox.physicalHealthMultiplier = 1.5f;
-                        existingHitbox.coreHealthMultiplier = 0f;
-                        existingHitbox.chaosMultiplier = 1.5f;
-                        break;
-                        
-                    case EnemyHitboxType.Knee:
-                        existingHitbox.physicalHealthMultiplier = 0.5f;
-                        existingHitbox.coreHealthMultiplier = 0f;
-                        existingHitbox.chaosMultiplier = 2f;
-                        break;
-                        
-                    case EnemyHitboxType.Body:
-                        existingHitbox.physicalHealthMultiplier = 1f;
-                        existingHitbox.coreHealthMultiplier = 0f;
-                        existingHitbox.chaosMultiplier = 0.5f;
-                        break;
-                }
+                existingHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
+                existingHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
+                existingHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
                 
                 existingHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitboxManager: Updated existing EnemyHitbox ({type}) - " +
+                    Debug.Log($"EnemyHitboxManager: Updated EnemyHitbox ({type}) with multipliers from configuration - " +
                              $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
                              $"Core: x{existingHitbox.coreHealthMultiplier:F1}, " +
                              $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
