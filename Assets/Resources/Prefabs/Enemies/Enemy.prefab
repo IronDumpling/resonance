@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 191188523277591758}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -314,17 +314,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3918578343786169770}
-  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: -1, z: 0, w: 0}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8715251454769361356}
   m_Father: {fileID: 631622349711839967}
-  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: 1.5}
   m_SizeDelta: {x: 3, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &6034947644033809327
@@ -723,13 +723,6 @@ MonoBehaviour:
   _attackCollider: {fileID: 6860426549029046187}
   _patrolPointA: {fileID: 0}
   _patrolPointB: {fileID: 0}
-  _useTransformPoints: 0
-  _patrolWaypointA: {x: 0, y: 0, z: 0}
-  _patrolWaypointB: {x: 0, y: 0, z: 5}
-  _patrolMode: 0
-  _maxPatrolCycles: 3
-  _patrolSpeed: 2
-  _singleCycleDuration: 10
   _waitAtWaypointDuration: 1
   _showPatrolPath: 1
   _targetUpdateInterval: 0.5

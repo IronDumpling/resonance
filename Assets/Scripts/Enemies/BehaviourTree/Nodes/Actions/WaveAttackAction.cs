@@ -17,6 +17,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
+            var animator = GetAnimator();
+            
             // Launch wave attack on first execution
             if (!_attackLaunched)
             {
@@ -27,6 +29,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 if (Controller.LaunchWaveAttack())
                 {
                     _attackLaunched = true;
+                    
+                    // Trigger wave attack animation
+                    if (animator != null && animator.isActiveAndEnabled)
+                    {
+                        animator.SetBool("InAttackRange", true);
+                        animator.SetTrigger("WaveAttackStart");
+                        Debug.Log("WaveAttackAction: Triggered WaveAttackStart animation");
+                    }
                 }
                 else
                 {

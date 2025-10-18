@@ -24,6 +24,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 Initialize();
             }
 
+            // Update animation speed parameter
+            var animator = GetAnimator();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                float speed = Movement?.Velocity.magnitude ?? 0f;
+                animator.SetFloat("Speed", speed);
+            }
+
             // Move towards patrol target
             if (!_hasReachedTarget)
             {
@@ -78,6 +86,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             // Generate patrol point
             _currentPatrolTarget = Controller.GeneratePatrolPoint();
             Controller.SetPatrolTarget(_currentPatrolTarget);
+            
+            // Set animation parameters for patrol state
+            var animator = GetAnimator();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                animator.SetBool("HasTarget", false);
+                animator.SetBool("InAttackRange", false);
+            }
         }
 
         /// <summary>

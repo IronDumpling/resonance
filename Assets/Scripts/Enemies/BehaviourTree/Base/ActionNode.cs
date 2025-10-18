@@ -1,3 +1,4 @@
+using UnityEngine;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Movement;
 
@@ -7,6 +8,15 @@ namespace Resonance.Enemies.BehaviourTree.Base
     {
         protected EnemyController Controller => blackboard.GetSystem<EnemyController>();
         protected MovementSystem Movement => blackboard.GetSystem<MovementSystem>();
-        protected EnemyAnimator Animator => blackboard.GetSystem<EnemyAnimator>();
+        protected EnemyAnimator AnimatorBridge => blackboard.GetSystem<EnemyAnimator>();
+        
+        /// <summary>
+        /// Get Unity Animator component
+        /// Actions can use this to directly control animations
+        /// </summary>
+        protected Animator GetAnimator()
+        {
+            return AnimatorBridge?.GetComponent<Animator>();
+        }
     }
 }

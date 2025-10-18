@@ -19,6 +19,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
+            var animator = GetAnimator();
+            
             // Initialize on first execution
             if (!_initialized)
             {
@@ -29,6 +31,15 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 // Stop all movement and behaviors
                 Controller.StopPatrol();
                 Controller.LosePlayer();
+                
+                // Set revival animation state
+                if (animator != null && animator.isActiveAndEnabled)
+                {
+                    animator.SetBool("IsReviving", true);
+                    animator.SetFloat("Speed", 0f);  // No movement during revival
+                }
+                
+                Debug.Log("ReviveAction: Started revival - set IsReviving = true");
             }
 
             _reviveTimer += Time.deltaTime;
@@ -36,6 +47,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             // Check if revival is complete (physical health restored)
             if (Controller.IsAlive)
             {
+                // Complete revival animation
+                if (animator != null && animator.isActiveAndEnabled)
+                {
+                    animator.SetBool("IsReviving", false);
+                    animator.SetTrigger("ReviveComplete");
+                }
+                
+                Debug.Log("ReviveAction: Revival completed - triggered ReviveComplete");
                 return BTNodeStatus.Success;
             }
 
@@ -43,6 +62,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             if (_reviveTimer > _maxReviveTime)
             {
                 Controller.Stats.FullRestore();
+                
+                // Complete revival animation
+                if (animator != null && animator.isActiveAndEnabled)
+                {
+                    animator.SetBool("IsReviving", false);
+                    animator.SetTrigger("ReviveComplete");
+                }
+                
                 return BTNodeStatus.Success;
             }
 
@@ -55,6 +82,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
         public override void Reset()
         {
             base.Reset();
+            
+            // Clean up animation state
+            var animator = GetAnimator();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                animator.SetBool("IsReviving", false);
+            }
+            
             _initialized = false;
             _reviveTimer = 0f;
         }

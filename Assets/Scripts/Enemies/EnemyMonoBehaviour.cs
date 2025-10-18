@@ -152,9 +152,6 @@ namespace Resonance.Enemies
             // Update core controller (health, combat, etc.)
             _enemyController.Update(Time.deltaTime);
 
-            // Update animator parameters
-            UpdateAnimatorParameters();
-
             // Check for destruction (if truly dead)
             if (_enemyController.IsTrulyDead)
             {
@@ -327,8 +324,6 @@ namespace Resonance.Enemies
             _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
             _enemyController.OnAttackLaunched += HandleAttackLaunched;
             _enemyController.OnStateChanged += HandleStateChanged;
-            _enemyController.OnPlayerDetected += HandlePlayerDetected;
-            _enemyController.OnPlayerLost += HandlePlayerLost;
             
             // Setup patrol waypoints after controller is initialized
             SetupPatrolWaypoints();
@@ -792,51 +787,6 @@ namespace Resonance.Enemies
 
         #endregion
 
-        #region Animation Bridge
-
-        /// <summary>
-        /// Update animator parameters based on enemy state
-        /// </summary>
-        private void UpdateAnimatorParameters()
-        {
-            if (_animator == null || !_animator.isActiveAndEnabled) return;
-
-            // Update Speed parameter for locomotion blend tree
-            float speed = _enemyController.Movement?.Velocity.magnitude ?? 0f;
-            _animator.SetFloat("Speed", speed);
-
-            // Update boolean parameters
-            _animator.SetBool("HasTarget", _enemyController.HasPlayerTargetValue);
-            _animator.SetBool("InAttackRange", _enemyController.IsPlayerInAttackRangeValue);
-            _animator.SetBool("IsReviving", _enemyController.IsReviving);
-        }
-
-        /// <summary>
-        /// Handle player detected event - set HasTarget parameter
-        /// </summary>
-        private void HandlePlayerDetected(Transform player)
-        {
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("HasTarget", true);
-                // Debug.Log("EnemyMonoBehaviour: Player detected - set HasTarget = true");
-            }
-        }
-
-        /// <summary>
-        /// Handle player lost event - set HasTarget parameter
-        /// </summary>
-        private void HandlePlayerLost()
-        {
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("HasTarget", false);
-                Debug.Log("EnemyMonoBehaviour: Player lost - set HasTarget = false");
-            }
-        }
-
-        #endregion
-
         #region Event Handlers
 
         private void HandleHealthChanged(float current, float max)
@@ -878,51 +828,35 @@ namespace Resonance.Enemies
             Destroy(gameObject, 3f);
         }
 
+        /// <summary>
+        /// Handle revival started - set material to revival material
+        /// </summary>
         private void HandleRevivalStarted()
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started revival");
             SetMaterial(_revivalMaterial);
-            
-            // Set revival state in animator
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("IsReviving", true);
-            }
         }
 
+        /// <summary>
+        /// Handle revival completed - set material to normal material
+        /// </summary>
         private void HandleRevivalCompleted()
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} completed revival");
             SetMaterial(_normalMaterial);
-            
-            // Complete revival in animator
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("IsReviving", false);
-                _animator.SetTrigger("ReviveComplete");
-            }
         }
 
+        /// <summary>
+        /// Handle attack launched - log attack details
+        /// </summary>
         private void HandleAttackLaunched(float damage)
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} launched attack for {damage} damage");
-            
-            // Trigger attack animation based on attack type
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                if (_enemyController.CurrentAttackType == AttackType.Wave)
-                {
-                    _animator.SetTrigger("WaveAttackStart");
-                    Debug.Log($"EnemyMonoBehaviour: Triggering WaveAttackStart animation");
-                }
-                else
-                {
-                    _animator.SetTrigger("NormalAttackStart");
-                    Debug.Log($"EnemyMonoBehaviour: Triggering NormalAttackStart animation");
-                }
-            }
         }
 
+        /// <summary>
+        /// Handle state changed - log state change
+        /// </summary>
         private void HandleStateChanged(string stateName)
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} changed to state {stateName}");
@@ -1215,23 +1149,7 @@ namespace Resonance.Enemies
         }
 
         void OnDrawGizmosSelected()
-        {
-            // Draw detection range
-            if (_baseStats != null && _baseStats.showDetectionRange)
-            {
-                Gizmos.color = Color.yellow;
-                float detectionRadius = _detectionCollider != null ? _detectionCollider.radius : _baseStats.detectionRange;
-                Gizmos.DrawWireSphere(transform.position, detectionRadius);
-            }
-
-            // Draw attack range
-            if (_baseStats != null && _baseStats.showAttackRange)
-            {
-                Gizmos.color = Color.red;
-                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.normalAttackStats.range;
-                Gizmos.DrawWireSphere(transform.position, attackRadius);
-            }
-            
+        { 
             // Draw patrol path
             if (_showPatrolPath)
             {

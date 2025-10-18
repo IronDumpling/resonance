@@ -37,14 +37,17 @@ namespace Resonance.Enemies.Core
         private BTNode BuildTree()
         {
             // Build enemy behavior tree following the design draft
-            // Structure: Selector (try behaviors in priority order)
+            // Structure: REACTIVE Selector (re-evaluates all conditions every tick)
             //   1. If coreHealth ≤ 0 -> Enemy truly dead (handled by MonoBehaviour)
             //   2. If health ≤ 0 -> Revive Action
             //   3. If no target (detection range) -> Patrol Action
             //   4. If has target but not in attack range -> Chase Action
             //   5. If has target and in attack range -> Attack (Wave or Normal)
+            //
+            // IMPORTANT: Using ReactiveSelectorNode to ensure immediate response to condition changes
+            // This allows the AI to switch from Patrol to Chase instantly when player is detected
 
-            var root = new SelectorNode();
+            var root = new ReactiveSelectorNode();
             root.SetBlackboard(_blackboard);
 
             // ===== 1. Core Death Check (true death) =====
@@ -65,6 +68,7 @@ namespace Resonance.Enemies.Core
             root.AddChild(reviveSequence);
 
             // ===== 3. No Target -> Patrol =====
+            // Note: Lower priority, will only execute if player not detected
             var patrolSequence = new SequenceNode();
             patrolSequence.SetBlackboard(_blackboard);
             patrolSequence.AddChild(new NoTargetCondition());
@@ -72,6 +76,7 @@ namespace Resonance.Enemies.Core
             root.AddChild(patrolSequence);
 
             // ===== 4. Has Target but Not in Attack Range -> Chase =====
+            // Note: Medium priority, executes when player detected but not in range
             var chaseSequence = new SequenceNode();
             chaseSequence.SetBlackboard(_blackboard);
             chaseSequence.AddChild(new HasTargetCondition());
@@ -80,13 +85,14 @@ namespace Resonance.Enemies.Core
             root.AddChild(chaseSequence);
 
             // ===== 5. Has Target and In Attack Range -> Attack =====
+            // Note: Highest behavior priority (after death checks)
             var attackSequence = new SequenceNode();
             attackSequence.SetBlackboard(_blackboard);
             attackSequence.AddChild(new HasTargetCondition());
             attackSequence.AddChild(new InAttackRangeCondition());
             
             // Attack type selection: Wave Attack or Normal Attack
-            var attackSelector = new SelectorNode();
+            var attackSelector = new ReactiveSelectorNode();
             attackSelector.SetBlackboard(_blackboard);
             
             // Try wave attack first (if conditions met)

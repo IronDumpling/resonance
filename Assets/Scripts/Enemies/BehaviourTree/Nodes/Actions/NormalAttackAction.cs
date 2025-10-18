@@ -17,6 +17,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
+            var animator = GetAnimator();
+            
             // Launch attack on first execution
             if (!_attackLaunched)
             {
@@ -27,6 +29,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 if (Controller.LaunchAttack())
                 {
                     _attackLaunched = true;
+                    
+                    // Trigger attack animation
+                    if (animator != null && animator.isActiveAndEnabled)
+                    {
+                        animator.SetBool("InAttackRange", true);
+                        animator.SetTrigger("NormalAttackStart");
+                        Debug.Log("NormalAttackAction: Triggered NormalAttackStart animation");
+                    }
                 }
                 else
                 {

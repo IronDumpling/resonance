@@ -15,6 +15,18 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
+            // Update animation parameters for chase state
+            var animator = GetAnimator();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                animator.SetBool("HasTarget", true);
+                animator.SetBool("InAttackRange", false);
+                
+                // Update speed parameter
+                float speed = Movement?.Velocity.magnitude ?? 0f;
+                animator.SetFloat("Speed", speed);
+            }
+
             // Update target position periodically
             _updateTimer += Time.deltaTime;
             if (_updateTimer >= Controller.TargetUpdateInterval)
