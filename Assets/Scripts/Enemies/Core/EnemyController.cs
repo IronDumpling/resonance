@@ -58,19 +58,11 @@ namespace Resonance.Enemies.Core
         private bool _movingToWaypointB = true; // true = moving to B, false = moving to A
         
         // Patrol Configuration
-        private PatrolMode _patrolMode = PatrolMode.Infinite;
-        private int _maxPatrolCycles = 3;
-        private float _patrolSpeed = 2f;
-        private float _singleCycleDuration = 10f;
         private float _waitAtWaypointDuration = 1f;
 
         // Damage Hitbox
         private Transform _damageHitboxChild;
 
-        // Patrol Runtime State
-        private int _currentPatrolCycles = 0;
-        private float _currentCycleStartTime = 0f;
-        
         // Chase Configuration
         private float _targetUpdateInterval = 0.5f;
         
@@ -118,12 +110,7 @@ namespace Resonance.Enemies.Core
         public Vector3 PatrolWaypointB => _patrolWaypointB;
         
         // Patrol Configuration Properties
-        public PatrolMode EnemyPatrolMode => _patrolMode;
-        public int MaxPatrolCycles => _maxPatrolCycles;
-        public float PatrolSpeed => _patrolSpeed;
-        public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-        public int CurrentPatrolCycles => _currentPatrolCycles;
         
         // Chase Configuration Properties
         public float TargetUpdateInterval => _targetUpdateInterval;
@@ -807,8 +794,7 @@ namespace Resonance.Enemies.Core
             // Count cycles when returning to A (completing a full cycle)
             if (!_movingToWaypointB)
             {
-                _currentPatrolCycles++;
-                Debug.Log($"EnemyController: Completed patrol cycle {_currentPatrolCycles}/{(_patrolMode == PatrolMode.Limited ? _maxPatrolCycles : "∞")}");
+                Debug.Log($"EnemyController: Completed patrol cycle.");
             }
             
             Debug.Log($"EnemyController: Switched patrol direction, now moving to {(_movingToWaypointB ? "B" : "A")}");
@@ -818,18 +804,10 @@ namespace Resonance.Enemies.Core
         /// Set patrol configuration
         /// </summary>
         public void SetPatrolConfiguration(
-            PatrolMode mode,
-            int maxCycles,
-            float speed,
-            float cycleDuration,
             float waitDuration)
         {
-            _patrolMode = mode;
-            _maxPatrolCycles = maxCycles;
-            _patrolSpeed = speed;
-            _singleCycleDuration = cycleDuration;
             _waitAtWaypointDuration = waitDuration;
-            Debug.Log($"EnemyController: Patrol configuration set - Mode: {mode}, MaxCycles: {maxCycles}, Speed: {speed:F1}");
+            Debug.Log($"EnemyController: Patrol configuration set - WaitDuration: {waitDuration:F1}s");
         }
         
         /// <summary>
@@ -842,24 +820,6 @@ namespace Resonance.Enemies.Core
             Debug.Log($"EnemyController: Chase configuration set - UpdateInterval: {targetUpdateInterval:F2}s");
         }
         
-        /// <summary>
-        /// Check if patrol should stop (for Limited mode)
-        /// </summary>
-        public bool ShouldStopPatrol()
-        {
-            return _patrolMode == PatrolMode.Limited && _currentPatrolCycles >= _maxPatrolCycles;
-        }
-        
-        /// <summary>
-        /// Reset patrol cycle counter
-        /// </summary>
-        public void ResetPatrolCycles()
-        {
-            _currentPatrolCycles = 0;
-            _currentCycleStartTime = Time.time;
-            Debug.Log("EnemyController: Patrol cycles reset");
-        }
-
         /// <summary>
         /// Stop patrolling
         /// </summary>

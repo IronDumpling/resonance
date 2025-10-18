@@ -45,8 +45,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             return Controller.IsAlive &&
                    !Controller.HasPlayerTarget &&
                    !Controller.IsPatrolling &&
-                   Controller.Stats.GetModifiedMoveSpeed() > 0f &&
-                   !Controller.ShouldStopPatrol();
+                   Controller.Stats.GetModifiedMoveSpeed() > 0f;
         }
 
         private void StartPatrol()
@@ -54,12 +53,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             _isActive = true;
             _patrolTimer = 0f;
             _hasReachedTarget = false;
-
-            // Reset patrol cycles if starting fresh
-            if (Controller.CurrentPatrolCycles == 0)
-            {
-                Controller.ResetPatrolCycles();
-            }
 
             // Generate a new patrol point (uses waypoints if available)
             _currentPatrolTarget = Controller.GeneratePatrolPoint();
@@ -111,14 +104,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 return BTNodeStatus.Failure;
             }
 
-            // Check if we should stop patrolling (Limited mode)
-            if (Controller.ShouldStopPatrol())
-            {
-                Debug.Log($"PatrolAction: Reached maximum patrol cycles");
-                FinishPatrol();
-                return BTNodeStatus.Success;
-            }
-
             // Continue patrol after wait duration
             if (_hasReachedTarget && _patrolTimer >= Controller.WaitAtWaypointDuration)
             {
@@ -140,7 +125,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             }
 
             // Safety timeout
-            if (_patrolTimer >= Controller.SingleCycleDuration * 2f)
+            float maxPatrolTimer = Controller.WaitAtWaypointDuration + Movement.GetDistanceToTarget() / Controller.Stats.GetModifiedMoveSpeed();
+            if (_patrolTimer >= maxPatrolTimer)
             {
                 Debug.LogWarning($"PatrolAction: Patrol timeout");
                 FinishPatrol();

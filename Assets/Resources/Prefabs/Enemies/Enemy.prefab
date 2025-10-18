@@ -116,7 +116,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3203894000571929562}
   - component: {fileID: 5004115887592804459}
-  - component: {fileID: 2629838485125824339}
+  - component: {fileID: 6716566790882206923}
   m_Layer: 8
   m_Name: Visual
   m_TagString: Untagged
@@ -164,7 +164,7 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &2629838485125824339
+--- !u!114 &6716566790882206923
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -173,9 +173,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2834259150065660657}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ff20b36588affe41b00774ec4718676, type: 3}
+  m_Script: {fileID: 11500000, guid: 172fe19e81a051b4c97c829a181b6bdb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Enemies.Core.EnemyAnimator
   _debugMode: 0
 --- !u!1 &3102917392081337075
 GameObject:
@@ -648,8 +648,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 631622349711839967}
-  - component: {fileID: 4135306899194896982}
   - component: {fileID: 1521937031837005921}
+  - component: {fileID: 6909021593345792260}
   m_Layer: 8
   m_Name: Enemy
   m_TagString: Untagged
@@ -677,38 +677,6 @@ Transform:
   - {fileID: 6822862963753014174}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4135306899194896982
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6416059392138926664}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 773eb02e4a459874487c9b06c4ce0839, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _baseStats: {fileID: 11400000, guid: e17b8ab8a8a48f14f9af893c40c8f50a, type: 2}
-  _visualTransform: {fileID: 3203894000571929562}
-  _bodyRenderer: {fileID: 1294134832740095054}
-  _detectionCollider: {fileID: 3598880275413671006}
-  _attackCollider: {fileID: 6860426549029046187}
-  _patrolPointA: {fileID: 0}
-  _patrolPointB: {fileID: 0}
-  _useTransformPoints: 0
-  _patrolWaypointA: {x: 0, y: 0, z: 0}
-  _patrolWaypointB: {x: 0, y: 0, z: 5}
-  _patrolMode: 0
-  _maxPatrolCycles: 3
-  _patrolSpeed: 2
-  _singleCycleDuration: 20
-  _waitAtWaypointDuration: 5
-  _showPatrolPath: 1
-  _targetUpdateInterval: 0.5
-  _resonanceUI: {fileID: 3918578343786169770}
-  _resonanceUIText: {fileID: 1199645490113563006}
-  _showDebugInfo: 0
 --- !u!54 &1521937031837005921
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -736,6 +704,38 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &6909021593345792260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6416059392138926664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09ef7dd92d3eecb49851aa75d1479853, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Enemies.EnemyMonoBehaviour
+  _baseStats: {fileID: 11400000, guid: e17b8ab8a8a48f14f9af893c40c8f50a, type: 2}
+  _visualTransform: {fileID: 3203894000571929562}
+  _bodyRenderer: {fileID: 1294134832740095054}
+  _detectionCollider: {fileID: 3598880275413671006}
+  _attackCollider: {fileID: 6860426549029046187}
+  _patrolPointA: {fileID: 0}
+  _patrolPointB: {fileID: 0}
+  _useTransformPoints: 0
+  _patrolWaypointA: {x: 0, y: 0, z: 0}
+  _patrolWaypointB: {x: 0, y: 0, z: 5}
+  _patrolMode: 0
+  _maxPatrolCycles: 3
+  _patrolSpeed: 2
+  _singleCycleDuration: 10
+  _waitAtWaypointDuration: 1
+  _showPatrolPath: 1
+  _targetUpdateInterval: 0.5
+  _resonanceUI: {fileID: 3918578343786169770}
+  _resonanceUIText: {fileID: 1199645490113563006}
+  _showDebugInfo: 0
 --- !u!1 &8435182021885753263
 GameObject:
   m_ObjectHideFlags: 0

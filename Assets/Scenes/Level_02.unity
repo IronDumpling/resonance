@@ -443,6 +443,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: TestEnemy_2
       objectReference: {fileID: 0}
+    - target: {fileID: 6909021593345792260, guid: d9a22343fe061974eba574def0a6cc38, type: 3}
+      propertyPath: _patrolPointA
+      value: 
+      objectReference: {fileID: 1829344519}
+    - target: {fileID: 6909021593345792260, guid: d9a22343fe061974eba574def0a6cc38, type: 3}
+      propertyPath: _patrolPointB
+      value: 
+      objectReference: {fileID: 1214729027}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3564,6 +3572,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: TestEnemy_1
       objectReference: {fileID: 0}
+    - target: {fileID: 6909021593345792260, guid: d9a22343fe061974eba574def0a6cc38, type: 3}
+      propertyPath: _patrolPointA
+      value: 
+      objectReference: {fileID: 1614471568}
+    - target: {fileID: 6909021593345792260, guid: d9a22343fe061974eba574def0a6cc38, type: 3}
+      propertyPath: _patrolPointB
+      value: 
+      objectReference: {fileID: 545678883}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

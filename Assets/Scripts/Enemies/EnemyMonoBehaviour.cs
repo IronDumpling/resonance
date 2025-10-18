@@ -36,33 +36,13 @@ namespace Resonance.Enemies
         [SerializeField] private SphereCollider _detectionCollider;
         [SerializeField] private SphereCollider _attackCollider;
         
-        [Header("Patrol System - Waypoints")]
+        [Header("Patrol System")]
         [SerializeField] private Transform _patrolPointA;
         [SerializeField] private Transform _patrolPointB;
-        [SerializeField] private bool _useTransformPoints = false;
-        [Tooltip("If true, use Transform references. If false, use Vector3 waypoints relative to enemy position.")]
-        
-        [SerializeField] private Vector3 _patrolWaypointA = Vector3.zero;
-        [SerializeField] private Vector3 _patrolWaypointB = Vector3.forward * 5f;
-        
-        [Header("Patrol System - Behavior")]
-        [SerializeField] private PatrolMode _patrolMode = PatrolMode.Infinite;
-        [Tooltip("Infinite: Never stops patrolling. Limited: Stops after specified cycles.")]
-        
-        [SerializeField] private int _maxPatrolCycles = 3;
-        [Tooltip("How many complete A→B→A cycles before stopping (only used in Limited mode).")]
-        
-        [SerializeField] private float _patrolSpeed = 2f;
-        [Tooltip("Movement speed while patrolling (units per second).")]
-        
-        [Header("Patrol System - Timing")]
-        [SerializeField] private float _singleCycleDuration = 10f;
-        [Tooltip("How long one complete patrol cycle (A→B→A) should take in seconds.")]
-        
+
         [SerializeField] private float _waitAtWaypointDuration = 1f;
         [Tooltip("How long to wait at each waypoint before moving to the next.")]
         
-        [Header("Patrol System - Visual")]
         [SerializeField] private bool _showPatrolPath = true;
         [Tooltip("Show patrol path in Scene view when enemy is selected.")]
 
@@ -216,10 +196,10 @@ namespace Resonance.Enemies
         {
             get
             {
-                if (_useTransformPoints && _patrolPointA != null)
+                if (_patrolPointA != null)
                     return _patrolPointA.position;
                 else
-                    return transform.position + _patrolWaypointA;
+                    return Vector3.zero;
             }
         }
         
@@ -230,10 +210,10 @@ namespace Resonance.Enemies
         {
             get
             {
-                if (_useTransformPoints && _patrolPointB != null)
+                if (_patrolPointB != null)
                     return _patrolPointB.position;
                 else
-                    return transform.position + _patrolWaypointB;
+                    return Vector3.zero;
             }
         }
         
@@ -244,24 +224,13 @@ namespace Resonance.Enemies
         {
             get
             {
-                if (_useTransformPoints)
-                {
-                    return _patrolPointA != null && _patrolPointB != null;
-                }
-                else
-                {
-                    return Vector3.Distance(_patrolWaypointA, _patrolWaypointB) > 0.1f;
-                }
+                return _patrolPointA != null && _patrolPointB != null;
             }
         }
         
         /// <summary>
         /// Patrol configuration properties
         /// </summary>
-        public PatrolMode EnemyPatrolMode => _patrolMode;
-        public int MaxPatrolCycles => _maxPatrolCycles;
-        public float PatrolSpeed => _patrolSpeed;
-        public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
 
         /// <summary>
@@ -326,6 +295,10 @@ namespace Resonance.Enemies
             // Get movement system from controller
             _movementSystem = _enemyController.Movement;
 
+            // Mark as initialized before setting up child components
+            // This allows child components to verify parent initialization
+            _isInitialized = true;
+
             // Get or add EnemyAnimator component
             _enemyAnimator = GetComponentInChildren<EnemyAnimator>();
             if (_enemyAnimator == null)
@@ -363,8 +336,6 @@ namespace Resonance.Enemies
             _enemyController.OnStateChanged += HandleStateChanged;
             _enemyController.OnPlayerDetected += HandlePlayerDetected;
             _enemyController.OnPlayerLost += HandlePlayerLost;
-
-            _isInitialized = true;
             
             // Setup patrol waypoints after controller is initialized
             SetupPatrolWaypoints();
@@ -646,10 +617,17 @@ namespace Resonance.Enemies
                 Debug.LogWarning($"EnemyMonoBehaviour: {gameObject.name} has invalid patrol waypoints. Using default points.");
                 
                 // Set default waypoints if none are configured
-                if (!_useTransformPoints)
+                if(_patrolPointA == null)
                 {
-                    _patrolWaypointA = Vector3.left * 3f;
-                    _patrolWaypointB = Vector3.right * 3f;
+                    _patrolPointA = new GameObject("PatrolPointA").transform;
+                    _patrolPointA.SetParent(transform);
+                    _patrolPointA.localPosition = Vector3.left * 3f;
+                }
+                if(_patrolPointB == null)
+                {
+                    _patrolPointB = new GameObject("PatrolPointB").transform;
+                    _patrolPointB.SetParent(transform);
+                    _patrolPointB.localPosition = Vector3.right * 3f;
                 }
             }
             
@@ -658,10 +636,6 @@ namespace Resonance.Enemies
             {
                 _enemyController.SetPatrolWaypoints(PatrolWaypointA, PatrolWaypointB);
                 _enemyController.SetPatrolConfiguration(
-                    _patrolMode,
-                    _maxPatrolCycles,
-                    _patrolSpeed,
-                    _singleCycleDuration,
                     _waitAtWaypointDuration
                 );
                 
@@ -1308,15 +1282,6 @@ namespace Resonance.Enemies
         void OnValidate()
         {
             // Validate patrol configuration
-            if (_maxPatrolCycles < 1)
-                _maxPatrolCycles = 1;
-                
-            if (_patrolSpeed < 0.1f)
-                _patrolSpeed = 0.1f;
-                
-            if (_singleCycleDuration < 1f)
-                _singleCycleDuration = 1f;
-                
             if (_waitAtWaypointDuration < 0f)
                 _waitAtWaypointDuration = 0f;
                 
