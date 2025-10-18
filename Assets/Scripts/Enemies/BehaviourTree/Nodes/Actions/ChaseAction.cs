@@ -17,14 +17,14 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
         {
             UnityEngine.Debug.Log($"[BT Action] ChaseAction: Executing...");
             
-            // Update animation parameters for chase state
+            // ★ Update animation parameters for chase state
             var animator = GetAnimator();
             if (animator != null && animator.isActiveAndEnabled)
             {
-                animator.SetBool("HasTarget", true);
-                animator.SetBool("InAttackRange", false);
+                animator.SetBool("HasTarget", true);         // Has player target
+                animator.SetBool("InAttackRange", false);   // NOT in attack range (chasing)
                 
-                // Update speed parameter
+                // Update speed parameter based on actual movement
                 float speed = Movement?.Velocity.magnitude ?? 0f;
                 animator.SetFloat("Speed", speed);
             }
@@ -41,7 +41,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 ? Controller.PlayerTarget.position 
                 : Controller.LastKnownPlayerPosition;
 
-            UnityEngine.Debug.Log($"[BT Action] ChaseAction: Chasing towards {targetPosition}");
+            UnityEngine.Debug.Log($"[BT Action] ChaseAction: Chasing towards {targetPosition}, Speed={Movement?.Velocity.magnitude:F2}");
             
             // Move towards target
             Movement.SetTarget(targetPosition);

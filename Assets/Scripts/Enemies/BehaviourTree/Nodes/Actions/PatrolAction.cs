@@ -87,7 +87,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             _currentPatrolTarget = Controller.GeneratePatrolPoint();
             Controller.SetPatrolTarget(_currentPatrolTarget);
             
-            // Set animation parameters for patrol state
+            // ★ Set animation parameters for patrol state
             var animator = GetAnimator();
             if (animator != null && animator.isActiveAndEnabled)
             {
@@ -95,7 +95,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 animator.SetBool("InAttackRange", false);
             }
             
-            UnityEngine.Debug.Log($"[BT Action] PatrolAction: Initialized. Target={_currentPatrolTarget}");
+            UnityEngine.Debug.Log($"[BT Action] PatrolAction: Initialized. Target={_currentPatrolTarget}, HasTarget=false, InAttackRange=false");
         }
 
         /// <summary>

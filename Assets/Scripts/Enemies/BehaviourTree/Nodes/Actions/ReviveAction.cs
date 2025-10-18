@@ -31,15 +31,18 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 // Stop all movement and behaviors
                 Controller.StopPatrol();
                 Controller.LosePlayer();
+                Movement?.Stop();
                 
-                // Set revival animation state
+                // ★ Set revival animation state - reset all parameters
                 if (animator != null && animator.isActiveAndEnabled)
                 {
-                    animator.SetBool("IsReviving", true);
-                    animator.SetFloat("Speed", 0f);  // No movement during revival
+                    animator.SetBool("IsReviving", true);      // Enter revival state
+                    animator.SetFloat("Speed", 0f);            // No movement during revival
+                    animator.SetBool("HasTarget", false);      // No target during revival
+                    animator.SetBool("InAttackRange", false);  // Cannot attack during revival
                 }
                 
-                Debug.Log("ReviveAction: Started revival - set IsReviving = true");
+                Debug.Log("[BT Action] ReviveAction: Started revival - IsReviving=true, all other params reset");
             }
 
             _reviveTimer += Time.deltaTime;
@@ -78,16 +81,18 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         /// <summary>
         /// Reset revival state for next execution
+        /// ★ CRITICAL: Reset IsReviving to allow Animator to exit revival state
         /// </summary>
         public override void Reset()
         {
             base.Reset();
             
-            // Clean up animation state
+            // ★ Clean up animation state - allow Animator to return to normal
             var animator = GetAnimator();
             if (animator != null && animator.isActiveAndEnabled)
             {
                 animator.SetBool("IsReviving", false);
+                Debug.Log("[BT Action] ReviveAction: Reset - IsReviving=false");
             }
             
             _initialized = false;

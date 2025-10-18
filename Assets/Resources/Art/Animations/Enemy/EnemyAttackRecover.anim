@@ -338,7 +338,7 @@ AnimationClip:
   - time: 1
     functionName: OnAttackSequenceFinished
     data: 
-    objectReferenceParameter: {fileID: 0}
+    objectReferenceParameter: {fileID: 11500000, guid: 172fe19e81a051b4c97c829a181b6bdb, type: 3}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0

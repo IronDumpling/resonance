@@ -17,55 +17,81 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
-            var animator = GetAnimator();
-            
-            // Launch wave attack on first execution
+            // ===== Phase 1: Launch Wave Attack =====
             if (!_attackLaunched)
             {
-                // Subscribe to events
+                Debug.Log("[BT Action] WaveAttackAction: Launching wave attack...");
+                
+                // 1. Subscribe to completion event
                 Controller.OnAttackSequenceFinished += HandleSequenceFinished;
 
-                // Launch the wave attack
-                if (Controller.LaunchWaveAttack())
+                // 2. Launch business logic (set cooldown)
+                if (!Controller.LaunchWaveAttack())
                 {
-                    _attackLaunched = true;
+                    Debug.LogWarning("[BT Action] WaveAttackAction: LaunchWaveAttack failed! Returning Failure.");
+                    Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
+                    return BTNodeStatus.Failure;
+                }
+                
+                // 3. Set Animator parameters
+                var animator = GetAnimator();
+                if (animator != null && animator.isActiveAndEnabled)
+                {
+                    // ★ KEY: Set InAttackRange to allow Animator to enter WaveAttackSM
+                    animator.SetBool("InAttackRange", true);
                     
-                    // Trigger wave attack animation
-                    if (animator != null && animator.isActiveAndEnabled)
-                    {
-                        animator.SetBool("InAttackRange", true);
-                        animator.SetTrigger("WaveAttackStart");
-                        Debug.Log("WaveAttackAction: Triggered WaveAttackStart animation");
-                    }
+                    // ★ Trigger wave attack transition
+                    animator.SetTrigger("WaveAttackStart");
+                    
+                    Debug.Log($"[BT Action] WaveAttackAction: Animation triggered. InAttackRange=true, WaveAttackStart=triggered");
                 }
                 else
                 {
-                    return BTNodeStatus.Failure;
+                    Debug.LogWarning($"[BT Action] WaveAttackAction: Animator not available! Will rely on event callback.");
                 }
+                
+                _attackLaunched = true;
+                
+                // 4. Stop movement during attack
+                Movement?.Stop();
             }
 
-            // Wait for sequence to finish
+            // ===== Phase 2: Wait for Animation Event =====
             if (_sequenceFinished)
             {
+                Debug.Log("[BT Action] WaveAttackAction: Sequence finished! Returning Success.");
                 return BTNodeStatus.Success;
             }
 
+            // Continue waiting for animation to complete
             return BTNodeStatus.Running;
         }
 
         private void HandleSequenceFinished()
         {
+            Debug.Log("[BT Action] WaveAttackAction: OnAttackSequenceFinished event received!");
             _sequenceFinished = true;
         }
 
         /// <summary>
         /// Reset wave attack state for next execution
+        /// ★ CRITICAL: Reset InAttackRange to allow Animator to exit WaveAttackSM
         /// </summary>
         public override void Reset()
         {
             base.Reset();
+            
+            // ★ Reset Animator parameters - let Animator exit WaveAttackSM
+            var animator = GetAnimator();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                animator.SetBool("InAttackRange", false);
+                Debug.Log("[BT Action] WaveAttackAction: Reset - InAttackRange=false");
+            }
+            
             // Clean up event subscriptions
             Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
+            
             _attackLaunched = false;
             _sequenceFinished = false;
         }

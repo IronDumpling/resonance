@@ -17,55 +17,81 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
-            var animator = GetAnimator();
-            
-            // Launch attack on first execution
+            // ===== Phase 1: Launch Attack =====
             if (!_attackLaunched)
             {
-                // Subscribe to events
+                Debug.Log("[BT Action] NormalAttackAction: Launching attack...");
+                
+                // 1. Subscribe to completion event
                 Controller.OnAttackSequenceFinished += HandleSequenceFinished;
 
-                // Launch the attack
-                if (Controller.LaunchAttack())
+                // 2. Launch business logic (set cooldown)
+                if (!Controller.LaunchAttack())
                 {
-                    _attackLaunched = true;
+                    Debug.LogWarning("[BT Action] NormalAttackAction: LaunchAttack failed! Returning Failure.");
+                    Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
+                    return BTNodeStatus.Failure;
+                }
+                
+                // 3. Set Animator parameters
+                var animator = GetAnimator();
+                if (animator != null && animator.isActiveAndEnabled)
+                {
+                    // ★ KEY: Set InAttackRange to allow Animator to enter AttackSM
+                    animator.SetBool("InAttackRange", true);
                     
-                    // Trigger attack animation
-                    if (animator != null && animator.isActiveAndEnabled)
-                    {
-                        animator.SetBool("InAttackRange", true);
-                        animator.SetTrigger("NormalAttackStart");
-                        Debug.Log("NormalAttackAction: Triggered NormalAttackStart animation");
-                    }
+                    // ★ Trigger attack transition
+                    animator.SetTrigger("NormalAttackStart");
+                    
+                    Debug.Log($"[BT Action] NormalAttackAction: Animation triggered. InAttackRange=true, NormalAttackStart=triggered");
                 }
                 else
                 {
-                    return BTNodeStatus.Failure;
+                    Debug.LogWarning($"[BT Action] NormalAttackAction: Animator not available! Will rely on event callback.");
                 }
+                
+                _attackLaunched = true;
+                
+                // 4. Stop movement during attack
+                Movement?.Stop();
             }
 
-            // Wait for sequence to finish
+            // ===== Phase 2: Wait for Animation Event =====
             if (_sequenceFinished)
             {
+                Debug.Log("[BT Action] NormalAttackAction: Sequence finished! Returning Success.");
                 return BTNodeStatus.Success;
             }
 
+            // Continue waiting for animation to complete
             return BTNodeStatus.Running;
         }
 
         private void HandleSequenceFinished()
         {
+            Debug.Log("[BT Action] NormalAttackAction: OnAttackSequenceFinished event received!");
             _sequenceFinished = true;
         }
 
         /// <summary>
         /// Reset attack state for next execution
+        /// ★ CRITICAL: Reset InAttackRange to allow Animator to exit AttackSM
         /// </summary>
         public override void Reset()
         {
             base.Reset();
+            
+            // ★ Reset Animator parameters - let Animator exit AttackSM
+            var animator = GetAnimator();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                animator.SetBool("InAttackRange", false);
+                Debug.Log("[BT Action] NormalAttackAction: Reset - InAttackRange=false");
+            }
+            
             // Clean up event subscriptions
             Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
+            
             _attackLaunched = false;
             _sequenceFinished = false;
         }
