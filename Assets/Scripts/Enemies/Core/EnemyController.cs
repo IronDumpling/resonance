@@ -12,17 +12,6 @@ using Resonance.Interfaces.Services;
 namespace Resonance.Enemies.Core
 {
     /// <summary>
-    /// Enemy state enum for unified state management
-    /// </summary>
-    public enum EnemyState
-    {
-        Normal,      // Alive and active
-        Stunned,     // Temporarily incapacitated by chaos damage
-        Reviving,    // Physical health depleted, restoring (core alive)
-        Dead         // Core destroyed, permanently dead
-    }
-
-    /// <summary>
     /// Enemy Controller, manages enemy state and behavior
     /// This is a Non-MonoBehaviour class, handling enemy logic
     /// </summary>

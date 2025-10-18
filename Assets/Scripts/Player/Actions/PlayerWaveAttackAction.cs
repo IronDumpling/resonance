@@ -5,8 +5,8 @@ using Resonance.Player.Data;
 using Resonance.Player.Triggers;
 using Resonance.Interfaces.Operations;
 using Resonance.Interfaces.Services;
+using Resonance.Enemies.Data;
 using Resonance.Enemies.Triggers;
-using Resonance.Enemies.Core;
 using Resonance.Utilities;
 
 namespace Resonance.Player.Actions
