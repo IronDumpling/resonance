@@ -95,6 +95,9 @@ namespace Resonance.Core.StateMachine.States
                 Debug.Log("InventoryState: Restored player input mode");
             }
 
+            // Trigger event
+            OnInventoryEnded?.Invoke();
+
             Debug.Log("InventoryState: Inventory closed successfully");
         }
 

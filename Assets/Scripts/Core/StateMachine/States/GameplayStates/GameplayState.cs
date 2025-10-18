@@ -4,6 +4,7 @@ using Resonance.Utilities;
 using Resonance.Interfaces.Services;
 using Resonance.Player.Actions;
 using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 using Resonance.Items;
 
 namespace Resonance.Core.StateMachine.States

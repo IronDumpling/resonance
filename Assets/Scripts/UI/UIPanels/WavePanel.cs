@@ -7,7 +7,7 @@ using Resonance.Interfaces.Services;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 using Resonance.Utilities;
-using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 using DG.Tweening;
 
 namespace Resonance.UI

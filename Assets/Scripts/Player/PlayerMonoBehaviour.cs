@@ -6,7 +6,7 @@ using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Player.Triggers;
 using Resonance.Core;
-using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 using Resonance.Items;
 using Resonance.Utilities;
 using Resonance.Interfaces;

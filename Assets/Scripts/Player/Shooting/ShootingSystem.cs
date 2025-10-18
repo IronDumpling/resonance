@@ -4,7 +4,7 @@ using Resonance.Items;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
-using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 
 namespace Resonance.Player.Shooting
 {

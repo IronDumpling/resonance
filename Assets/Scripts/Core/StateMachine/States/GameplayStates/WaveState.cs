@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Interfaces.Services;
-using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 using Resonance.UI;
 
 namespace Resonance.Core.StateMachine.States

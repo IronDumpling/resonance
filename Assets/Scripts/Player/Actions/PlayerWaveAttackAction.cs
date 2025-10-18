@@ -5,7 +5,8 @@ using Resonance.Player.Data;
 using Resonance.Player.Triggers;
 using Resonance.Interfaces.Operations;
 using Resonance.Interfaces.Services;
-using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
+using Resonance.Enemies.Core;
 using Resonance.Utilities;
 
 namespace Resonance.Player.Actions
@@ -175,9 +176,10 @@ namespace Resonance.Player.Actions
                 return false;
             }
                 
-            // Valid states for resonance: Reviving or health death (not Normal/Attack states)
-            string enemyState = enemyController.CurrentState;
-            bool isValidState = enemyState == "Reviving" || enemyState == "PhysicalDeath";
+            // Valid state for resonance: Reviving (physically dead but core alive)
+            // Enemy must be vulnerable (in revival state, not truly dead)
+            var enemyState = enemyController.CurrentState;
+            bool isValidState = enemyState == EnemyState.Reviving;
             
             return isValidState;
         }

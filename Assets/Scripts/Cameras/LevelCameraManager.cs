@@ -1,8 +1,9 @@
 using UnityEngine;
 using Unity.Cinemachine;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
 using Resonance.Player.Actions;
+using Resonance.Enemies.Triggers;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Cameras
 {
@@ -107,7 +108,7 @@ namespace Resonance.Cameras
         /// Handle resonance action started - switch to player camera
         /// </summary>
         /// <param name="targetCore">The target core hitbox (not used for camera switching)</param>
-        private void OnWaveStarted(Resonance.Enemies.EnemyHitbox targetCore)
+        private void OnWaveStarted(EnemyHitbox targetCore)
         {
             Debug.Log("LevelCameraManager: Wave started, switching to player camera");
             SwitchToPlayerCamera();
