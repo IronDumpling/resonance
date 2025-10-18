@@ -15,10 +15,6 @@ namespace Resonance.Enemies.Core
         {
             _blackboard = blackboard;
             _rootNode = BuildTree();
-            if (_rootNode != null)
-            {
-                _rootNode.SetBlackboard(_blackboard);
-            }
         }
 
         public void Tick()
@@ -41,6 +37,10 @@ namespace Resonance.Enemies.Core
             //   6. No target -> Patrol
 
             var root = new SelectorNode();
+            
+            // Set blackboard BEFORE adding children
+            // This is critical: AddChild() will propagate blackboard to children
+            root.SetBlackboard(_blackboard);
 
             // Note: TrueDeath is handled by EnemyMonoBehaviour checking IsTrulyDead
             // and destroying the GameObject
@@ -54,10 +54,12 @@ namespace Resonance.Enemies.Core
 
             // Combat behavior (target in range)
             var combatSequence = new SequenceNode();
+            combatSequence.SetBlackboard(_blackboard); // Set before adding children
             combatSequence.AddChild(new HasTargetCondition());
             combatSequence.AddChild(new InAttackRangeCondition());
             
             var combatSelector = new SelectorNode();
+            combatSelector.SetBlackboard(_blackboard); // Set before adding children
             // Try wave attack first (higher priority)
             combatSelector.AddChild(new WaveAttackAction());
             // Fall back to normal attack
@@ -68,6 +70,7 @@ namespace Resonance.Enemies.Core
 
             // Chase behavior (target detected but not in range)
             var chaseSequence = new SequenceNode();
+            chaseSequence.SetBlackboard(_blackboard); // Set before adding children
             chaseSequence.AddChild(new HasTargetCondition());
             chaseSequence.AddChild(new ChaseAction());
             root.AddChild(chaseSequence);
