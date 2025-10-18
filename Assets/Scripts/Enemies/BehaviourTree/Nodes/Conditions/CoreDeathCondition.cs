@@ -11,7 +11,10 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
         public override BTNodeStatus Execute()
         {
             // Check if core health is depleted
-            return !Controller.IsCoreAlive ? BTNodeStatus.Success : BTNodeStatus.Failure;
+            bool isCoreDead = !Controller.IsCoreAlive;
+            var result = isCoreDead ? BTNodeStatus.Success : BTNodeStatus.Failure;
+            UnityEngine.Debug.Log($"[BT Condition] CoreDeath: isCoreDead={isCoreDead} (IsCoreAlive={Controller.IsCoreAlive}) → {result}");
+            return result;
         }
     }
 }

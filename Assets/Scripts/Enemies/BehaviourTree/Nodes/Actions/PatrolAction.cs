@@ -94,6 +94,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 animator.SetBool("HasTarget", false);
                 animator.SetBool("InAttackRange", false);
             }
+            
+            UnityEngine.Debug.Log($"[BT Action] PatrolAction: Initialized. Target={_currentPatrolTarget}");
         }
 
         /// <summary>

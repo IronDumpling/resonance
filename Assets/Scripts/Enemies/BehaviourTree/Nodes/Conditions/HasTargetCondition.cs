@@ -9,7 +9,10 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
     {
         public override BTNodeStatus Execute()
         {
-            return Controller.HasPlayerTarget ? BTNodeStatus.Success : BTNodeStatus.Failure;
+            bool hasTarget = Controller.HasPlayerTarget;
+            var result = hasTarget ? BTNodeStatus.Success : BTNodeStatus.Failure;
+            UnityEngine.Debug.Log($"[BT Condition] HasTarget: {hasTarget} → {result}");
+            return result;
         }
     }
 }

@@ -12,7 +12,10 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
     {
         public override BTNodeStatus Execute()
         {
-            return Controller.CanWaveAttack ? BTNodeStatus.Success : BTNodeStatus.Failure;
+            bool canWave = Controller.CanWaveAttack;
+            var result = canWave ? BTNodeStatus.Success : BTNodeStatus.Failure;
+            UnityEngine.Debug.Log($"[BT Condition] CanWaveAttack: {canWave} → {result}");
+            return result;
         }
     }
 }

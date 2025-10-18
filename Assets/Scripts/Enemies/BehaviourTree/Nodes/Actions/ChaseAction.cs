@@ -15,6 +15,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         public override BTNodeStatus Execute()
         {
+            UnityEngine.Debug.Log($"[BT Action] ChaseAction: Executing...");
+            
             // Update animation parameters for chase state
             var animator = GetAnimator();
             if (animator != null && animator.isActiveAndEnabled)
@@ -39,6 +41,8 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 ? Controller.PlayerTarget.position 
                 : Controller.LastKnownPlayerPosition;
 
+            UnityEngine.Debug.Log($"[BT Action] ChaseAction: Chasing towards {targetPosition}");
+            
             // Move towards target
             Movement.SetTarget(targetPosition);
 

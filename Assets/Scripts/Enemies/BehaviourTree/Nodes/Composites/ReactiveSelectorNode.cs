@@ -18,33 +18,45 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
         {
             if (children == null || children.Count == 0)
             {
+                UnityEngine.Debug.LogWarning("ReactiveSelectorNode: No children to execute!");
                 return BTNodeStatus.Failure;
             }
+
+            UnityEngine.Debug.Log($"[BT] ReactiveSelectorNode: Evaluating {children.Count} children...");
 
             // CRITICAL: Always evaluate from the first child
             // This ensures we re-check all conditions every tick
             for (int i = 0; i < children.Count; i++)
             {
-                BTNodeStatus status = children[i].Execute();
+                var child = children[i];
+                string childName = child.GetType().Name;
+                
+                UnityEngine.Debug.Log($"[BT]   - Child[{i}] ({childName}): Executing...");
+                BTNodeStatus status = child.Execute();
+                UnityEngine.Debug.Log($"[BT]   - Child[{i}] ({childName}): Returned {status}");
 
                 switch (status)
                 {
                     case BTNodeStatus.Success:
                         // Child succeeded, selector succeeds
+                        UnityEngine.Debug.Log($"[BT] ReactiveSelectorNode: Child[{i}] ({childName}) succeeded. Selector succeeds.");
                         return BTNodeStatus.Success;
 
                     case BTNodeStatus.Running:
                         // Child is running, selector is running
                         // IMPORTANT: We return here but will re-evaluate from start next tick
+                        UnityEngine.Debug.Log($"[BT] ReactiveSelectorNode: Child[{i}] ({childName}) running. Selector running.");
                         return BTNodeStatus.Running;
 
                     case BTNodeStatus.Failure:
                         // Child failed, try next child
+                        UnityEngine.Debug.Log($"[BT]   - Child[{i}] ({childName}): Failed, trying next...");
                         continue;
                 }
             }
 
             // All children failed, selector fails
+            UnityEngine.Debug.Log($"[BT] ReactiveSelectorNode: All {children.Count} children failed. Selector fails.");
             return BTNodeStatus.Failure;
         }
 
