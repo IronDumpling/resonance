@@ -11,13 +11,6 @@ using Resonance.Utilities;
 
 namespace Resonance.Enemies
 {
-    // Patrol mode enumeration
-    public enum PatrolMode
-    {
-        Infinite,
-        Limited    
-    }
-
     /// <summary>
     /// MonoBehaviour component that handles Unity-specific enemy functionality.
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.

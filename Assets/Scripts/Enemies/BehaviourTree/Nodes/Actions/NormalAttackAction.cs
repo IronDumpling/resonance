@@ -5,79 +5,42 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 {
     /// <summary>
     /// Normal attack action node - triggers attack animation and manages attack flow
-    /// Based on Legacy EnemyNormalAttackAction
+    /// Simplified to follow BT design principles:
+    /// - No internal condition checking (handled by ConditionNode)
+    /// - Focuses only on executing the attack behavior
     /// Damage is dealt through hitbox during animation window
     /// </summary>
     public class NormalAttackAction : ActionNode
     {
-        private bool _windowOpened = false;
-        private bool _isActive = false;
         private bool _sequenceFinished = false;
+        private bool _attackLaunched = false;
 
         public override BTNodeStatus Execute()
         {
-            // Check if can start attack
-            if (!_isActive)
+            // Launch attack on first execution
+            if (!_attackLaunched)
             {
-                if (!CanStartAttack())
+                // Subscribe to events
+                Controller.OnAttackSequenceFinished += HandleSequenceFinished;
+
+                // Launch the attack
+                if (Controller.LaunchAttack())
+                {
+                    _attackLaunched = true;
+                }
+                else
                 {
                     return BTNodeStatus.Failure;
                 }
-                StartAttack();
             }
 
-            // If sequence finished, complete the action
+            // Wait for sequence to finish
             if (_sequenceFinished)
             {
-                FinishAttack();
                 return BTNodeStatus.Success;
             }
 
-            // Cancel if player left range before window opened
-            if (!_windowOpened && (!Controller.HasPlayerTarget || !Controller.IsPlayerInAttackRange()))
-            {
-                FinishAttack();
-                return BTNodeStatus.Failure;
-            }
-
             return BTNodeStatus.Running;
-        }
-
-        private bool CanStartAttack()
-        {
-            return Controller.CanNormalAttack && Controller.IsPlayerInAttackRange();
-        }
-
-        private void StartAttack()
-        {
-            _isActive = true;
-            _windowOpened = false;
-            _sequenceFinished = false;
-
-            // Subscribe to events
-            Controller.OnAttackSequenceFinished += HandleSequenceFinished;
-            Controller.OnAttackWindowOpened += HandleWindowOpened;
-            Controller.OnAttackWindowClosed += HandleWindowClosed;
-
-            // Launch the attack
-            if (Controller.LaunchAttack())
-            {
-                Debug.Log("NormalAttackAction: Started attack action");
-            }
-            else
-            {
-                FinishAttack();
-            }
-        }
-
-        private void HandleWindowOpened()
-        {
-            _windowOpened = true;
-        }
-
-        private void HandleWindowClosed()
-        {
-            _windowOpened = false;
         }
 
         private void HandleSequenceFinished()
@@ -85,14 +48,16 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             _sequenceFinished = true;
         }
 
-        private void FinishAttack()
+        /// <summary>
+        /// Reset attack state for next execution
+        /// </summary>
+        public override void Reset()
         {
+            base.Reset();
             // Clean up event subscriptions
             Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
-            Controller.OnAttackWindowOpened -= HandleWindowOpened;
-            Controller.OnAttackWindowClosed -= HandleWindowClosed;
-
-            _isActive = false;
+            _attackLaunched = false;
+            _sequenceFinished = false;
         }
     }
 }

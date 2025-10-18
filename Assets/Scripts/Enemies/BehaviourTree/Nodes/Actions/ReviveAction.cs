@@ -6,79 +6,57 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 {
     /// <summary>
     /// Revive action node - handles the revival process when physical health reaches 0
+    /// Simplified to follow BT design principles:
+    /// - No internal condition checking (handled by ConditionNode)
+    /// - Focuses only on executing the revival behavior
     /// Restores physical health over time
     /// </summary>
     public class ReviveAction : ActionNode
     {
         private float _reviveTimer = 0f;
         private float _maxReviveTime;
-        private bool _isActive = false;
+        private bool _initialized = false;
 
         public override BTNodeStatus Execute()
         {
-            // Check if can start revival
-            if (!_isActive)
+            // Initialize on first execution
+            if (!_initialized)
             {
-                if (!CanStartRevival())
-                {
-                    return BTNodeStatus.Failure;
-                }
-                StartRevival();
+                _initialized = true;
+                _reviveTimer = 0f;
+                _maxReviveTime = 3f * Controller.Stats.maxHealth / Controller.Stats.revivalRate;
+
+                // Stop all movement and behaviors
+                Controller.StopPatrol();
+                Controller.LosePlayer();
             }
 
             _reviveTimer += Time.deltaTime;
 
-            // Check if core health dropped to 0 during revival
-            if (!Controller.IsCoreAlive)
-            {
-                Debug.Log("ReviveAction: Revival interrupted - core health reached 0");
-                FinishRevival();
-                return BTNodeStatus.Failure;
-            }
-
             // Check if revival is complete (physical health restored)
             if (Controller.IsAlive)
             {
-                Debug.Log("ReviveAction: Revival completed - physical health restored");
-                FinishRevival();
                 return BTNodeStatus.Success;
             }
 
             // Safety timeout
             if (_reviveTimer > _maxReviveTime)
             {
-                Debug.LogWarning("ReviveAction: Revival timeout - forcing completion");
                 Controller.Stats.FullRestore();
-                FinishRevival();
                 return BTNodeStatus.Success;
             }
 
             return BTNodeStatus.Running;
         }
 
-        private bool CanStartRevival()
+        /// <summary>
+        /// Reset revival state for next execution
+        /// </summary>
+        public override void Reset()
         {
-            return !Controller.IsAlive &&
-                   Controller.IsCoreAlive &&
-                   Controller.CurrentState == EnemyState.Reviving;
-        }
-
-        private void StartRevival()
-        {
-            _isActive = true;
+            base.Reset();
+            _initialized = false;
             _reviveTimer = 0f;
-            _maxReviveTime = 3f * Controller.Stats.maxHealth / Controller.Stats.revivalRate;
-
-            Debug.Log("ReviveAction: Started revival process");
-
-            // Stop all movement and behaviors
-            Controller.StopPatrol();
-            Controller.LosePlayer();
-        }
-
-        private void FinishRevival()
-        {
-            _isActive = false;
         }
     }
 }

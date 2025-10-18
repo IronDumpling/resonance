@@ -5,79 +5,42 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 {
     /// <summary>
     /// Wave attack action node - attacks player's core health
-    /// Based on Legacy EnemyWaveAttackAction
+    /// Simplified to follow BT design principles:
+    /// - No internal condition checking (handled by ConditionNode)
+    /// - Focuses only on executing the wave attack behavior
     /// Deals CoreHealth damage to break player's crystal core
     /// </summary>
     public class WaveAttackAction : ActionNode
     {
-        private bool _windowOpened = false;
-        private bool _isActive = false;
         private bool _sequenceFinished = false;
+        private bool _attackLaunched = false;
 
         public override BTNodeStatus Execute()
         {
-            // Check if can start wave attack
-            if (!_isActive)
+            // Launch wave attack on first execution
+            if (!_attackLaunched)
             {
-                if (!CanStartWaveAttack())
+                // Subscribe to events
+                Controller.OnAttackSequenceFinished += HandleSequenceFinished;
+
+                // Launch the wave attack
+                if (Controller.LaunchWaveAttack())
+                {
+                    _attackLaunched = true;
+                }
+                else
                 {
                     return BTNodeStatus.Failure;
                 }
-                StartWaveAttack();
             }
 
-            // If sequence finished, complete the action
+            // Wait for sequence to finish
             if (_sequenceFinished)
             {
-                FinishWaveAttack();
                 return BTNodeStatus.Success;
             }
 
-            // Cancel if player left range before window opened
-            if (!_windowOpened && (!Controller.HasPlayerTarget || !Controller.IsPlayerInAttackRange()))
-            {
-                FinishWaveAttack();
-                return BTNodeStatus.Failure;
-            }
-
             return BTNodeStatus.Running;
-        }
-
-        private bool CanStartWaveAttack()
-        {
-            return Controller.CanWaveAttack && Controller.IsPlayerInAttackRange();
-        }
-
-        private void StartWaveAttack()
-        {
-            _isActive = true;
-            _windowOpened = false;
-            _sequenceFinished = false;
-
-            // Subscribe to events
-            Controller.OnAttackSequenceFinished += HandleSequenceFinished;
-            Controller.OnAttackWindowOpened += HandleWindowOpened;
-            Controller.OnAttackWindowClosed += HandleWindowClosed;
-
-            // Launch the wave attack
-            if (Controller.LaunchWaveAttack())
-            {
-                Debug.Log("WaveAttackAction: Started wave attack action");
-            }
-            else
-            {
-                FinishWaveAttack();
-            }
-        }
-
-        private void HandleWindowOpened()
-        {
-            _windowOpened = true;
-        }
-
-        private void HandleWindowClosed()
-        {
-            _windowOpened = false;
         }
 
         private void HandleSequenceFinished()
@@ -85,14 +48,16 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             _sequenceFinished = true;
         }
 
-        private void FinishWaveAttack()
+        /// <summary>
+        /// Reset wave attack state for next execution
+        /// </summary>
+        public override void Reset()
         {
+            base.Reset();
             // Clean up event subscriptions
             Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
-            Controller.OnAttackWindowOpened -= HandleWindowOpened;
-            Controller.OnAttackWindowClosed -= HandleWindowClosed;
-
-            _isActive = false;
+            _attackLaunched = false;
+            _sequenceFinished = false;
         }
     }
 }

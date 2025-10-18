@@ -1,32 +1,48 @@
+using System.Collections.Generic;
+using System.Linq;
 using Resonance.Enemies.BehaviourTree.Base;
 
 namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
 {
     /// <summary>
-    /// Selector node - executes children in order until one succeeds
+    /// Priority Selector node - executes children sorted by priority (highest first)
+    /// Inspired by network resource design
     /// Returns Success if any child succeeds
     /// Returns Failure if all children fail
     /// Returns Running if a child is running
     /// </summary>
-    public class SelectorNode : CompositeNode
+    public class PrioritySelectorNode : CompositeNode
     {
+        private List<BTNode> _sortedChildren;
+
+        protected virtual List<BTNode> SortChildren()
+        {
+            return children.OrderByDescending(child => child.Priority).ToList();
+        }
+
         public override BTNodeStatus Execute()
         {
-            if (children == null || children.Count == 0)
+            // Lazy initialization of sorted children
+            if (_sortedChildren == null)
+            {
+                _sortedChildren = SortChildren();
+            }
+
+            if (_sortedChildren == null || _sortedChildren.Count == 0)
             {
                 return BTNodeStatus.Failure;
             }
 
             // Execute children from current index onwards
-            while (currentChild < children.Count)
+            while (currentChild < _sortedChildren.Count)
             {
-                BTNodeStatus status = children[currentChild].Execute();
+                BTNodeStatus status = _sortedChildren[currentChild].Execute();
 
                 switch (status)
                 {
                     case BTNodeStatus.Success:
                         // Child succeeded, selector succeeds
-                        Reset(); // Reset for next execution
+                        Reset();
                         return BTNodeStatus.Success;
 
                     case BTNodeStatus.Running:
@@ -41,8 +57,15 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
             }
 
             // All children failed, selector fails
-            Reset(); // Reset for next execution
+            Reset();
             return BTNodeStatus.Failure;
+        }
+
+        public override void Reset()
+        {
+            base.Reset();
+            _sortedChildren = null; // Re-sort on next execution
         }
     }
 }
+

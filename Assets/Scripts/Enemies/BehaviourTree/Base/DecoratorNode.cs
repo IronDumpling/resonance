@@ -9,5 +9,13 @@ namespace Resonance.Enemies.BehaviourTree.Base
             child = node;
             child.SetBlackboard(blackboard);
         }
+
+        /// <summary>
+        /// Reset this node and its child
+        /// </summary>
+        public override void Reset()
+        {
+            child?.Reset();
+        }
     }
 }

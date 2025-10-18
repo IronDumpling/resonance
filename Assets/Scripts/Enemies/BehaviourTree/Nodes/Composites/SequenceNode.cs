@@ -10,8 +10,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
     /// </summary>
     public class SequenceNode : CompositeNode
     {
-        private int _currentChildIndex = 0;
-
         public override BTNodeStatus Execute()
         {
             if (children == null || children.Count == 0)
@@ -20,15 +18,15 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
             }
 
             // Execute children from current index onwards
-            while (_currentChildIndex < children.Count)
+            while (currentChild < children.Count)
             {
-                BTNodeStatus status = children[_currentChildIndex].Execute();
+                BTNodeStatus status = children[currentChild].Execute();
 
                 switch (status)
                 {
                     case BTNodeStatus.Failure:
                         // Child failed, sequence fails
-                        _currentChildIndex = 0; // Reset for next execution
+                        Reset(); // Reset for next execution
                         return BTNodeStatus.Failure;
 
                     case BTNodeStatus.Running:
@@ -37,13 +35,13 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
 
                     case BTNodeStatus.Success:
                         // Child succeeded, move to next child
-                        _currentChildIndex++;
+                        currentChild++;
                         break;
                 }
             }
 
             // All children succeeded, sequence succeeds
-            _currentChildIndex = 0; // Reset for next execution
+            Reset(); // Reset for next execution
             return BTNodeStatus.Success;
         }
     }
