@@ -54,8 +54,6 @@ namespace Resonance.Enemies
         private EnemyController _enemyController;
         private MovementSystem _movementSystem;
         private EnemyAnimator _enemyAnimator;
-        private EnemyBehaviourTree _behaviourTree;
-        private EnemyBlackboard _blackboard;
         private IAudioService _audioService;
         private Animator _animator;
 
@@ -139,12 +137,6 @@ namespace Resonance.Enemies
         void Update()
         {
             if (!IsInitialized || _enemyController.IsPaused) return;
-
-            // Update blackboard data
-            _blackboard.Update();
-
-            // Execute behavior tree
-            _behaviourTree.Tick();
 
             // Update core controller (health, combat, etc.)
             _enemyController.Update(Time.deltaTime);
@@ -273,18 +265,13 @@ namespace Resonance.Enemies
 
         private void InitializeEnemy()
         {
-            // Initialize blackboard first
-            _blackboard = new EnemyBlackboard();
-
             // Initialize core controller
             _enemyController = new EnemyController(_baseStats, transform.position, transform);
 
             // Get movement system from controller
             _movementSystem = _enemyController.Movement;
 
-            // Mark as initialized before setting up child components
-            // This allows child components to verify parent initialization
-            _isInitialized = true;
+
 
             // Get or add EnemyAnimator component
             _enemyAnimator = GetComponentInChildren<EnemyAnimator>();
@@ -304,14 +291,6 @@ namespace Resonance.Enemies
                 _enemyAnimator.Initialize(this, damageHitbox);
             }
 
-            // Register systems with blackboard
-            _blackboard.RegisterSystem(_enemyController);
-            _blackboard.RegisterSystem(_movementSystem);
-            _blackboard.RegisterSystem(_enemyAnimator);
-
-            // Initialize behavior tree
-            _behaviourTree = new EnemyBehaviourTree(_blackboard);
-
             // Subscribe to enemy events
             _enemyController.OnHealthChanged += HandleHealthChanged;
             _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
@@ -329,6 +308,8 @@ namespace Resonance.Enemies
             _enemyController.ResetAttackCooldown();
             
             OnEnemyInitialized?.Invoke(_enemyController);
+
+            _isInitialized = true;
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully with Behaviour Tree");
         }
