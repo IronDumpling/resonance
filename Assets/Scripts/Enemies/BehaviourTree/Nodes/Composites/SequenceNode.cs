@@ -46,6 +46,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
                 }
             }
 
+            Debug.Log($"[BT] SequenceNode: All children succeeded. Resetting and returning Success.");
             Reset(); // Reset for next execution
             return BTNodeStatus.Success;
         }

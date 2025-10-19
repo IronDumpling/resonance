@@ -21,6 +21,9 @@ namespace Resonance.Enemies.Core
         private EnemyRuntimeStats _stats;
         private MovementSystem _movement;
         
+        // State Data
+        private EnemyStateData _stateData = new EnemyStateData();
+        
         // State Tracking (behavior tree manages behavior, controller tracks data)
         private float _stunEndTime = 0f;
         
@@ -107,40 +110,20 @@ namespace Resonance.Enemies.Core
         // Revival Configuration Properties
         public float RevivalTimer => _revivalTimer;
         
+        public EnemyStateData StateData => _stateData;
+        
         // Health Properties
-        public bool IsAlive => _stats.IsAlive;
-        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == Utilities.CoreHealthState.Intact;
-        public bool IsInPhysicalDeathState => _stats.IsAlive == false;
+        public bool IsPhysicallyAlive => _stateData.IsPhysicallyAlive;
+        public bool IsPhysicallyDead => _stateData.IsPhysicallyDead;
+        public bool IsCoreDead => _stateData.IsCoreDead;
         
-        // State Query Properties (for Behavior Tree)
-        public bool IsStunned => Time.time < _stunEndTime;
-        public bool IsReviving => !IsAlive && IsCoreAlive;
-        public bool IsTrulyDead => !IsCoreAlive;
-        
+        // State Properties
+        public EnemyState CurrentState => _stateData.CurrentState;
+
         /// <summary>
-        /// Get current enemy state based on all conditions
-        /// Priority: Dead > Stunned > Reviving > Normal
+        /// Check if hitbox is currently enabled
         /// </summary>
-        public EnemyState CurrentState
-        {
-            get
-            {
-                // Highest priority: Dead (core destroyed)
-                if (!IsCoreAlive)
-                    return EnemyState.Dead;
-                
-                // Second priority: Stunned (temporary incapacitation)
-                if (Time.time < _stunEndTime)
-                    return EnemyState.Stunned;
-                
-                // Third priority: Reviving (physical health depleted, restoring)
-                if (!IsAlive && IsCoreAlive)
-                    return EnemyState.Reviving;
-                
-                // Default: Normal (alive and active)
-                return EnemyState.Normal;
-            }
-        }
+        public bool IsHitboxEnabled => _hitboxEnabled;
         
         // Health Tier Properties
         public HealthTier HealthTier => _stats.healthTier;
@@ -151,14 +134,14 @@ namespace Resonance.Enemies.Core
         // 1. Enemy is alive, has core alive, and has player target
         // 2. Player is in attack range
         // 3. Not on attack cooldown
-        public bool CanNormalAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+        public bool CanNormalAttack => IsPhysicallyAlive && HasPlayerTarget && 
                                     Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
         
         // Can only wave attack if:
         // 1. Enemy is alive, has core alive, and has player target
         // 2. Not on attack cooldown
         // 3. Has at least 1 energy slot to consume
-        public bool CanWaveAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
+        public bool CanWaveAttack => IsPhysicallyAlive && HasPlayerTarget && 
                                     Time.time >= _lastWaveAttackTime + _stats.waveAttackStats.cooldown &&
                                     _stats.crystalCore.CanConsumeSlot(); 
         
@@ -237,6 +220,9 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void Update(float deltaTime)
         {
+            bool isStunned = Time.time < _stunEndTime;
+            _stateData.UpdateState(_stats.currentHealth, _stats.crystalCore.CurrentCoreHealth, isStunned);
+            
             UpdateRevivalTimer(deltaTime);
             _stats.UpdateChaos(deltaTime);
             UpdatePlayerDetection();
@@ -251,7 +237,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void UpdateRevivalTimer(float deltaTime)
         {
-            if (IsReviving)
+            if (CurrentState == EnemyState.Reviving)
             {
                 _revivalTimer += deltaTime;
                 
@@ -313,7 +299,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void TakeHealthDamage(float damage)
         {
-            if (!IsCoreAlive) return;
+            if (IsPhysicallyDead) return;
             
             var previousTier = _stats.healthTier;
             _stats.TakeHealthDamage(damage);
@@ -343,7 +329,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void TakeCoreDamage(float damage)
         {
-            if (!IsCoreAlive) return;
+            if (IsCoreDead) return;
 
             var previousTier = _stats.crystalCore.EnergyTier;
             _stats.crystalCore.TakeCoreHealthDamage(damage);
@@ -373,7 +359,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void TakeChaosDamage(float damage)
         {
-            if (!IsCoreAlive) return;
+            if (IsPhysicallyDead) return;
 
             float addedChaos = _stats.crystalCore.AddChaos(damage);
             
@@ -403,7 +389,7 @@ namespace Resonance.Enemies.Core
             OnPhysicalDeath?.Invoke();
             
             // If core is also destroyed, trigger true death
-            if (!IsCoreAlive)
+            if (IsCoreDead)
             {
                 Debug.Log("EnemyController: Core also destroyed, triggering true death");
                 HandleTrueDeath();
@@ -451,7 +437,7 @@ namespace Resonance.Enemies.Core
         /// Start attack process (animation-driven) - sets cooldown and triggers events
         /// Actual damage is dealt through hitbox during animation window
         /// </summary>
-        public bool LaunchAttack()
+        public bool LaunchNormalAttack()
         {
             if (!CanNormalAttack) return false;
 
@@ -489,7 +475,15 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public AttackStats GetCurrentAttackStats()
         {
-            return _currentAttackType == AttackType.Wave ? _stats.waveAttackStats : _stats.normalAttackStats;
+            switch (_currentAttackType)
+            {
+                case AttackType.Normal:
+                    return _stats.normalAttackStats;
+                case AttackType.Wave:
+                    return _stats.waveAttackStats;
+                default:
+                    throw new System.Exception($"EnemyController: Invalid attack type: {_currentAttackType}");
+            }
         }
 
         /// <summary>
@@ -555,9 +549,9 @@ namespace Resonance.Enemies.Core
                 return false;
             }
 
-            if (!IsCoreAlive)
+            if (IsCoreDead)
             {
-                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is not corely alive");
+                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is core dead");
                 return false;
             }
 
@@ -609,11 +603,6 @@ namespace Resonance.Enemies.Core
             Debug.Log($"EnemyController: Applied {damageInfo.damages.ToString()} damage to target");
             return true;
         }
-
-        /// <summary>
-        /// Check if hitbox is currently enabled
-        /// </summary>
-        public bool IsHitboxEnabled => _hitboxEnabled;
 
         /// <summary>
         /// Reset attack cooldown (for testing purposes)

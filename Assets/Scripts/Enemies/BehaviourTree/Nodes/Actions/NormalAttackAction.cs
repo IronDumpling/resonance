@@ -26,9 +26,9 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 Controller.OnAttackSequenceFinished += HandleSequenceFinished;
 
                 // 2. Launch business logic (set cooldown)
-                if (!Controller.LaunchAttack())
+                if (!Controller.LaunchNormalAttack())
                 {
-                    Debug.LogWarning("[BT Action] NormalAttackAction: LaunchAttack failed! Returning Failure.");
+                    Debug.LogWarning("[BT Action] NormalAttackAction: LaunchNormalAttack failed! Returning Failure.");
                     Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
                     return BTNodeStatus.Failure;
                 }

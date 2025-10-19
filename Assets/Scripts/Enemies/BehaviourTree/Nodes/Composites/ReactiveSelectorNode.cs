@@ -49,6 +49,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
                 }
             }
 
+            Debug.Log($"[BT] ReactiveSelectorNode: All children failed. Returning Failure.");
             return BTNodeStatus.Failure;
         }
 

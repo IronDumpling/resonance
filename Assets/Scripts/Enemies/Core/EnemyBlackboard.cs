@@ -79,15 +79,16 @@ namespace Resonance.Enemies.Core
             // Update common data
             SetValue("hasTarget", controller.HasPlayerTarget);
             SetValue("inAttackRange", controller.IsPlayerInAttackRange());
-            SetValue("isAlive", controller.IsAlive);
-            SetValue("isCoreAlive", controller.IsCoreAlive);
-            SetValue("currentState", controller.CurrentState);
             SetValue("position", controller.CurrentPosition);
             
-            // Legacy boolean flags (for backward compatibility if needed)
-            SetValue("isStunned", controller.IsStunned);
-            SetValue("isReviving", controller.IsReviving);
-            SetValue("isTrulyDead", controller.IsTrulyDead);
+            // ★ 使用统一的状态数据系统
+            var stateData = controller.StateData;
+            SetValue("currentState", stateData.CurrentState);
+            
+            // 生命值状态（三个互斥的 bool）
+            SetValue("isPhysicallyAlive", stateData.IsPhysicallyAlive);
+            SetValue("isPhysicallyDead", stateData.IsPhysicallyDead);
+            SetValue("isCoreDead", stateData.IsCoreDead);
             
             if (controller.HasPlayerTarget)
             {

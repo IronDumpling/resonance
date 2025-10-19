@@ -58,7 +58,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             _reviveTimer += Time.deltaTime;
 
             // Check if revival is complete (physical health restored)
-            if (Controller.IsAlive)
+            if (Controller.IsPhysicallyAlive)
             {
                 // Complete revival animation
                 if (animator != null && animator.isActiveAndEnabled)

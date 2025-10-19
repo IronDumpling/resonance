@@ -1,5 +1,4 @@
-using Resonance.Utilities;
-using Resonance.Utilities.CrystalCore;
+using UnityEngine;
 
 namespace Resonance.Enemies.Data
 {
@@ -16,27 +15,108 @@ namespace Resonance.Enemies.Data
     }
 
     /// <summary>
+    /// 敌人状态数据类 - 集中存储所有状态信息
+    /// 由 EnemyController 负责每帧更新
+    /// </summary>
+    public class EnemyStateData
+    {
+        // 原始数据缓存（从 EnemyRuntimeStats 同步）
+        private float _currentHealth;
+        private float _currentCoreHealth;
+        private bool _isStunned;
+        
+        /// <summary>
+        /// 当前逻辑状态（Normal/Stunned/Reviving/Dead）
+        /// 使用 enum 而非多个 bool，避免状态混乱
+        /// </summary>
+        public EnemyState CurrentState { get; private set; }
+        
+        /// <summary>
+        /// 生命值相关状态 - 三个互斥的 bool
+        /// </summary>
+        
+        // 物理生命和晶核生命都存在
+        public bool IsPhysicallyAlive => _currentHealth > 0f && _currentCoreHealth > 0f;
+        
+        // 物理生命耗尽，但晶核生命存在（可复活）
+        public bool IsPhysicallyDead => _currentHealth <= 0f && _currentCoreHealth > 0f;
+        
+        // 晶核生命耗尽（真正死亡）
+        public bool IsCoreDead => _currentCoreHealth <= 0f;
+        
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        public EnemyStateData()
+        {
+            _currentHealth = 0f;
+            _currentCoreHealth = 0f;
+            _isStunned = false;
+            CurrentState = EnemyState.Dead;
+        }
+        
+        /// <summary>
+        /// 更新状态数据（由 EnemyController 每帧调用）
+        /// </summary>
+        /// <param name="health">当前物理生命值</param>
+        /// <param name="coreHealth">当前晶核生命值</param>
+        /// <param name="isStunned">是否处于眩晕状态</param>
+        public void UpdateState(float health, float coreHealth, bool isStunned)
+        {
+            // 缓存原始数据
+            _currentHealth = health;
+            _currentCoreHealth = coreHealth;
+            _isStunned = isStunned;
+            
+            // 计算当前状态（优先级：Dead > Stunned > Reviving > Normal）
+            EnemyState newState;
+            
+            if (IsCoreDead)
+            {
+                newState = EnemyState.Dead;
+            }
+            else if (_isStunned)
+            {
+                newState = EnemyState.Stunned;
+            }
+            else if (IsPhysicallyDead)
+            {
+                newState = EnemyState.Reviving;
+            }
+            else
+            {
+                newState = EnemyState.Normal;
+            }
+            
+            // 状态变化时输出日志
+            if (newState != CurrentState)
+            {
+                Debug.Log($"[EnemyStateData] State changed: {CurrentState} → {newState}");
+                CurrentState = newState;
+            }
+            else
+            {
+                CurrentState = newState;
+            }
+        }
+        
+        /// <summary>
+        /// 获取当前健康信息（用于调试）
+        /// </summary>
+        public string GetHealthInfo()
+        {
+            return $"Health: {_currentHealth:F1}, CoreHealth: {_currentCoreHealth:F1}, " +
+                   $"State: {CurrentState}, IsPhysicallyAlive: {IsPhysicallyAlive}, " +
+                   $"IsPhysicallyDead: {IsPhysicallyDead}, IsCoreDead: {IsCoreDead}";
+        }
+    }
+
+    /// <summary>
     /// 敌人状态辅助类
-    /// 提供敌人状态相关的计算和配置
+    /// 提供敌人状态相关的描述和配置
     /// </summary>
     public static class EnemyStateHelper
     {
-        /// <summary>
-        /// 计算敌人状态（不包括 Stunned，Stunned 由 Controller 单独管理）
-        /// </summary>
-        public static EnemyState CalculateLifeState(float currentHealth, CoreHealthState coreHealthState)
-        {
-            // 晶核死亡 -> 敌人死亡
-            if (coreHealthState == CoreHealthState.Destroyed)
-                return EnemyState.Dead;
-            // 物理生命值 > 0 -> 正常存活
-            else if (currentHealth > 0f)
-                return EnemyState.Normal;
-            // 物理生命值 = 0, 但晶核存活 -> 复活中
-            else
-                return EnemyState.Reviving;
-        }
-
         /// <summary>
         /// 获取状态的描述文本
         /// </summary>

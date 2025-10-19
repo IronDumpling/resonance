@@ -65,19 +65,13 @@ namespace Resonance.Enemies.Data
 
         [Header("Status Tiers")]
         public HealthTier healthTier;
-        public EnemyState state;
 
         // 事件系统
         public System.Action<float, float> OnHealthChanged; // current, max
         public System.Action<HealthTier> OnHealthTierChanged;
-        public System.Action<EnemyState> OnStateChanged;
         
         // 属性访问器
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
-        public bool IsAlive => state == EnemyState.Normal;
-        public bool IsReviving => state == EnemyState.Reviving;
-        public bool IsDead => state == EnemyState.Dead;
-        public bool IsStunned => state == EnemyState.Stunned;
         public bool IsCoreIntact => crystalCore != null && crystalCore.CoreHealthState == CoreHealthState.Intact;
 
         public EnemyRuntimeStats(EnemyBaseStats baseStats)
@@ -132,7 +126,6 @@ namespace Resonance.Enemies.Data
 
             // 初始化状态等级
             UpdateHealthTier();
-            UpdateState();
         }
 
         /// <summary>
@@ -152,27 +145,11 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 更新敌人状态
-        /// </summary>
-        public void UpdateState()
-        {
-            var previousState = state;
-            CoreHealthState coreState = crystalCore?.CoreHealthState ?? CoreHealthState.Destroyed;
-            state = EnemyStateHelper.CalculateLifeState(currentHealth, coreState);
-
-            if (previousState != state)
-            {
-                OnStateChanged?.Invoke(state);
-                Debug.Log($"EnemyRuntimeStats: State changed to {state}");
-            }
-        }
-
-        /// <summary>
         /// 受到生命伤害
         /// </summary>
         public float TakeHealthDamage(float damage)
         {
-            if (damage <= 0f || IsDead) return 0f;
+            if (damage <= 0f || currentHealth <= 0f) return 0f;
 
             float previousHealth = currentHealth;
             currentHealth = Mathf.Max(0f, currentHealth - damage);
@@ -181,7 +158,6 @@ namespace Resonance.Enemies.Data
             if (actualDamage > 0f)
             {
                 UpdateHealthTier();
-                UpdateState();
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
                 Debug.Log($"EnemyRuntimeStats: Took {actualDamage} health damage. Current: {currentHealth}/{maxHealth}");
             }
@@ -203,7 +179,6 @@ namespace Resonance.Enemies.Data
             if (actualRestore > 0f)
             {
                 UpdateHealthTier();
-                UpdateState();
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
             }
 
@@ -226,7 +201,7 @@ namespace Resonance.Enemies.Data
         /// </summary>
         public float GetModifiedMoveSpeed()
         {
-            if (!IsAlive) return 0f;
+            if (currentHealth <= 0f) return 0f;
             
             float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
             return moveSpeed * speedMultiplier;
@@ -237,7 +212,7 @@ namespace Resonance.Enemies.Data
         /// </summary>
         public float GetModifiedChaseMoveSpeed()
         {
-            if (!IsAlive) return 0f;
+            if (currentHealth <= 0f) return 0f;
             
             float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
             return chaseMoveSpeed * speedMultiplier;
@@ -253,7 +228,6 @@ namespace Resonance.Enemies.Data
             crystalCore?.ResetChaos();
 
             UpdateHealthTier();
-            UpdateState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
             Debug.Log("EnemyRuntimeStats: Full restore completed");
@@ -290,7 +264,6 @@ namespace Resonance.Enemies.Data
             }
 
             UpdateHealthTier();
-            UpdateState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
             Debug.Log($"EnemyRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}");
@@ -326,7 +299,6 @@ namespace Resonance.Enemies.Data
         {
             OnHealthChanged = null;
             OnHealthTierChanged = null;
-            OnStateChanged = null;
             crystalCore?.Cleanup();
         }
     }

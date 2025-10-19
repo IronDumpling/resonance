@@ -11,7 +11,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
     {
         private bool _deathTriggered = false;
         private float _destructionTimer = 0f;
-        private const float DESTRUCTION_DELAY = 3f;
+        private const float DESTRUCTION_DELAY = 2f;
 
         public override BTNodeStatus Execute()
         {

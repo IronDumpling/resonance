@@ -150,7 +150,7 @@ namespace Resonance.Enemies
             _enemyController.Update(Time.deltaTime);
 
             // Check for destruction (if truly dead)
-            if (_enemyController.IsTrulyDead)
+            if (_enemyController.IsCoreDead)
             {
                 DestroyEnemy();
             }
@@ -726,7 +726,7 @@ namespace Resonance.Enemies
         /// <summary>
         /// Physical health state
         /// </summary>
-        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.Stats.IsAlive 
+        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.IsPhysicallyAlive 
             ? PhysicalHealthState.Alive 
             : PhysicalHealthState.Dead;
 

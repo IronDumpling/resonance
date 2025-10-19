@@ -11,7 +11,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
         public override BTNodeStatus Execute()
         {
             // Check if physical health is depleted
-            bool isDead = !Controller.IsAlive;
+            bool isDead = Controller.IsPhysicallyDead;
             var result = isDead ? BTNodeStatus.Success : BTNodeStatus.Failure;
             return result;
         }
