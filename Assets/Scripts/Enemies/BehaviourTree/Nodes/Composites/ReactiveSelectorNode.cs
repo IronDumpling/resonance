@@ -1,3 +1,4 @@
+using UnityEngine;
 using Resonance.Enemies.BehaviourTree.Base;
 
 namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
@@ -18,7 +19,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
         {
             if (children == null || children.Count == 0)
             {
-                UnityEngine.Debug.LogWarning("ReactiveSelectorNode: No children to execute!");
+                Debug.LogWarning("ReactiveSelectorNode: No children to execute!");
                 return BTNodeStatus.Failure;
             }
 
@@ -30,7 +31,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
                 string childName = child.GetType().Name;
                 
                 BTNodeStatus status = child.Execute();
-                UnityEngine.Debug.Log($"[BT] ReactiveSelectorNode - Child[{i}] ({childName}): Executed with status {status}");
+                Debug.Log($"[BT] ReactiveSelectorNode - Child[{i}] ({childName}): Executed with status {status}");
 
                 switch (status)
                 {

@@ -11,7 +11,6 @@ namespace Resonance.Enemies.Triggers
     /// </summary>
     public class EnemyHitboxManager : MonoBehaviour
     {
-        [Header("Weakpoint Configuration")]
         [SerializeField] private bool _debugMode = false;
         [Tooltip("Enable debug logging for weakpoint events")]
 

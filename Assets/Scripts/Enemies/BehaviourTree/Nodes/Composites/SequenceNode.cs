@@ -1,3 +1,4 @@
+using UnityEngine;
 using Resonance.Enemies.BehaviourTree.Base;
 
 namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
@@ -9,12 +10,12 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
     /// Returns Running if a child is running
     /// </summary>
     public class SequenceNode : CompositeNode
-    {
+    {        
         public override BTNodeStatus Execute()
         {
             if (children == null || children.Count == 0)
             {
-                UnityEngine.Debug.LogWarning("[BT] SequenceNode: No children!");
+                Debug.LogWarning("[BT] SequenceNode: No children!");
                 return BTNodeStatus.Success;
             }
 
@@ -25,7 +26,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
                 string childName = child.GetType().Name;
                 
                 BTNodeStatus status = child.Execute();
-                UnityEngine.Debug.Log($"[BT] SequenceNode - Child[{currentChild}] ({childName}): Executed with status {status}");
+                Debug.Log($"[BT] SequenceNode - Child[{currentChild}] ({childName}): Executed with status {status}");
 
                 switch (status)
                 {
