@@ -46,8 +46,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                     animator.SetFloat("Speed", 0f);            // No movement during revival
                     animator.SetBool("HasTarget", false);      // No target during revival
                     animator.SetBool("InAttackRange", false);  // Cannot attack during revival
-                    
-                    Debug.Log("[BT Action] ReviveAction: Physical death triggered, entering revival state");
                 }
                 else
                 {
@@ -67,7 +65,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                     animator.SetTrigger("ReviveComplete");
                 }
                 
-                Debug.Log("ReviveAction: Revival completed - triggered ReviveComplete");
                 return BTNodeStatus.Success;
             }
 
@@ -102,7 +99,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             if (animator != null && animator.isActiveAndEnabled)
             {
                 animator.SetBool("IsReviving", false);
-                Debug.Log("[BT Action] ReviveAction: Reset - IsReviving=false");
             }
             
             _initialized = false;

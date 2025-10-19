@@ -17,8 +17,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
         {
             if (!_deathTriggered)
             {
-                Debug.Log("[BT Action] TrueDeathAction: Enemy core destroyed - triggering true death...");
-                
                 // Stop all movement
                 Movement?.Stop();
                 Controller.StopPatrol();
@@ -29,7 +27,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 if (animator != null && animator.isActiveAndEnabled)
                 {
                     animator.SetTrigger("TrueDeath");
-                    Debug.Log("[BT Action] TrueDeathAction: TrueDeath animation triggered");
                 }
                 
                 _deathTriggered = true;
@@ -40,7 +37,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             
             if (_destructionTimer >= DESTRUCTION_DELAY)
             {
-                Debug.Log($"[BT Action] TrueDeathAction: Destruction delay complete ({DESTRUCTION_DELAY}s), marking for destruction");
                 // Note: Actual destruction is handled by EnemyMonoBehaviour listening to death events
                 return BTNodeStatus.Success;
             }

@@ -20,24 +20,19 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             // ===== Phase 1: Launch Wave Attack =====
             if (!_attackLaunched)
             {
-                Debug.Log("[BT Action] WaveAttackAction: Launching wave attack...");
-                
                 // 1. Subscribe to completion event
                 Controller.OnAttackSequenceFinished += HandleSequenceFinished;
 
                 // 2. Consume energy for wave attack
                 if (!Controller.Stats.crystalCore.ConsumeEnergySlot())
                 {
-                    Debug.LogWarning("[BT Action] WaveAttackAction: Failed to consume energy slot! Returning Failure.");
                     Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
                     return BTNodeStatus.Failure;
                 }
-                Debug.Log($"[BT Action] WaveAttackAction: Consumed 1 energy slot. Remaining energy: {Controller.Stats.crystalCore.CurrentEnergy:F0}/{Controller.Stats.crystalCore.MaxEnergy:F0}");
 
                 // 3. Launch business logic (set cooldown)
                 if (!Controller.LaunchWaveAttack())
                 {
-                    Debug.LogWarning("[BT Action] WaveAttackAction: LaunchWaveAttack failed! Returning Failure.");
                     Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
                     return BTNodeStatus.Failure;
                 }
@@ -51,8 +46,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                     
                     // ★ Trigger wave attack transition
                     animator.SetTrigger("WaveAttackStart");
-                    
-                    Debug.Log($"[BT Action] WaveAttackAction: Animation triggered. InAttackRange=true, WaveAttackStart=triggered");
                 }
                 else
                 {
@@ -68,7 +61,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             // ===== Phase 2: Wait for Animation Event =====
             if (_sequenceFinished)
             {
-                Debug.Log("[BT Action] WaveAttackAction: Sequence finished! Returning Success.");
                 return BTNodeStatus.Success;
             }
 
@@ -78,7 +70,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         private void HandleSequenceFinished()
         {
-            Debug.Log("[BT Action] WaveAttackAction: OnAttackSequenceFinished event received!");
             _sequenceFinished = true;
         }
 
@@ -95,7 +86,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
             if (animator != null && animator.isActiveAndEnabled)
             {
                 animator.SetBool("InAttackRange", false);
-                Debug.Log("[BT Action] WaveAttackAction: Reset - InAttackRange=false");
             }
             
             // Clean up event subscriptions
