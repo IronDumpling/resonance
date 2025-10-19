@@ -11,7 +11,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
         {
             bool inRange = Controller.IsPlayerInAttackRange();
             var result = inRange ? BTNodeStatus.Success : BTNodeStatus.Failure;
-            UnityEngine.Debug.Log($"[BT Condition] InAttackRange: {inRange} → {result}");
             return result;
         }
     }

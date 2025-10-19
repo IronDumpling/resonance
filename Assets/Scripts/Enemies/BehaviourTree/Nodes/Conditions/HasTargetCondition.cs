@@ -11,7 +11,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
         {
             bool hasTarget = Controller.HasPlayerTarget;
             var result = hasTarget ? BTNodeStatus.Success : BTNodeStatus.Failure;
-            UnityEngine.Debug.Log($"[BT Condition] HasTarget: {hasTarget} → {result}");
             return result;
         }
     }

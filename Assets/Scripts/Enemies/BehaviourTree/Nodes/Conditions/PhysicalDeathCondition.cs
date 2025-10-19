@@ -13,7 +13,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
             // Check if physical health is depleted
             bool isDead = !Controller.IsAlive;
             var result = isDead ? BTNodeStatus.Success : BTNodeStatus.Failure;
-            UnityEngine.Debug.Log($"[BT Condition] PhysicalDeath: isDead={isDead} (IsAlive={Controller.IsAlive}) → {result}");
             return result;
         }
     }

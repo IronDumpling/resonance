@@ -11,9 +11,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
         public override BTNodeStatus Execute()
         {
             bool notInRange = !Controller.IsPlayerInAttackRange();
-            var result = notInRange ? BTNodeStatus.Success : BTNodeStatus.Failure;
-            UnityEngine.Debug.Log($"[BT Condition] NotInAttackRange: {notInRange} (InRange={Controller.IsPlayerInAttackRange()}) → {result}");
-            return result;
+            return notInRange ? BTNodeStatus.Success : BTNodeStatus.Failure;
         }
     }
 }

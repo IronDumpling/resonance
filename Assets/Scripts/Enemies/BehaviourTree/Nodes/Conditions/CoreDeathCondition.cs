@@ -1,3 +1,4 @@
+using UnityEngine;
 using Resonance.Enemies.BehaviourTree.Base;
 
 namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
@@ -13,7 +14,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
             // Check if core health is depleted
             bool isCoreDead = !Controller.IsCoreAlive;
             var result = isCoreDead ? BTNodeStatus.Success : BTNodeStatus.Failure;
-            UnityEngine.Debug.Log($"[BT Condition] CoreDeath: isCoreDead={isCoreDead} (IsCoreAlive={Controller.IsCoreAlive}) → {result}");
             return result;
         }
     }

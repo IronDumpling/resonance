@@ -810,7 +810,7 @@ namespace Resonance.Enemies
             PlayDeathAudio();
             
             // Start destruction countdown
-            Destroy(gameObject, 3f);
+            Destroy(gameObject, 1f);
         }
 
         /// <summary>
