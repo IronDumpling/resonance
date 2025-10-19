@@ -100,7 +100,9 @@ namespace Resonance.Enemies.Data
         [Tooltip("晶核攻击伤害")]
         public AttackStats waveAttackStats;
         [Tooltip("检测范围")]
-        public float detectionRange = 8f;
+        public float detectionRange = 4f;
+        [Tooltip("普通攻击到能量的比例")]
+        public float normalAttackToEnergyRatio = 0.5f;
         
         [Header("Hitbox Damage Multipliers")]
         [Tooltip("Damage multipliers for each hitbox type")]
@@ -323,6 +325,7 @@ namespace Resonance.Enemies.Data
             waveAttackStats.range = Mathf.Max(0.1f, waveAttackStats.range);
 
             detectionRange = Mathf.Max(0.1f, detectionRange);
+            normalAttackToEnergyRatio = Mathf.Clamp01(normalAttackToEnergyRatio);
             
             // 移动属性验证
             moveSpeed = Mathf.Max(0.1f, moveSpeed);

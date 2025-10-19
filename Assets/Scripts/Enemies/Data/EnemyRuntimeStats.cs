@@ -32,6 +32,7 @@ namespace Resonance.Enemies.Data
         public AttackStats normalAttackStats;
         public AttackStats waveAttackStats;
         public float detectionRange;
+        public float normalAttackToEnergyRatio;
         
         [Header("Hitbox Damage Multipliers")]
         public List<HitboxMultiplierConfig> hitboxMultipliers;
@@ -98,6 +99,7 @@ namespace Resonance.Enemies.Data
             normalAttackStats = baseStats.normalAttackStats.Clone();
             waveAttackStats = baseStats.waveAttackStats.Clone();
             detectionRange = baseStats.detectionRange;
+            normalAttackToEnergyRatio = baseStats.normalAttackToEnergyRatio;
             
             // Hitbox multipliers - Copy the list for independent configuration
             hitboxMultipliers = new List<HitboxMultiplierConfig>(baseStats.hitboxMultipliers ?? new List<HitboxMultiplierConfig>());

@@ -156,12 +156,11 @@ namespace Resonance.Enemies.Core
         
         // Can only wave attack if:
         // 1. Enemy is alive, has core alive, and has player target
-        // 2. Player is in attack range
-        // 3. Not on attack cooldown
-        // 4. Player is in chaos state OR every 3rd normal attack
+        // 2. Not on attack cooldown
+        // 3. Has at least 1 energy slot to consume
         public bool CanWaveAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
                                     Time.time >= _lastWaveAttackTime + _stats.waveAttackStats.cooldown &&
-                                    (IsPlayerInChaosState() || _attacksLaunchedCount[AttackType.Normal] % 3 == 0);
+                                    _stats.crystalCore.CanConsumeSlot(); 
         
         public AttackType CurrentAttackType => _currentAttackType;
         
@@ -580,6 +579,19 @@ namespace Resonance.Enemies.Core
             
             // Track this hit
             _currentAttackHits.Add(target);
+            
+            // Energy System: Normal attacks gain energy when hitting
+            if (_currentAttackType == AttackType.Normal)
+            {
+                // Gain energy equal to physical damage dealt (or a fixed amount)
+                float physicalDamage = damageInfo.damages.GetDamage(DamageType.PhysicalHealth);
+                float energyGained = physicalDamage * _stats.normalAttackToEnergyRatio;
+                if (energyGained > 0f)
+                {
+                    _stats.crystalCore.AddEnergy(energyGained);
+                    Debug.Log($"EnemyController: Normal attack hit! Gained {energyGained:F0} energy. Current: {_stats.crystalCore.CurrentEnergy:F0}/{_stats.crystalCore.MaxEnergy:F0}");
+                }
+            }
             
             // Update statistics
             if(damageInfo.damages.HasDamage(DamageType.PhysicalHealth))

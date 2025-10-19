@@ -4,18 +4,16 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Conditions
 {
     /// <summary>
     /// Condition node that checks if enemy can perform wave attack
-    /// Wave attack conditions:
-    /// 1. Attack count is multiple of 3 OR
-    /// 2. Player's CrystalCore is in Chaos state
+    /// Wave attack requires:
+    /// 1. Basic requirements (alive, has target, cooldown)
+    /// 2. At least 1 energy slot available (checked in CanWaveAttack)
     /// </summary>
     public class WaveAttackCondition : ConditionNode
     {
         public override BTNodeStatus Execute()
         {
             bool canWave = Controller.CanWaveAttack;
-            var result = canWave ? BTNodeStatus.Success : BTNodeStatus.Failure;
-            UnityEngine.Debug.Log($"[BT Condition] CanWaveAttack: {canWave} → {result}");
-            return result;
+            return canWave ? BTNodeStatus.Success : BTNodeStatus.Failure;
         }
     }
 }

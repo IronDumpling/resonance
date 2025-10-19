@@ -798,28 +798,16 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} health death - checking core health for state transition");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - visual effects only");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
-            
-            // Trigger health death animation
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetTrigger("PhysicalDeath");
-            }
         }
 
         private void HandleTrueDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state - visual effects only");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
-            
-            // Trigger true death animation
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetTrigger("TrueDeath");
-            }
             
             // Start destruction countdown
             Destroy(gameObject, 3f);

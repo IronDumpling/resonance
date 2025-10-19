@@ -33,16 +33,26 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 Controller.LosePlayer();
                 Movement?.Stop();
                 
-                // ★ Set revival animation state - reset all parameters
+                // Set revival animation state
                 if (animator != null && animator.isActiveAndEnabled)
                 {
+                    // Trigger PhysicalDeath animation first (if needed by Animator)
+                    // This transition: Locomotion → PhysicalDeath → Revival
+                    // If Animator doesn't need PhysicalDeath trigger, can remove this line
+                    animator.SetTrigger("PhysicalDeath");
+                    
+                    // Then set revival state parameters
                     animator.SetBool("IsReviving", true);      // Enter revival state
                     animator.SetFloat("Speed", 0f);            // No movement during revival
                     animator.SetBool("HasTarget", false);      // No target during revival
                     animator.SetBool("InAttackRange", false);  // Cannot attack during revival
+                    
+                    Debug.Log("[BT Action] ReviveAction: Physical death triggered, entering revival state");
                 }
-                
-                Debug.Log("[BT Action] ReviveAction: Started revival - IsReviving=true, all other params reset");
+                else
+                {
+                    Debug.LogWarning("[BT Action] ReviveAction: Animator not available!");
+                }
             }
 
             _reviveTimer += Time.deltaTime;
@@ -81,13 +91,13 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
 
         /// <summary>
         /// Reset revival state for next execution
-        /// ★ CRITICAL: Reset IsReviving to allow Animator to exit revival state
+        /// Reset IsReviving to allow Animator to exit revival state
         /// </summary>
         public override void Reset()
         {
             base.Reset();
             
-            // ★ Clean up animation state - allow Animator to return to normal
+            // Clean up animation state - allow Animator to return to normal
             var animator = GetAnimator();
             if (animator != null && animator.isActiveAndEnabled)
             {

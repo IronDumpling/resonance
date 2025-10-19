@@ -25,7 +25,16 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 // 1. Subscribe to completion event
                 Controller.OnAttackSequenceFinished += HandleSequenceFinished;
 
-                // 2. Launch business logic (set cooldown)
+                // 2. Consume energy for wave attack
+                if (!Controller.Stats.crystalCore.ConsumeEnergySlot())
+                {
+                    Debug.LogWarning("[BT Action] WaveAttackAction: Failed to consume energy slot! Returning Failure.");
+                    Controller.OnAttackSequenceFinished -= HandleSequenceFinished;
+                    return BTNodeStatus.Failure;
+                }
+                Debug.Log($"[BT Action] WaveAttackAction: Consumed 1 energy slot. Remaining energy: {Controller.Stats.crystalCore.CurrentEnergy:F0}/{Controller.Stats.crystalCore.MaxEnergy:F0}");
+
+                // 3. Launch business logic (set cooldown)
                 if (!Controller.LaunchWaveAttack())
                 {
                     Debug.LogWarning("[BT Action] WaveAttackAction: LaunchWaveAttack failed! Returning Failure.");
@@ -33,7 +42,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                     return BTNodeStatus.Failure;
                 }
                 
-                // 3. Set Animator parameters
+                // 4. Set Animator parameters
                 var animator = GetAnimator();
                 if (animator != null && animator.isActiveAndEnabled)
                 {
@@ -52,7 +61,7 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Actions
                 
                 _attackLaunched = true;
                 
-                // 4. Stop movement during attack
+                // 5. Stop movement during attack
                 Movement?.Stop();
             }
 
