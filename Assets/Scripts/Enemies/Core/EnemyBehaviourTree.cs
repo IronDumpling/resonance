@@ -19,11 +19,9 @@ namespace Resonance.Enemies.Core
 
         public void Tick()
         {
-            Debug.Log("========== [BT] EnemyBehaviourTree Tick START ==========");
             if (_rootNode != null)
             {
                 var result = _rootNode.Execute();
-                Debug.Log($"========== [BT] EnemyBehaviourTree Tick END: {result} ==========");
             }
             else
             {

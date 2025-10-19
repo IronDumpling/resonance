@@ -26,7 +26,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
                 string childName = child.GetType().Name;
                 
                 BTNodeStatus status = child.Execute();
-                Debug.Log($"[BT] SequenceNode - Child[{currentChild}] ({childName}): Executed with status {status}");
 
                 switch (status)
                 {
@@ -46,7 +45,6 @@ namespace Resonance.Enemies.BehaviourTree.Nodes.Composites
                 }
             }
 
-            Debug.Log($"[BT] SequenceNode: All children succeeded. Resetting and returning Success.");
             Reset(); // Reset for next execution
             return BTNodeStatus.Success;
         }
