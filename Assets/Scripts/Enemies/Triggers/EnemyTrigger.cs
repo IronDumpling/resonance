@@ -14,7 +14,7 @@ namespace Resonance.Enemies.Triggers
     /// <summary>
     /// 敌人检测触发器组件, 用于标识和处理不同类型的触发器事件
     /// </summary>
-    public class EnemyDetectionTrigger : MonoBehaviour
+    public class EnemyTrigger : MonoBehaviour
     {
         private EnemyMonoBehaviour _enemyMono;
         private TriggerType _triggerType;

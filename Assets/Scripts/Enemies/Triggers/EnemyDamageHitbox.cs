@@ -103,7 +103,7 @@ namespace Resonance.Enemies.Triggers
         #region Initialization
 
         /// <summary>
-        /// Initialize the damage hitbox (called by EnemyMonoBehaviour, similar to EnemyDetectionTrigger)
+        /// Initialize the damage hitbox (called by EnemyMonoBehaviour, similar to EnemyTrigger)
         /// </summary>
         /// <param name="enemyMono">Enemy MonoBehaviour reference</param>
         public void Initialize(EnemyMonoBehaviour enemyMono)

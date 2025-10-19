@@ -123,9 +123,6 @@ namespace Resonance.Enemies
 
             // Set initial material
             SetMaterial(_normalMaterial);
-
-            // Update collider radii in case stats changed
-            UpdateColliderRadii();
             
             // Verify and fix detection system (in case components were missing)
             VerifyDetectionSystem();
@@ -375,22 +372,22 @@ namespace Resonance.Enemies
         private void SetupDetectionSystem()
         {
             // Setup detection collider
-            SetupDetectionCollider();
+            SetupDetectionTrigger();
             
             // Setup attack collider
-            SetupAttackCollider();
+            SetupAttackTrigger();
             
             // Setup damage hitbox
             SetupDamageHitbox();
             
-            // Setup weakpoint system
-            SetupWeakpointSystem();
+            // Setup hitbox system
+            SetupHitboxSystem();
 
-            // Set initial radii
-            UpdateColliderRadii();
+            // Set initial trigger radius
+            SetupTriggerRadius();
         }
         
-        private void SetupDetectionCollider()
+        private void SetupDetectionTrigger()
         {
             // Try to find existing detection collider
             Transform detectionChild = transform.Find("DetectionRange");
@@ -406,8 +403,8 @@ namespace Resonance.Enemies
                     _detectionCollider.isTrigger = true;
                 }
                 
-                // Check and add EnemyDetectionTrigger if needed
-                SetupDetectionTriggerComponent(detectionChild.gameObject, TriggerType.Detection);
+                // Check and add EnemyTrigger if needed
+                SetupTriggerComponent(detectionChild.gameObject, TriggerType.Detection);
             }
             else
             {
@@ -420,11 +417,11 @@ namespace Resonance.Enemies
                 _detectionCollider.isTrigger = true;
                 
                 // Add trigger component
-                SetupDetectionTriggerComponent(detectionGO, TriggerType.Detection);
+                SetupTriggerComponent(detectionGO, TriggerType.Detection);
             }
         }
         
-        private void SetupAttackCollider()
+        private void SetupAttackTrigger()
         {
             // Try to find existing attack collider
             Transform attackChild = transform.Find("AttackRange");
@@ -440,8 +437,8 @@ namespace Resonance.Enemies
                     _attackCollider.isTrigger = true;
                 }
                 
-                // Check and add EnemyDetectionTrigger if needed
-                SetupDetectionTriggerComponent(attackChild.gameObject, TriggerType.Attack);
+                // Check and add EnemyTrigger if needed
+                SetupTriggerComponent(attackChild.gameObject, TriggerType.Attack);
             }
             else
             {
@@ -454,7 +451,7 @@ namespace Resonance.Enemies
                 _attackCollider.isTrigger = true;
                 
                 // Add trigger component
-                SetupDetectionTriggerComponent(attackGO, TriggerType.Attack);
+                SetupTriggerComponent(attackGO, TriggerType.Attack);
             }
         }
         
@@ -505,7 +502,7 @@ namespace Resonance.Enemies
             }
         }
         
-        private void SetupWeakpointSystem()
+        private void SetupHitboxSystem()
         {
             // Try to find existing weakpoints system
             Transform visualChild = _visualTransform ?? transform.Find("Visual");
@@ -536,10 +533,10 @@ namespace Resonance.Enemies
             }
         }
         
-        private void SetupDetectionTriggerComponent(GameObject triggerObject, TriggerType triggerType)
+        private void SetupTriggerComponent(GameObject triggerObject, TriggerType triggerType)
         {
-            // Check if EnemyDetectionTrigger already exists
-            EnemyDetectionTrigger existingTrigger = triggerObject.GetComponent<EnemyDetectionTrigger>();
+            // Check if EnemyTrigger already exists
+            EnemyTrigger existingTrigger = triggerObject.GetComponent<EnemyTrigger>();
             
             if (existingTrigger != null)
             {
@@ -547,7 +544,7 @@ namespace Resonance.Enemies
             }
             else
             {
-                EnemyDetectionTrigger newTrigger = triggerObject.AddComponent<EnemyDetectionTrigger>();
+                EnemyTrigger newTrigger = triggerObject.AddComponent<EnemyTrigger>();
                 newTrigger.Initialize(this, triggerType);
             }
         }
@@ -636,7 +633,7 @@ namespace Resonance.Enemies
             Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
         }
 
-        private void UpdateColliderRadii()
+        private void SetupTriggerRadius()
         {
             if (_baseStats == null) return;
 
@@ -656,20 +653,20 @@ namespace Resonance.Enemies
             // Check detection collider and trigger component
             if (_detectionCollider != null)
             {
-                EnemyDetectionTrigger detectionTrigger = _detectionCollider.GetComponent<EnemyDetectionTrigger>();
+                EnemyTrigger detectionTrigger = _detectionCollider.GetComponent<EnemyTrigger>();
                 if (detectionTrigger == null)
                 {
-                    SetupDetectionTriggerComponent(_detectionCollider.gameObject, TriggerType.Detection);
+                    SetupTriggerComponent(_detectionCollider.gameObject, TriggerType.Detection);
                 }
             }
             
             // Check attack collider and trigger component
             if (_attackCollider != null)
             {
-                EnemyDetectionTrigger attackTrigger = _attackCollider.GetComponent<EnemyDetectionTrigger>();
+                EnemyTrigger attackTrigger = _attackCollider.GetComponent<EnemyTrigger>();
                 if (attackTrigger == null)
                 {
-                    SetupDetectionTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
+                    SetupTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
                 }
             }
             
