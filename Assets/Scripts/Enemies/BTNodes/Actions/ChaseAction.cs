@@ -6,14 +6,14 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// Chase action node - moves towards the player at chase move speed
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
     /// - Focuses only on executing the chase behavior
     /// - Returns Running while chasing, Success/Failure never (external conditions control)
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Chases the player target, updating position periodically")]
-    public class ChaseAction : EnemyTaskBase
+    public class ChaseAction : EnemyActionBase
     {
         private float _updateTimer = 0f;
 

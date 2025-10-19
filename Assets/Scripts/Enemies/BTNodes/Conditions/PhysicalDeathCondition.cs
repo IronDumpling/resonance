@@ -6,14 +6,14 @@ namespace Resonance.Enemies.BTNodes.Conditions
     /// <summary>
     /// Condition node that checks if enemy's physical health is dead (≤ 0)
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyConditionalBase for component access
     /// - Returns Success if physical health is depleted, Failure otherwise
     /// - When true, enemy should revive if core is still alive
     /// - Has high priority in behavior tree (but lower than core death)
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Conditions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Checks if enemy's physical health has been depleted (revival condition)")]
-    public class PhysicalDeathCondition : EnemyTaskBase
+    public class PhysicalDeathCondition : EnemyConditionalBase
     {
         public override TaskStatus OnUpdate()
         {

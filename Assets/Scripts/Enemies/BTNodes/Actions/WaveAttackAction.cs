@@ -6,15 +6,15 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// Wave attack action node - attacks player's core health
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
     /// - Focuses only on executing the wave attack behavior
     /// - Returns Running while attacking, Success when complete
     /// - Deals CoreHealth damage to break player's crystal core
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Executes a wave attack that damages player's core health")]
-    public class WaveAttackAction : EnemyTaskBase
+    public class WaveAttackAction : EnemyActionBase
     {
         private bool _sequenceFinished = false;
         private bool _attackLaunched = false;

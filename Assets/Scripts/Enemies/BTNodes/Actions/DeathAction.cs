@@ -6,13 +6,13 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// True death action - triggers death animation and handles object destruction
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - This is triggered when crystal core is destroyed
     /// - Returns Running during death animation, Success when ready for destruction
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Handles true death sequence when core is destroyed")]
-    public class DeathAction : EnemyTaskBase
+    public class DeathAction : EnemyActionBase
     {
         private bool _deathTriggered = false;
         private float _destructionTimer = 0f;

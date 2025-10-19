@@ -6,7 +6,7 @@ using Resonance.Enemies.Movement;
 namespace Resonance.Enemies.BTNodes
 {
     /// <summary>
-    /// Base class for all enemy behavior tree tasks (Actions and Conditionals)
+    /// Base class for all enemy behavior tree ACTION tasks
     /// Provides common functionality for accessing enemy components
     /// 
     /// Behavior Designer Best Practices:
@@ -16,7 +16,7 @@ namespace Resonance.Enemies.BTNodes
     /// - Override OnEnd() for cleanup
     /// - Use SharedVariables for data sharing between tasks
     /// </summary>
-    public abstract class EnemyTaskBase : Task
+    public abstract class EnemyActionBase : Action
     {
         // ===== Cached References =====
         protected EnemyMonoBehaviour enemyMono;
@@ -37,7 +37,7 @@ namespace Resonance.Enemies.BTNodes
             
             if (enemyMono == null)
             {
-                Debug.LogError($"[BT Task] {GetType().Name}: No EnemyMonoBehaviour found on {gameObject.name}! " +
+                Debug.LogError($"[BT Action] {GetType().Name}: No EnemyMonoBehaviour found on {gameObject.name}! " +
                               "Behavior tree must be attached to the enemy root GameObject.");
                 return;
             }
@@ -45,7 +45,7 @@ namespace Resonance.Enemies.BTNodes
             // Wait for enemy to initialize
             if (!enemyMono.IsInitialized)
             {
-                Debug.LogWarning($"[BT Task] {GetType().Name}: Enemy not initialized yet, will retry in OnStart");
+                Debug.LogWarning($"[BT Action] {GetType().Name}: Enemy not initialized yet, will retry in OnStart");
             }
             else
             {
@@ -83,17 +83,17 @@ namespace Resonance.Enemies.BTNodes
             
             if (controller == null)
             {
-                Debug.LogError($"[BT Task] {GetType().Name}: EnemyController not found!");
+                Debug.LogError($"[BT Action] {GetType().Name}: EnemyController not found!");
             }
             
             if (movement == null)
             {
-                Debug.LogWarning($"[BT Task] {GetType().Name}: MovementSystem not found!");
+                Debug.LogWarning($"[BT Action] {GetType().Name}: MovementSystem not found!");
             }
             
             if (animator == null)
             {
-                Debug.LogWarning($"[BT Task] {GetType().Name}: Animator not found!");
+                Debug.LogWarning($"[BT Action] {GetType().Name}: Animator not found!");
             }
         }
         
@@ -105,7 +105,7 @@ namespace Resonance.Enemies.BTNodes
         {
             if (enemyMono == null)
             {
-                Debug.LogError($"[BT Task] {GetType().Name}: EnemyMonoBehaviour is null!");
+                Debug.LogError($"[BT Action] {GetType().Name}: EnemyMonoBehaviour is null!");
                 return false;
             }
             
@@ -121,7 +121,7 @@ namespace Resonance.Enemies.BTNodes
                 
                 if (controller == null)
                 {
-                    Debug.LogError($"[BT Task] {GetType().Name}: EnemyController is null!");
+                    Debug.LogError($"[BT Action] {GetType().Name}: EnemyController is null!");
                     return false;
                 }
             }

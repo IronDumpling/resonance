@@ -6,15 +6,15 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// Normal attack action node - triggers attack animation and manages attack flow
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
     /// - Focuses only on executing the attack behavior
     /// - Returns Running while attacking, Success when complete
     /// - Damage is dealt through hitbox during animation window
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Executes a normal physical attack")]
-    public class NormalAttackAction : EnemyTaskBase
+    public class NormalAttackAction : EnemyActionBase
     {
         private bool _sequenceFinished = false;
         private bool _attackLaunched = false;

@@ -6,13 +6,13 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// Idle action node - enemy stays still and idles
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - Simple passive behavior
     /// - Returns Running indefinitely (until interrupted by conditions)
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Enemy idles in place")]
-    public class IdleAction : EnemyTaskBase
+    public class IdleAction : EnemyActionBase
     {
         public override void OnStart()
         {

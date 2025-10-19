@@ -6,15 +6,15 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// Revive action node - handles the revival process when physical health reaches 0
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
     /// - Focuses only on executing the revival behavior
     /// - Returns Running while reviving, Success when complete
     /// - Restores physical health over time
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Revives the enemy when physical health depletes but core is intact")]
-    public class ReviveAction : EnemyTaskBase
+    public class ReviveAction : EnemyActionBase
     {
         private float _reviveTimer = 0f;
         private float _maxReviveTime;

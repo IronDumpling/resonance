@@ -6,14 +6,14 @@ namespace Resonance.Enemies.BTNodes.Conditions
     /// <summary>
     /// Condition node that checks if enemy's core health is dead (≤ 0)
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyConditionalBase for component access
     /// - Returns Success if core is dead, Failure otherwise
     /// - When true, enemy should enter true death state
     /// - Has highest priority in behavior tree
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Conditions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Checks if enemy's core health has been depleted (true death condition)")]
-    public class CoreDeathCondition : EnemyTaskBase
+    public class CoreDeathCondition : EnemyConditionalBase
     {
         public override TaskStatus OnUpdate()
         {

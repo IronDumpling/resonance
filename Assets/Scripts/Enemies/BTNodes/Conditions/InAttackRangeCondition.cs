@@ -6,13 +6,13 @@ namespace Resonance.Enemies.BTNodes.Conditions
     /// <summary>
     /// Condition node that checks if player is in attack range
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyConditionalBase for component access
     /// - Returns Success if player is in attack range, Failure otherwise
     /// - Used to determine when to switch from chase to attack
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Conditions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Checks if player is within attack range")]
-    public class InAttackRangeCondition : EnemyTaskBase
+    public class InAttackRangeCondition : EnemyConditionalBase
     {
         public override TaskStatus OnUpdate()
         {

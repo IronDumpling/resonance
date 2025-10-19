@@ -271,7 +271,17 @@ namespace Resonance.Enemies
             // Get movement system from controller
             _movementSystem = _enemyController.Movement;
 
+            // Subscribe to enemy events
+            _enemyController.OnHealthChanged += HandleHealthChanged;
+            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
+            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
+            _enemyController.OnTrueDeath += HandleTrueDeath;
+            _enemyController.OnRevivalStarted += HandleRevivalStarted;
+            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
+            _enemyController.OnAttackLaunched += HandleAttackLaunched;
+            _enemyController.OnStateChanged += HandleStateChanged;
 
+            _isInitialized = true;
 
             // Get or add EnemyAnimator component
             _enemyAnimator = GetComponentInChildren<EnemyAnimator>();
@@ -291,16 +301,6 @@ namespace Resonance.Enemies
                 _enemyAnimator.Initialize(this, damageHitbox);
             }
 
-            // Subscribe to enemy events
-            _enemyController.OnHealthChanged += HandleHealthChanged;
-            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
-            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
-            _enemyController.OnTrueDeath += HandleTrueDeath;
-            _enemyController.OnRevivalStarted += HandleRevivalStarted;
-            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
-            _enemyController.OnAttackLaunched += HandleAttackLaunched;
-            _enemyController.OnStateChanged += HandleStateChanged;
-            
             // Setup patrol waypoints after controller is initialized
             SetupPatrolWaypoints();
             
@@ -308,8 +308,6 @@ namespace Resonance.Enemies
             _enemyController.ResetAttackCooldown();
             
             OnEnemyInitialized?.Invoke(_enemyController);
-
-            _isInitialized = true;
 
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully with Behaviour Tree");
         }

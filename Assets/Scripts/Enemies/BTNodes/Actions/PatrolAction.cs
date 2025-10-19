@@ -6,14 +6,14 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// <summary>
     /// Patrol action node - moves around the patrol area at normal speed
     /// Behavior Designer Best Practices:
-    /// - Inherits from EnemyTaskBase for component access
+    /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
     /// - Focuses only on executing the patrol behavior
     /// - Returns Running while patrolling
     /// </summary>
-    [TaskCategory("Resonance/Enemy/Actions")]
+    [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Patrols between waypoints or random positions")]
-    public class PatrolAction : EnemyTaskBase
+    public class PatrolAction : EnemyActionBase
     {
         private Vector3 _currentPatrolTarget;
         private float _waitTimer = 0f;
