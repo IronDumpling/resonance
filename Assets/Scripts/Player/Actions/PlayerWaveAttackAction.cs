@@ -129,10 +129,10 @@ namespace Resonance.Player.Actions
         }
         
         /// <summary>
-        /// Check if a core hitbox is in a valid state for resonance
+        /// Check if a core hitbox is in a valid state for wave
         /// </summary>
         /// <param name="coreHitbox">Core hitbox to check</param>
-        /// <returns>True if core is valid for resonance</returns>
+        /// <returns>True if core is valid for wave</returns>
         private bool IsValidTargetCore(EnemyHitbox coreHitbox)
         {
             if (coreHitbox == null)
@@ -161,7 +161,7 @@ namespace Resonance.Player.Actions
                 return false;
             }
                 
-            // Check if the enemy is in a valid state for resonance (not in attack state)
+            // Check if the enemy is in a valid state for wave (not in attack state)
             var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
             if (enemyMono == null)
             {
@@ -176,7 +176,7 @@ namespace Resonance.Player.Actions
                 return false;
             }
                 
-            // Valid state for resonance: Reviving (physically dead but core alive)
+            // Valid state for wave: Reviving (physically dead but core alive)
             // Enemy must be vulnerable (in revival state, not truly dead)
             var enemyState = enemyController.CurrentState;
             bool isValidState = enemyState == EnemyState.Reviving;
@@ -185,7 +185,7 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Start the resonance action
+        /// Start the wave action
         /// </summary>
         /// <param name="player">Player controller reference</param>
         public void Start(PlayerController player)
@@ -227,17 +227,17 @@ namespace Resonance.Player.Actions
                 Debug.Log($"PlayerWaveAttackAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
             }
 
-            // Play resonance audio/effects
+            // Play wave audio/effects
             PlayWaveEffects();
 
-            // Trigger the resonance started event for state machine and camera system
+            // Trigger the wave started event for state machine and camera system
             OnWaveAttackActionStarted?.Invoke(_targetCoreHitbox);
 
             Debug.Log($"PlayerWaveAttackAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
         }
 
         /// <summary>
-        /// Update the resonance action each frame
+        /// Update the wave action each frame
         /// </summary>
         /// <param name="deltaTime">Time since last frame</param>
         public void Update(PlayerController player, float deltaTime)
@@ -256,7 +256,7 @@ namespace Resonance.Player.Actions
                 return; 
             }
 
-            // Check if target Core hitbox is still valid for resonance
+            // Check if target Core hitbox is still valid for wave
             bool targetCoreNull = _targetCoreHitbox == null;
             bool targetCoreValid = !targetCoreNull && IsValidTargetCore(_targetCoreHitbox);
             bool targetCoreInRange = !targetCoreNull && IsTargetCoreStillInRange(_targetCoreHitbox);
@@ -296,12 +296,12 @@ namespace Resonance.Player.Actions
                 }
             }
 
-            // Update resonance effects (visual feedback, QTE UI placeholder, etc.)
+            // Update wave effects (visual feedback, QTE UI placeholder, etc.)
             UpdateWaveEffects(deltaTime);
         }
 
         /// <summary>
-        /// Cancel the resonance action (should not be called since it cannot be interrupted)
+        /// Cancel the wave action (should not be called since it cannot be interrupted)
         /// </summary>
         public void Cancel(PlayerController player)
         {
@@ -323,7 +323,7 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Find the target Core hitbox for resonance action
+        /// Find the target Core hitbox for wave action
         /// </summary>
         /// <returns>The target Core hitbox or null if none found</returns>
         private EnemyHitbox FindTargetCoreHitbox()
@@ -376,7 +376,7 @@ namespace Resonance.Player.Actions
         {
             if (hitbox == _targetCoreHitbox)
             {
-                Debug.Log("PlayerWaveAttackAction: Target core collider disabled - ending resonance action");
+                Debug.Log("PlayerWaveAttackAction: Target core collider disabled - ending wave action");
                 
                 // Check minimum duration before ending
                 float actionDuration = Time.time - _actionStartTime;
@@ -393,24 +393,24 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Play resonance visual and audio effects
+        /// Play wave visual and audio effects
         /// </summary>
         private void PlayWaveEffects()
         {
-            // Play resonance start audio
+            // Play wave start audio
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService != null)
             {
-                // TODO: Add specific resonance audio clips
+                // TODO: Add specific wave audio clips
                 audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.6f, 0.8f); // Placeholder audio
             }
 
             // TODO: Add visual effects (particles, screen effects, etc.)
-            Debug.Log("PlayerWaveAttackAction: Playing resonance effects (placeholder)");
+            Debug.Log("PlayerWaveAttackAction: Playing wave effects (placeholder)");
         }
 
         /// <summary>
-        /// Update ongoing resonance effects
+        /// Update ongoing wave effects
         /// </summary>  
         /// <param name="deltaTime">Time since last frame</param>
         private void UpdateWaveEffects(float deltaTime)
@@ -458,7 +458,7 @@ namespace Resonance.Player.Actions
                 Debug.Log("PlayerWaveAttackAction: Force refreshed UI colors after cleanup");
             }
 
-            // Trigger the resonance ended event for state machine and camera system
+            // Trigger the wave ended event for state machine and camera system
             OnWaveAttackActionEnded?.Invoke();
 
             // Clear target reference
@@ -468,14 +468,14 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Stop resonance effects
+        /// Stop wave effects
         /// </summary>
         private void StopWaveEffects()
         {
             // TODO: Stop visual effects
             // TODO: Stop audio effects
 
-            Debug.Log("PlayerWaveAttackAction: Stopped resonance effects");
+            Debug.Log("PlayerWaveAttackAction: Stopped wave effects");
         }
     }
 }

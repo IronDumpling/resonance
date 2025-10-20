@@ -217,7 +217,7 @@ namespace Resonance.Player.Triggers
         }
         
         /// <summary>
-        /// Force refresh all UI colors - useful after resonance actions end
+        /// Force refresh all UI colors - useful after wave actions end
         /// Also cleans up invalid hitboxes from tracking list
         /// </summary>
         public void ForceRefreshUIColors()

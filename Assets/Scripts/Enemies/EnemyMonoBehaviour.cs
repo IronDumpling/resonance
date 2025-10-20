@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using BehaviorDesigner.Runtime;
 using System.Collections;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
@@ -21,13 +22,17 @@ namespace Resonance.Enemies
         [Header("Enemy Configuration")]
         [SerializeField] private EnemyBaseStats _baseStats;
 
-        [Header("Visual Feedback")]
+        [Header("Visual")]
         [SerializeField] private Transform _visualTransform;
         [SerializeField] private Renderer _bodyRenderer;
 
+        [Header("UI")]
+        [SerializeField] private GameObject _waveUI;
+        [SerializeField] private TextMeshProUGUI _waveUIText;
+
         [Header("Detection System")]
-        [SerializeField] private SphereCollider _detectionCollider;
-        [SerializeField] private SphereCollider _attackCollider;
+        [SerializeField] private SphereCollider _detectionTrigger;
+        [SerializeField] private SphereCollider _attackTrigger;
         
         [Header("Patrol System")]
         [SerializeField] private Transform _patrolPointA;
@@ -43,9 +48,7 @@ namespace Resonance.Enemies
         [SerializeField] private float _targetUpdateInterval = 0.5f;
         [Tooltip("How often to update the chase target position (seconds).")]
         
-        [Header("Wave UI")]
-        [SerializeField] private GameObject _resonanceUI;
-        [SerializeField] private TextMeshProUGUI _resonanceUIText;
+
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -373,13 +376,13 @@ namespace Resonance.Enemies
             
             if (detectionChild != null)
             {
-                _detectionCollider = detectionChild.GetComponent<SphereCollider>();
+                _detectionTrigger = detectionChild.GetComponent<SphereCollider>();
                 
                 // Ensure it has a SphereCollider
-                if (_detectionCollider == null)
+                if (_detectionTrigger == null)
                 {
-                    _detectionCollider = detectionChild.gameObject.AddComponent<SphereCollider>();
-                    _detectionCollider.isTrigger = true;
+                    _detectionTrigger = detectionChild.gameObject.AddComponent<SphereCollider>();
+                    _detectionTrigger.isTrigger = true;
                 }
                 
                 // Check and add EnemyTrigger if needed
@@ -392,8 +395,8 @@ namespace Resonance.Enemies
                 detectionGO.transform.localPosition = Vector3.zero;
                 detectionGO.layer = gameObject.layer;
                 
-                _detectionCollider = detectionGO.AddComponent<SphereCollider>();
-                _detectionCollider.isTrigger = true;
+                _detectionTrigger = detectionGO.AddComponent<SphereCollider>();
+                _detectionTrigger.isTrigger = true;
                 
                 // Add trigger component
                 SetupTriggerComponent(detectionGO, TriggerType.Detection);
@@ -407,13 +410,13 @@ namespace Resonance.Enemies
             
             if (attackChild != null)
             {
-                _attackCollider = attackChild.GetComponent<SphereCollider>();
+                _attackTrigger = attackChild.GetComponent<SphereCollider>();
                 
                 // Ensure it has a SphereCollider
-                if (_attackCollider == null)
+                if (_attackTrigger == null)
                 {
-                    _attackCollider = attackChild.gameObject.AddComponent<SphereCollider>();
-                    _attackCollider.isTrigger = true;
+                    _attackTrigger = attackChild.gameObject.AddComponent<SphereCollider>();
+                    _attackTrigger.isTrigger = true;
                 }
                 
                 // Check and add EnemyTrigger if needed
@@ -426,8 +429,8 @@ namespace Resonance.Enemies
                 attackGO.transform.localPosition = Vector3.zero;
                 attackGO.layer = gameObject.layer;
                 
-                _attackCollider = attackGO.AddComponent<SphereCollider>();
-                _attackCollider.isTrigger = true;
+                _attackTrigger = attackGO.AddComponent<SphereCollider>();
+                _attackTrigger.isTrigger = true;
                 
                 // Add trigger component
                 SetupTriggerComponent(attackGO, TriggerType.Attack);
@@ -530,44 +533,44 @@ namespace Resonance.Enemies
 
         private void SetupWaveUI()
         {
-            if(_resonanceUI == null)
+            if(_waveUI == null)
             {
-                Transform resonanceUIChild = transform.Find("WaveUI");
-                if(resonanceUIChild != null)
+                Transform waveUIChild = transform.Find("WaveUI");
+                if(waveUIChild != null)
                 {
-                    _resonanceUI = resonanceUIChild.gameObject;
-                    Debug.Log($"EnemyMonoBehaviour: Found WaveUI child object: {resonanceUIChild.name}");
+                    _waveUI = waveUIChild.gameObject;
+                    Debug.Log($"EnemyMonoBehaviour: Found WaveUI child object: {waveUIChild.name}");
                 }
             }
 
-            if(_resonanceUI == null)
+            if(_waveUI == null)
             {
-                Debug.LogWarning($"EnemyMonoBehaviour: No WaveUI found on {gameObject.name}. UI resonance will be disabled.");
+                Debug.LogWarning($"EnemyMonoBehaviour: No WaveUI found on {gameObject.name}. UI wave will be disabled.");
                 return;
             }
 
-            if(_resonanceUIText == null)
+            if(_waveUIText == null)
             {
-                Transform textChild = _resonanceUI.transform.Find("Text");
+                Transform textChild = _waveUI.transform.Find("Text");
                 if(textChild != null)
                 {
-                    _resonanceUIText = textChild.GetComponent<TextMeshProUGUI>();
+                    _waveUIText = textChild.GetComponent<TextMeshProUGUI>();
                 }
             }
 
-            if (_resonanceUIText == null)
+            if (_waveUIText == null)
             {
                 Debug.LogWarning($"EnemyMonoBehaviour: No TextMeshProUGUI component found in WaveUI on {gameObject.name}");
             }
             else
             {
                 Debug.Log($"WeaponMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
-                _resonanceUIText.text = "F";
+                _waveUIText.text = "F";
             }
 
-            if(_resonanceUI != null)
+            if(_waveUI != null)
             {
-                _resonanceUI.SetActive(false);
+                _waveUI.SetActive(false);
             }
 
             Debug.Log($"EnemyMonoBehaviour: Wave UI setup complete");
@@ -616,36 +619,36 @@ namespace Resonance.Enemies
         {
             if (_baseStats == null) return;
 
-            if (_detectionCollider != null)
+            if (_detectionTrigger != null)
             {
-                _detectionCollider.radius = _baseStats.detectionRange;
+                _detectionTrigger.radius = _baseStats.detectionRange;
             }
 
-            if (_attackCollider != null)
+            if (_attackTrigger != null)
             {
-                _attackCollider.radius = _baseStats.normalAttackStats.range;
+                _attackTrigger.radius = _baseStats.normalAttackStats.range;
             }
         }
         
         private void VerifyDetectionSystem()
         {            
             // Check detection collider and trigger component
-            if (_detectionCollider != null)
+            if (_detectionTrigger != null)
             {
-                EnemyTrigger detectionTrigger = _detectionCollider.GetComponent<EnemyTrigger>();
+                EnemyTrigger detectionTrigger = _detectionTrigger.GetComponent<EnemyTrigger>();
                 if (detectionTrigger == null)
                 {
-                    SetupTriggerComponent(_detectionCollider.gameObject, TriggerType.Detection);
+                    SetupTriggerComponent(_detectionTrigger.gameObject, TriggerType.Detection);
                 }
             }
             
             // Check attack collider and trigger component
-            if (_attackCollider != null)
+            if (_attackTrigger != null)
             {
-                EnemyTrigger attackTrigger = _attackCollider.GetComponent<EnemyTrigger>();
+                EnemyTrigger attackTrigger = _attackTrigger.GetComponent<EnemyTrigger>();
                 if (attackTrigger == null)
                 {
-                    SetupTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
+                    SetupTriggerComponent(_attackTrigger.gameObject, TriggerType.Attack);
                 }
             }
             
@@ -1009,53 +1012,53 @@ namespace Resonance.Enemies
         #region Wave UI Control
 
         /// <summary>
-        /// Show resonance UI (called by EnemyHitboxManager when Core hitbox is enabled)
+        /// Show wave UI (called by EnemyHitboxManager when Core hitbox is enabled)
         /// </summary>
         public void ShowWaveUI()
         {
-            if (_resonanceUI != null)
+            if (_waveUI != null)
             {
-                _resonanceUI.SetActive(true);
+                _waveUI.SetActive(true);
                 // Default to white color
                 SetWaveUIColor(Color.white);
                 
                 if (_showDebugInfo)
                 {
-                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} showing resonance UI");
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} showing wave UI");
                 }
             }
         }
 
         /// <summary>
-        /// Hide resonance UI (called by EnemyHitboxManager when Core hitbox is disabled)
+        /// Hide wave UI (called by EnemyHitboxManager when Core hitbox is disabled)
         /// </summary>
         public void HideWaveUI()
         {
-            if (_resonanceUI != null)
+            if (_waveUI != null)
             {
-                _resonanceUI.SetActive(false);
+                _waveUI.SetActive(false);
                 
                 if (_showDebugInfo)
                 {
-                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} hiding resonance UI");
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} hiding wave UI");
                 }
             }
         }
 
         /// <summary>
-        /// Set resonance UI text color (called by WaveAttackTrigger for closest target indication)
+        /// Set wave UI text color (called by WaveAttackTrigger for closest target indication)
         /// </summary>
         /// <param name="color">Color to set (red for closest target, white for others)</param>
         public void SetWaveUIColor(Color color)
         {
-            if (_resonanceUIText != null)
+            if (_waveUIText != null)
             {
-                _resonanceUIText.color = color;
+                _waveUIText.color = color;
                 
                 if (_showDebugInfo)
                 {
                     string colorName = color == Color.red ? "red" : "white";
-                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} set resonance UI color to {colorName}");
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} set wave UI color to {colorName}");
                 }
             }
         }

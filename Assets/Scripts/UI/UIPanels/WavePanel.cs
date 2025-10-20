@@ -542,7 +542,7 @@ namespace Resonance.UI
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService != null)
             {
-                // TODO: Add specific resonance success audio clip
+                // TODO: Add specific wave success audio clip
                 audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.8f, 1.2f); 
             }
             
@@ -559,7 +559,7 @@ namespace Resonance.UI
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService != null)
             {
-                // TODO: Add specific resonance failure audio clip
+                // TODO: Add specific wave failure audio clip
                 audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.4f, 0.6f); 
             }
             

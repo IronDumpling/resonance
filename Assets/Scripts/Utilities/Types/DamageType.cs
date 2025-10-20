@@ -17,7 +17,7 @@ namespace Resonance.Utilities
         
         /// <summary>
         /// Core Health damage - Affects crystal core health/capacity
-        /// Example: Core direct hit, resonance shattering attack
+        /// Example: Core direct hit, wave shattering attack
         /// </summary>
         CoreHealth,
         

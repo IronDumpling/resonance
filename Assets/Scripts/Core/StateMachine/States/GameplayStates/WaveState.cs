@@ -8,8 +8,8 @@ using Resonance.UI;
 namespace Resonance.Core.StateMachine.States
 {
     /// <summary>
-    /// Wave substate - handles QTE mechanics during resonance attacks
-    /// Active when player is performing resonance action on enemy cores
+    /// Wave substate - handles QTE mechanics during wave attacks
+    /// Active when player is performing wave action on enemy cores
     /// </summary>
     public class WaveState : IState
     {
@@ -44,10 +44,10 @@ namespace Resonance.Core.StateMachine.States
                 Debug.Log("WaveState: Showed WavePanel");
                 
                 // Pass target core information to WavePanel
-                var resonancePanel = _uiService.GetPanel<WavePanel>("WavePanel");
-                if (resonancePanel != null)
+                var wavePanel = _uiService.GetPanel<WavePanel>("WavePanel");
+                if (wavePanel != null)
                 {
-                    resonancePanel.SetTargetCore(_targetCore);
+                    wavePanel.SetTargetCore(_targetCore);
                     Debug.Log($"WaveState: Initialized WavePanel with target {_targetCore?.name}");
                 }
             }
@@ -123,7 +123,7 @@ namespace Resonance.Core.StateMachine.States
         }
 
         /// <summary>
-        /// Get the target core hitbox for this resonance state
+        /// Get the target core hitbox for this wave state
         /// </summary>
         public EnemyHitbox GetTargetCore()
         {
