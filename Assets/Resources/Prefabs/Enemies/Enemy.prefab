@@ -672,8 +672,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3203894000571929562}
-  - {fileID: 3125685371143642785}
   - {fileID: 809707716472527147}
+  - {fileID: 3125685371143642785}
   - {fileID: 6841049572274946169}
   - {fileID: 6822862963753014174}
   m_Father: {fileID: 0}
@@ -720,15 +720,15 @@ MonoBehaviour:
   _baseStats: {fileID: 11400000, guid: e17b8ab8a8a48f14f9af893c40c8f50a, type: 2}
   _visualTransform: {fileID: 3203894000571929562}
   _bodyRenderer: {fileID: 1294134832740095054}
-  _detectionCollider: {fileID: 3598880275413671006}
-  _attackCollider: {fileID: 6860426549029046187}
+  _waveUI: {fileID: 3918578343786169770}
+  _waveUIText: {fileID: 1199645490113563006}
+  _detectionTrigger: {fileID: 3598880275413671006}
+  _attackTrigger: {fileID: 6860426549029046187}
   _patrolPointA: {fileID: 0}
   _patrolPointB: {fileID: 0}
   _waitAtWaypointDuration: 1
   _showPatrolPath: 1
   _targetUpdateInterval: 0.5
-  _resonanceUI: {fileID: 3918578343786169770}
-  _resonanceUIText: {fileID: 1199645490113563006}
   _showDebugInfo: 0
 --- !u!114 &7487264682084292901
 MonoBehaviour:
@@ -749,7 +749,7 @@ MonoBehaviour:
   logTaskChanges: 0
   group: 0
   resetValuesOnRestart: 0
-  externalBehavior: {fileID: 0}
+  externalBehavior: {fileID: 11400000, guid: 6765222fb4288ce42b98f8e53f012052, type: 2}
   mBehaviorSource:
     behaviorName: Enemy_1
     behaviorDescription: 
@@ -763,13 +763,13 @@ MonoBehaviour:
         Death Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Actions.DeathAction","NodeData":{"Offset":"(-2.64997864,150.137268)"},"ID":4,"Name":"Death
         Action","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-49.0793457,197.847092)"},"ID":5,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.PhysicalDeathCondition","NodeData":{"Offset":"(-87.0887756,150.137344)"},"ID":6,"Name":"Physical
         Death Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Actions.ReviveAction","NodeData":{"Offset":"(96.58469,152.433167)"},"ID":7,"Name":"Revive
-        Action","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(234.459351,201.31778)"},"ID":8,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.HasTargetCondition","NodeData":{"Offset":"(2.49999428,150)"},"ID":9,"Name":"Has
-        Target Condition","Instant":true},{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(170,152.5)"},"ID":10,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(0,142.5)"},"ID":11,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-332.915771,130.067627)"},"ID":12,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.InAttackRangeCondition","NodeData":{"Offset":"(-230,130)"},"ID":13,"Name":"In
-        Attack Range Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Conditions.WaveAttackCondition","NodeData":{"Offset":"(-41.91577,128.067627)"},"ID":14,"Name":"Wave
+        Action","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(234.459351,201.31778)"},"ID":8,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.HasTargetCondition","NodeData":{"Offset":"(-1.63495827,150.0693)"},"ID":9,"Name":"Has
+        Target Condition","Instant":true},{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(170,152.5)"},"ID":10,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(0,142.5)"},"ID":11,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-332.915771,130.067627)"},"ID":12,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.InAttackRangeCondition","NodeData":{"Offset":"(-232.746048,128.957642)"},"ID":13,"Name":"In
+        Attack Range Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Conditions.WaveAttackCondition","NodeData":{"Offset":"(-43.8571167,128.958008)"},"ID":14,"Name":"Wave
         Attack Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Actions.WaveAttackAction","NodeData":{"Offset":"(120.084229,130.067627)"},"ID":15,"Name":"Wave
-        Attack Action","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(130,140)"},"ID":16,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.InAttackRangeCondition","NodeData":{"Offset":"(-184.624146,118.702026)"},"ID":17,"Name":"In
-        Attack Range Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Conditions.NormalAttackCondition","NodeData":{"Offset":"(22.6930027,118.701988)"},"ID":18,"Name":"Normal
-        Attack Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Actions.NormalAttackAction","NodeData":{"Offset":"(205.619965,118.701973)"},"ID":19,"Name":"Normal
+        Attack Action","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(130,140)"},"ID":16,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"Resonance.Enemies.BTNodes.Conditions.InAttackRangeCondition","NodeData":{"Offset":"(-159.41272,118.957825)"},"ID":17,"Name":"In
+        Attack Range Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Conditions.NormalAttackCondition","NodeData":{"Offset":"(18.3648415,118.957863)"},"ID":18,"Name":"Normal
+        Attack Condition","Instant":true},{"Type":"Resonance.Enemies.BTNodes.Actions.NormalAttackAction","NodeData":{"Offset":"(194.50885,118.701973)"},"ID":19,"Name":"Normal
         Attack Action","Instant":true}]}]},{"Type":"Resonance.Enemies.BTNodes.Actions.ChaseAction","NodeData":{"Offset":"(170,140)"},"ID":20,"Name":"Chase
         Action","Instant":true}]}]},{"Type":"Resonance.Enemies.BTNodes.Actions.PatrolAction","NodeData":{"Offset":"(536.3807,209.576157)"},"ID":21,"Name":"Patrol
         Action","Instant":true}]}}'

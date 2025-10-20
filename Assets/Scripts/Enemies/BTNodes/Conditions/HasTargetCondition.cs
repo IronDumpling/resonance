@@ -19,10 +19,18 @@ namespace Resonance.Enemies.BTNodes.Conditions
             // Validate components are ready
             if (!ValidateComponents())
             {
+                Debug.LogWarning($"[HasTargetCondition] ValidateComponents failed on {gameObject.name}");
                 return TaskStatus.Failure;
             }
 
             bool hasTarget = Controller.HasPlayerTarget;
+            
+            // Debug log to track detection
+            if (hasTarget)
+            {
+                Debug.Log($"[HasTargetCondition] {gameObject.name} HAS target: {Controller.PlayerTarget?.name}");
+            }
+            
             return hasTarget ? TaskStatus.Success : TaskStatus.Failure;
         }
     }

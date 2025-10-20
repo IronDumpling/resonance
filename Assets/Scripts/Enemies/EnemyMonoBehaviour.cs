@@ -48,8 +48,6 @@ namespace Resonance.Enemies
         [SerializeField] private float _targetUpdateInterval = 0.5f;
         [Tooltip("How often to update the chase target position (seconds).")]
         
-
-        
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
 
@@ -312,7 +310,7 @@ namespace Resonance.Enemies
             
             OnEnemyInitialized?.Invoke(_enemyController);
 
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully with Behaviour Tree");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
         }
 
         private void SetupServices()
@@ -939,24 +937,43 @@ namespace Resonance.Enemies
         /// </summary>
         public void HandleTriggerEnter(TriggerType triggerType, Collider other)
         {
-            if (!IsInitialized) return;
+            if (!IsInitialized)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: HandleTriggerEnter called but not initialized on {gameObject.name}");
+                return;
+            }
 
             // 只检测玩家
-            if (!other.CompareTag("Player")) return;
+            if (!other.CompareTag("Player"))
+            {
+                Debug.Log($"EnemyMonoBehaviour: Trigger enter from non-Player object: {other.name} with tag: {other.tag}");
+                return;
+            }
 
             Transform playerTransform = other.transform;
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} detected Player {playerTransform.name} in {triggerType} trigger");
+            Debug.Log($"EnemyMonoBehaviour: About to execute switch, triggerType = {triggerType} ({(int)triggerType})");
 
             switch (triggerType)
             {
                 case TriggerType.Detection:
+                    Debug.Log($"EnemyMonoBehaviour: Executing Detection case");
                     _enemyController.SetPlayerTarget(playerTransform);
+                    Debug.Log($"EnemyMonoBehaviour: After SetPlayerTarget, HasPlayerTarget = {_enemyController.HasPlayerTarget}");
                     break;
 
                 case TriggerType.Attack:
+                    Debug.Log($"EnemyMonoBehaviour: Executing Attack case");
                     _enemyController.SetPlayerInAttackRange(true);
                     Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
                     break;
+                    
+                default:
+                    Debug.LogError($"EnemyMonoBehaviour: Unknown trigger type: {triggerType}");
+                    break;
             }
+            
+            Debug.Log($"EnemyMonoBehaviour: After switch statement");
         }
 
         /// <summary>

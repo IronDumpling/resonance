@@ -88,16 +88,7 @@ namespace Resonance.Enemies.Data
                 newState = EnemyState.Normal;
             }
             
-            // 状态变化时输出日志
-            if (newState != CurrentState)
-            {
-                Debug.Log($"[EnemyStateData] State changed: {CurrentState} → {newState}");
-                CurrentState = newState;
-            }
-            else
-            {
-                CurrentState = newState;
-            }
+            CurrentState = newState;
         }
         
         /// <summary>

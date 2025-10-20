@@ -34,11 +34,18 @@ namespace Resonance.Enemies.Triggers
 
         void OnTriggerEnter(Collider other)
         {
-            if (!_isInitialized || _enemyMono == null) return;
+            if (!_isInitialized || _enemyMono == null)
+            {
+                Debug.LogWarning($"EnemyTrigger: Not initialized on {gameObject.name}");
+                return;
+            }
+
+            Debug.Log($"EnemyTrigger: OnTriggerEnter from {other.name} (tag: {other.tag}) on {gameObject.name} ({_triggerType})");
 
             // 只检测玩家
             if (other.CompareTag("Player"))
             {
+                Debug.Log($"EnemyTrigger: Calling HandleTriggerEnter for Player on {_enemyMono.name}");
                 _enemyMono.HandleTriggerEnter(_triggerType, other);
             }
         }

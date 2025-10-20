@@ -51,6 +51,8 @@ namespace Resonance.Enemies.BTNodes
             {
                 CacheReferences();
             }
+
+            Debug.Log($"[BT Conditional] {GetType().Name}: OnAwake called on {gameObject.name}");
         }
         
         /// <summary>
@@ -74,6 +76,7 @@ namespace Resonance.Enemies.BTNodes
         {
             if (enemyMono == null || !enemyMono.IsInitialized)
             {
+                Debug.LogWarning($"[BT Conditional] {GetType().Name}: Cannot cache - enemyMono null or not initialized");
                 return;
             }
             
@@ -81,19 +84,21 @@ namespace Resonance.Enemies.BTNodes
             movement = controller?.Movement;
             animator = enemyMono.GetComponentInChildren<Animator>();
             
+            Debug.Log($"[BT Conditional] {GetType().Name}: Cached references on {gameObject.name} - Controller: {controller != null}, Movement: {movement != null}, Animator: {animator != null}");
+            
             if (controller == null)
             {
-                Debug.LogError($"[BT Conditional] {GetType().Name}: EnemyController not found!");
+                Debug.LogError($"[BT Conditional] {GetType().Name}: EnemyController not found on {gameObject.name}!");
             }
             
             if (movement == null)
             {
-                Debug.LogWarning($"[BT Conditional] {GetType().Name}: MovementSystem not found!");
+                Debug.LogWarning($"[BT Conditional] {GetType().Name}: MovementSystem not found on {gameObject.name}!");
             }
             
             if (animator == null)
             {
-                Debug.LogWarning($"[BT Conditional] {GetType().Name}: Animator not found!");
+                Debug.LogWarning($"[BT Conditional] {GetType().Name}: Animator not found on {gameObject.name}!");
             }
         }
         
@@ -105,24 +110,30 @@ namespace Resonance.Enemies.BTNodes
         {
             if (enemyMono == null)
             {
-                Debug.LogError($"[BT Conditional] {GetType().Name}: EnemyMonoBehaviour is null!");
+                Debug.LogError($"[BT Conditional] {GetType().Name}: EnemyMonoBehaviour is null on {gameObject?.name ?? "unknown"}!");
                 return false;
             }
             
             if (!enemyMono.IsInitialized)
             {
                 // Enemy not ready yet, wait
+                Debug.LogWarning($"[BT Conditional] {GetType().Name}: EnemyMonoBehaviour not initialized yet on {gameObject.name}");
                 return false;
             }
             
             if (controller == null)
             {
+                Debug.LogWarning($"[BT Conditional] {GetType().Name}: Controller is null, attempting to cache references again on {gameObject.name}");
                 CacheReferences(); // Try to cache again
                 
                 if (controller == null)
                 {
-                    Debug.LogError($"[BT Conditional] {GetType().Name}: EnemyController is null!");
+                    Debug.LogError($"[BT Conditional] {GetType().Name}: EnemyController is still null after cache attempt on {gameObject.name}!");
                     return false;
+                }
+                else
+                {
+                    Debug.Log($"[BT Conditional] {GetType().Name}: Successfully cached controller on retry on {gameObject.name}");
                 }
             }
             

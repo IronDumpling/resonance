@@ -662,6 +662,7 @@ namespace Resonance.Enemies.Core
             _playerTarget = player;
             _hasPlayerTarget = true;
             _lastKnownPlayerPosition = player.position;
+            
             OnPlayerDetected?.Invoke(player);
         }
 
