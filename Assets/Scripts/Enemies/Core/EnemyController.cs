@@ -233,10 +233,13 @@ namespace Resonance.Enemies.Core
 
         /// <summary>
         /// Update revival timer and restore health
-        /// Called every frame when IsReviving is true (managed by BehaviorTree)
+        /// Called every frame when revival is in progress (managed by BehaviorTree)
+        /// Uses CurrentState which is managed by EnemyStateData
         /// </summary>
         private void UpdateRevivalTimer(float deltaTime)
         {
+            // CurrentState is now managed by EnemyStateData with _isRevivingInProgress flag
+            // This ensures state remains Reviving throughout the entire revival process
             if (CurrentState == EnemyState.Reviving)
             {
                 _revivalTimer += deltaTime;
@@ -245,7 +248,7 @@ namespace Resonance.Enemies.Core
                 if (_stats.revivalRate > 0f && _stats.currentHealth < _stats.maxHealth)
                 {
                     var previousTier = _stats.healthTier;
-                    _stats.RestoreHealth(_stats.revivalRate * deltaTime);
+                    float restored = _stats.RestoreHealth(_stats.revivalRate * deltaTime);
                     _stats.UpdateHealthTier();
                     
                     OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
@@ -254,6 +257,12 @@ namespace Resonance.Enemies.Core
                     if (_stats.healthTier != previousTier)
                     {
                         OnPhysicalTierChanged?.Invoke(_stats.healthTier);
+                    }
+                    
+                    // Log progress for debugging
+                    if (Mathf.FloorToInt(_revivalTimer) != Mathf.FloorToInt(_revivalTimer - deltaTime))
+                    {
+                        Debug.Log($"[EnemyController] Reviving... Restored: {restored:F2}, Health: {_stats.currentHealth:F1}/{_stats.maxHealth:F1}");
                     }
                 }
             }
@@ -411,6 +420,7 @@ namespace Resonance.Enemies.Core
         public void StartRevival()
         {
             _revivalTimer = 0f;
+            _stateData.StartRevival();  // Set flag in StateData to keep state as Reviving
             OnRevivalStarted?.Invoke();
             Debug.Log("EnemyController: Revival started");
         }
@@ -421,6 +431,7 @@ namespace Resonance.Enemies.Core
         public void CompleteRevival()
         {
             _revivalTimer = 0f;
+            _stateData.CompleteRevival();  // Clear flag in StateData to allow normal state calculation
             
             // Clear any existing hit tracking to ensure clean state
             _currentAttackHits.Clear();
