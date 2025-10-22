@@ -1,8 +1,9 @@
 using UnityEngine;
 using Resonance.Interfaces.Objects;
 using Resonance.Interfaces.Services;
-using Resonance.Utilities;
 using Resonance.Items;
+using Resonance.Utilities;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Triggers
 {
@@ -18,7 +19,7 @@ namespace Resonance.Player.Triggers
         private PlayerMonoBehaviour _playerMono;
         private IInteractionService _interactionService;
         private bool _isInitialized = false;
-        private LayerMask _interactionLayerMask = 1 << 7; // Default to layer 7 (Interactable)
+        private LayerMask _interactionLayerMask = LayerDict.GetLayer("Interactable");
 
         // Current interactable object in range
         private IInteractable _currentInteractable = null;

@@ -91,25 +91,8 @@ namespace Resonance.Enemies
                 return;
             }
 
-            // Get Animator component (should be on Visual child)
-            _animator = GetComponentInChildren<Animator>();
-            if (_animator == null)
-            {
-                Debug.LogError($"EnemyMonoBehaviour: No Animator found on {gameObject.name} or its children!");
-            }
-            else
-            {
-                Debug.Log($"EnemyMonoBehaviour: Found Animator on {_animator.gameObject.name}");
-            }
-
-            // Setup visual components
-            SetupVisualComponents();
-
             // Initialize enemy
             InitializeEnemy();
-
-            // Setup detection system
-            SetupDetectionSystem();
         }
 
         void Start()
@@ -125,9 +108,6 @@ namespace Resonance.Enemies
             
             // Verify and fix detection system (in case components were missing)
             VerifyDetectionSystem();
-            
-            // Setup patrol waypoints
-            SetupPatrolWaypoints();
 
             // Setup Wave UI
             SetupWaveUI();
@@ -222,6 +202,46 @@ namespace Resonance.Enemies
 
         #region Initialization
 
+        private void InitializeEnemy()
+        {
+            // Setup visual components
+            SetupVisualComponents();
+
+            // Initialize core controller
+            _enemyController = new EnemyController(_baseStats, transform.position, transform);
+
+            // Get movement system from controller
+            _movementSystem = _enemyController.Movement;
+
+            // Subscribe to enemy events
+            _enemyController.OnHealthChanged += HandleHealthChanged;
+            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
+            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
+            _enemyController.OnTrueDeath += HandleTrueDeath;
+            _enemyController.OnRevivalStarted += HandleRevivalStarted;
+            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
+            _enemyController.OnAttackLaunched += HandleAttackLaunched;
+            _enemyController.OnStateChanged += HandleStateChanged;
+
+            _isInitialized = true;
+
+            // Setup EnemyAnimator
+            SetupEnemyAnimator();
+
+            // Setup patrol waypoints after controller is initialized
+            SetupPatrolWaypoints();
+            
+            // Reset attack cooldown so enemy can attack immediately when needed
+            _enemyController.ResetAttackCooldown();
+
+            // Setup detection system
+            SetupDetectionSystem();
+            
+            OnEnemyInitialized?.Invoke(_enemyController);
+
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
+        }
+
         private void SetupVisualComponents()
         {
             // Find Visual child if not assigned
@@ -264,53 +284,30 @@ namespace Resonance.Enemies
             }
         }
 
-        private void InitializeEnemy()
+        private void SetupEnemyAnimator()
         {
-            // Initialize core controller
-            _enemyController = new EnemyController(_baseStats, transform.position, transform);
-
-            // Get movement system from controller
-            _movementSystem = _enemyController.Movement;
-
-            // Subscribe to enemy events
-            _enemyController.OnHealthChanged += HandleHealthChanged;
-            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
-            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
-            _enemyController.OnTrueDeath += HandleTrueDeath;
-            _enemyController.OnRevivalStarted += HandleRevivalStarted;
-            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
-            _enemyController.OnAttackLaunched += HandleAttackLaunched;
-            _enemyController.OnStateChanged += HandleStateChanged;
-
-            _isInitialized = true;
-
-            // Get or add EnemyAnimator component
-            _enemyAnimator = GetComponentInChildren<EnemyAnimator>();
-            if (_enemyAnimator == null)
+            // get Animator component (should be on root game object)
+            _animator = GetComponent<Animator>();
+            if (_animator == null)
             {
-                GameObject visualObject = _animator?.gameObject;
-                if (visualObject != null)
-                {
-                    _enemyAnimator = visualObject.AddComponent<EnemyAnimator>();
-                }
+                Debug.LogError($"EnemyMonoBehaviour: No Animator found on {gameObject.name}!");
+                _animator = gameObject.AddComponent<Animator>();
             }
 
-            // Initialize animation relay
-            if (_enemyAnimator != null)
+            // get EnemyAnimator component
+            _enemyAnimator = _animator.gameObject.GetComponent<EnemyAnimator>();
+            if (_enemyAnimator == null)
+            {
+                Debug.LogError($"EnemyMonoBehaviour: No EnemyAnimator found on {gameObject.name}!");
+                _enemyAnimator = _animator.gameObject.AddComponent<EnemyAnimator>();
+            }
+            
+            // initialize EnemyAnimator
+            if(_enemyAnimator != null)
             {
                 EnemyDamageHitbox damageHitbox = GetComponentInChildren<EnemyDamageHitbox>();
                 _enemyAnimator.Initialize(this, damageHitbox);
             }
-
-            // Setup patrol waypoints after controller is initialized
-            SetupPatrolWaypoints();
-            
-            // Reset attack cooldown so enemy can attack immediately when needed
-            _enemyController.ResetAttackCooldown();
-            
-            OnEnemyInitialized?.Invoke(_enemyController);
-
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
         }
 
         private void SetupServices()

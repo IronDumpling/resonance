@@ -9,6 +9,7 @@ using Resonance.Core;
 using Resonance.Enemies.Triggers;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 
@@ -212,14 +213,14 @@ namespace Resonance.Player
                 }
             }
             
-            // 确保Visual子对象有正确的标签
+            // Ensure Visual child object has correct tag
             if (!visualChild.CompareTag("Player"))
             {
                 visualChild.tag = "Player";
                 Debug.Log($"PlayerMonoBehaviour: Set Player tag on Visual child: {visualChild.name}");
             }
             
-            // 检查Visual子对象的collider设置
+            // Check Visual child object's collider settings
             Collider visualCollider = visualChild.GetComponent<Collider>();
             if (visualCollider != null)
             {
@@ -230,20 +231,6 @@ namespace Resonance.Player
             else
             {
                 Debug.LogWarning($"PlayerMonoBehaviour: No collider found on Visual child {visualChild.name}");
-            }
-            
-            // 检查所有子colliders并确保有Player标签
-            Collider[] childColliders = GetComponentsInChildren<Collider>();
-            foreach (var collider in childColliders)
-            {
-                // 跳过CharacterController
-                if (collider == _characterController) continue;
-                
-                if (!collider.CompareTag("Player"))
-                {
-                    collider.tag = "Player";
-                    Debug.Log($"PlayerMonoBehaviour: Set Player tag on child collider: {collider.name}");
-                }
             }
 
             Transform bodyTransform = visualChild.Find("Body");
@@ -265,7 +252,7 @@ namespace Resonance.Player
         {
             _playerController = new PlayerController(_baseStats);
             
-            // 使用gameObject引用来初始化射击系统
+            // Use gameObject reference to initialize shooting system
             _playerController.Initialize(_baseStats, gameObject);
             
             // Subscribe to death events for game logic (not UI)
@@ -302,16 +289,17 @@ namespace Resonance.Player
                 Debug.Log("PlayerMonoBehaviour: Added WaveAttackTrigger component to WaveAttackRange GameObject");
             }
 
-            // Initialize with player controller and range from base stats
+            // Initialize with player controller, range, and layer mask from base stats
             float waveAttackRange = _baseStats?.InteractionRange ?? 1.5f;
-            _waveAttackTrigger.Initialize(_playerController, waveAttackRange);
+            LayerMask waveInteractionLayerMask = _baseStats?.WaveInteractionLayerMask ?? LayerDict.GetLayer("Enemy");
+            _waveAttackTrigger.Initialize(_playerController, waveAttackRange, waveInteractionLayerMask);
 
             // Subscribe to events for debugging
             _waveAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
             _waveAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
             _waveAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
 
-            Debug.Log($"PlayerMonoBehaviour: WaveAttackTrigger initialized with range {waveAttackRange}");
+            Debug.Log($"PlayerMonoBehaviour: WaveAttackTrigger initialized with range {waveAttackRange} and layer mask {waveInteractionLayerMask.value}");
         }
 
         /// <summary>
@@ -340,7 +328,7 @@ namespace Resonance.Player
 
             // Set the collider radius and layer mask from base stats
             float interactionRange = _baseStats?.InteractionRange ?? 1.5f;
-            LayerMask interactionLayerMask = _baseStats?.InteractionLayerMask ?? (1 << 7);
+            LayerMask interactionLayerMask = _baseStats?.InteractionLayerMask ?? LayerDict.GetLayer("Interactable");
             
             var sphereCollider = interactRangeTransform.GetComponent<SphereCollider>();
             if (sphereCollider != null)

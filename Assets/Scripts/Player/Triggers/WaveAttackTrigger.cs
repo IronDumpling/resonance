@@ -4,6 +4,7 @@ using System.Linq;
 using Resonance.Player.Core;
 using Resonance.Enemies;
 using Resonance.Enemies.Triggers;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Triggers
 {
@@ -16,6 +17,9 @@ namespace Resonance.Player.Triggers
         // Core references
         private PlayerController _playerController;
         private bool _isInitialized = false;
+
+        // Layer mask for filtering
+        private LayerMask _waveInteractionLayerMask = LayerDict.GetLayer("Enemy");
 
         // Core hitbox tracking
         private List<EnemyHitbox> _coreHitboxesInRange = new List<EnemyHitbox>();
@@ -66,7 +70,8 @@ namespace Resonance.Player.Triggers
         /// </summary>
         /// <param name="playerController">Reference to the player controller</param>
         /// <param name="range">Detection range (will set the SphereCollider radius)</param>
-        public void Initialize(PlayerController playerController, float range)
+        /// <param name="layerMask">Layer mask for filtering collisions (optional, defaults to layer 8)</param>
+        public void Initialize(PlayerController playerController, float range, LayerMask? layerMask = null)
         {
             if (_isInitialized)
             {
@@ -75,6 +80,13 @@ namespace Resonance.Player.Triggers
             }
 
             _playerController = playerController;
+            
+            // Set layer mask if provided
+            if (layerMask.HasValue)
+            {
+                _waveInteractionLayerMask = layerMask.Value;
+                Debug.Log($"WaveAttackTrigger: Set layer mask to {_waveInteractionLayerMask.value}");
+            }
 
             // Set the collider radius
             var collider = GetComponent<SphereCollider>();
@@ -95,6 +107,12 @@ namespace Resonance.Player.Triggers
         void OnTriggerEnter(Collider other)
         {
             if (!_isInitialized) return;
+
+            // Check layer mask filter
+            if ((_waveInteractionLayerMask.value & (1 << other.gameObject.layer)) == 0)
+            {
+                return; // Not on the correct layer
+            }
 
             // Check if it's a Core type EnemyHitbox
             var hitbox = other.GetComponent<EnemyHitbox>();
@@ -118,6 +136,12 @@ namespace Resonance.Player.Triggers
         {
             if (!_isInitialized) return;
 
+            // Check layer mask filter
+            if ((_waveInteractionLayerMask.value & (1 << other.gameObject.layer)) == 0)
+            {
+                return; // Not on the correct layer
+            }
+
             // Check if it's a Core type EnemyHitbox
             var hitbox = other.GetComponent<EnemyHitbox>();
             if (hitbox == null) return;
@@ -136,6 +160,12 @@ namespace Resonance.Player.Triggers
         void OnTriggerStay(Collider other)
         {
             if (!_isInitialized) return;
+
+            // Check layer mask filter
+            if ((_waveInteractionLayerMask.value & (1 << other.gameObject.layer)) == 0)
+            {
+                return; // Not on the correct layer
+            }
 
             // Check if Core hitbox collider state changed
             var hitbox = other.GetComponent<EnemyHitbox>();

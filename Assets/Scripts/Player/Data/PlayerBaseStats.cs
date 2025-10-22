@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Player.Data
@@ -48,9 +49,9 @@ namespace Resonance.Player.Data
         [Tooltip("交互范围")]
         [SerializeField] private float _interactionRange = 1.5f;
         [Tooltip("交互层级")]
-        [SerializeField] private LayerMask _interactionLayerMask = 1 << 7; // Layer 7 (Interactable)
+        [SerializeField] private LayerMask _interactionLayerMask = LayerDict.GetLayer("Interactable");
         [Tooltip("晶核交互层级")]
-        [SerializeField] private LayerMask _coreInteractionLayerMask = 1 << 8; // Layer 8 (Core Interactable)
+        [SerializeField] private LayerMask _waveInteractionLayerMask = LayerDict.GetLayer("Enemy");
 
         [Header("Visual Effects")]
         [Tooltip("正常状态材质路径")]
@@ -83,7 +84,7 @@ namespace Resonance.Player.Data
         // Interaction attributes accessors
         public float InteractionRange => _interactionRange;
         public LayerMask InteractionLayerMask => _interactionLayerMask;
-        public LayerMask CoreInteractionLayerMask => _coreInteractionLayerMask;
+        public LayerMask WaveInteractionLayerMask => _waveInteractionLayerMask;
 
         // Visual effects accessors
         public string NormalMaterialPath => _normalMaterialPath;

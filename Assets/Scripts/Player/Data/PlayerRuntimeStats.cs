@@ -37,7 +37,7 @@ namespace Resonance.Player.Data
         [Header("Interaction Attributes")]
         public float interactionRange;
         public LayerMask interactionLayerMask;
-        public LayerMask coreInteractionLayerMask;
+        public LayerMask waveInteractionLayerMask;
 
         [Header("Visual Effects")]
         public string normalMaterialPath;
@@ -85,7 +85,7 @@ namespace Resonance.Player.Data
             // Copy interaction attributes
             interactionRange = baseStats.InteractionRange;
             interactionLayerMask = baseStats.InteractionLayerMask;
-            coreInteractionLayerMask = baseStats.CoreInteractionLayerMask;
+            waveInteractionLayerMask = baseStats.WaveInteractionLayerMask;
 
             // Copy visual effects
             normalMaterialPath = baseStats.NormalMaterialPath;

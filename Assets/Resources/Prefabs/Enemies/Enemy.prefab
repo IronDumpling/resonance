@@ -115,8 +115,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3203894000571929562}
-  - component: {fileID: 5004115887592804459}
-  - component: {fileID: 6716566790882206923}
   m_Layer: 8
   m_Name: Visual
   m_TagString: Untagged
@@ -142,41 +140,6 @@ Transform:
   - {fileID: 2965589679283032684}
   m_Father: {fileID: 631622349711839967}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!95 &5004115887592804459
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2834259150065660657}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: d4f98ead94ae1c54287e2e4c69f7bbc7, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
---- !u!114 &6716566790882206923
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2834259150065660657}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 172fe19e81a051b4c97c829a181b6bdb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Enemies.Core.EnemyAnimator
-  _debugMode: 0
 --- !u!1 &3102917392081337075
 GameObject:
   m_ObjectHideFlags: 0
@@ -651,6 +614,8 @@ GameObject:
   - component: {fileID: 1521937031837005921}
   - component: {fileID: 6909021593345792260}
   - component: {fileID: 7487264682084292901}
+  - component: {fileID: 4261642651005975115}
+  - component: {fileID: 902328056842747042}
   m_Layer: 8
   m_Name: Enemy
   m_TagString: Untagged
@@ -784,6 +749,41 @@ MonoBehaviour:
       Version: 1.7.12
   gizmoViewMode: 2
   showBehaviorDesignerGizmo: 1
+--- !u!95 &4261642651005975115
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6416059392138926664}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: d4f98ead94ae1c54287e2e4c69f7bbc7, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &902328056842747042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6416059392138926664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172fe19e81a051b4c97c829a181b6bdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Enemies.Core.EnemyAnimator
+  _debugMode: 0
 --- !u!1 &8435182021885753263
 GameObject:
   m_ObjectHideFlags: 0
@@ -946,5 +946,5 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1.5
+  m_Radius: 1.2
   m_Center: {x: 0, y: 0, z: 0}

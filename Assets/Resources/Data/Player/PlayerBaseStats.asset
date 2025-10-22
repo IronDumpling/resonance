@@ -24,11 +24,11 @@ MonoBehaviour:
   _inventoryGridWidth: 3
   _inventoryGridHeight: 3
   _moduleSlots: 2
-  _interactionRange: 2
+  _interactionRange: 1.5
   _interactionLayerMask:
     serializedVersion: 2
     m_Bits: 128
-  _coreInteractionLayerMask:
+  _waveInteractionLayerMask:
     serializedVersion: 2
     m_Bits: 256
   _normalMaterialPath: Art/Materials/Player/Player_Body

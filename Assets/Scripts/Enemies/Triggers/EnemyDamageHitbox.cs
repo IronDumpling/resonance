@@ -4,6 +4,7 @@ using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Interfaces;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 
 namespace Resonance.Enemies.Triggers
@@ -17,7 +18,7 @@ namespace Resonance.Enemies.Triggers
     public class EnemyDamageHitbox : MonoBehaviour
     {
         [Header("Hitbox Configuration")]
-        [SerializeField] private LayerMask _targetLayers = (1 << 3);
+        [SerializeField] private LayerMask _targetLayers = LayerDict.GetLayer("Player");
         [Tooltip("Which layers can be damaged by this hitbox")]
         
         [SerializeField] private string _targetTag = "Player";

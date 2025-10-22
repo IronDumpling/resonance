@@ -116,7 +116,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("巡逻半径")]
         public float patrolRadius = 5f;
         [Tooltip("到达目标的距离阈值")]
-        public float arrivalThreshold = 1.2f;
+        public float arrivalThreshold = 0.5f;
         
         [Header("Visual Effects")]
         [Tooltip("正常状态材质路径")]
@@ -139,7 +139,7 @@ namespace Resonance.Enemies.Data
         [Range(1, 5)]
         public int lootCount = 1;
         [Tooltip("掉落物生成半径")]
-        public float lootSpawnRadius = 1.5f;
+        public float lootSpawnRadius = 0.5f;
         [Tooltip("掉落概率")]
         [Range(0f, 1f)]
         public float lootDropChance = 1f;
