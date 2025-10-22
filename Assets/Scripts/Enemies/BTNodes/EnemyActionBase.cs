@@ -23,6 +23,7 @@ namespace Resonance.Enemies.BTNodes
         protected EnemyController controller;
         protected MovementSystem movement;
         protected Animator animator;
+        protected EnemyAnimator enemyAnimator;
         
         // ===== Unity Lifecycle =====
         
@@ -80,6 +81,7 @@ namespace Resonance.Enemies.BTNodes
             controller = enemyMono.Controller;
             movement = controller?.Movement;
             animator = enemyMono.GetComponentInChildren<Animator>();
+            enemyAnimator = enemyMono.GetComponentInChildren<EnemyAnimator>();
             
             if (controller == null)
             {
@@ -94,6 +96,11 @@ namespace Resonance.Enemies.BTNodes
             if (animator == null)
             {
                 Debug.LogWarning($"[BT Action] {GetType().Name}: Animator not found!");
+            }
+            
+            if (enemyAnimator == null)
+            {
+                Debug.LogWarning($"[BT Action] {GetType().Name}: EnemyAnimator not found!");
             }
         }
         
@@ -135,6 +142,7 @@ namespace Resonance.Enemies.BTNodes
         protected EnemyController Controller => controller;
         protected MovementSystem Movement => movement;
         protected Animator Animator => animator;
+        protected EnemyAnimator EnemyAnimator => enemyAnimator;
     }
 }
 

@@ -414,7 +414,54 @@ namespace Resonance.Enemies.Core
                 animator.ResetTrigger(triggerName);
             }
         }
+        
+        /// <summary>
+        /// Set animation float (helper method for BT nodes)
+        /// </summary>
+        public void SetFloat(string paramName, float value)
+        {
+            var animator = GetComponent<Animator>();
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                animator.SetFloat(paramName, value);
+                if (_debugMode)
+                {
+                    Debug.Log($"EnemyAnimator: Set float '{paramName}' = {value}");
+                }
+            }
+        }
 
+        #endregion
+        
+        #region Revival System Support
+        
+        /// <summary>
+        /// Check if revival start animation event was triggered (non-consuming query)
+        /// Used by ReviveAction to synchronize with animation
+        /// </summary>
+        public bool IsRevivalStartTriggered => _revivalStartTriggered;
+        
+        /// <summary>
+        /// Check if revival complete animation event was triggered (non-consuming query)
+        /// Used by ReviveAction to synchronize with animation
+        /// </summary>
+        public bool IsRevivalCompleteTriggered => _revivalCompleteTriggered;
+        
+        /// <summary>
+        /// Reset revival-specific animation flags (called by ReviveAction.OnStart)
+        /// Separate from general event flag reset to avoid interfering with other systems
+        /// </summary>
+        public void ResetRevivalFlags()
+        {
+            _revivalStartTriggered = false;
+            _revivalCompleteTriggered = false;
+            
+            if (_debugMode)
+            {
+                Debug.Log("EnemyAnimator: Revival flags reset");
+            }
+        }
+        
         #endregion
 
         #region Public Interface

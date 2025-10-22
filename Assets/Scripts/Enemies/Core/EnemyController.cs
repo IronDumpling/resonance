@@ -158,7 +158,7 @@ namespace Resonance.Enemies.Core
         // Position Properties
         public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
         
-        // Animation-driven combat properties (read-only for animation bridge)
+        // Animation-driven combat properties
         public AttackStats NormalAttackStats => _stats.normalAttackStats;
         public AttackStats WaveAttackStats => _stats.waveAttackStats;
         public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
