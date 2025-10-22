@@ -122,12 +122,6 @@ namespace Resonance.Enemies
             // Update core controller (health, combat, etc.)
             _enemyController.Update(Time.deltaTime);
 
-            // Check for destruction (if truly dead)
-            if (_enemyController.IsCoreDead)
-            {
-                DestroyEnemy();
-            }
-
             // Update debug info
             if (_showDebugInfo && Time.frameCount % 30 == 0) // Every 0.5 seconds at 60fps
             {
@@ -786,8 +780,8 @@ namespace Resonance.Enemies
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
             
-            // Start destruction countdown
-            Destroy(gameObject, 1f);
+            // Destruction is now handled by DeathAction in BehaviorTree
+            // This ensures proper timing for loot drops and death animations
         }
 
         /// <summary>
@@ -913,16 +907,6 @@ namespace Resonance.Enemies
         {
             if (!IsInitialized) return "Not initialized";
             return _enemyController.GetStats();
-        }
-
-        #endregion
-
-        #region Destruction
-
-        private void DestroyEnemy()
-        {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} ready for destruction");
-            Destroy(gameObject);
         }
 
         #endregion

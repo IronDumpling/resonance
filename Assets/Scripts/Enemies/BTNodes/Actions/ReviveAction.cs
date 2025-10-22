@@ -276,14 +276,6 @@ namespace Resonance.Enemies.BTNodes.Actions
                 return TaskStatus.Running;
             }
             
-            // Continue waiting for recovery (log progress every second for debugging)
-            if (Mathf.FloorToInt(_phaseTimer) != Mathf.FloorToInt(_phaseTimer - Time.deltaTime))
-            {
-                float healthPercentage = (Controller.Stats.currentHealth / Controller.Stats.maxHealth) * 100f;
-                Debug.Log($"[ReviveAction] Recovering... Health: {Controller.Stats.currentHealth:F1}/{Controller.Stats.maxHealth:F1} ({healthPercentage:F1}%), " +
-                         $"Time: {_phaseTimer:F2}s / {_recoveryPhaseTimeout:F2}s");
-            }
-            
             return TaskStatus.Running;
         }
         
