@@ -108,7 +108,7 @@ namespace Resonance.Enemies.Data
         [Tooltip("Damage multipliers for each hitbox type")]
         public List<HitboxMultiplierConfig> hitboxMultipliers = new List<HitboxMultiplierConfig>();
         
-        [Header("Movement Attributes")]
+        [Header("Navigation Configuration")]
         [Tooltip("普通移动速度")]
         public float moveSpeed = 1f;
         [Tooltip("追击移动速度")]
@@ -117,6 +117,16 @@ namespace Resonance.Enemies.Data
         public float patrolRadius = 5f;
         [Tooltip("到达目标的距离阈值")]
         public float arrivalThreshold = 0.5f;
+        [Tooltip("基底偏移")]
+        public float baseOffset = 1f;
+        [Tooltip("加速度")]
+        public float acceleration = 8f;
+        [Tooltip("角速度 (度/秒)")]
+        public float angularSpeed = 120f;
+        [Tooltip("停止距离")]
+        public float stoppingDistance = 0.5f;
+        [Tooltip("是否自动刹车")]
+        public bool autoBraking = true;
         
         [Header("Visual Effects")]
         [Tooltip("正常状态材质路径")]
@@ -332,6 +342,11 @@ namespace Resonance.Enemies.Data
             chaseMoveSpeed = Mathf.Max(0.1f, chaseMoveSpeed);
             patrolRadius = Mathf.Max(0f, patrolRadius);
             arrivalThreshold = Mathf.Max(0.1f, arrivalThreshold);
+            
+            // NavMesh Agent 配置验证
+            acceleration = Mathf.Max(0.1f, acceleration);
+            angularSpeed = Mathf.Max(0f, angularSpeed);
+            stoppingDistance = Mathf.Max(0f, stoppingDistance);
             
             // 视觉效果验证
             damageFlashDuration = Mathf.Max(0.1f, damageFlashDuration);

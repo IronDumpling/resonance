@@ -37,11 +37,16 @@ namespace Resonance.Enemies.Data
         [Header("Hitbox Damage Multipliers")]
         public List<HitboxMultiplierConfig> hitboxMultipliers;
         
-        [Header("Movement Attributes")]
+        [Header("Navigation Configuration")]
         public float moveSpeed;
         public float chaseMoveSpeed;
         public float patrolRadius;
         public float arrivalThreshold;
+        public float baseOffset;
+        public float acceleration;
+        public float angularSpeed;
+        public float stoppingDistance;
+        public bool autoBraking;
         
         [Header("Visual Effects")]
         public string normalMaterialPath;
@@ -103,6 +108,13 @@ namespace Resonance.Enemies.Data
             chaseMoveSpeed = baseStats.chaseMoveSpeed;
             patrolRadius = baseStats.patrolRadius;
             arrivalThreshold = baseStats.arrivalThreshold;
+            
+            // NavMesh Agent 配置
+            baseOffset = baseStats.baseOffset;
+            acceleration = baseStats.acceleration;
+            angularSpeed = baseStats.angularSpeed;
+            stoppingDistance = baseStats.stoppingDistance;
+            autoBraking = baseStats.autoBraking;
             
             // 视觉效果
             normalMaterialPath = baseStats.normalMaterialPath;

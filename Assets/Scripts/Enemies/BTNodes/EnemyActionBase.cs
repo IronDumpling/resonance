@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 using BehaviorDesigner.Runtime.Tasks;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Movement;
@@ -21,7 +22,8 @@ namespace Resonance.Enemies.BTNodes
         // ===== Cached References =====
         protected EnemyMonoBehaviour enemyMono;
         protected EnemyController controller;
-        protected MovementSystem movement;
+        protected EnemyMovement movement;
+        protected NavMeshAgent navAgent;
         protected Animator animator;
         protected EnemyAnimator enemyAnimator;
         
@@ -80,6 +82,7 @@ namespace Resonance.Enemies.BTNodes
             
             controller = enemyMono.Controller;
             movement = controller?.Movement;
+            navAgent = movement?.GetNavAgent();
             animator = enemyMono.GetComponentInChildren<Animator>();
             enemyAnimator = enemyMono.GetComponentInChildren<EnemyAnimator>();
             
@@ -90,7 +93,12 @@ namespace Resonance.Enemies.BTNodes
             
             if (movement == null)
             {
-                Debug.LogWarning($"[BT Action] {GetType().Name}: MovementSystem not found!");
+                Debug.LogWarning($"[BT Action] {GetType().Name}: EnemyMovement not found!");
+            }
+            
+            if (navAgent == null)
+            {
+                Debug.LogWarning($"[BT Action] {GetType().Name}: NavMeshAgent not found!");
             }
             
             if (animator == null)
@@ -140,7 +148,8 @@ namespace Resonance.Enemies.BTNodes
         /// Shorthand properties for convenience
         /// </summary>
         protected EnemyController Controller => controller;
-        protected MovementSystem Movement => movement;
+        protected EnemyMovement Movement => movement;
+        protected NavMeshAgent NavAgent => navAgent;
         protected Animator Animator => animator;
         protected EnemyAnimator EnemyAnimator => enemyAnimator;
     }

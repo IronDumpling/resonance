@@ -4,7 +4,7 @@ using BehaviorDesigner.Runtime.Tasks;
 namespace Resonance.Enemies.BTNodes.Actions
 {
     /// <summary>
-    /// Patrol action node - moves around the patrol area at normal speed
+    /// Patrol action node - moves around the patrol area using NavMeshAgent
     /// Behavior Designer Best Practices:
     /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
@@ -12,7 +12,7 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// - Returns Running while patrolling
     /// </summary>
     [TaskCategory("Resonance/Enemy")]
-    [TaskDescription("Patrols between waypoints or random positions")]
+    [TaskDescription("Patrols between waypoints or random positions using NavMeshAgent")]
     public class PatrolAction : EnemyActionBase
     {
         private Vector3 _currentPatrolTarget;
@@ -36,6 +36,13 @@ namespace Resonance.Enemies.BTNodes.Actions
             _currentPatrolTarget = Controller.GeneratePatrolPoint();
             Controller.SetPatrolTarget(_currentPatrolTarget);
             
+            // Set NavMesh destination
+            if (NavAgent != null && NavAgent.isOnNavMesh)
+            {
+                NavAgent.isStopped = false;
+                NavAgent.SetDestination(_currentPatrolTarget);
+            }
+            
             // Set animation parameters for patrol state
             if (Animator != null && Animator.isActiveAndEnabled)
             {
@@ -55,26 +62,27 @@ namespace Resonance.Enemies.BTNodes.Actions
             // Update animation speed parameter
             if (Animator != null && Animator.isActiveAndEnabled)
             {
-                float speed = Movement?.Velocity.magnitude ?? 0f;
+                float speed = NavAgent != null ? NavAgent.velocity.magnitude : 0f;
                 Animator.SetFloat("Speed", speed);
             }
 
             // Move towards patrol target
             if (!_hasReachedTarget)
             {
-                Movement?.SetTarget(_currentPatrolTarget);
-                
-                // Check if arrived
-                float distanceToTarget = Movement.GetDistanceToTarget();
-                if (distanceToTarget <= Controller.Stats.arrivalThreshold)
+                // Check if NavAgent is ready and has reached destination
+                if (NavAgent != null && NavAgent.isOnNavMesh)
                 {
-                    _hasReachedTarget = true;
-                    _waitTimer = 0f;
-                    
-                    // Switch direction if using waypoint system
-                    if (Controller.HasPatrolWaypoints())
+                    // Check if arrived at destination
+                    if (!NavAgent.pathPending && NavAgent.remainingDistance <= NavAgent.stoppingDistance)
                     {
-                        Controller.SwitchPatrolDirection();
+                        _hasReachedTarget = true;
+                        _waitTimer = 0f;
+                        
+                        // Switch direction if using waypoint system
+                        if (Controller.HasPatrolWaypoints())
+                        {
+                            Controller.SwitchPatrolDirection();
+                        }
                     }
                 }
             }
@@ -90,6 +98,13 @@ namespace Resonance.Enemies.BTNodes.Actions
                         // Move to next waypoint
                         _currentPatrolTarget = Controller.GeneratePatrolPoint();
                         Controller.SetPatrolTarget(_currentPatrolTarget);
+                        
+                        // Set new destination
+                        if (NavAgent != null && NavAgent.isOnNavMesh)
+                        {
+                            NavAgent.SetDestination(_currentPatrolTarget);
+                        }
+                        
                         _hasReachedTarget = false;
                         _waitTimer = 0f;
                     }
@@ -111,7 +126,14 @@ namespace Resonance.Enemies.BTNodes.Actions
             {
                 Controller.StopPatrol();
             }
-            Movement?.Stop();
+            
+            // Stop NavMeshAgent
+            if (NavAgent != null && NavAgent.isOnNavMesh)
+            {
+                NavAgent.isStopped = true;
+                NavAgent.ResetPath();
+            }
+            
             _hasReachedTarget = false;
             _waitTimer = 0f;
         }

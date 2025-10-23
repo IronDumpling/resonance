@@ -21,7 +21,7 @@ namespace Resonance.Enemies.BTNodes
         // ===== Cached References =====
         protected EnemyMonoBehaviour enemyMono;
         protected EnemyController controller;
-        protected MovementSystem movement;
+        protected EnemyMovement movement;
         protected Animator animator;
         
         // ===== Unity Lifecycle =====
@@ -93,7 +93,7 @@ namespace Resonance.Enemies.BTNodes
             
             if (movement == null)
             {
-                Debug.LogWarning($"[BT Conditional] {GetType().Name}: MovementSystem not found on {gameObject.name}!");
+                Debug.LogWarning($"[BT Conditional] {GetType().Name}: EnemyMovement not found on {gameObject.name}!");
             }
             
             if (animator == null)
@@ -144,7 +144,7 @@ namespace Resonance.Enemies.BTNodes
         /// Shorthand properties for convenience
         /// </summary>
         protected EnemyController Controller => controller;
-        protected MovementSystem Movement => movement;
+        protected EnemyMovement Movement => movement;
         protected Animator Animator => animator;
     }
 }

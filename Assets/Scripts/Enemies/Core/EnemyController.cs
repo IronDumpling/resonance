@@ -19,7 +19,7 @@ namespace Resonance.Enemies.Core
     {
         // Core Data
         private EnemyRuntimeStats _stats;
-        private MovementSystem _movement;
+        private EnemyMovement _movement;
         
         // State Data
         private EnemyStateData _stateData = new EnemyStateData();
@@ -91,7 +91,7 @@ namespace Resonance.Enemies.Core
         
         // Properties
         public EnemyRuntimeStats Stats => _stats;
-        public MovementSystem Movement => _movement;
+        public EnemyMovement Movement => _movement;
         public Transform PlayerTarget => _playerTarget;
         public bool HasPlayerTarget => _hasPlayerTarget && _playerTarget != null;
         public bool IsPlayerInAttackRange => _isPlayerInAttackRange;
@@ -166,7 +166,7 @@ namespace Resonance.Enemies.Core
             _currentPatrolTarget = spawnPosition;
             
             // Initialize movement system with reference to this controller
-            _movement = new MovementSystem(_stats, enemyTransform, this);
+            _movement = new EnemyMovement(_stats, enemyTransform, this);
 
             // Initialize damage hitbox
             _damageHitboxChild = enemyTransform?.Find("DamageHitbox");

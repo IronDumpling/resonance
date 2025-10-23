@@ -4,7 +4,7 @@ using BehaviorDesigner.Runtime.Tasks;
 namespace Resonance.Enemies.BTNodes.Actions
 {
     /// <summary>
-    /// Chase action node - moves towards the player at chase move speed
+    /// Chase action node - moves towards the player using NavMeshAgent
     /// Behavior Designer Best Practices:
     /// - Inherits from EnemyActionBase for component access
     /// - No internal condition checking (handled by Conditional nodes)
@@ -12,10 +12,11 @@ namespace Resonance.Enemies.BTNodes.Actions
     /// - Returns Running while chasing, Success/Failure never (external conditions control)
     /// </summary>
     [TaskCategory("Resonance/Enemy")]
-    [TaskDescription("Chases the player target, updating position periodically")]
+    [TaskDescription("Chases the player target using NavMeshAgent")]
     public class ChaseAction : EnemyActionBase
     {
         private float _updateTimer = 0f;
+        private const float PATH_UPDATE_INTERVAL = 0.5f; // Update path every 0.5 seconds
 
         public override TaskStatus OnUpdate()
         {
@@ -32,24 +33,28 @@ namespace Resonance.Enemies.BTNodes.Actions
                 Animator.SetBool("InAttackRange", false);    // NOT in attack range (chasing)
                 
                 // Update speed parameter based on actual movement
-                float speed = Movement?.Velocity.magnitude ?? 0f;
+                float speed = NavAgent != null ? NavAgent.velocity.magnitude : 0f;
                 Animator.SetFloat("Speed", speed);
             }
 
             // Update target position periodically
             _updateTimer += Time.deltaTime;
-            if (_updateTimer >= Controller.TargetUpdateInterval)
+            if (_updateTimer >= PATH_UPDATE_INTERVAL)
             {
                 _updateTimer = 0f;
+                
+                // Get current target position
+                Vector3 targetPosition = Controller.HasPlayerTarget 
+                    ? Controller.PlayerTarget.position 
+                    : Controller.LastKnownPlayerPosition;
+                
+                // Update NavMeshAgent destination
+                if (NavAgent != null && NavAgent.isOnNavMesh)
+                {
+                    NavAgent.isStopped = false;
+                    NavAgent.SetDestination(targetPosition);
+                }
             }
-
-            // Get current target position
-            Vector3 targetPosition = Controller.HasPlayerTarget 
-                ? Controller.PlayerTarget.position 
-                : Controller.LastKnownPlayerPosition;
-            
-            // Move towards target
-            Movement?.SetTarget(targetPosition);
 
             // Continue chasing (conditions are checked externally)
             return TaskStatus.Running;
@@ -58,7 +63,12 @@ namespace Resonance.Enemies.BTNodes.Actions
         public override void OnEnd()
         {
             // Cleanup when task ends
-            Movement?.Stop();
+            if (NavAgent != null && NavAgent.isOnNavMesh)
+            {
+                NavAgent.isStopped = true;
+                NavAgent.ResetPath();
+            }
+            
             _updateTimer = 0f;
         }
     }

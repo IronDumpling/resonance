@@ -53,7 +53,7 @@ namespace Resonance.Enemies
 
         // Core Components
         private EnemyController _enemyController;
-        private MovementSystem _movementSystem;
+        private EnemyMovement _movementSystem;
         private EnemyAnimator _enemyAnimator;
         private IAudioService _audioService;
         private Animator _animator;
