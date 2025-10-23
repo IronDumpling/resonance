@@ -25,14 +25,14 @@ MonoBehaviour:
       coreDamage: 0
       chaosDamage: 10
     cooldown: 2
-    range: 1.2
+    range: 1
   waveAttackStats:
     damages:
       physicalDamage: 0
       coreDamage: 10
       chaosDamage: 0
     cooldown: 10
-    range: 1.2
+    range: 1
   detectionRange: 4
   normalAttackToEnergyRatio: 0.5
   hitboxMultipliers:

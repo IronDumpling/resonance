@@ -94,6 +94,7 @@ namespace Resonance.Enemies.Core
         public MovementSystem Movement => _movement;
         public Transform PlayerTarget => _playerTarget;
         public bool HasPlayerTarget => _hasPlayerTarget && _playerTarget != null;
+        public bool IsPlayerInAttackRange => _isPlayerInAttackRange;
         public Vector3 LastKnownPlayerPosition => _lastKnownPlayerPosition;
         public Vector3 PatrolCenter => _patrolCenter;
         public Vector3 CurrentPatrolTarget => _currentPatrolTarget;
@@ -111,6 +112,9 @@ namespace Resonance.Enemies.Core
         public float RevivalTimer => _revivalTimer;
         
         public EnemyStateData StateData => _stateData;
+
+        // Movement Properties
+        public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
         
         // Health Properties
         public bool IsPhysicallyAlive => _stateData.IsPhysicallyAlive;
@@ -145,24 +149,10 @@ namespace Resonance.Enemies.Core
                                     Time.time >= _lastWaveAttackTime + _stats.waveAttackStats.cooldown &&
                                     _stats.crystalCore.CanConsumeSlot(); 
         
+        // Combat properties
         public AttackType CurrentAttackType => _currentAttackType;
-        
-        /// <summary>
-        /// Set current attack type (called by BehaviorTree action nodes)
-        /// </summary>
-        public void SetCurrentAttackType(AttackType attackType)
-        {
-            _currentAttackType = attackType;
-        }
-        
-        // Position Properties
-        public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
-        
-        // Animation-driven combat properties
         public AttackStats NormalAttackStats => _stats.normalAttackStats;
         public AttackStats WaveAttackStats => _stats.waveAttackStats;
-        public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
-        public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -623,24 +613,6 @@ namespace Resonance.Enemies.Core
             _lastNormalAttackTime = 0f;
             _lastWaveAttackTime = 0f;
             Debug.Log("EnemyController: Attack cooldowns reset (Normal and Core)");
-        }
-
-        /// <summary>
-        /// Check if player is in attack range (now handled by trigger system)
-        /// </summary>
-        public bool IsPlayerInAttackRange()
-        {
-            // This will be set by the trigger system
-            return _isPlayerInAttackRange;
-        }
-
-        /// <summary>
-        /// Check if player is in detection range (now handled by trigger system)
-        /// </summary>
-        public bool IsPlayerInDetectionRange()
-        {
-            // This will be set by the trigger system
-            return HasPlayerTarget;
         }
 
         #endregion

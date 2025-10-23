@@ -210,7 +210,7 @@ namespace Resonance.Enemies.Movement
                     // Normal state: movement speed based on target status
                     
                     // If player is in attack range, use slower speed (preparing to attack)
-                    if (_enemyController.IsPlayerInAttackRange())
+                    if (_enemyController.IsPlayerInAttackRange)
                     {
                         return _stats.GetModifiedMoveSpeed() * 0.5f;
                     }

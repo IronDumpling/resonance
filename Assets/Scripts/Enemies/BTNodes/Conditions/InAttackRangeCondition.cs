@@ -22,7 +22,7 @@ namespace Resonance.Enemies.BTNodes.Conditions
                 return TaskStatus.Failure;
             }
 
-            bool inRange = Controller.IsPlayerInAttackRange();
+            bool inRange = Controller.IsPlayerInAttackRange;
             return inRange ? TaskStatus.Success : TaskStatus.Failure;
         }
     }
