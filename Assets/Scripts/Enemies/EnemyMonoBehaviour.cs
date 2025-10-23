@@ -778,10 +778,6 @@ namespace Resonance.Enemies
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state - visual effects only");
             SetMaterial(_damageMaterial);
-            PlayDeathAudio();
-            
-            // Destruction is now handled by DeathAction in BehaviorTree
-            // This ensures proper timing for loot drops and death animations
         }
 
         /// <summary>
@@ -862,7 +858,7 @@ namespace Resonance.Enemies
             _audioService.PlaySFX3D(hitClipType, transform.position, 0.7f, 1f);
         }
 
-        private void PlayDeathAudio()
+        public void PlayDeathAudio()
         {
             if (_audioService == null || !_baseStats.enableAudio) return;
 

@@ -66,6 +66,9 @@ namespace Resonance.Enemies.BTNodes.Actions
                 // Drop loot on death
                 DropLoot();
 
+                // Play death audio
+                enemyMono.PlayDeathAudio();
+
                 // Destroy the enemy GameObject after delay
                 Object.Destroy(gameObject, 0.5f);
                 
