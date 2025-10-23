@@ -212,6 +212,7 @@ namespace Resonance.Enemies.BTNodes.Actions
                     return HandleCompletingPhase();
                     
                 case RevivePhase.Done:
+                    Debug.Log("[ReviveAction] Phase: Done");
                     return TaskStatus.Success;
                     
                 default:

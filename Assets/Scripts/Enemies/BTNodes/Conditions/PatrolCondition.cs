@@ -1,6 +1,7 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime;
 using BehaviorDesigner.Runtime.Tasks;
+using Resonance.Enemies.Data;
 
 namespace Resonance.Enemies.BTNodes.Conditions
 {
@@ -22,7 +23,10 @@ namespace Resonance.Enemies.BTNodes.Conditions
                 return TaskStatus.Failure;
             }
 
-            return TaskStatus.Success;
+            bool isPhysicallyAlive = Controller.IsPhysicallyAlive;
+            bool isNormal = (Controller.CurrentState == EnemyState.Normal);
+
+            return (isPhysicallyAlive && isNormal) ? TaskStatus.Success : TaskStatus.Failure;
         }
     }
 }

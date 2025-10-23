@@ -1,5 +1,6 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
+using Resonance.Enemies.Data;
 
 namespace Resonance.Enemies.BTNodes.Conditions
 {
@@ -10,6 +11,9 @@ namespace Resonance.Enemies.BTNodes.Conditions
     /// - Returns Success if physical health is depleted, Failure otherwise
     /// - When true, enemy should revive if core is still alive
     /// - Has high priority in behavior tree (but lower than core death)
+    /// 
+    /// This condition should ONLY check IsPhysicallyDead
+    /// The Sequence node will keep ReviveAction running once started.
     /// </summary>
     [TaskCategory("Resonance/Enemy")]
     [TaskDescription("Checks if enemy's physical health has been depleted (revival condition)")]
@@ -24,8 +28,8 @@ namespace Resonance.Enemies.BTNodes.Conditions
             }
 
             // Check if physical health is depleted
-            bool isDead = Controller.IsPhysicallyDead;
-            return isDead ? TaskStatus.Success : TaskStatus.Failure;
+            bool isPhysicallyDead = Controller.IsPhysicallyDead;
+            return isPhysicallyDead ? TaskStatus.Success : TaskStatus.Failure;
         }
     }
 }
