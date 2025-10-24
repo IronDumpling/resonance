@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Interfaces;
 using Resonance.Enemies.Core;
 
-namespace Resonance.Enemies
+namespace Resonance.Enemies.Triggers
 {
     /// <summary>
     /// Weakpoint activator component - manages weakpoint colliders based on enemy state
@@ -11,7 +11,6 @@ namespace Resonance.Enemies
     /// </summary>
     public class EnemyHitboxManager : MonoBehaviour
     {
-        [Header("Weakpoint Configuration")]
         [SerializeField] private bool _debugMode = false;
         [Tooltip("Enable debug logging for weakpoint events")]
 
@@ -49,7 +48,7 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(true);
             SetCoreHitboxes(false);
             
-            // Initially hide resonance UI since core hitboxes start disabled
+            // Initially hide wave UI since core hitboxes start disabled
             _enemyMono?.HideWaveUI();
             
             if (_debugMode)
@@ -216,12 +215,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(false); 
             SetCoreHitboxes(true);
             
-            // Show resonance UI when core hitboxes (including Core) are enabled
+            // Show wave UI when core hitboxes (including Core) are enabled
             _enemyMono?.ShowWaveUI();
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Physical death - disabled health, enabled core weakpoints, showing resonance UI");
+                Debug.Log("EnemyHitboxManager: Physical death - disabled health, enabled core weakpoints, showing wave UI");
             }
         }
         
@@ -230,12 +229,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(false); 
             SetCoreHitboxes(true);
             
-            // Show resonance UI when core hitboxes (including Core) are enabled
+            // Show wave UI when core hitboxes (including Core) are enabled
             _enemyMono?.ShowWaveUI();
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival started - disabled health, enabled core weakpoints, showing resonance UI");
+                Debug.Log("EnemyHitboxManager: Revival started - disabled health, enabled core weakpoints, showing wave UI");
             }
         }
         
@@ -244,7 +243,7 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(true);  
             SetCoreHitboxes(false);
             
-            // Hide resonance UI when core hitboxes (including Core) are disabled
+            // Hide wave UI when core hitboxes (including Core) are disabled
             _enemyMono?.HideWaveUI();
             
             // Force update collider states to ensure proper synchronization
@@ -252,7 +251,7 @@ namespace Resonance.Enemies
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival ended - enabled health, disabled core weakpoints, hiding resonance UI, refreshed collider states");
+                Debug.Log("EnemyHitboxManager: Revival ended - enabled health, disabled core weakpoints, hiding wave UI, refreshed collider states");
             }
         }
         
@@ -261,12 +260,12 @@ namespace Resonance.Enemies
             SetPhysicalHitboxes(false); 
             SetCoreHitboxes(false);
             
-            // Hide resonance UI when all hitboxes are disabled
+            // Hide wave UI when all hitboxes are disabled
             _enemyMono?.HideWaveUI();
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints, hiding resonance UI");
+                Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints, hiding wave UI");
             }
         }
 

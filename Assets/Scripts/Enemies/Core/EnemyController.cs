@@ -2,7 +2,8 @@ using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Enemies;
 using Resonance.Enemies.Data;
-using Resonance.Enemies.States;
+using Resonance.Enemies.Movement;
+using Resonance.Enemies.Triggers;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Utilities.CrystalCore;
@@ -19,13 +20,18 @@ namespace Resonance.Enemies.Core
     {
         // Core Data
         private EnemyRuntimeStats _stats;
-        private EnemyStateMachine _stateMachine;
-        private EnemyActionController _actionController;
         private EnemyMovement _movement;
+        private EnemyVision _vision;
+        
+        // State Data
+        private EnemyStateData _stateData = new EnemyStateData();
+        
+        // State Tracking (behavior tree manages behavior, controller tracks data)
+        private float _stunEndTime = 0f;
         
         // Combat State
         private float _lastNormalAttackTime = 0f;
-        private float _lastCoreAttackTime = 0f;
+        private float _lastWaveAttackTime = 0f;
         private float _revivalTimer = 0f;
         private bool _hitboxEnabled = false;
         private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
@@ -36,6 +42,7 @@ namespace Resonance.Enemies.Core
         private Vector3 _lastKnownPlayerPosition;
         private bool _hasPlayerTarget = false;
         private bool _isPlayerInAttackRange = false;
+        private float _timeSinceLastSawPlayer = 0f; // Time since last saw player
         
         // Patrol State
         private Vector3 _patrolCenter;
@@ -46,21 +53,10 @@ namespace Resonance.Enemies.Core
         private bool _movingToWaypointB = true; // true = moving to B, false = moving to A
         
         // Patrol Configuration
-        private PatrolMode _patrolMode = PatrolMode.Infinite;
-        private int _maxPatrolCycles = 3;
-        private float _patrolSpeed = 2f;
-        private float _singleCycleDuration = 10f;
         private float _waitAtWaypointDuration = 1f;
 
         // Damage Hitbox
         private Transform _damageHitboxChild;
-
-        // Patrol Runtime State
-        private int _currentPatrolCycles = 0;
-        private float _currentCycleStartTime = 0f;
-        
-        // Chase Configuration
-        private float _targetUpdateInterval = 0.5f;
         
         // Statistics
         private int _timesHit = 0;
@@ -95,12 +91,11 @@ namespace Resonance.Enemies.Core
         
         // Properties
         public EnemyRuntimeStats Stats => _stats;
-        public EnemyStateMachine StateMachine => _stateMachine;
-        public EnemyActionController ActionController => _actionController;
         public EnemyMovement Movement => _movement;
-        public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
+        public EnemyVision Vision => _vision;
         public Transform PlayerTarget => _playerTarget;
         public bool HasPlayerTarget => _hasPlayerTarget && _playerTarget != null;
+        public bool IsPlayerInAttackRange => _isPlayerInAttackRange;
         public Vector3 LastKnownPlayerPosition => _lastKnownPlayerPosition;
         public Vector3 PatrolCenter => _patrolCenter;
         public Vector3 CurrentPatrolTarget => _currentPatrolTarget;
@@ -109,23 +104,28 @@ namespace Resonance.Enemies.Core
         public Vector3 PatrolWaypointB => _patrolWaypointB;
         
         // Patrol Configuration Properties
-        public PatrolMode EnemyPatrolMode => _patrolMode;
-        public int MaxPatrolCycles => _maxPatrolCycles;
-        public float PatrolSpeed => _patrolSpeed;
-        public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-        public int CurrentPatrolCycles => _currentPatrolCycles;
-        
-        // Chase Configuration Properties
-        public float TargetUpdateInterval => _targetUpdateInterval;
         
         // Revival Configuration Properties
         public float RevivalTimer => _revivalTimer;
         
+        public EnemyStateData StateData => _stateData;
+
+        // Movement Properties
+        public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
+        
         // Health Properties
-        public bool IsAlive => _stats.IsAlive;
-        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == Utilities.CoreHealthState.Intact;
-        public bool IsInPhysicalDeathState => _stats.IsAlive == false;
+        public bool IsPhysicallyAlive => _stateData.IsPhysicallyAlive;
+        public bool IsPhysicallyDead => _stateData.IsPhysicallyDead;
+        public bool IsCoreDead => _stateData.IsCoreDead;
+        
+        // State Properties
+        public EnemyState CurrentState => _stateData.CurrentState;
+
+        /// <summary>
+        /// Check if hitbox is currently enabled
+        /// </summary>
+        public bool IsHitboxEnabled => _hitboxEnabled;
         
         // Health Tier Properties
         public HealthTier HealthTier => _stats.healthTier;
@@ -136,28 +136,21 @@ namespace Resonance.Enemies.Core
         // 1. Enemy is alive, has core alive, and has player target
         // 2. Player is in attack range
         // 3. Not on attack cooldown
-        public bool CanNormalAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
+        public bool CanNormalAttack => IsPhysicallyAlive && HasPlayerTarget && 
+                                    Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
         
-        // Can only core attack if:
+        // Can only wave attack if:
         // 1. Enemy is alive, has core alive, and has player target
-        // 2. Player is in attack range
-        // 3. Not on attack cooldown
-        // 4. Player is in chaos state OR every 3rd normal attack
-        public bool CanCoreAttack => IsAlive && IsCoreAlive && HasPlayerTarget && 
-                                    Time.time >= _lastCoreAttackTime + _stats.coreAttackStats.cooldown &&
-                                    (IsPlayerInChaosState() || _attacksLaunchedCount[AttackType.Normal] % 3 == 0);
+        // 2. Not on attack cooldown
+        // 3. Has at least 1 energy slot to consume
+        public bool CanWaveAttack => IsPhysicallyAlive && HasPlayerTarget && 
+                                    Time.time >= _lastWaveAttackTime + _stats.waveAttackStats.cooldown &&
+                                    _stats.crystalCore.CanConsumeSlot(); 
         
+        // Combat properties
         public AttackType CurrentAttackType => _currentAttackType;
-        
-        // Position Properties
-        public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
-        
-        // Animation-driven combat properties (read-only for animation bridge)
         public AttackStats NormalAttackStats => _stats.normalAttackStats;
-        public AttackStats CoreAttackStats => _stats.coreAttackStats;
-        public bool IsPlayerInAttackRangeValue => _isPlayerInAttackRange;
-        public bool HasPlayerTargetValue => _hasPlayerTarget && _playerTarget != null;
+        public AttackStats WaveAttackStats => _stats.waveAttackStats;
 
         public EnemyController(EnemyBaseStats baseStats, Vector3 spawnPosition, Transform enemyTransform = null)
         {
@@ -169,24 +162,30 @@ namespace Resonance.Enemies.Core
             _stats = baseStats.CreateRuntimeStats();
             _patrolCenter = spawnPosition;
             _currentPatrolTarget = spawnPosition;
+            _lastKnownPlayerPosition = spawnPosition; // Initialize to spawn position
             
             // Initialize movement system with reference to this controller
             _movement = new EnemyMovement(_stats, enemyTransform, this);
-            
-            // Initialize action controller
-            _actionController = new EnemyActionController(this);
-            _actionController.OnActionStarted += (action) => Debug.Log($"EnemyController: Action started: {action.Name}");
-            _actionController.OnActionFinished += (action) => Debug.Log($"EnemyController: Action finished: {action.Name}");
-            _actionController.OnActionCancelled += (action) => Debug.Log($"EnemyController: Action cancelled: {action.Name}");
-            _actionController.Initialize();
-            
-            // Initialize state machine
-            _stateMachine = new EnemyStateMachine(this);
-            _stateMachine.OnStateChanged += (stateName) => OnStateChanged?.Invoke(stateName);
-            _stateMachine.Initialize();
+
+            // Initialize vision system
+            if (enemyTransform != null)
+            {
+                // Try to get existing EnemyVision component, or add one if it doesn't exist
+                _vision = enemyTransform.GetComponent<EnemyVision>();
+                if (_vision == null)
+                {
+                    _vision = enemyTransform.gameObject.AddComponent<EnemyVision>();
+                }
+                _vision.Initialize(enemyTransform, _stats);
+                Debug.Log($"EnemyController: Vision system initialized");
+            }
+            else
+            {
+                Debug.LogWarning($"EnemyController: No enemy transform provided, vision system disabled");
+            }
 
             // Initialize damage hitbox
-            _damageHitboxChild = enemyTransform.Find("DamageHitbox");
+            _damageHitboxChild = enemyTransform?.Find("DamageHitbox");
             
             // Register with SelectivePauseService
             RegisterWithPauseService();
@@ -217,66 +216,45 @@ namespace Resonance.Enemies.Core
             _attacksLaunchedCount = new Dictionary<AttackType, int>()
             {
                 { AttackType.Normal, 0 },
-                { AttackType.Core, 0 }
+                { AttackType.Wave, 0 }
             };
         }
 
         /// <summary>
         /// Update enemy controller (called from MonoBehaviour)
+        /// Only updates data, behavior is handled by BehaviorTree
         /// </summary>
         public void Update(float deltaTime)
         {
+            bool isStunned = Time.time < _stunEndTime;
+            _stateData.UpdateState(_stats.currentHealth, _stats.crystalCore.CurrentCoreHealth, isStunned);
+            
             UpdateRevivalTimer(deltaTime);
-            UpdateStunTimer();
             _stats.UpdateChaos(deltaTime);
             UpdatePlayerDetection();
-            _actionController?.Update(deltaTime);
             _movement?.Update(deltaTime);
-            _stateMachine?.Update();
         }
 
         #region Health System
 
-        private float _stunEndTime = 0f;
-
-        private void UpdateStunTimer()
-        {
-            if (_stateMachine.IsStunned() && Time.time >= _stunEndTime)
-            {
-                ExitStun();
-            }
-        }
-
         /// <summary>
-        /// Update revival timer
+        /// Update revival timer and restore health
+        /// Called every frame when revival is in progress (managed by BehaviorTree)
+        /// Uses CurrentState which is managed by EnemyStateData
         /// </summary>
         private void UpdateRevivalTimer(float deltaTime)
         {
-            if (_stateMachine.IsInState("Reviving"))
+            // CurrentState is now managed by EnemyStateData with _isRevivingInProgress flag
+            // This ensures state remains Reviving throughout the entire revival process
+            if (CurrentState == EnemyState.Reviving)
             {
                 _revivalTimer += deltaTime;
                 
-                // Check if core health reached 0 during revival (interruption)
-                if (!IsCoreAlive)
-                {
-                    if(IsAlive)
-                    {
-                        Debug.Log("EnemyController: Revival interrupted with core death - core health reached 0");
-                        CompleteRevival();
-                    }
-                    else
-                    {
-                        Debug.Log("EnemyController: Revival interrupted with true death - core health reached 0");
-                        HandleTrueDeath();
-                    }
-                    return;
-                }
-                
-                // Revival progress - restore health health
+                // Revival progress - restore physical health
                 if (_stats.revivalRate > 0f && _stats.currentHealth < _stats.maxHealth)
                 {
                     var previousTier = _stats.healthTier;
-                    _stats.RestoreHealth(_stats.revivalRate * deltaTime);
+                    float restored = _stats.RestoreHealth(_stats.revivalRate * deltaTime);
                     _stats.UpdateHealthTier();
                     
                     OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
@@ -286,12 +264,11 @@ namespace Resonance.Enemies.Core
                     {
                         OnPhysicalTierChanged?.Invoke(_stats.healthTier);
                     }
-
-                    // Check if revival is complete
-                    if (_stats.currentHealth >= _stats.maxHealth)
+                    
+                    // Log progress for debugging
+                    if (Mathf.FloorToInt(_revivalTimer) != Mathf.FloorToInt(_revivalTimer - deltaTime))
                     {
-                        Debug.Log("EnemyController: Revival completed without interruption - health health restored to full");
-                        CompleteRevival();
+                        Debug.Log($"[EnemyController] Reviving... Restored: {restored:F2}, Health: {_stats.currentHealth:F1}/{_stats.maxHealth:F1}");
                     }
                 }
             }
@@ -308,14 +285,11 @@ namespace Resonance.Enemies.Core
             Damages damages = damageInfo.damages;
             if (damages == null) return;
             
-            bool tookAnyDamage = false;
-            
             // Apply Physical Health damage
             if (damages.HasDamage(DamageType.PhysicalHealth))
             {
                 float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
                 TakeHealthDamage(damageAmount);
-                tookAnyDamage = true;
             }
             
             // Apply Core Health damage
@@ -323,7 +297,6 @@ namespace Resonance.Enemies.Core
             {
                 float damageAmount = damages.GetDamage(DamageType.CoreHealth);
                 TakeCoreDamage(damageAmount);
-                tookAnyDamage = true;
             }
             
             // Apply Chaos damage (processed last)
@@ -331,14 +304,6 @@ namespace Resonance.Enemies.Core
             {
                 float damageAmount = damages.GetDamage(DamageType.Chaos);
                 TakeChaosDamage(damageAmount);
-                tookAnyDamage = true;
-            }
-            
-            // Trigger common effects only once per DamageInfo
-            if (tookAnyDamage)
-            {
-                // Notify action controller of damage taken (only once per DamageInfo)
-                _actionController?.OnEnemyDamageTaken();
             }
             
             Debug.Log($"EnemyController: Processed DamageInfo - {damageInfo}");
@@ -349,7 +314,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void TakeHealthDamage(float damage)
         {
-            if (!IsCoreAlive) return;
+            if (IsPhysicallyDead) return;
             
             var previousTier = _stats.healthTier;
             _stats.TakeHealthDamage(damage);
@@ -379,7 +344,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void TakeCoreDamage(float damage)
         {
-            if (!IsCoreAlive) return;
+            if (IsCoreDead) return;
 
             var previousTier = _stats.crystalCore.EnergyTier;
             _stats.crystalCore.TakeCoreHealthDamage(damage);
@@ -409,75 +374,39 @@ namespace Resonance.Enemies.Core
         /// </summary>
         private void TakeChaosDamage(float damage)
         {
-            if (!IsCoreAlive) return;
+            if (IsPhysicallyDead) return;
 
             float addedChaos = _stats.crystalCore.AddChaos(damage);
             
             if (addedChaos > 0f)
             {
-                EnterStun(addedChaos * 0.1f);
-                Debug.Log($"EnemyController: Took {damage:F1} chaos damage. Entering stun for {addedChaos * 0.1f:F2}s");
+                StartStun(addedChaos * 0.1f);
+                Debug.Log($"EnemyController: Took {damage:F1} chaos damage. Stun duration: {addedChaos * 0.1f:F2}s");
             }
         }
 
-        private void EnterStun(float duration)
+        /// <summary>
+        /// Start stun effect (called when chaos damage is taken)
+        /// </summary>
+        public void StartStun(float duration)
         {
-            if(!_stateMachine.CanEnterStun())
-            {
-                Debug.LogWarning($"EnemyController: Cannot enter stun - current state: {CurrentState}");
-                return;
-            }
-            
             _stunEndTime = Time.time + duration;
-            bool stunEntered = _stateMachine?.EnterStun() ?? false;
-            
-            if (stunEntered)
-            {
-                Debug.Log($"EnemyController: Entered stun for {duration:F2}s");
-            }
-            else
-            {
-                Debug.LogError($"EnemyController: Failed to enter stun state! Current state: {CurrentState}");
-            }
-        }
-
-        private void ExitStun()
-        {
-            if(!_stateMachine.IsStunned()) return;
-            _stateMachine?.ExitStun();
-            Debug.Log("EnemyController: Exited stun");
+            Debug.Log($"EnemyController: Stun started for {duration:F2}s");
         }
 
         /// <summary>
         /// Handle physical health death (physical health reaches 0)
-        /// Check core health to determine next state: Revival if core > 0, TrueDeath if core <= 0
+        /// Triggers events, actual revival is managed by BehaviorTree
         /// </summary>
         private void HandlePhysicalDeath()
         {
-            // Prevent multiple calls
-            if (_stateMachine?.IsReviving() == true || _stateMachine?.IsTrulyDead() == true)
-            {
-                return;
-            }
-            
-            Debug.Log("EnemyController: Physical health depleted - checking core health for state transition");
+            Debug.Log("EnemyController: Physical health depleted - triggering death event");
             OnPhysicalDeath?.Invoke();
             
-            // Check core health to determine next state
-            if (IsCoreAlive)
+            // If core is also destroyed, trigger true death
+            if (IsCoreDead)
             {
-                // Core health > 0: Enter revival state
-                Debug.Log("EnemyController: Core intact, entering revival state");
-                bool revivalStarted = _stateMachine?.StartRevival() ?? false;
-                if (revivalStarted)
-                {
-                    StartRevival(); // Initialize revival timer and trigger events
-                }
-            }
-            else
-            {
-                // Core health <= 0: Enter true death state
-                Debug.Log("EnemyController: Core destroyed, entering true death state");
+                Debug.Log("EnemyController: Core also destroyed, triggering true death");
                 HandleTrueDeath();
             }
         }
@@ -489,31 +418,31 @@ namespace Resonance.Enemies.Core
         {
             Debug.Log("EnemyController: Core health depleted - enemy truly dead");
             OnTrueDeath?.Invoke();
-            _stateMachine?.EnterTrueDeath();
         }
 
         /// <summary>
-        /// Start revival process (called by state machine)
+        /// Start revival process (called by BehaviorTree)
         /// </summary>
         public void StartRevival()
         {
             _revivalTimer = 0f;
+            _stateData.StartRevival();  // Set flag in StateData to keep state as Reviving
             OnRevivalStarted?.Invoke();
             Debug.Log("EnemyController: Revival started");
         }
 
         /// <summary>
-        /// Complete revival process
+        /// Complete revival process (called by BehaviorTree)
         /// </summary>
-        private void CompleteRevival()
+        public void CompleteRevival()
         {
             _revivalTimer = 0f;
+            _stateData.CompleteRevival();  // Clear flag in StateData to allow normal state calculation
             
             // Clear any existing hit tracking to ensure clean state
             _currentAttackHits.Clear();
             
             OnRevivalCompleted?.Invoke();
-            _stateMachine?.CompleteRevival();
             Debug.Log("EnemyController: Revival completed, cleared hit tracking for new combat phase");
         }
 
@@ -525,7 +454,7 @@ namespace Resonance.Enemies.Core
         /// Start attack process (animation-driven) - sets cooldown and triggers events
         /// Actual damage is dealt through hitbox during animation window
         /// </summary>
-        public bool LaunchAttack()
+        public bool LaunchNormalAttack()
         {
             if (!CanNormalAttack) return false;
 
@@ -541,19 +470,19 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Start core attack process - targets player's core when they are in chaos state
+        /// Start wave attack process - targets player's core when they are in chaos state
         /// </summary>
-        public bool LaunchCoreAttack()
+        public bool LaunchWaveAttack()
         {
-            if (!CanCoreAttack) return false;
+            if (!CanWaveAttack) return false;
 
-            _currentAttackType = AttackType.Core;
-            _lastCoreAttackTime = Time.time;
-            _attacksLaunchedCount[AttackType.Core]++;
+            _currentAttackType = AttackType.Wave;
+            _lastWaveAttackTime = Time.time;
+            _attacksLaunchedCount[AttackType.Wave]++;
             
             // Trigger attack started event (for animation system)
-            OnAttackLaunched?.Invoke(_stats.coreAttackStats.damages.GetDamage(DamageType.CoreHealth));
-            Debug.Log($"EnemyController: Core attack process started - targeting player's core");
+            OnAttackLaunched?.Invoke(_stats.waveAttackStats.damages.GetDamage(DamageType.CoreHealth));
+            Debug.Log($"EnemyController: Wave attack process started - targeting player's core");
             
             return true;
         }
@@ -563,7 +492,15 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public AttackStats GetCurrentAttackStats()
         {
-            return _currentAttackType == AttackType.Core ? _stats.coreAttackStats : _stats.normalAttackStats;
+            switch (_currentAttackType)
+            {
+                case AttackType.Normal:
+                    return _stats.normalAttackStats;
+                case AttackType.Wave:
+                    return _stats.waveAttackStats;
+                default:
+                    throw new System.Exception($"EnemyController: Invalid attack type: {_currentAttackType}");
+            }
         }
 
         /// <summary>
@@ -629,9 +566,9 @@ namespace Resonance.Enemies.Core
                 return false;
             }
 
-            if (!IsCoreAlive)
+            if (IsCoreDead)
             {
-                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is not corely alive");
+                Debug.LogWarning("EnemyController: Attempted to apply damage but enemy is core dead");
                 return false;
             }
 
@@ -644,7 +581,6 @@ namespace Resonance.Enemies.Core
             // Check if we've already hit this target in the current attack
             if (_currentAttackHits.Contains(target))
             {
-                // Debug.Log("EnemyController: Target already hit in current attack, skipping");
                 return false;
             }
 
@@ -653,6 +589,19 @@ namespace Resonance.Enemies.Core
             
             // Track this hit
             _currentAttackHits.Add(target);
+            
+            // Energy System: Normal attacks gain energy when hitting
+            if (_currentAttackType == AttackType.Normal)
+            {
+                // Gain energy equal to physical damage dealt (or a fixed amount)
+                float physicalDamage = damageInfo.damages.GetDamage(DamageType.PhysicalHealth);
+                float energyGained = physicalDamage * _stats.normalAttackToEnergyRatio;
+                if (energyGained > 0f)
+                {
+                    _stats.crystalCore.AddEnergy(energyGained);
+                    Debug.Log($"EnemyController: Normal attack hit! Gained {energyGained:F0} energy. Current: {_stats.crystalCore.CurrentEnergy:F0}/{_stats.crystalCore.MaxEnergy:F0}");
+                }
+            }
             
             // Update statistics
             if(damageInfo.damages.HasDamage(DamageType.PhysicalHealth))
@@ -673,36 +622,13 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Check if hitbox is currently enabled
-        /// </summary>
-        public bool IsHitboxEnabled => _hitboxEnabled;
-
-        /// <summary>
         /// Reset attack cooldown (for testing purposes)
         /// </summary>
         public void ResetAttackCooldown()
         {
             _lastNormalAttackTime = 0f;
-            _lastCoreAttackTime = 0f;
+            _lastWaveAttackTime = 0f;
             Debug.Log("EnemyController: Attack cooldowns reset (Normal and Core)");
-        }
-
-        /// <summary>
-        /// Check if player is in attack range (now handled by trigger system)
-        /// </summary>
-        public bool IsPlayerInAttackRange()
-        {
-            // This will be set by the trigger system
-            return _isPlayerInAttackRange;
-        }
-
-        /// <summary>
-        /// Check if player is in detection range (now handled by trigger system)
-        /// </summary>
-        public bool IsPlayerInDetectionRange()
-        {
-            // This will be set by the trigger system
-            return HasPlayerTarget;
         }
 
         #endregion
@@ -711,10 +637,66 @@ namespace Resonance.Enemies.Core
 
         private void UpdatePlayerDetection()
         {
-            // Update player tracking (position tracking only, range detection handled by triggers)
-            if (HasPlayerTarget)
+            // Use vision system to detect player
+            if (_vision != null)
             {
-                _lastKnownPlayerPosition = _playerTarget.position;
+                bool canSeePlayer = _vision.CanSeePlayer();
+                
+                if (canSeePlayer)
+                {
+                    // Reset timer when we can see the player
+                    _timeSinceLastSawPlayer = 0f;
+                    
+                    // Vision system updates the last known position internally
+                    // Update our local last known position from vision system
+                    if (_vision.HasLastKnownPosition)
+                    {
+                        _lastKnownPlayerPosition = _vision.LastKnownPlayerPosition;
+                    }
+                    
+                    // If we can see player but don't have target set, set it
+                    if (!_hasPlayerTarget)
+                    {
+                        FindPlayer();
+                    }
+                    else
+                    {
+                        // Already has target, keep tracking the position
+                        if (HasPlayerTarget)
+                        {
+                            _lastKnownPlayerPosition = _playerTarget.position;
+                            
+                            // Update vision system's last known position as well
+                            if (_vision != null)
+                            {
+                                _vision.UpdateLastKnownPosition(_playerTarget.position);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Lost sight of player - check if we should lose target
+                    if (_hasPlayerTarget)
+                    {
+                        _timeSinceLastSawPlayer += Time.deltaTime;
+                        
+                        // Lose target if lost vision for too long
+                        if (_timeSinceLastSawPlayer >= _stats.visionLossTimeout)
+                        {
+                            Debug.Log($"[EnemyController] ✗ TARGET LOST: vision timeout");
+                            LosePlayer();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Fallback: if no vision system, use old tracking method
+                if (HasPlayerTarget)
+                {
+                    _lastKnownPlayerPosition = _playerTarget.position;
+                }
             }
         }
 
@@ -735,6 +717,16 @@ namespace Resonance.Enemies.Core
             _playerTarget = player;
             _hasPlayerTarget = true;
             _lastKnownPlayerPosition = player.position;
+            _timeSinceLastSawPlayer = 0f; // Reset vision loss timer when acquiring target
+            
+            // Also update vision system's last known position
+            if (_vision != null)
+            {
+                _vision.UpdateLastKnownPosition(player.position);
+            }
+            
+            Debug.Log($"[EnemyController] ✓ TARGET ACQUIRED: {player.name}");
+            
             OnPlayerDetected?.Invoke(player);
         }
 
@@ -746,6 +738,11 @@ namespace Resonance.Enemies.Core
             _playerTarget = null;
             _hasPlayerTarget = false;
             _isPlayerInAttackRange = false; // Also reset attack range
+            _timeSinceLastSawPlayer = 0f; // Reset vision loss timer
+            
+            // Note: We don't clear the vision system's last known position here
+            // This allows the enemy to remember where they last saw the player
+            
             OnPlayerLost?.Invoke();
         }
 
@@ -758,7 +755,7 @@ namespace Resonance.Enemies.Core
         }
 
         /// <summary>
-        /// Check if player target is in chaos state (for core attack condition)
+        /// Check if player target is in chaos state (for wave attack condition)
         /// </summary>
         public bool IsPlayerInChaosState()
         {
@@ -856,8 +853,7 @@ namespace Resonance.Enemies.Core
             // Count cycles when returning to A (completing a full cycle)
             if (!_movingToWaypointB)
             {
-                _currentPatrolCycles++;
-                Debug.Log($"EnemyController: Completed patrol cycle {_currentPatrolCycles}/{(_patrolMode == PatrolMode.Limited ? _maxPatrolCycles : "∞")}");
+                Debug.Log($"EnemyController: Completed patrol cycle.");
             }
             
             Debug.Log($"EnemyController: Switched patrol direction, now moving to {(_movingToWaypointB ? "B" : "A")}");
@@ -867,48 +863,12 @@ namespace Resonance.Enemies.Core
         /// Set patrol configuration
         /// </summary>
         public void SetPatrolConfiguration(
-            PatrolMode mode,
-            int maxCycles,
-            float speed,
-            float cycleDuration,
             float waitDuration)
         {
-            _patrolMode = mode;
-            _maxPatrolCycles = maxCycles;
-            _patrolSpeed = speed;
-            _singleCycleDuration = cycleDuration;
             _waitAtWaypointDuration = waitDuration;
-            Debug.Log($"EnemyController: Patrol configuration set - Mode: {mode}, MaxCycles: {maxCycles}, Speed: {speed:F1}");
+            Debug.Log($"EnemyController: Patrol configuration set - WaitDuration: {waitDuration:F1}s");
         }
         
-        /// <summary>
-        /// Set chase configuration
-        /// </summary>
-        public void SetChaseConfiguration(
-            float targetUpdateInterval)
-        {
-            _targetUpdateInterval = targetUpdateInterval;
-            Debug.Log($"EnemyController: Chase configuration set - UpdateInterval: {targetUpdateInterval:F2}s");
-        }
-        
-        /// <summary>
-        /// Check if patrol should stop (for Limited mode)
-        /// </summary>
-        public bool ShouldStopPatrol()
-        {
-            return _patrolMode == PatrolMode.Limited && _currentPatrolCycles >= _maxPatrolCycles;
-        }
-        
-        /// <summary>
-        /// Reset patrol cycle counter
-        /// </summary>
-        public void ResetPatrolCycles()
-        {
-            _currentPatrolCycles = 0;
-            _currentCycleStartTime = Time.time;
-            Debug.Log("EnemyController: Patrol cycles reset");
-        }
-
         /// <summary>
         /// Stop patrolling
         /// </summary>
@@ -958,7 +918,7 @@ namespace Resonance.Enemies.Core
             _attacksLaunchedCount = new Dictionary<AttackType, int>()
             {
                 { AttackType.Normal, 0 },
-                { AttackType.Core, 0 }
+                { AttackType.Wave, 0 }
             };
         }
 
@@ -983,9 +943,9 @@ namespace Resonance.Enemies.Core
             OnStateChanged = null;
             OnPhysicalTierChanged = null;
             OnCoreTierChanged = null;
-            
-            _actionController?.Cleanup();
-            _stateMachine?.Shutdown();
+            OnAttackWindowOpened = null;
+            OnAttackWindowClosed = null;
+            OnAttackSequenceFinished = null;
             
             // Unregister from SelectivePauseService
             var pauseService = ServiceRegistry.Get<ISelectivePauseService>();

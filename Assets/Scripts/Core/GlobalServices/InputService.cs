@@ -25,7 +25,7 @@ namespace Resonance.Core.GlobalServices
         // Player Map events
         public event Action<Vector2> OnMove;
         public event Action OnInteract;   // Interact input (E key)
-        public event Action OnWave;       // Short press F (WaveAction)
+        public event Action OnWaveAttack; // Short press F (WaveAttackAction)
         public event Action<bool> OnHeal; // F key press/release (HealAction) - true for press, false for release
         public event Action<bool> OnRun;  // true when starting to run, false when stopping
         public event Action<bool> OnAim;  // true when starting to aim, false when stopping
@@ -137,7 +137,7 @@ namespace Resonance.Core.GlobalServices
 
         private void OnWavePerformed(InputAction.CallbackContext context)
         {
-            OnWave?.Invoke();
+            OnWaveAttack?.Invoke();
             Debug.Log("InputService: Wave press performed"); 
         }
 
@@ -343,7 +343,7 @@ namespace Resonance.Core.GlobalServices
             // Clear all event listeners
             OnMove = null;
             OnInteract = null;
-            OnWave = null;
+            OnWaveAttack = null;
             OnHeal = null;
             OnRun = null;
             OnAim = null;

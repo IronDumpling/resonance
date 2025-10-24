@@ -1,0 +1,481 @@
+using UnityEngine;
+using Resonance.Core;
+using Resonance.Player.Core;
+using Resonance.Player.Data;
+using Resonance.Player.Triggers;
+using Resonance.Interfaces.Operations;
+using Resonance.Interfaces.Services;
+using Resonance.Enemies.Data;
+using Resonance.Enemies.Triggers;
+using Resonance.Utilities;
+
+namespace Resonance.Player.Actions
+{
+    /// <summary>
+    /// Player Core Attack Action - triggered by short press F when Core hitboxes are in wave attack range
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, Core type EnemyHitbox with enabled collider in WaveAttackRange
+    /// Behavior: Player cannot move, is invulnerable to health damage, consumes 1 CoreHealth slot
+    /// End condition: Target Core hitbox collider becomes disabled or exits range
+    /// </summary>
+    public class PlayerWaveAttackAction : IPlayerAction
+    {
+        // Static events for state machine integration
+        public static event System.Action<EnemyHitbox> OnWaveAttackActionStarted;
+        public static event System.Action OnWaveAttackActionEnded;
+
+        // Action properties
+        public string Name => "WaveAttack";
+        public bool BlocksMovement => true;
+        public bool ProvidesInvulnerability => true;
+        public bool CanInterrupt => false; // Cannot be interrupted
+
+        // Runtime state
+        private bool _isActive = false;
+        private bool _isFinished = false;
+        private EnemyHitbox _targetCoreHitbox = null;
+        private float _actionStartTime = 0f;
+
+        private PlayerController _player;
+
+        // Configuration
+        private const float MIN_ACTION_DURATION = 0.5f; // Minimum action duration for feedback
+        private const float MAX_ACTION_DURATION = 10f; // Safety timeout
+
+        public bool IsFinished => _isFinished;
+
+        /// <summary>
+        /// Check if the WaveAttackAction can start
+        /// </summary>
+        /// <param name="player">Player controller reference</param>
+        /// <returns>True if all conditions are met</returns>
+        public bool CanStart(PlayerController player)
+        {
+            if (player == null)
+            {
+                Debug.Log("PlayerWaveAttackAction: Cannot start - player is null");
+                return false;
+            }
+
+            // Must be in Normal state (not in other actions or death states)
+            if (player.CurrentState != "Normal")
+            {
+                Debug.Log($"PlayerWaveAttackAction: Cannot start - player not in Normal state (current: {player.CurrentState})");
+                return false;
+            }
+
+            // Must have at least 1 core health slot available
+            if (!player.CanConsumeSlot)
+            {
+                Debug.Log("PlayerWaveAttackAction: Cannot start - no core health slots available");
+                return false;
+            }
+
+            // Must have Core hitboxes in wave attack range
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService?.CurrentPlayer == null)
+            {
+                Debug.Log("PlayerWaveAttackAction: Cannot start - player service or current player is null");
+                return false;
+            }
+
+            if (!playerService.CurrentPlayer.HasCoreHitboxesInWaveAttackRange())
+            {
+                Debug.Log("PlayerWaveAttackAction: Cannot start - no Core hitboxes in wave attack range");
+                return false;
+            }
+
+            // Additional check: verify target cores are in valid states
+            var waveAttackTrigger = playerService.CurrentPlayer.GetComponentInChildren<WaveAttackTrigger>();
+            if (waveAttackTrigger != null)
+            {
+                var coreHitboxes = waveAttackTrigger.CoreHitboxesInRange;
+                Debug.Log($"PlayerWaveAttackAction: Found {coreHitboxes.Count} core hitboxes in range");
+                
+                bool hasValidCore = false;
+                
+                foreach (var core in coreHitboxes)
+                {
+                    if (core != null)
+                    {
+                        bool isValid = IsValidTargetCore(core);
+                        Debug.Log($"PlayerWaveAttackAction: Core {core.name} validity check: {isValid}");
+                        
+                        if (isValid)
+                        {
+                            hasValidCore = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("PlayerWaveAttackAction: Found null core in range list");
+                    }
+                }
+                
+                if (!hasValidCore)
+                {
+                    Debug.Log("PlayerWaveAttackAction: Cannot start - no valid target cores (cores may be in invalid states)");
+                    return false;
+                }
+            }
+            else
+            {
+                Debug.Log("PlayerWaveAttackAction: Cannot start - WaveAttackTrigger not found");
+                return false;
+            }
+
+            Debug.Log("PlayerWaveAttackAction: All conditions met, can start");
+            return true;
+        }
+        
+        /// <summary>
+        /// Check if a core hitbox is in a valid state for wave
+        /// </summary>
+        /// <param name="coreHitbox">Core hitbox to check</param>
+        /// <returns>True if core is valid for wave</returns>
+        private bool IsValidTargetCore(EnemyHitbox coreHitbox)
+        {
+            if (coreHitbox == null)
+            {
+                Debug.Log("PlayerWaveAttackAction: IsValidTargetCore - coreHitbox is null");
+                return false;
+            }
+                
+            if (!coreHitbox.IsInitialized)
+            {
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} not initialized");
+                return false;
+            }
+                
+            // Check if the collider is enabled
+            var collider = coreHitbox.GetComponent<Collider>();
+            if (collider == null)
+            {
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} has no collider");
+                return false;
+            }
+            
+            if (!collider.enabled)
+            {
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} collider is disabled");
+                return false;
+            }
+                
+            // Check if the enemy is in a valid state for wave (not in attack state)
+            var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
+            if (enemyMono == null)
+            {
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} has no EnemyMonoBehaviour");
+                return false;
+            }
+                
+            var enemyController = enemyMono.Controller;
+            if (enemyController == null)
+            {
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} has no EnemyController");
+                return false;
+            }
+                
+            // Valid state for wave: Reviving (physically dead but core alive)
+            // Enemy must be vulnerable (in revival state, not truly dead)
+            var enemyState = enemyController.CurrentState;
+            bool isValidState = enemyState == EnemyState.Reviving;
+            
+            return isValidState;
+        }
+
+        /// <summary>
+        /// Start the wave action
+        /// </summary>
+        /// <param name="player">Player controller reference</param>
+        public void Start(PlayerController player)
+        {
+            if (player == null)
+            {
+                Debug.LogError("PlayerWaveAttackAction: Cannot start with null player");
+                return;
+            }
+
+            _player = player;
+
+            // Find target Core hitbox
+            _targetCoreHitbox = FindTargetCoreHitbox();
+            if (_targetCoreHitbox == null)
+            {
+                Debug.LogWarning("PlayerWaveAttackAction: No valid target Core hitbox found");
+                _isFinished = true;
+                return;
+            }
+
+            // Consume core health slot
+            if (!player.ConsumeSlot())
+            {
+                Debug.LogWarning("PlayerWaveAttackAction: Failed to consume core health slot");
+                _isFinished = true;
+                return;
+            }
+
+            // Initialize action state
+            _isActive = true;
+            _isFinished = false;
+            _actionStartTime = Time.time;
+
+            // Subscribe to target Core hitbox events
+            if (_targetCoreHitbox != null)
+            {
+                _targetCoreHitbox.OnColliderDisabled += OnTargetCoreColliderDisabled;
+                Debug.Log($"PlayerWaveAttackAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
+            }
+
+            // Play wave audio/effects
+            PlayWaveEffects();
+
+            // Trigger the wave started event for state machine and camera system
+            OnWaveAttackActionStarted?.Invoke(_targetCoreHitbox);
+
+            Debug.Log($"PlayerWaveAttackAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
+        }
+
+        /// <summary>
+        /// Update the wave action each frame
+        /// </summary>
+        /// <param name="deltaTime">Time since last frame</param>
+        public void Update(PlayerController player, float deltaTime)
+        {
+            if (!_isActive || _isFinished) return;
+
+            float currentTime = Time.time;
+            float actionDuration = currentTime - _actionStartTime;
+
+            // Safety timeout
+            if (actionDuration > MAX_ACTION_DURATION)
+            {
+                Debug.LogWarning("PlayerWaveAttackAction: Timed out after maximum duration");
+                _isFinished = true;
+                CleanupAction();
+                return; 
+            }
+
+            // Check if target Core hitbox is still valid for wave
+            bool targetCoreNull = _targetCoreHitbox == null;
+            bool targetCoreValid = !targetCoreNull && IsValidTargetCore(_targetCoreHitbox);
+            bool targetCoreInRange = !targetCoreNull && IsTargetCoreStillInRange(_targetCoreHitbox);
+
+            if (targetCoreNull || !targetCoreValid || !targetCoreInRange)
+            {
+                // Core hitbox no longer valid or in range
+                if (actionDuration >= MIN_ACTION_DURATION)
+                {
+                    if (targetCoreNull)
+                    {
+                        Debug.Log("PlayerWaveAttackAction: Target Core hitbox is null, ending action");
+                    }
+                    else if (!targetCoreValid)
+                    {
+                        Debug.Log("PlayerWaveAttackAction: Target Core hitbox no longer in valid state, ending action");
+                        
+                        // Get detailed state info
+                        var enemyController = _targetCoreHitbox.GetEnemyController();
+                        if (enemyController != null)
+                        {
+                            Debug.Log($"PlayerWaveAttackAction: Enemy state: {enemyController.CurrentState}");
+                        }
+                    }
+                    else if (!targetCoreInRange)
+                    {
+                        Debug.Log("PlayerWaveAttackAction: Target Core hitbox is no longer in range, ending action");
+                    }
+                    
+                    _isFinished = true;
+                    CleanupAction();
+                    return;
+                }
+                else
+                {
+                    Debug.Log($"PlayerWaveAttackAction: Target invalid but minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                }
+            }
+
+            // Update wave effects (visual feedback, QTE UI placeholder, etc.)
+            UpdateWaveEffects(deltaTime);
+        }
+
+        /// <summary>
+        /// Cancel the wave action (should not be called since it cannot be interrupted)
+        /// </summary>
+        public void Cancel(PlayerController player)
+        {
+            if (_isActive)
+            {
+                Debug.Log("PlayerWaveAttackAction: Cancelled");
+                CleanupAction();
+            }
+        }
+
+        /// <summary>
+        /// Called when player takes damage (should not interrupt this action)
+        /// </summary>
+        public void OnDamageTaken(PlayerController player)
+        {
+            // This action provides invulnerability and cannot be interrupted
+            // Log for debugging purposes
+            Debug.Log("PlayerWaveAttackAction: Damage taken but action is invulnerable");
+        }
+
+        /// <summary>
+        /// Find the target Core hitbox for wave action
+        /// </summary>
+        /// <returns>The target Core hitbox or null if none found</returns>
+        private EnemyHitbox FindTargetCoreHitbox()
+        {
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            if (playerService?.CurrentPlayer == null) return null;
+
+            // Get the closest Core hitbox from WaveAttackTrigger
+            var playerMono = playerService.CurrentPlayer;
+            
+            // Get the closest Core hitbox directly
+            var closestCoreHitbox = playerMono.GetClosestCoreHitbox();
+            if (closestCoreHitbox != null)
+            {
+                Debug.Log($"PlayerWaveAttackAction: Found target Core hitbox {closestCoreHitbox.name}");
+                return closestCoreHitbox;
+            }
+
+            Debug.Log("PlayerWaveAttackAction: No Core hitboxes found in range");
+            return null;
+        }
+
+        /// <summary>
+        /// Check if the target Core hitbox is still in range (collider state is handled by events)
+        /// </summary>
+        /// <param name="hitbox">Core hitbox to check</param>
+        /// <returns>True if Core hitbox is still in range</returns>
+        private bool IsTargetCoreStillInRange(EnemyHitbox hitbox)
+        {
+            if (hitbox == null) return false;
+
+            // Check if hitbox is still initialized and is Core type
+            if (!hitbox.IsInitialized || hitbox.type != EnemyHitboxType.Core) return false;
+
+            // Check if still in range (through PlayerService)
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            var playerMono = playerService?.CurrentPlayer;
+            if (playerMono == null) return false;
+
+            // Check if this specific hitbox is still being tracked
+            var coreHitboxesInRange = playerMono.GetCoreHitboxesInRange();
+            return coreHitboxesInRange.Contains(hitbox);
+        }
+        
+        /// <summary>
+        /// Handle target core hitbox collider disabled event
+        /// </summary>
+        /// <param name="hitbox">The hitbox that was disabled</param>
+        private void OnTargetCoreColliderDisabled(EnemyHitbox hitbox)
+        {
+            if (hitbox == _targetCoreHitbox)
+            {
+                Debug.Log("PlayerWaveAttackAction: Target core collider disabled - ending wave action");
+                
+                // Check minimum duration before ending
+                float actionDuration = Time.time - _actionStartTime;
+                if (actionDuration >= MIN_ACTION_DURATION)
+                {
+                    _isFinished = true;
+                    CleanupAction();
+                }
+                else
+                {
+                    Debug.Log($"PlayerWaveAttackAction: Minimum duration not met ({actionDuration:F2}s < {MIN_ACTION_DURATION}s), continuing");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Play wave visual and audio effects
+        /// </summary>
+        private void PlayWaveEffects()
+        {
+            // Play wave start audio
+            var audioService = ServiceRegistry.Get<IAudioService>();
+            if (audioService != null)
+            {
+                // TODO: Add specific wave audio clips
+                audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.6f, 0.8f); // Placeholder audio
+            }
+
+            // TODO: Add visual effects (particles, screen effects, etc.)
+            Debug.Log("PlayerWaveAttackAction: Playing wave effects (placeholder)");
+        }
+
+        /// <summary>
+        /// Update ongoing wave effects
+        /// </summary>  
+        /// <param name="deltaTime">Time since last frame</param>
+        private void UpdateWaveEffects(float deltaTime)
+        {
+            // TODO: Update visual effects intensity
+            // TODO: Update audio effects
+
+            // Placeholder implementation
+            float actionDuration = Time.time - _actionStartTime;
+            if (actionDuration > 0.1f && Mathf.FloorToInt(actionDuration * 4) % 2 == 0)
+            {
+                // Simple feedback every 0.25 seconds
+                // Debug.Log($"PlayerWaveAttackAction: Wave active for {actionDuration:F1}s");
+            }
+        }
+
+        /// <summary>
+        /// Clean up the action when it ends
+        /// </summary>
+        private void CleanupAction()
+        {
+            // Prevent multiple cleanup calls
+            if (!_isActive) return;
+            
+            _isActive = false;
+            _isFinished = true;
+
+            // Unsubscribe from Core hitbox events
+            if (_targetCoreHitbox != null)
+            {
+                _targetCoreHitbox.OnColliderDisabled -= OnTargetCoreColliderDisabled;
+                Debug.Log("PlayerWaveAttackAction: Unsubscribed from core hitbox collider events");
+            }
+
+            // Stop effects
+            StopWaveEffects();
+
+            // Force refresh UI colors to fix BUG2 (second approach UI color not updating)
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            var playerMono = playerService?.CurrentPlayer;
+            if (playerMono != null)
+            {
+                var waveAttackTrigger = playerMono.GetComponentInChildren<WaveAttackTrigger>();
+                waveAttackTrigger?.ForceRefreshUIColors();
+                Debug.Log("PlayerWaveAttackAction: Force refreshed UI colors after cleanup");
+            }
+
+            // Trigger the wave ended event for state machine and camera system
+            OnWaveAttackActionEnded?.Invoke();
+
+            // Clear target reference
+            _targetCoreHitbox = null;
+
+            Debug.Log("PlayerWaveAttackAction: Cleaned up - camera should switch back to fixed view");
+        }
+
+        /// <summary>
+        /// Stop wave effects
+        /// </summary>
+        private void StopWaveEffects()
+        {
+            // TODO: Stop visual effects
+            // TODO: Stop audio effects
+
+            Debug.Log("PlayerWaveAttackAction: Stopped wave effects");
+        }
+    }
+}

@@ -16,18 +16,19 @@ MonoBehaviour:
   _invulnerabilityTime: 1
   _crystalCoreConfig: {fileID: 11400000, guid: 453a00548ef9b1947971284857e7ed8b, type: 2}
   _healthRestoreValue: 30
+  _physicalDamageToCoreEnergyRatio: 0.4
   _walkSpeed: 3
-  _runSpeed: 5
+  _runSpeed: 4.5
   _aimMoveSpeed: 1.5
   _reloadMoveSpeed: 2
   _inventoryGridWidth: 3
   _inventoryGridHeight: 3
   _moduleSlots: 2
-  _interactionRange: 2
+  _interactionRange: 1.5
   _interactionLayerMask:
     serializedVersion: 2
     m_Bits: 128
-  _coreInteractionLayerMask:
+  _waveInteractionLayerMask:
     serializedVersion: 2
     m_Bits: 256
   _normalMaterialPath: Art/Materials/Player/Player_Body

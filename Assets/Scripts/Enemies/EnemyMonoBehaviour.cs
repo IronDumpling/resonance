@@ -1,21 +1,17 @@
 using UnityEngine;
 using TMPro;
+using BehaviorDesigner.Runtime;
 using System.Collections;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
+using Resonance.Enemies.Movement;
+using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
 
 namespace Resonance.Enemies
 {
-    // Patrol mode enumeration
-    public enum PatrolMode
-    {
-        Infinite,
-        Limited    
-    }
-
     /// <summary>
     /// MonoBehaviour component that handles Unity-specific enemy functionality.
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.
@@ -26,57 +22,34 @@ namespace Resonance.Enemies
         [Header("Enemy Configuration")]
         [SerializeField] private EnemyBaseStats _baseStats;
 
-        [Header("Visual Feedback")]
+        [Header("Visual")]
         [SerializeField] private Transform _visualTransform;
         [SerializeField] private Renderer _bodyRenderer;
 
+        [Header("UI")]
+        [SerializeField] private GameObject _waveUI;
+        [SerializeField] private TextMeshProUGUI _waveUIText;
+
         [Header("Detection System")]
-        [SerializeField] private SphereCollider _detectionCollider;
-        [SerializeField] private SphereCollider _attackCollider;
+        [SerializeField] private SphereCollider _attackTrigger;
         
-        [Header("Patrol System - Waypoints")]
+        [Header("Patrol System")]
         [SerializeField] private Transform _patrolPointA;
         [SerializeField] private Transform _patrolPointB;
-        [SerializeField] private bool _useTransformPoints = false;
-        [Tooltip("If true, use Transform references. If false, use Vector3 waypoints relative to enemy position.")]
-        
-        [SerializeField] private Vector3 _patrolWaypointA = Vector3.zero;
-        [SerializeField] private Vector3 _patrolWaypointB = Vector3.forward * 5f;
-        
-        [Header("Patrol System - Behavior")]
-        [SerializeField] private PatrolMode _patrolMode = PatrolMode.Infinite;
-        [Tooltip("Infinite: Never stops patrolling. Limited: Stops after specified cycles.")]
-        
-        [SerializeField] private int _maxPatrolCycles = 3;
-        [Tooltip("How many complete A→B→A cycles before stopping (only used in Limited mode).")]
-        
-        [SerializeField] private float _patrolSpeed = 2f;
-        [Tooltip("Movement speed while patrolling (units per second).")]
-        
-        [Header("Patrol System - Timing")]
-        [SerializeField] private float _singleCycleDuration = 10f;
-        [Tooltip("How long one complete patrol cycle (A→B→A) should take in seconds.")]
-        
+
         [SerializeField] private float _waitAtWaypointDuration = 1f;
         [Tooltip("How long to wait at each waypoint before moving to the next.")]
         
-        [Header("Patrol System - Visual")]
         [SerializeField] private bool _showPatrolPath = true;
         [Tooltip("Show patrol path in Scene view when enemy is selected.")]
-
-        [Header("Chase System")]
-        [SerializeField] private float _targetUpdateInterval = 0.5f;
-        [Tooltip("How often to update the chase target position (seconds).")]
-        
-        [Header("Wave UI")]
-        [SerializeField] private GameObject _resonanceUI;
-        [SerializeField] private TextMeshProUGUI _resonanceUIText;
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
 
         // Core Components
         private EnemyController _enemyController;
+        private EnemyMovement _movementSystem;
+        private EnemyAnimator _enemyAnimator;
         private IAudioService _audioService;
         private Animator _animator;
 
@@ -113,25 +86,8 @@ namespace Resonance.Enemies
                 return;
             }
 
-            // Get Animator component (should be on Visual child)
-            _animator = GetComponentInChildren<Animator>();
-            if (_animator == null)
-            {
-                Debug.LogError($"EnemyMonoBehaviour: No Animator found on {gameObject.name} or its children!");
-            }
-            else
-            {
-                Debug.Log($"EnemyMonoBehaviour: Found Animator on {_animator.gameObject.name}");
-            }
-
-            // Setup visual components
-            SetupVisualComponents();
-
             // Initialize enemy
             InitializeEnemy();
-
-            // Setup detection system
-            SetupDetectionSystem();
         }
 
         void Start()
@@ -144,15 +100,9 @@ namespace Resonance.Enemies
 
             // Set initial material
             SetMaterial(_normalMaterial);
-
-            // Update collider radii in case stats changed
-            UpdateColliderRadii();
             
             // Verify and fix detection system (in case components were missing)
             VerifyDetectionSystem();
-            
-            // Setup patrol waypoints
-            SetupPatrolWaypoints();
 
             // Setup Wave UI
             SetupWaveUI();
@@ -164,16 +114,8 @@ namespace Resonance.Enemies
         {
             if (!IsInitialized || _enemyController.IsPaused) return;
 
+            // Update core controller (health, combat, etc.)
             _enemyController.Update(Time.deltaTime);
-
-            // Update animator parameters
-            UpdateAnimatorParameters();
-
-            // Check for destruction
-            if (_enemyController.StateMachine.IsReadyForDestruction())
-            {
-                DestroyEnemy();
-            }
 
             // Update debug info
             if (_showDebugInfo && Time.frameCount % 30 == 0) // Every 0.5 seconds at 60fps
@@ -203,10 +145,10 @@ namespace Resonance.Enemies
         {
             get
             {
-                if (_useTransformPoints && _patrolPointA != null)
+                if (_patrolPointA != null)
                     return _patrolPointA.position;
                 else
-                    return transform.position + _patrolWaypointA;
+                    return Vector3.zero;
             }
         }
         
@@ -217,10 +159,10 @@ namespace Resonance.Enemies
         {
             get
             {
-                if (_useTransformPoints && _patrolPointB != null)
+                if (_patrolPointB != null)
                     return _patrolPointB.position;
                 else
-                    return transform.position + _patrolWaypointB;
+                    return Vector3.zero;
             }
         }
         
@@ -231,34 +173,58 @@ namespace Resonance.Enemies
         {
             get
             {
-                if (_useTransformPoints)
-                {
-                    return _patrolPointA != null && _patrolPointB != null;
-                }
-                else
-                {
-                    return Vector3.Distance(_patrolWaypointA, _patrolWaypointB) > 0.1f;
-                }
+                return _patrolPointA != null && _patrolPointB != null;
             }
         }
         
         /// <summary>
         /// Patrol configuration properties
         /// </summary>
-        public PatrolMode EnemyPatrolMode => _patrolMode;
-        public int MaxPatrolCycles => _maxPatrolCycles;
-        public float PatrolSpeed => _patrolSpeed;
-        public float SingleCycleDuration => _singleCycleDuration;
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-
-        /// <summary>
-        /// Chase configuration properties
-        /// </summary>
-        public float TargetUpdateInterval => _targetUpdateInterval;
         
         #endregion
 
         #region Initialization
+
+        private void InitializeEnemy()
+        {
+            // Setup visual components
+            SetupVisualComponents();
+
+            // Initialize core controller
+            _enemyController = new EnemyController(_baseStats, transform.position, transform);
+
+            // Get movement system from controller
+            _movementSystem = _enemyController.Movement;
+
+            // Subscribe to enemy events
+            _enemyController.OnHealthChanged += HandleHealthChanged;
+            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
+            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
+            _enemyController.OnTrueDeath += HandleTrueDeath;
+            _enemyController.OnRevivalStarted += HandleRevivalStarted;
+            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
+            _enemyController.OnAttackLaunched += HandleAttackLaunched;
+            _enemyController.OnStateChanged += HandleStateChanged;
+
+            _isInitialized = true;
+
+            // Setup EnemyAnimator
+            SetupEnemyAnimator();
+
+            // Setup patrol waypoints after controller is initialized
+            SetupPatrolWaypoints();
+            
+            // Reset attack cooldown so enemy can attack immediately when needed
+            _enemyController.ResetAttackCooldown();
+
+            // Setup detection system
+            SetupDetectionSystem();
+            
+            OnEnemyInitialized?.Invoke(_enemyController);
+
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
+        }
 
         private void SetupVisualComponents()
         {
@@ -302,36 +268,30 @@ namespace Resonance.Enemies
             }
         }
 
-        private void InitializeEnemy()
+        private void SetupEnemyAnimator()
         {
-            _enemyController = new EnemyController(_baseStats, transform.position, transform);
+            // get Animator component (should be on root game object)
+            _animator = GetComponent<Animator>();
+            if (_animator == null)
+            {
+                Debug.LogError($"EnemyMonoBehaviour: No Animator found on {gameObject.name}!");
+                _animator = gameObject.AddComponent<Animator>();
+            }
 
-            // Subscribe to enemy events
-            _enemyController.OnHealthChanged += HandleHealthChanged;
-            _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
-            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
-            _enemyController.OnTrueDeath += HandleTrueDeath;
-            _enemyController.OnRevivalStarted += HandleRevivalStarted;
-            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
-            _enemyController.OnAttackLaunched += HandleAttackLaunched;
-            _enemyController.OnStateChanged += HandleStateChanged;
-            _enemyController.OnPlayerDetected += HandlePlayerDetected;
-            _enemyController.OnPlayerLost += HandlePlayerLost;
-
-            _isInitialized = true;
+            // get EnemyAnimator component
+            _enemyAnimator = _animator.gameObject.GetComponent<EnemyAnimator>();
+            if (_enemyAnimator == null)
+            {
+                Debug.LogError($"EnemyMonoBehaviour: No EnemyAnimator found on {gameObject.name}!");
+                _enemyAnimator = _animator.gameObject.AddComponent<EnemyAnimator>();
+            }
             
-            // Setup patrol waypoints after controller is initialized
-            SetupPatrolWaypoints();
-            
-            // Reset attack cooldown so enemy can attack immediately when needed
-            _enemyController.ResetAttackCooldown();
-            
-            // Setup animation relay after controller is initialized
-            SetupAnimationRelay();
-            
-            OnEnemyInitialized?.Invoke(_enemyController);
-
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} initialized successfully");
+            // initialize EnemyAnimator
+            if(_enemyAnimator != null)
+            {
+                EnemyDamageHitbox damageHitbox = GetComponentInChildren<EnemyDamageHitbox>();
+                _enemyAnimator.Initialize(this, damageHitbox);
+            }
         }
 
         private void SetupServices()
@@ -372,88 +332,78 @@ namespace Resonance.Enemies
 
         private void SetupDetectionSystem()
         {
-            // Setup detection collider
-            SetupDetectionCollider();
+            // Setup vision system
+            SetupVisionSystem();
             
             // Setup attack collider
-            SetupAttackCollider();
+            SetupAttackTrigger();
             
             // Setup damage hitbox
             SetupDamageHitbox();
             
-            // Setup weakpoint system
-            SetupWeakpointSystem();
-
-            // Set initial radii
-            UpdateColliderRadii();
+            // Setup hitbox system
+            SetupHitboxSystem();
         }
         
-        private void SetupDetectionCollider()
+        private void SetupVisionSystem()
         {
-            // Try to find existing detection collider
-            Transform detectionChild = transform.Find("DetectionRange");
-            
-            if (detectionChild != null)
+            // EnemyVision component will be automatically added and initialized by EnemyController
+            // We just need to ensure the component exists on this GameObject
+            EnemyVision vision = GetComponent<EnemyVision>();
+            if (vision == null)
             {
-                _detectionCollider = detectionChild.GetComponent<SphereCollider>();
-                
-                // Ensure it has a SphereCollider
-                if (_detectionCollider == null)
-                {
-                    _detectionCollider = detectionChild.gameObject.AddComponent<SphereCollider>();
-                    _detectionCollider.isTrigger = true;
-                }
-                
-                // Check and add EnemyDetectionTrigger if needed
-                SetupDetectionTriggerComponent(detectionChild.gameObject, TriggerType.Detection);
+                vision = gameObject.AddComponent<EnemyVision>();
+                Debug.Log($"EnemyMonoBehaviour: Added EnemyVision component to {gameObject.name}");
             }
             else
             {
-                GameObject detectionGO = new GameObject("DetectionRange");
-                detectionGO.transform.SetParent(transform);
-                detectionGO.transform.localPosition = Vector3.zero;
-                detectionGO.layer = gameObject.layer;
-                
-                _detectionCollider = detectionGO.AddComponent<SphereCollider>();
-                _detectionCollider.isTrigger = true;
-                
-                // Add trigger component
-                SetupDetectionTriggerComponent(detectionGO, TriggerType.Detection);
+                Debug.Log($"EnemyMonoBehaviour: EnemyVision component already exists on {gameObject.name}");
             }
         }
         
-        private void SetupAttackCollider()
+        private void SetupAttackTrigger()
         {
             // Try to find existing attack collider
             Transform attackChild = transform.Find("AttackRange");
             
             if (attackChild != null)
             {
-                _attackCollider = attackChild.GetComponent<SphereCollider>();
+                _attackTrigger = attackChild.GetComponent<SphereCollider>();
                 
                 // Ensure it has a SphereCollider
-                if (_attackCollider == null)
+                if (_attackTrigger == null)
                 {
-                    _attackCollider = attackChild.gameObject.AddComponent<SphereCollider>();
-                    _attackCollider.isTrigger = true;
+                    _attackTrigger = attackChild.gameObject.AddComponent<SphereCollider>();
+                    _attackTrigger.isTrigger = true;
                 }
-                
-                // Check and add EnemyDetectionTrigger if needed
-                SetupDetectionTriggerComponent(attackChild.gameObject, TriggerType.Attack);
             }
             else
             {
+                // Create new AttackRange GameObject
                 GameObject attackGO = new GameObject("AttackRange");
                 attackGO.transform.SetParent(transform);
                 attackGO.transform.localPosition = Vector3.zero;
                 attackGO.layer = gameObject.layer;
                 
-                _attackCollider = attackGO.AddComponent<SphereCollider>();
-                _attackCollider.isTrigger = true;
+                _attackTrigger = attackGO.AddComponent<SphereCollider>();
+                _attackTrigger.isTrigger = true;
                 
-                // Add trigger component
-                SetupDetectionTriggerComponent(attackGO, TriggerType.Attack);
+                attackChild = attackGO.transform;
             }
+            
+            // Ensure EnemyAttackTrigger component exists
+            EnemyAttackTrigger attackTrigger = attackChild.GetComponent<EnemyAttackTrigger>();
+            if (attackTrigger == null)
+            {
+                attackTrigger = attackChild.gameObject.AddComponent<EnemyAttackTrigger>();
+            }
+
+            if (_baseStats != null)
+            {
+                _attackTrigger.radius = _baseStats.normalAttackStats.range;
+            }
+
+            attackTrigger.Initialize(this);
         }
         
         private void SetupDamageHitbox()
@@ -503,7 +453,7 @@ namespace Resonance.Enemies
             }
         }
         
-        private void SetupWeakpointSystem()
+        private void SetupHitboxSystem()
         {
             // Try to find existing weakpoints system
             Transform visualChild = _visualTransform ?? transform.Find("Visual");
@@ -534,112 +484,46 @@ namespace Resonance.Enemies
             }
         }
         
-        private void SetupAnimationRelay()
-        {
-            if (!IsInitialized || _enemyController == null)
-            {
-                Debug.LogWarning("EnemyMonoBehaviour: SetupAnimationRelay called before enemy controller initialization");
-                return;
-            }
-
-            // Find the Visual child GameObject (where Animator should be)
-            GameObject visualObject = null;
-            if (_animator != null)
-            {
-                visualObject = _animator.gameObject;
-            }
-            else
-            {
-                // Fallback: try to find Visual child by name
-                Transform visualTransform = transform.Find("Visual");
-                if (visualTransform != null)
-                {
-                    visualObject = visualTransform.gameObject;
-                }
-            }
-
-            if (visualObject == null)
-            {
-                Debug.LogError("EnemyMonoBehaviour: Cannot find Visual GameObject for EnemyAnimRelay setup");
-                return;
-            }
-
-            // Check if EnemyAnimRelay already exists on Visual GameObject
-            EnemyAnimRelay existingRelay = visualObject.GetComponent<EnemyAnimRelay>();
-            
-            if (existingRelay != null)
-            {
-                // Initialize existing relay
-                EnemyDamageHitbox damageHitbox = GetComponentInChildren<EnemyDamageHitbox>();
-                existingRelay.Initialize(this, damageHitbox);
-                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyAnimRelay on {visualObject.name}");
-            }
-            else
-            {
-                // Add new animation relay component to Visual GameObject
-                EnemyAnimRelay newRelay = visualObject.AddComponent<EnemyAnimRelay>();
-                EnemyDamageHitbox damageHitbox = GetComponentInChildren<EnemyDamageHitbox>();
-                newRelay.Initialize(this, damageHitbox);
-                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyAnimRelay on {visualObject.name}");
-            }
-        }
-        
-        private void SetupDetectionTriggerComponent(GameObject triggerObject, TriggerType triggerType)
-        {
-            // Check if EnemyDetectionTrigger already exists
-            EnemyDetectionTrigger existingTrigger = triggerObject.GetComponent<EnemyDetectionTrigger>();
-            
-            if (existingTrigger != null)
-            {
-                existingTrigger.Initialize(this, triggerType);
-            }
-            else
-            {
-                EnemyDetectionTrigger newTrigger = triggerObject.AddComponent<EnemyDetectionTrigger>();
-                newTrigger.Initialize(this, triggerType);
-            }
-        }
-
         private void SetupWaveUI()
         {
-            if(_resonanceUI == null)
+            if(_waveUI == null)
             {
-                Transform resonanceUIChild = transform.Find("WaveUI");
-                if(resonanceUIChild != null)
+                Transform waveUIChild = transform.Find("WaveUI");
+                if(waveUIChild != null)
                 {
-                    _resonanceUI = resonanceUIChild.gameObject;
-                    Debug.Log($"EnemyMonoBehaviour: Found WaveUI child object: {resonanceUIChild.name}");
+                    _waveUI = waveUIChild.gameObject;
+                    Debug.Log($"EnemyMonoBehaviour: Found WaveUI child object: {waveUIChild.name}");
                 }
             }
 
-            if(_resonanceUI == null)
+            if(_waveUI == null)
             {
-                Debug.LogWarning($"EnemyMonoBehaviour: No WaveUI found on {gameObject.name}. UI resonance will be disabled.");
+                Debug.LogWarning($"EnemyMonoBehaviour: No WaveUI found on {gameObject.name}. UI wave will be disabled.");
                 return;
             }
 
-            if(_resonanceUIText == null)
+            if(_waveUIText == null)
             {
-                Transform textChild = _resonanceUI.transform.Find("Text");
+                Transform textChild = _waveUI.transform.Find("Text");
                 if(textChild != null)
                 {
-                    _resonanceUIText = textChild.GetComponent<TextMeshProUGUI>();
+                    _waveUIText = textChild.GetComponent<TextMeshProUGUI>();
                 }
             }
 
-            if (_resonanceUIText == null)
+            if (_waveUIText == null)
             {
                 Debug.LogWarning($"EnemyMonoBehaviour: No TextMeshProUGUI component found in WaveUI on {gameObject.name}");
             }
             else
             {
                 Debug.Log($"WeaponMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
-                _resonanceUIText.text = "F";
+                _waveUIText.text = "F";
             }
 
-            if(_resonanceUI != null)
+            if(_waveUI != null)
             {
-                _resonanceUI.SetActive(false);
+                _waveUI.SetActive(false);
             }
 
             Debug.Log($"EnemyMonoBehaviour: Wave UI setup complete");
@@ -653,10 +537,17 @@ namespace Resonance.Enemies
                 Debug.LogWarning($"EnemyMonoBehaviour: {gameObject.name} has invalid patrol waypoints. Using default points.");
                 
                 // Set default waypoints if none are configured
-                if (!_useTransformPoints)
+                if(_patrolPointA == null)
                 {
-                    _patrolWaypointA = Vector3.left * 3f;
-                    _patrolWaypointB = Vector3.right * 3f;
+                    _patrolPointA = new GameObject("PatrolPointA").transform;
+                    _patrolPointA.SetParent(transform);
+                    _patrolPointA.localPosition = Vector3.left * 3f;
+                }
+                if(_patrolPointB == null)
+                {
+                    _patrolPointB = new GameObject("PatrolPointB").transform;
+                    _patrolPointB.SetParent(transform);
+                    _patrolPointB.localPosition = Vector3.right * 3f;
                 }
             }
             
@@ -665,56 +556,23 @@ namespace Resonance.Enemies
             {
                 _enemyController.SetPatrolWaypoints(PatrolWaypointA, PatrolWaypointB);
                 _enemyController.SetPatrolConfiguration(
-                    _patrolMode,
-                    _maxPatrolCycles,
-                    _patrolSpeed,
-                    _singleCycleDuration,
                     _waitAtWaypointDuration
-                );
-                
-                // Set chase and attack configuration
-                _enemyController.SetChaseConfiguration(
-                    _targetUpdateInterval
                 );
             }
             
             Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
         }
-
-        private void UpdateColliderRadii()
-        {
-            if (_baseStats == null) return;
-
-            if (_detectionCollider != null)
-            {
-                _detectionCollider.radius = _baseStats.detectionRange;
-            }
-
-            if (_attackCollider != null)
-            {
-                _attackCollider.radius = _baseStats.normalAttackStats.range;
-            }
-        }
         
         private void VerifyDetectionSystem()
         {            
-            // Check detection collider and trigger component
-            if (_detectionCollider != null)
+            // Check attack collider and trigger component (detection now handled by Vision system)
+            if (_attackTrigger != null)
             {
-                EnemyDetectionTrigger detectionTrigger = _detectionCollider.GetComponent<EnemyDetectionTrigger>();
-                if (detectionTrigger == null)
-                {
-                    SetupDetectionTriggerComponent(_detectionCollider.gameObject, TriggerType.Detection);
-                }
-            }
-            
-            // Check attack collider and trigger component
-            if (_attackCollider != null)
-            {
-                EnemyDetectionTrigger attackTrigger = _attackCollider.GetComponent<EnemyDetectionTrigger>();
+                EnemyAttackTrigger attackTrigger = _attackTrigger.GetComponent<EnemyAttackTrigger>();
                 if (attackTrigger == null)
                 {
-                    SetupDetectionTriggerComponent(_attackCollider.gameObject, TriggerType.Attack);
+                    attackTrigger = _attackTrigger.gameObject.AddComponent<EnemyAttackTrigger>();
+                    attackTrigger.Initialize(this);
                 }
             }
             
@@ -774,7 +632,7 @@ namespace Resonance.Enemies
         /// <summary>
         /// Physical health state
         /// </summary>
-        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.Stats.IsAlive 
+        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.IsPhysicallyAlive 
             ? PhysicalHealthState.Alive 
             : PhysicalHealthState.Dead;
 
@@ -832,51 +690,6 @@ namespace Resonance.Enemies
 
         #endregion
 
-        #region Animation Bridge
-
-        /// <summary>
-        /// Update animator parameters based on enemy state
-        /// </summary>
-        private void UpdateAnimatorParameters()
-        {
-            if (_animator == null || !_animator.isActiveAndEnabled) return;
-
-            // Update Speed parameter for locomotion blend tree
-            float speed = _enemyController.Movement?.Velocity.magnitude ?? 0f;
-            _animator.SetFloat("Speed", speed);
-
-            // Update boolean parameters
-            _animator.SetBool("HasTarget", _enemyController.HasPlayerTargetValue);
-            _animator.SetBool("InAttackRange", _enemyController.IsPlayerInAttackRangeValue);
-            _animator.SetBool("IsReviving", _enemyController.StateMachine.IsReviving());
-        }
-
-        /// <summary>
-        /// Handle player detected event - set HasTarget parameter
-        /// </summary>
-        private void HandlePlayerDetected(Transform player)
-        {
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("HasTarget", true);
-                // Debug.Log("EnemyMonoBehaviour: Player detected - set HasTarget = true");
-            }
-        }
-
-        /// <summary>
-        /// Handle player lost event - set HasTarget parameter
-        /// </summary>
-        private void HandlePlayerLost()
-        {
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("HasTarget", false);
-                Debug.Log("EnemyMonoBehaviour: Player lost - set HasTarget = false");
-            }
-        }
-
-        #endregion
-
         #region Event Handlers
 
         private void HandleHealthChanged(float current, float max)
@@ -891,78 +704,46 @@ namespace Resonance.Enemies
 
         private void HandlePhysicalDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} health death - checking core health for state transition");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - visual effects only");
             SetMaterial(_damageMaterial);
             PlayDeathAudio();
-            
-            // Trigger health death animation
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetTrigger("PhysicalDeath");
-            }
         }
 
         private void HandleTrueDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state - visual effects only");
             SetMaterial(_damageMaterial);
-            PlayDeathAudio();
-            
-            // Trigger true death animation
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetTrigger("TrueDeath");
-            }
-            
-            // Start destruction countdown
-            Destroy(gameObject, 3f);
         }
 
+        /// <summary>
+        /// Handle revival started - set material to revival material
+        /// </summary>
         private void HandleRevivalStarted()
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started revival");
             SetMaterial(_revivalMaterial);
-            
-            // Set revival state in animator
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("IsReviving", true);
-            }
         }
 
+        /// <summary>
+        /// Handle revival completed - set material to normal material
+        /// </summary>
         private void HandleRevivalCompleted()
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} completed revival");
             SetMaterial(_normalMaterial);
-            
-            // Complete revival in animator
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                _animator.SetBool("IsReviving", false);
-                _animator.SetTrigger("ReviveComplete");
-            }
         }
 
+        /// <summary>
+        /// Handle attack launched - log attack details
+        /// </summary>
         private void HandleAttackLaunched(float damage)
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} launched attack for {damage} damage");
-            
-            // Trigger attack animation based on attack type
-            if (_animator != null && _animator.isActiveAndEnabled)
-            {
-                if (_enemyController.CurrentAttackType == AttackType.Core)
-                {
-                    _animator.SetTrigger("CoreAttackStart");
-                    Debug.Log($"EnemyMonoBehaviour: Triggering CoreAttackStart animation");
-                }
-                else
-                {
-                    _animator.SetTrigger("AttackStart");
-                    Debug.Log($"EnemyMonoBehaviour: Triggering AttackStart animation");
-                }
-            }
         }
 
+        /// <summary>
+        /// Handle state changed - log state change
+        /// </summary>
         private void HandleStateChanged(string stateName)
         {
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} changed to state {stateName}");
@@ -1012,7 +793,7 @@ namespace Resonance.Enemies
             _audioService.PlaySFX3D(hitClipType, transform.position, 0.7f, 1f);
         }
 
-        private void PlayDeathAudio()
+        public void PlayDeathAudio()
         {
             if (_audioService == null || !_baseStats.enableAudio) return;
 
@@ -1045,7 +826,6 @@ namespace Resonance.Enemies
 
             _enemyController.Stats.FullRestore();
             _enemyController.Stats.crystalCore.FullRepairCoreHealth();
-            _enemyController.StateMachine.ChangeState("Normal");
             SetMaterial(_normalMaterial);
             
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} reset to full health");
@@ -1060,25 +840,6 @@ namespace Resonance.Enemies
             return _enemyController.GetStats();
         }
 
-        /// <summary>
-        /// Force enemy to enter specific state
-        /// </summary>
-        public void ForceState(string stateName)
-        {
-            if (!IsInitialized) return;
-            _enemyController.StateMachine.ChangeState(stateName);
-        }
-
-        #endregion
-
-        #region Destruction
-
-        private void DestroyEnemy()
-        {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} ready for destruction");
-            Destroy(gameObject);
-        }
-
         #endregion
 
         #region Trigger System
@@ -1086,74 +847,48 @@ namespace Resonance.Enemies
         /// <summary>
         /// 处理触发器进入事件
         /// </summary>
-        public void HandleTriggerEnter(TriggerType triggerType, Collider other)
+        public void HandleTriggerEnter(Collider other)
         {
-            if (!IsInitialized) return;
+            if (!IsInitialized)
+            {
+                Debug.LogWarning($"EnemyMonoBehaviour: HandleTriggerEnter called but not initialized on {gameObject.name}");
+                return;
+            }
 
             // 只检测玩家
-            if (!other.CompareTag("Player")) return;
-
-            Transform playerTransform = other.transform;
-
-            switch (triggerType)
+            if (!other.CompareTag("Player"))
             {
-                case TriggerType.Detection:
-                    _enemyController.SetPlayerTarget(playerTransform);
-                    break;
-
-                case TriggerType.Attack:
-                    _enemyController.SetPlayerInAttackRange(true);
-                    Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
-                    break;
+                Debug.Log($"EnemyMonoBehaviour: Trigger enter from non-Player object: {other.name} with tag: {other.tag}");
+                return;
             }
+
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} detected Player in attack range trigger");
+
+            _enemyController.SetPlayerInAttackRange(true);
         }
 
         /// <summary>
         /// 处理触发器退出事件
         /// </summary>
-        public void HandleTriggerExit(TriggerType triggerType, Collider other)
+        public void HandleTriggerExit(Collider other)
         {
             if (!IsInitialized) return;
             
             // 只检测玩家
             if (!other.CompareTag("Player")) return;
             
-            switch (triggerType)
-            {
-                case TriggerType.Detection:
-                    _enemyController.LosePlayer();
-                    break;
-
-                case TriggerType.Attack:
-                    _enemyController.SetPlayerInAttackRange(false);
-                    Debug.Log($"EnemyMonoBehaviour: Player left attack range");
-                    break;
-            }
+            _enemyController.SetPlayerInAttackRange(false);
         }
 
         /// <summary>
         /// 处理触发器停留事件
         /// </summary>
-        public void HandleTriggerStay(TriggerType triggerType, Collider other)
+        public void HandleTriggerStay(Collider other)
         {
             if (!IsInitialized) return;
 
-            Transform playerTransform = other.transform;
-
-            switch (triggerType)
-            {
-                case TriggerType.Detection:
-                    // 玩家进入检测范围
-                    _enemyController.SetPlayerTarget(playerTransform);
-                    // Debug.Log($"EnemyMonoBehaviour: Player still in detection range");
-                    break;
-
-                case TriggerType.Attack:
-                    // 玩家进入攻击范围
-                    _enemyController.SetPlayerInAttackRange(true);
-                    // Debug.Log($"EnemyMonoBehaviour: Player still in attack range");
-                    break;
-            }
+            // 玩家进入攻击范围
+            _enemyController.SetPlayerInAttackRange(true);
         }
 
         #endregion
@@ -1161,53 +896,53 @@ namespace Resonance.Enemies
         #region Wave UI Control
 
         /// <summary>
-        /// Show resonance UI (called by EnemyHitboxManager when Core hitbox is enabled)
+        /// Show wave UI (called by EnemyHitboxManager when Core hitbox is enabled)
         /// </summary>
         public void ShowWaveUI()
         {
-            if (_resonanceUI != null)
+            if (_waveUI != null)
             {
-                _resonanceUI.SetActive(true);
+                _waveUI.SetActive(true);
                 // Default to white color
                 SetWaveUIColor(Color.white);
                 
                 if (_showDebugInfo)
                 {
-                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} showing resonance UI");
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} showing wave UI");
                 }
             }
         }
 
         /// <summary>
-        /// Hide resonance UI (called by EnemyHitboxManager when Core hitbox is disabled)
+        /// Hide wave UI (called by EnemyHitboxManager when Core hitbox is disabled)
         /// </summary>
         public void HideWaveUI()
         {
-            if (_resonanceUI != null)
+            if (_waveUI != null)
             {
-                _resonanceUI.SetActive(false);
+                _waveUI.SetActive(false);
                 
                 if (_showDebugInfo)
                 {
-                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} hiding resonance UI");
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} hiding wave UI");
                 }
             }
         }
 
         /// <summary>
-        /// Set resonance UI text color (called by CoreAttackTrigger for closest target indication)
+        /// Set wave UI text color (called by WaveAttackTrigger for closest target indication)
         /// </summary>
         /// <param name="color">Color to set (red for closest target, white for others)</param>
         public void SetWaveUIColor(Color color)
         {
-            if (_resonanceUIText != null)
+            if (_waveUIText != null)
             {
-                _resonanceUIText.color = color;
+                _waveUIText.color = color;
                 
                 if (_showDebugInfo)
                 {
                     string colorName = color == Color.red ? "red" : "white";
-                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} set resonance UI color to {colorName}");
+                    Debug.Log($"EnemyMonoBehaviour: {gameObject.name} set wave UI color to {colorName}");
                 }
             }
         }
@@ -1221,16 +956,11 @@ namespace Resonance.Enemies
             if (!IsInitialized) return;
 
             var stats = _enemyController.Stats;
-            string stateInfo = $"State: {_enemyController.CurrentState}";
-            if (_enemyController.StateMachine.IsInState("Normal"))
-            {
-                stateInfo += $" ({_enemyController.StateMachine.GetNormalSubState()})";
-            }
             
             Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentHealth:F1}/{stats.maxHealth}, " +
                      $"Core Energy: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.MaxEnergy}, " +
                      $"Core Health: {stats.crystalCore.CurrentCoreHealth:F1}/{stats.crystalCore.MaxCoreHealth}, " +
-                     $"{stateInfo}");
+                     $"State: {_enemyController.CurrentState}");
         }
 
         void OnDrawGizmos()
@@ -1270,23 +1000,7 @@ namespace Resonance.Enemies
         }
 
         void OnDrawGizmosSelected()
-        {
-            // Draw detection range
-            if (_baseStats != null && _baseStats.showDetectionRange)
-            {
-                Gizmos.color = Color.yellow;
-                float detectionRadius = _detectionCollider != null ? _detectionCollider.radius : _baseStats.detectionRange;
-                Gizmos.DrawWireSphere(transform.position, detectionRadius);
-            }
-
-            // Draw attack range
-            if (_baseStats != null && _baseStats.showAttackRange)
-            {
-                Gizmos.color = Color.red;
-                float attackRadius = _attackCollider != null ? _attackCollider.radius : _baseStats.normalAttackStats.range;
-                Gizmos.DrawWireSphere(transform.position, attackRadius);
-            }
-            
+        { 
             // Draw patrol path
             if (_showPatrolPath)
             {
@@ -1330,21 +1044,8 @@ namespace Resonance.Enemies
         void OnValidate()
         {
             // Validate patrol configuration
-            if (_maxPatrolCycles < 1)
-                _maxPatrolCycles = 1;
-                
-            if (_patrolSpeed < 0.1f)
-                _patrolSpeed = 0.1f;
-                
-            if (_singleCycleDuration < 1f)
-                _singleCycleDuration = 1f;
-                
             if (_waitAtWaypointDuration < 0f)
                 _waitAtWaypointDuration = 0f;
-                
-            // Validate chase configuration
-            if (_targetUpdateInterval < 0.1f)
-                _targetUpdateInterval = 0.1f;
         }
         
         #endregion

@@ -9,8 +9,8 @@ using Resonance.Interfaces.Operations;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Heal Action - triggered by holding F key when no Core hitboxes are in core attack range
-    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in CoreAttackRange
+    /// Player Heal Action - triggered by holding F key when no Core hitboxes are in wave attack range
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in WaveAttackRange
     /// Behavior: Player cannot move, consumes 1 CoreHealth slot every 1s, restores Health
     /// End condition: Release F key, or interrupted by damage, or reach full health, or no more core health
     /// </summary>
@@ -60,13 +60,13 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            // Must NOT have Core hitboxes in core attack range (WaveAction has priority)
+            // Must NOT have Core hitboxes in wave attack range (WaveAttackAction has priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer != null)
             {
-                if (playerService.CurrentPlayer.HasCoreHitboxesInCoreAttackRange())
+                if (playerService.CurrentPlayer.HasCoreHitboxesInWaveAttackRange())
                 {
-                    Debug.Log("PlayerHealAction: Cannot start - Core hitboxes in range (WaveAction has priority)");
+                    Debug.Log("PlayerHealAction: Cannot start - Core hitboxes in range (WaveAttackAction has priority)");
                     return false;
                 }
             }
@@ -162,7 +162,7 @@ namespace Resonance.Player.Actions
                 return;
             }
 
-            // Check if Core hitboxes entered range (WaveAction gets priority)
+            // Check if Core hitboxes entered range (WaveAttackAction gets priority)
             if (ShouldCancel(player))
             {
                 _isFinished = true;
@@ -298,11 +298,11 @@ namespace Resonance.Player.Actions
         /// <returns>True if action should be cancelled</returns>
         public bool ShouldCancel(PlayerController player)
         {
-            // Check if Core hitboxes entered range (WaveAction gets priority)
+            // Check if Core hitboxes entered range (WaveAttackAction gets priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer?.HasCoreHitboxesInCoreAttackRange() == true)
+            if (playerService?.CurrentPlayer?.HasCoreHitboxesInWaveAttackRange() == true)
             {
-                Debug.Log("PlayerHealAction: Core hitboxes entered range, should cancel for WaveAction priority");
+                Debug.Log("PlayerHealAction: Core hitboxes entered range, should cancel for WaveAttackAction priority");
                 return true;
             }
 

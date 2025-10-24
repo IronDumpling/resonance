@@ -7,7 +7,7 @@ using Resonance.Interfaces.Services;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 using Resonance.Utilities;
-using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 using DG.Tweening;
 
 namespace Resonance.UI
@@ -405,7 +405,7 @@ namespace Resonance.UI
             }
             
             // Continue QTE sequence instead of stopping - player can perform multiple QTEs
-            // The QTE will only end when the WaveAction itself ends (enemy state change, etc.)
+            // The QTE will only end when the WaveAttackAction itself ends (enemy state change, etc.)
             Debug.Log("WavePanel: QTE success processed, continuing sequence for more attempts");
         }
         
@@ -542,7 +542,7 @@ namespace Resonance.UI
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService != null)
             {
-                // TODO: Add specific resonance success audio clip
+                // TODO: Add specific wave success audio clip
                 audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.8f, 1.2f); 
             }
             
@@ -559,7 +559,7 @@ namespace Resonance.UI
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService != null)
             {
-                // TODO: Add specific resonance failure audio clip
+                // TODO: Add specific wave failure audio clip
                 audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.4f, 0.6f); 
             }
             

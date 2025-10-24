@@ -1,0 +1,474 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+using Resonance.Player.Core;
+using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
+using Resonance.Utilities.Types;
+
+namespace Resonance.Player.Triggers
+{
+    /// <summary>
+    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within wave attack range.
+    /// Should be attached to the WaveAttackRange GameObject under the Player.
+    /// </summary>
+    public class WaveAttackTrigger : MonoBehaviour
+    {
+        // Core references
+        private PlayerController _playerController;
+        private bool _isInitialized = false;
+
+        // Layer mask for filtering
+        private LayerMask _waveInteractionLayerMask = LayerDict.GetLayer("Enemy");
+
+        // Core hitbox tracking
+        private List<EnemyHitbox> _coreHitboxesInRange = new List<EnemyHitbox>();
+        private EnemyHitbox _lastClosestCore = null;
+
+        // Events
+        public System.Action<EnemyHitbox> OnCoreHitboxEntered;
+        public System.Action<EnemyHitbox> OnCoreHitboxExited;
+        public System.Action OnCoreHitboxesChanged; // General event for any change in core hitboxes
+
+        // Properties
+        public bool HasCoreHitboxesInRange => _coreHitboxesInRange.Count > 0;
+        public int CoreHitboxCount => _coreHitboxesInRange.Count;
+        public List<EnemyHitbox> CoreHitboxesInRange => new List<EnemyHitbox>(_coreHitboxesInRange);
+
+        #region Unity Lifecycle
+
+        void Awake()
+        {
+            // Ensure we have a SphereCollider trigger
+            var collider = GetComponent<SphereCollider>();
+            if (collider == null)
+            {
+                Debug.LogError("WaveAttackTrigger: No SphereCollider found! Please add a SphereCollider component.");
+                return;
+            }
+
+            if (!collider.isTrigger)
+            {
+                Debug.LogWarning("WaveAttackTrigger: SphereCollider is not set as trigger. Setting it now.");
+                collider.isTrigger = true;
+            }
+
+            Debug.Log($"WaveAttackTrigger: Initialized with range {collider.radius}");
+        }
+
+        void OnDestroy()
+        {
+            Cleanup();
+        }
+
+        #endregion
+
+        #region Initialization
+
+        /// <summary>
+        /// Initialize the trigger with player controller reference and set the range
+        /// </summary>
+        /// <param name="playerController">Reference to the player controller</param>
+        /// <param name="range">Detection range (will set the SphereCollider radius)</param>
+        /// <param name="layerMask">Layer mask for filtering collisions (optional, defaults to layer 8)</param>
+        public void Initialize(PlayerController playerController, float range, LayerMask? layerMask = null)
+        {
+            if (_isInitialized)
+            {
+                Debug.LogWarning("WaveAttackTrigger: Already initialized");
+                return;
+            }
+
+            _playerController = playerController;
+            
+            // Set layer mask if provided
+            if (layerMask.HasValue)
+            {
+                _waveInteractionLayerMask = layerMask.Value;
+                Debug.Log($"WaveAttackTrigger: Set layer mask to {_waveInteractionLayerMask.value}");
+            }
+
+            // Set the collider radius
+            var collider = GetComponent<SphereCollider>();
+            if (collider != null)
+            {
+                collider.radius = range;
+                Debug.Log($"WaveAttackTrigger: Set detection range to {range}");
+            }
+
+            _isInitialized = true;
+            Debug.Log("WaveAttackTrigger: Initialized successfully");
+        }
+
+        #endregion
+
+        #region Trigger Events
+
+        void OnTriggerEnter(Collider other)
+        {
+            if (!_isInitialized) return;
+
+            // Check layer mask filter
+            if ((_waveInteractionLayerMask.value & (1 << other.gameObject.layer)) == 0)
+            {
+                return; // Not on the correct layer
+            }
+
+            // Check if it's a Core type EnemyHitbox
+            var hitbox = other.GetComponent<EnemyHitbox>();
+            if (hitbox == null) return;
+
+            // Only track Core type hitboxes with enabled colliders
+            if (hitbox.type == EnemyHitboxType.Core && other.enabled && hitbox.IsInitialized)
+            {
+                if (!_coreHitboxesInRange.Contains(hitbox))
+                {
+                    _coreHitboxesInRange.Add(hitbox);
+                    OnCoreHitboxEntered?.Invoke(hitbox);
+                    OnCoreHitboxesChanged?.Invoke();
+                    UpdateClosestCoreNotification();
+                    Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} entered range");
+                }
+            }
+        }
+
+        void OnTriggerExit(Collider other)
+        {
+            if (!_isInitialized) return;
+
+            // Check layer mask filter
+            if ((_waveInteractionLayerMask.value & (1 << other.gameObject.layer)) == 0)
+            {
+                return; // Not on the correct layer
+            }
+
+            // Check if it's a Core type EnemyHitbox
+            var hitbox = other.GetComponent<EnemyHitbox>();
+            if (hitbox == null) return;
+
+            // Remove from tracking list if present
+            if (_coreHitboxesInRange.Contains(hitbox))
+            {
+                _coreHitboxesInRange.Remove(hitbox);
+                OnCoreHitboxExited?.Invoke(hitbox);
+                OnCoreHitboxesChanged?.Invoke();
+                UpdateClosestCoreNotification();
+                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} exited range");
+            }
+        }
+
+        void OnTriggerStay(Collider other)
+        {
+            if (!_isInitialized) return;
+
+            // Check layer mask filter
+            if ((_waveInteractionLayerMask.value & (1 << other.gameObject.layer)) == 0)
+            {
+                return; // Not on the correct layer
+            }
+
+            // Check if Core hitbox collider state changed
+            var hitbox = other.GetComponent<EnemyHitbox>();
+            if (hitbox == null || hitbox.type != EnemyHitboxType.Core || !hitbox.IsInitialized) return;
+
+            bool isInList = _coreHitboxesInRange.Contains(hitbox);
+            bool shouldBeInList = other.enabled;
+
+            if (shouldBeInList && !isInList)
+            {
+                // Collider became enabled, add to list
+                _coreHitboxesInRange.Add(hitbox);
+                OnCoreHitboxEntered?.Invoke(hitbox);
+                OnCoreHitboxesChanged?.Invoke();
+                UpdateClosestCoreNotification();
+                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} collider enabled");
+            }
+            else if (!shouldBeInList && isInList)
+            {
+                // Collider became disabled, remove from list
+                _coreHitboxesInRange.Remove(hitbox);
+                OnCoreHitboxExited?.Invoke(hitbox);
+                OnCoreHitboxesChanged?.Invoke();
+                UpdateClosestCoreNotification();
+                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} collider disabled");
+            }
+        }
+
+        #endregion
+
+        #region Core Hitbox Validation
+
+        /// <summary>
+        /// Validate if a hitbox should be tracked based on current criteria
+        /// </summary>
+        /// <param name="hitbox">The hitbox to validate</param>
+        /// <param name="collider">The collider component</param>
+        /// <returns>True if hitbox should be tracked</returns>
+        private bool IsValidCoreHitbox(EnemyHitbox hitbox, Collider collider)
+        {
+            return hitbox != null && 
+                   hitbox.IsInitialized && 
+                   hitbox.type == EnemyHitboxType.Core && 
+                   collider != null && 
+                   collider.enabled;
+        }
+
+        #endregion
+
+        #region Closest Core Notification
+
+        /// <summary>
+        /// Update closest core notification when core hitboxes list changes
+        /// </summary>
+        private void UpdateClosestCoreNotification()
+        {
+            var currentClosest = GetClosestCoreHitbox();
+            
+            if (currentClosest != _lastClosestCore)
+            {
+                // Notify old closest target to change to white
+                if (_lastClosestCore != null)
+                {
+                    var oldEnemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
+                    oldEnemyMono?.SetWaveUIColor(Color.white);
+                    Debug.Log($"WaveAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
+                }
+                
+                // Notify new closest target to change to red
+                if (currentClosest != null)
+                {
+                    var newEnemyMono = GetEnemyMonoFromHitbox(currentClosest);
+                    newEnemyMono?.SetWaveUIColor(Color.red);
+                    Debug.Log($"WaveAttackTrigger: {currentClosest.name} is now closest target, set to red");
+                }
+                
+                _lastClosestCore = currentClosest;
+            }
+        }
+        
+        /// <summary>
+        /// Force refresh all UI colors - useful after wave actions end
+        /// Also cleans up invalid hitboxes from tracking list
+        /// </summary>
+        public void ForceRefreshUIColors()
+        {
+            // First, validate and clean up the tracking list
+            var hitboxesToRemove = new List<EnemyHitbox>();
+            
+            foreach (var hitbox in _coreHitboxesInRange)
+            {
+                if (hitbox != null)
+                {
+                    var collider = hitbox.GetComponent<Collider>();
+                    
+                    // Check if hitbox is still valid for tracking
+                    if (!IsValidCoreHitbox(hitbox, collider))
+                    {
+                        hitboxesToRemove.Add(hitbox);
+                        Debug.Log($"WaveAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
+                    }
+                    else
+                    {
+                        // Reset UI color for valid hitboxes
+                        var enemyMono = GetEnemyMonoFromHitbox(hitbox);
+                        enemyMono?.SetWaveUIColor(Color.white);
+                    }
+                }
+                else
+                {
+                    hitboxesToRemove.Add(hitbox);
+                }
+            }
+            
+            // Remove invalid hitboxes
+            foreach (var hitbox in hitboxesToRemove)
+            {
+                _coreHitboxesInRange.Remove(hitbox);
+                OnCoreHitboxExited?.Invoke(hitbox);
+            }
+            
+            // Trigger change event if we removed any hitboxes
+            if (hitboxesToRemove.Count > 0)
+            {
+                OnCoreHitboxesChanged?.Invoke();
+            }
+            
+            // Clear last closest and force update
+            _lastClosestCore = null;
+            UpdateClosestCoreNotification();
+            
+            Debug.Log($"WaveAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
+        }
+
+        /// <summary>
+        /// Get EnemyMonoBehaviour from EnemyHitbox by traversing up the hierarchy
+        /// </summary>
+        /// <param name="hitbox">The EnemyHitbox to find the parent EnemyMonoBehaviour for</param>
+        /// <returns>EnemyMonoBehaviour if found, null otherwise</returns>
+        private EnemyMonoBehaviour GetEnemyMonoFromHitbox(EnemyHitbox hitbox)
+        {
+            if (hitbox == null) return null;
+
+            // The EnemyHitbox should be on a child of the enemy's Visual object
+            // Hierarchy: Enemy -> Visual -> Weakpoints -> Core (EnemyHitbox)
+            // We need to traverse up to find the root Enemy GameObject
+            Transform current = hitbox.transform;
+            
+            while (current != null)
+            {
+                var enemyMono = current.GetComponentInParent<EnemyMonoBehaviour>();
+                if (enemyMono != null)
+                {
+                    return enemyMono;
+                }
+                current = current.parent;
+            }
+            
+            Debug.LogWarning($"WaveAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
+            return null;
+        }
+
+        #endregion
+
+        #region Public Interface
+
+        /// <summary>
+        /// Manually refresh the state of all core hitboxes in range
+        /// Useful for ensuring accuracy when collider states change externally
+        /// </summary>
+        public void RefreshCoreHitboxStates()
+        {
+            if (!_isInitialized) return;
+
+            // Get all colliders in range and check their state
+            var collider = GetComponent<SphereCollider>();
+            if (collider == null) return;
+
+            var hitboxesToCheck = new List<EnemyHitbox>(_coreHitboxesInRange);
+            
+            foreach (var hitbox in hitboxesToCheck)
+            {
+                if (hitbox != null)
+                {
+                    var hitboxCollider = hitbox.GetComponent<Collider>();
+                    if (!IsValidCoreHitbox(hitbox, hitboxCollider))
+                    {
+                        // Remove invalid hitboxes
+                        _coreHitboxesInRange.Remove(hitbox);
+                        OnCoreHitboxExited?.Invoke(hitbox);
+                        OnCoreHitboxesChanged?.Invoke();
+                        Debug.Log($"WaveAttackTrigger: Removed invalid core hitbox {hitbox.name}");
+                    }
+                }
+            }
+
+            Debug.Log($"WaveAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
+        }
+
+        /// <summary>
+        /// Get the closest core hitbox in range
+        /// </summary>
+        /// <returns>Closest core hitbox or null if none</returns>
+        public EnemyHitbox GetClosestCoreHitbox()
+        {
+            if (_coreHitboxesInRange.Count == 0) return null;
+
+            Vector3 playerPosition = transform.position;
+            EnemyHitbox closest = null;
+            float closestDistance = float.MaxValue;
+
+            foreach (var hitbox in _coreHitboxesInRange)
+            {
+                if (hitbox != null)
+                {
+                    float distance = Vector3.Distance(playerPosition, hitbox.transform.position);
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        closest = hitbox;
+                    }
+                }
+            }
+
+            return closest;
+        }
+
+        /// <summary>
+        /// Check if a specific core hitbox is in range and has an enabled collider
+        /// </summary>
+        /// <param name="hitbox">The hitbox to check</param>
+        /// <returns>True if core hitbox is in range and has enabled collider</returns>
+        public bool IsCoreHitboxInRange(EnemyHitbox hitbox)
+        {
+            return hitbox != null && _coreHitboxesInRange.Contains(hitbox);
+        }
+
+        #endregion
+
+        #region Debug and Utility
+
+        /// <summary>
+        /// Get debug information about current detection state
+        /// </summary>
+        /// <returns>Debug info string</returns>
+        public string GetDebugInfo()
+        {
+            if (!_isInitialized) return "Not initialized";
+
+            return $"Core hitboxes in range: {_coreHitboxesInRange.Count}";
+        }
+
+        /// <summary>
+        /// Clean up resources and events
+        /// </summary>
+        private void Cleanup()
+        {
+            // Reset closest core tracking before clearing
+            if (_lastClosestCore != null)
+            {
+                var enemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
+                enemyMono?.SetWaveUIColor(Color.white);
+            }
+            
+            OnCoreHitboxEntered = null;
+            OnCoreHitboxExited = null;
+            OnCoreHitboxesChanged = null;
+
+            _coreHitboxesInRange.Clear();
+            _lastClosestCore = null;
+
+            _isInitialized = false;
+            Debug.Log("WaveAttackTrigger: Cleaned up");
+        }
+
+        #endregion
+
+        #region Gizmos (for debugging)
+
+        void OnDrawGizmosSelected()
+        {
+            var collider = GetComponent<SphereCollider>();
+            if (collider != null)
+            {
+                // Draw the detection range
+                Gizmos.color = HasCoreHitboxesInRange ? Color.red : Color.yellow;
+                Gizmos.DrawWireSphere(transform.position, collider.radius);
+                // Draw connections to core hitboxes
+                if (_coreHitboxesInRange != null)
+                {
+                    Gizmos.color = Color.red;
+                    foreach (var hitbox in _coreHitboxesInRange)
+                    {
+                        if (hitbox != null)
+                        {
+                            Gizmos.DrawLine(transform.position, hitbox.transform.position);
+                            Gizmos.DrawWireCube(hitbox.transform.position, Vector3.one * 0.5f);
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+    }
+}

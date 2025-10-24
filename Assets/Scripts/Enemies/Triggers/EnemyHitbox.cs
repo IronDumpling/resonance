@@ -5,7 +5,7 @@ using Resonance.Utilities;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.Enemies
+namespace Resonance.Enemies.Triggers
 {
     public enum EnemyHitboxType 
     { 

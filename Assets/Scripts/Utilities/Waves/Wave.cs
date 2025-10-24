@@ -6,7 +6,7 @@ namespace Resonance.Utilities.Waves
 {
     /// <summary>
     /// QTE configuration data structure
-    /// Used for wave resonance QTE mechanics
+    /// Used for wave wave QTE mechanics
     /// </summary>
     [System.Serializable]
     public class QTEConfig

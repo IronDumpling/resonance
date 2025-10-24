@@ -1,14 +1,15 @@
 using UnityEngine;
 using Unity.Cinemachine;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
 using Resonance.Player.Actions;
+using Resonance.Enemies.Triggers;
+using Resonance.Interfaces.Services;
 
 namespace Resonance.Cameras
 {
     /// <summary>
     /// Level-specific camera manager that extends CameraManager with gameplay-specific features.
-    /// Handles automatic player following setup and resonance action camera switching.
+    /// Handles automatic player following setup and wave action camera switching.
     /// </summary>
     public class LevelCameraManager : CameraManager
     {
@@ -42,7 +43,7 @@ namespace Resonance.Cameras
                 SetupPlayerFollowing();
             }
             
-            // Subscribe to resonance action events
+            // Subscribe to wave action events
             SubscribeToWaveEvents();
             
             // Ensure we start with the fixed camera
@@ -86,35 +87,35 @@ namespace Resonance.Cameras
         }
         
         /// <summary>
-        /// Subscribe to resonance action events for automatic camera switching
+        /// Subscribe to wave action events for automatic camera switching
         /// </summary>
         private void SubscribeToWaveEvents()
         {
-            PlayerWaveAction.OnWaveActionStarted += OnWaveStarted;
-            PlayerWaveAction.OnWaveActionEnded += OnWaveEnded;
+            PlayerWaveAttackAction.OnWaveAttackActionStarted += OnWaveStarted;
+            PlayerWaveAttackAction.OnWaveAttackActionEnded += OnWaveEnded;
         }
         
         /// <summary>
-        /// Unsubscribe from resonance action events
+        /// Unsubscribe from wave action events
         /// </summary>
         private void UnsubscribeFromWaveEvents()
         {
-            PlayerWaveAction.OnWaveActionStarted -= OnWaveStarted;
-            PlayerWaveAction.OnWaveActionEnded -= OnWaveEnded;
+            PlayerWaveAttackAction.OnWaveAttackActionStarted -= OnWaveStarted;
+            PlayerWaveAttackAction.OnWaveAttackActionEnded -= OnWaveEnded;
         }
         
         /// <summary>
-        /// Handle resonance action started - switch to player camera
+        /// Handle wave action started - switch to player camera
         /// </summary>
         /// <param name="targetCore">The target core hitbox (not used for camera switching)</param>
-        private void OnWaveStarted(Resonance.Enemies.EnemyHitbox targetCore)
+        private void OnWaveStarted(EnemyHitbox targetCore)
         {
             Debug.Log("LevelCameraManager: Wave started, switching to player camera");
             SwitchToPlayerCamera();
         }
         
         /// <summary>
-        /// Handle resonance action ended - switch back to fixed camera
+        /// Handle wave action ended - switch back to fixed camera
         /// </summary>
         private void OnWaveEnded()
         {
@@ -145,7 +146,7 @@ namespace Resonance.Cameras
         }
         
         /// <summary>
-        /// Switch to the player camera (resonance camera)
+        /// Switch to the player camera (wave camera)
         /// </summary>
         public bool SwitchToPlayerCamera()
         {
@@ -208,7 +209,7 @@ namespace Resonance.Cameras
         }
         
         /// <summary>
-        /// Configure camera settings for better resonance experience
+        /// Configure camera settings for better wave experience
         /// </summary>
         public void ConfigureWaveCamera(float fieldOfView = 65f, float followDamping = 1.2f)
         {
@@ -217,13 +218,13 @@ namespace Resonance.Cameras
             var playerCamera = GetCamera<CinemachineCamera>(_playerCameraName);
             if (playerCamera != null)
             {
-                // Adjust field of view for better resonance view
+                // Adjust field of view for better wave view
                 playerCamera.Lens.FieldOfView = fieldOfView;
                 
                 // TODO: Configure follow damping if needed
                 // This would require accessing the camera's body component
                 
-                Debug.Log($"LevelCameraManager: Configured resonance camera settings (FOV: {fieldOfView})");
+                Debug.Log($"LevelCameraManager: Configured wave camera settings (FOV: {fieldOfView})");
             }
         }
         

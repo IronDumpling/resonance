@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Resonance.Enemies;
+using Resonance.Enemies.Triggers;
 using Resonance.Utilities;
 using Resonance.Utilities.CrystalCore;
 
@@ -9,7 +10,7 @@ namespace Resonance.Enemies.Data
 {
     /// <summary>
     /// Enemy runtime stats
-    /// 游戏过程中可修改的实际属性值
+    /// Gameplay-specific attributes that can be modified during runtime
     /// </summary>
     [System.Serializable]
     public class EnemyRuntimeStats
@@ -29,17 +30,31 @@ namespace Resonance.Enemies.Data
         
         [Header("Combat Attributes")]
         public AttackStats normalAttackStats;
-        public AttackStats coreAttackStats;
+        public AttackStats waveAttackStats;
         public float detectionRange;
+        public float normalAttackToEnergyRatio;
+        
+        [Header("Vision System")]
+        public float visionAngle;
+        public float visionDistance;
+        public float eyeHeightOffset;
+        public float visionHeightRange;
+        public float visionLossTimeout;
+        public LayerMask visionObstacleLayers;
         
         [Header("Hitbox Damage Multipliers")]
         public List<HitboxMultiplierConfig> hitboxMultipliers;
         
-        [Header("Movement Attributes")]
+        [Header("Navigation Configuration")]
         public float moveSpeed;
         public float chaseMoveSpeed;
         public float patrolRadius;
         public float arrivalThreshold;
+        public float baseOffset;
+        public float acceleration;
+        public float angularSpeed;
+        public float stoppingDistance;
+        public bool autoBraking;
         
         [Header("Visual Effects")]
         public string normalMaterialPath;
@@ -63,18 +78,13 @@ namespace Resonance.Enemies.Data
 
         [Header("Status Tiers")]
         public HealthTier healthTier;
-        public EnemyLifeState lifeState;
 
         // 事件系统
         public System.Action<float, float> OnHealthChanged; // current, max
         public System.Action<HealthTier> OnHealthTierChanged;
-        public System.Action<EnemyLifeState> OnLifeStateChanged;
         
         // 属性访问器
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
-        public bool IsAlive => lifeState == EnemyLifeState.Alive;
-        public bool IsReviving => lifeState == EnemyLifeState.Reviving;
-        public bool IsDead => lifeState == EnemyLifeState.Dead;
         public bool IsCoreIntact => crystalCore != null && crystalCore.CoreHealthState == CoreHealthState.Intact;
 
         public EnemyRuntimeStats(EnemyBaseStats baseStats)
@@ -94,8 +104,17 @@ namespace Resonance.Enemies.Data
             
             // 战斗属性 - Clone to avoid sharing damages reference with other instances
             normalAttackStats = baseStats.normalAttackStats.Clone();
-            coreAttackStats = baseStats.coreAttackStats.Clone();
+            waveAttackStats = baseStats.waveAttackStats.Clone();
             detectionRange = baseStats.detectionRange;
+            normalAttackToEnergyRatio = baseStats.normalAttackToEnergyRatio;
+            
+            // 视野系统
+            visionAngle = baseStats.visionAngle;
+            visionDistance = baseStats.visionDistance;
+            eyeHeightOffset = baseStats.eyeHeightOffset;
+            visionHeightRange = baseStats.visionHeightRange;
+            visionLossTimeout = baseStats.visionLossTimeout;
+            visionObstacleLayers = baseStats.visionObstacleLayers;
             
             // Hitbox multipliers - Copy the list for independent configuration
             hitboxMultipliers = new List<HitboxMultiplierConfig>(baseStats.hitboxMultipliers ?? new List<HitboxMultiplierConfig>());
@@ -105,6 +124,13 @@ namespace Resonance.Enemies.Data
             chaseMoveSpeed = baseStats.chaseMoveSpeed;
             patrolRadius = baseStats.patrolRadius;
             arrivalThreshold = baseStats.arrivalThreshold;
+            
+            // NavMesh Agent 配置
+            baseOffset = baseStats.baseOffset;
+            acceleration = baseStats.acceleration;
+            angularSpeed = baseStats.angularSpeed;
+            stoppingDistance = baseStats.stoppingDistance;
+            autoBraking = baseStats.autoBraking;
             
             // 视觉效果
             normalMaterialPath = baseStats.normalMaterialPath;
@@ -128,7 +154,6 @@ namespace Resonance.Enemies.Data
 
             // 初始化状态等级
             UpdateHealthTier();
-            UpdateLifeState();
         }
 
         /// <summary>
@@ -148,27 +173,11 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 更新生命状态
-        /// </summary>
-        public void UpdateLifeState()
-        {
-            var previousState = lifeState;
-            CoreHealthState coreState = crystalCore?.CoreHealthState ?? CoreHealthState.Destroyed;
-            lifeState = EnemyLifeStateHelper.CalculateLifeState(currentHealth, coreState);
-
-            if (previousState != lifeState)
-            {
-                OnLifeStateChanged?.Invoke(lifeState);
-                Debug.Log($"EnemyRuntimeStats: Life state changed to {lifeState}");
-            }
-        }
-
-        /// <summary>
         /// 受到生命伤害
         /// </summary>
         public float TakeHealthDamage(float damage)
         {
-            if (damage <= 0f || IsDead) return 0f;
+            if (damage <= 0f || currentHealth <= 0f) return 0f;
 
             float previousHealth = currentHealth;
             currentHealth = Mathf.Max(0f, currentHealth - damage);
@@ -177,7 +186,6 @@ namespace Resonance.Enemies.Data
             if (actualDamage > 0f)
             {
                 UpdateHealthTier();
-                UpdateLifeState();
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
                 Debug.Log($"EnemyRuntimeStats: Took {actualDamage} health damage. Current: {currentHealth}/{maxHealth}");
             }
@@ -199,7 +207,6 @@ namespace Resonance.Enemies.Data
             if (actualRestore > 0f)
             {
                 UpdateHealthTier();
-                UpdateLifeState();
                 OnHealthChanged?.Invoke(currentHealth, maxHealth);
             }
 
@@ -222,7 +229,7 @@ namespace Resonance.Enemies.Data
         /// </summary>
         public float GetModifiedMoveSpeed()
         {
-            if (!IsAlive) return 0f;
+            if (currentHealth <= 0f) return 0f;
             
             float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
             return moveSpeed * speedMultiplier;
@@ -233,7 +240,7 @@ namespace Resonance.Enemies.Data
         /// </summary>
         public float GetModifiedChaseMoveSpeed()
         {
-            if (!IsAlive) return 0f;
+            if (currentHealth <= 0f) return 0f;
             
             float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
             return chaseMoveSpeed * speedMultiplier;
@@ -249,7 +256,6 @@ namespace Resonance.Enemies.Data
             crystalCore?.ResetChaos();
 
             UpdateHealthTier();
-            UpdateLifeState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
             Debug.Log("EnemyRuntimeStats: Full restore completed");
@@ -286,7 +292,6 @@ namespace Resonance.Enemies.Data
             }
 
             UpdateHealthTier();
-            UpdateLifeState();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
             Debug.Log($"EnemyRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}");
@@ -322,7 +327,6 @@ namespace Resonance.Enemies.Data
         {
             OnHealthChanged = null;
             OnHealthTierChanged = null;
-            OnLifeStateChanged = null;
             crystalCore?.Cleanup();
         }
     }

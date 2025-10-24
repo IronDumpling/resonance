@@ -4,9 +4,10 @@ using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Interfaces;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 
-namespace Resonance.Enemies
+namespace Resonance.Enemies.Triggers
 {
     /// <summary>
     /// Enemy damage hitbox component - handles collision detection and damage dealing
@@ -17,7 +18,7 @@ namespace Resonance.Enemies
     public class EnemyDamageHitbox : MonoBehaviour
     {
         [Header("Hitbox Configuration")]
-        [SerializeField] private LayerMask _targetLayers = (1 << 3);
+        [SerializeField] private LayerMask _targetLayers = LayerDict.GetLayer("Player");
         [Tooltip("Which layers can be damaged by this hitbox")]
         
         [SerializeField] private string _targetTag = "Player";
@@ -103,7 +104,7 @@ namespace Resonance.Enemies
         #region Initialization
 
         /// <summary>
-        /// Initialize the damage hitbox (called by EnemyMonoBehaviour, similar to EnemyDetectionTrigger)
+        /// Initialize the damage hitbox (called by EnemyMonoBehaviour, similar to EnemyTrigger)
         /// </summary>
         /// <param name="enemyMono">Enemy MonoBehaviour reference</param>
         public void Initialize(EnemyMonoBehaviour enemyMono)
@@ -223,8 +224,8 @@ namespace Resonance.Enemies
 
             switch (_enemyController.CurrentAttackType)
             {
-                case AttackType.Core:
-                    attackTypeName = "Core attack";
+                case AttackType.Wave:
+                    attackTypeName = "Wave attack";
                     break;
                 case AttackType.Normal:
                     attackTypeName = "Normal attack";

@@ -458,7 +458,7 @@ namespace Resonance.UI
             // Update current value (shows current energy as fill amount)
             if (_coreEnergyCurrentValue != null)
             {
-                float energyPercentage = maxEnergy > 0 ? currentEnergy / maxEnergy : 0f;
+                float energyPercentage = maxCoreHealth > 0 ? currentEnergy / maxCoreHealth : 0f;
                 _coreEnergyCurrentValue.fillAmount = energyPercentage;
             }
             
