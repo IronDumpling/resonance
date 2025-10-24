@@ -1,4 +1,5 @@
 using UnityEngine;
+using DG.Tweening;
 
 namespace Resonance.Utilities.Waves
 {
@@ -10,34 +11,34 @@ namespace Resonance.Utilities.Waves
     public class WaveConfig : ScriptableObject
     {
         [Header("Wave Chaos Configuration")]
-        [Tooltip("最大紊乱值")]
+        [Tooltip("Wave Chaos Max Value")]
         public float maxChaos = 20f;
         
-        [Tooltip("紊乱阈值(低于此值进入秩序状态)")]
+        [Tooltip("Wave Chaos Threshold Value")]
         public float chaosThreshold = 16f;
         
         [Header("Wave Visual Configuration")]
-        [Tooltip("波纹秩序状态颜色")]
+        [Tooltip("Wave Order Color")]
         public Color orderColor = Color.blue;
         
-        [Tooltip("波纹紊乱状态颜色")]
+        [Tooltip("Wave Chaos Color")]
         public Color chaosColor = Color.magenta;
         
-        [Tooltip("波纹材质路径")]
+        [Tooltip("Wave Material Path")]
         public string waveMaterialPath = "Art/Materials/Wave";
         
         [Header("Wave Audio Configuration")]
-        [Tooltip("紊乱增加音效")]
+        [Tooltip("Wave Chaos Add Sound")]
         public AudioClip chaosAddSound;
         
-        [Tooltip("进入紊乱状态音效")]
+        [Tooltip("Wave Enter Chaos State Sound")]
         public AudioClip enterChaosStateSound;
         
-        [Tooltip("进入秩序状态音效")]
+        [Tooltip("Wave Enter Order State Sound")]
         public AudioClip enterOrderStateSound;
         
         [Header("QTE Configuration")]
-        [Tooltip("QTE配置")]
+        [Tooltip("QTE Configuration")]
         public QTEConfig qteConfig = new QTEConfig();
         
         /// <summary>
@@ -81,5 +82,81 @@ namespace Resonance.Utilities.Waves
         }
         
         #endregion
+    }
+
+    /// <summary>
+    /// QTE configuration data structure
+    /// Used for wave wave QTE mechanics
+    /// </summary>
+    [System.Serializable]
+    public class QTEConfig
+    {
+        [Header("QTE Animation")]
+        [Tooltip("QTE Animation Ease Type")]
+        public Ease easeType = Ease.InOutSine;
+        
+        [Tooltip("QTE Cycle Duration (seconds)")]
+        public float cycleDuration = 3f;
+        
+        [Tooltip("QTE Target Window Size (0-1)")]
+        [Range(0.05f, 0.5f)]
+        public float targetWindow = 0.2f;
+        
+        [Header("QTE Visual")]
+        [Tooltip("QTE Success Color")]
+        public Color successColor = Color.green;
+        
+        [Tooltip("QTE Failure Color")]
+        public Color failureColor = Color.red;
+        
+        [Tooltip("QTE Target Window Color")]
+        public Color targetColor = Color.yellow;
+        
+        [Header("QTE Audio")]
+        [Tooltip("QTE Success Sound")]
+        public AudioClip successSound;
+        
+        [Tooltip("QTE Failure Sound")]
+        public AudioClip failureSound;
+
+        public QTEConfig()
+        {
+            easeType = Ease.InOutSine;
+            cycleDuration = 3f;
+            targetWindow = 0.2f;
+            successColor = Color.green;
+            failureColor = Color.red;
+            targetColor = Color.yellow;
+        }
+
+        public QTEConfig(Ease easeType, float cycleDuration, float targetWindow)
+        {
+            this.easeType = easeType;
+            this.cycleDuration = cycleDuration;
+            this.targetWindow = targetWindow;
+            successColor = Color.green;
+            failureColor = Color.red;
+            targetColor = Color.yellow;
+        }
+        
+        /// <summary>
+        /// Validate QTE Configuration
+        /// </summary>
+        public bool ValidateConfig()
+        {
+            if (cycleDuration <= 0f)
+            {
+                Debug.LogError($"QTEConfig: Invalid cycleDuration: {cycleDuration}");
+                return false;
+            }
+            
+            if (targetWindow <= 0f || targetWindow >= 1f)
+            {
+                Debug.LogError($"QTEConfig: Invalid targetWindow: {targetWindow} (should be 0 < targetWindow < 1)");
+                return false;
+            }
+            
+            return true;
+        }
     }
 }

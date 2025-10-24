@@ -1,88 +1,11 @@
 using UnityEngine;
 using Resonance.Utilities;
-using DG.Tweening;
 
 namespace Resonance.Utilities.Waves
 {
     /// <summary>
-    /// QTE configuration data structure
-    /// Used for wave wave QTE mechanics
-    /// </summary>
-    [System.Serializable]
-    public class QTEConfig
-    {
-        [Header("QTE Animation")]
-        [Tooltip("QTE动画缓动类型")]
-        public Ease easeType = Ease.InOutSine;
-        
-        [Tooltip("QTE循环持续时间(秒)")]
-        public float cycleDuration = 3f;
-        
-        [Tooltip("QTE目标窗口大小(0-1)")]
-        [Range(0.05f, 0.5f)]
-        public float targetWindow = 0.2f;
-        
-        [Header("QTE Visual")]
-        [Tooltip("QTE成功时的颜色")]
-        public Color successColor = Color.green;
-        
-        [Tooltip("QTE失败时的颜色")]
-        public Color failureColor = Color.red;
-        
-        [Tooltip("QTE目标窗口颜色")]
-        public Color targetColor = Color.yellow;
-        
-        [Header("QTE Audio")]
-        [Tooltip("QTE成功音效")]
-        public AudioClip successSound;
-        
-        [Tooltip("QTE失败音效")]
-        public AudioClip failureSound;
-
-        public QTEConfig()
-        {
-            easeType = Ease.InOutSine;
-            cycleDuration = 3f;
-            targetWindow = 0.2f;
-            successColor = Color.green;
-            failureColor = Color.red;
-            targetColor = Color.yellow;
-        }
-
-        public QTEConfig(Ease easeType, float cycleDuration, float targetWindow)
-        {
-            this.easeType = easeType;
-            this.cycleDuration = cycleDuration;
-            this.targetWindow = targetWindow;
-            successColor = Color.green;
-            failureColor = Color.red;
-            targetColor = Color.yellow;
-        }
-        
-        /// <summary>
-        /// 验证QTE配置
-        /// </summary>
-        public bool ValidateConfig()
-        {
-            if (cycleDuration <= 0f)
-            {
-                Debug.LogError($"QTEConfig: Invalid cycleDuration: {cycleDuration}");
-                return false;
-            }
-            
-            if (targetWindow <= 0f || targetWindow >= 1f)
-            {
-                Debug.LogError($"QTEConfig: Invalid targetWindow: {targetWindow} (should be 0 < targetWindow < 1)");
-                return false;
-            }
-            
-            return true;
-        }
-    }
-    
-    /// <summary>
-    /// Wave system - manages chaos and QTE configuration
-    /// Part of CrystalCore system
+    /// Wave System - manages chaos and QTE configuration
+    /// Part of CrystalCore System
     /// </summary>
     [System.Serializable]
     public class Wave
