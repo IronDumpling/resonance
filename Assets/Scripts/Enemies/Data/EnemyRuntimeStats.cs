@@ -39,6 +39,7 @@ namespace Resonance.Enemies.Data
         public float visionDistance;
         public float eyeHeightOffset;
         public float visionHeightRange;
+        public float visionLossTimeout;
         public LayerMask visionObstacleLayers;
         
         [Header("Hitbox Damage Multipliers")]
@@ -112,6 +113,7 @@ namespace Resonance.Enemies.Data
             visionDistance = baseStats.visionDistance;
             eyeHeightOffset = baseStats.eyeHeightOffset;
             visionHeightRange = baseStats.visionHeightRange;
+            visionLossTimeout = baseStats.visionLossTimeout;
             visionObstacleLayers = baseStats.visionObstacleLayers;
             
             // Hitbox multipliers - Copy the list for independent configuration

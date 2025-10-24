@@ -114,6 +114,8 @@ namespace Resonance.Enemies.Data
         public float eyeHeightOffset = 0f;
         [Tooltip("视野高度范围 (以眼睛位置为中心，上下对称)")]
         public float visionHeightRange = 1.5f;
+        [Tooltip("失去视线后多久丢失目标 (秒)")]
+        public float visionLossTimeout = 5f;
         [Tooltip("视野检测层 (用于射线检测)")]
         public LayerMask visionObstacleLayers = ~0; // Default to all layers
         
@@ -354,6 +356,7 @@ namespace Resonance.Enemies.Data
             visionAngle = Mathf.Clamp(visionAngle, 0f, 360f);
             visionDistance = Mathf.Max(0.1f, visionDistance);
             visionHeightRange = Mathf.Max(0.1f, visionHeightRange);
+            visionLossTimeout = Mathf.Max(0.1f, visionLossTimeout);
             
             // 移动属性验证
             moveSpeed = Mathf.Max(0.1f, moveSpeed);

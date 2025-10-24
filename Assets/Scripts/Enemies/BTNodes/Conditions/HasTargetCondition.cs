@@ -29,17 +29,9 @@ namespace Resonance.Enemies.BTNodes.Conditions
             // Check if enemy has player target
             bool hasTarget = Controller.HasPlayerTarget;
             
-            // Only log when target state changes
+            // Track state changes for debugging
             if (hasTarget != _previousHasTarget)
             {
-                if (hasTarget)
-                {
-                    Debug.Log($"[HasTargetCondition] ✓ TARGET ACQUIRED: {Controller.PlayerTarget?.name} at {Controller.LastKnownPlayerPosition}");
-                }
-                else
-                {
-                    Debug.Log($"[HasTargetCondition] ✗ TARGET LOST");
-                }
                 _previousHasTarget = hasTarget;
             }
             

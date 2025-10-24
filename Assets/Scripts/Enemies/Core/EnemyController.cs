@@ -43,6 +43,9 @@ namespace Resonance.Enemies.Core
         private bool _hasPlayerTarget = false;
         private bool _isPlayerInAttackRange = false;
         
+        // Vision Loss Tracking
+        private float _timeSinceLastSawPlayer = 0f;
+        
         // Patrol State
         private Vector3 _patrolCenter;
         private Vector3 _currentPatrolTarget;
@@ -649,6 +652,9 @@ namespace Resonance.Enemies.Core
                 
                 if (canSeePlayer)
                 {
+                    // Reset timer when we can see the player
+                    _timeSinceLastSawPlayer = 0f;
+                    
                     // Vision system updates the last known position internally
                     // Update our local last known position from vision system
                     if (_vision.HasLastKnownPosition)
@@ -659,7 +665,6 @@ namespace Resonance.Enemies.Core
                     // If we can see player but don't have target set, set it
                     if (!_hasPlayerTarget)
                     {
-                        Debug.Log($"[EnemyController] Vision detected player! Setting target...");
                         FindPlayer();
                     }
                     else
@@ -679,10 +684,17 @@ namespace Resonance.Enemies.Core
                 }
                 else
                 {
-                    // Can't see player anymore
+                    // Lost sight of player - check if we should lose target
                     if (_hasPlayerTarget)
                     {
-                        Debug.Log($"[EnemyController] Lost sight of player. Keeping last known position: {_lastKnownPlayerPosition}");
+                        _timeSinceLastSawPlayer += Time.deltaTime;
+                        
+                        // Lose target if lost vision for too long
+                        if (_timeSinceLastSawPlayer >= _stats.visionLossTimeout)
+                        {
+                            Debug.Log($"[EnemyController] ✗ TARGET LOST: vision timeout");
+                            LosePlayer();
+                        }
                     }
                 }
             }
@@ -713,6 +725,7 @@ namespace Resonance.Enemies.Core
             _playerTarget = player;
             _hasPlayerTarget = true;
             _lastKnownPlayerPosition = player.position;
+            _timeSinceLastSawPlayer = 0f; // Reset vision loss timer when acquiring target
             
             // Also update vision system's last known position
             if (_vision != null)
@@ -720,8 +733,7 @@ namespace Resonance.Enemies.Core
                 _vision.UpdateLastKnownPosition(player.position);
             }
             
-            Debug.Log($"[EnemyController] ✓ Player target set: {player.name} at {player.position}");
-            Debug.Log($"[EnemyController] HasPlayerTarget = {_hasPlayerTarget}");
+            Debug.Log($"[EnemyController] ✓ TARGET ACQUIRED: {player.name}");
             
             OnPlayerDetected?.Invoke(player);
         }
@@ -734,6 +746,7 @@ namespace Resonance.Enemies.Core
             _playerTarget = null;
             _hasPlayerTarget = false;
             _isPlayerInAttackRange = false; // Also reset attack range
+            _timeSinceLastSawPlayer = 0f; // Reset vision loss timer
             
             // Note: We don't clear the vision system's last known position here
             // This allows the enemy to remember where they last saw the player

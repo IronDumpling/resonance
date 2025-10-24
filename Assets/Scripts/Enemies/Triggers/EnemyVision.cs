@@ -142,15 +142,8 @@ namespace Resonance.Enemies.Triggers
                     if (hit.collider.CompareTag("Player"))
                     {
                         // Successfully see player, update last known position
-                        bool wasNotSeeing = !_hasLastKnownPosition;
                         _lastKnownPlayerPosition = playerPosition;
                         _hasLastKnownPosition = true;
-                        
-                        // Only log when first detecting
-                        if (wasNotSeeing)
-                        {
-                            Debug.Log($"[EnemyVision] ✓ CAN SEE PLAYER! Distance={horizontalDistance:F2}m, Angle={angle:F1}°, Height diff={heightDifference:F2}m");
-                        }
                         return true;
                     }
                 }
