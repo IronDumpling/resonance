@@ -42,9 +42,7 @@ namespace Resonance.Enemies.Core
         private Vector3 _lastKnownPlayerPosition;
         private bool _hasPlayerTarget = false;
         private bool _isPlayerInAttackRange = false;
-        
-        // Vision Loss Tracking
-        private float _timeSinceLastSawPlayer = 0f;
+        private float _timeSinceLastSawPlayer = 0f; // Time since last saw player
         
         // Patrol State
         private Vector3 _patrolCenter;
@@ -59,9 +57,6 @@ namespace Resonance.Enemies.Core
 
         // Damage Hitbox
         private Transform _damageHitboxChild;
-
-        // Chase Configuration
-        private float _targetUpdateInterval = 0.5f;
         
         // Statistics
         private int _timesHit = 0;
@@ -110,9 +105,6 @@ namespace Resonance.Enemies.Core
         
         // Patrol Configuration Properties
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-        
-        // Chase Configuration Properties
-        public float TargetUpdateInterval => _targetUpdateInterval;
         
         // Revival Configuration Properties
         public float RevivalTimer => _revivalTimer;
@@ -875,16 +867,6 @@ namespace Resonance.Enemies.Core
         {
             _waitAtWaypointDuration = waitDuration;
             Debug.Log($"EnemyController: Patrol configuration set - WaitDuration: {waitDuration:F1}s");
-        }
-        
-        /// <summary>
-        /// Set chase configuration
-        /// </summary>
-        public void SetChaseConfiguration(
-            float targetUpdateInterval)
-        {
-            _targetUpdateInterval = targetUpdateInterval;
-            Debug.Log($"EnemyController: Chase configuration set - UpdateInterval: {targetUpdateInterval:F2}s");
         }
         
         /// <summary>

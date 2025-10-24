@@ -10,7 +10,7 @@ namespace Resonance.Enemies.Data
 {
     /// <summary>
     /// Enemy runtime stats
-    /// 游戏过程中可修改的实际属性值
+    /// Gameplay-specific attributes that can be modified during runtime
     /// </summary>
     [System.Serializable]
     public class EnemyRuntimeStats

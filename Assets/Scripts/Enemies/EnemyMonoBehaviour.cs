@@ -42,10 +42,6 @@ namespace Resonance.Enemies
         
         [SerializeField] private bool _showPatrolPath = true;
         [Tooltip("Show patrol path in Scene view when enemy is selected.")]
-
-        [Header("Chase System")]
-        [SerializeField] private float _targetUpdateInterval = 0.5f;
-        [Tooltip("How often to update the chase target position (seconds).")]
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -185,11 +181,6 @@ namespace Resonance.Enemies
         /// Patrol configuration properties
         /// </summary>
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
-
-        /// <summary>
-        /// Chase configuration properties
-        /// </summary>
-        public float TargetUpdateInterval => _targetUpdateInterval;
         
         #endregion
 
@@ -566,11 +557,6 @@ namespace Resonance.Enemies
                 _enemyController.SetPatrolWaypoints(PatrolWaypointA, PatrolWaypointB);
                 _enemyController.SetPatrolConfiguration(
                     _waitAtWaypointDuration
-                );
-                
-                // Set chase and attack configuration
-                _enemyController.SetChaseConfiguration(
-                    _targetUpdateInterval
                 );
             }
             
@@ -1060,10 +1046,6 @@ namespace Resonance.Enemies
             // Validate patrol configuration
             if (_waitAtWaypointDuration < 0f)
                 _waitAtWaypointDuration = 0f;
-                
-            // Validate chase configuration
-            if (_targetUpdateInterval < 0.1f)
-                _targetUpdateInterval = 0.1f;
         }
         
         #endregion
