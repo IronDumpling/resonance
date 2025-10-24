@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Resonance.Enemies;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.Movement;
+using Resonance.Enemies.Triggers;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Utilities.CrystalCore;
@@ -20,6 +21,7 @@ namespace Resonance.Enemies.Core
         // Core Data
         private EnemyRuntimeStats _stats;
         private EnemyMovement _movement;
+        private EnemyVision _vision;
         
         // State Data
         private EnemyStateData _stateData = new EnemyStateData();
@@ -92,6 +94,7 @@ namespace Resonance.Enemies.Core
         // Properties
         public EnemyRuntimeStats Stats => _stats;
         public EnemyMovement Movement => _movement;
+        public EnemyVision Vision => _vision;
         public Transform PlayerTarget => _playerTarget;
         public bool HasPlayerTarget => _hasPlayerTarget && _playerTarget != null;
         public bool IsPlayerInAttackRange => _isPlayerInAttackRange;
@@ -164,9 +167,27 @@ namespace Resonance.Enemies.Core
             _stats = baseStats.CreateRuntimeStats();
             _patrolCenter = spawnPosition;
             _currentPatrolTarget = spawnPosition;
+            _lastKnownPlayerPosition = spawnPosition; // Initialize to spawn position
             
             // Initialize movement system with reference to this controller
             _movement = new EnemyMovement(_stats, enemyTransform, this);
+
+            // Initialize vision system
+            if (enemyTransform != null)
+            {
+                // Try to get existing EnemyVision component, or add one if it doesn't exist
+                _vision = enemyTransform.GetComponent<EnemyVision>();
+                if (_vision == null)
+                {
+                    _vision = enemyTransform.gameObject.AddComponent<EnemyVision>();
+                }
+                _vision.Initialize(enemyTransform, _stats);
+                Debug.Log($"EnemyController: Vision system initialized");
+            }
+            else
+            {
+                Debug.LogWarning($"EnemyController: No enemy transform provided, vision system disabled");
+            }
 
             // Initialize damage hitbox
             _damageHitboxChild = enemyTransform?.Find("DamageHitbox");
@@ -621,10 +642,57 @@ namespace Resonance.Enemies.Core
 
         private void UpdatePlayerDetection()
         {
-            // Update player tracking (position tracking only, range detection handled by triggers)
-            if (HasPlayerTarget)
+            // Use vision system to detect player
+            if (_vision != null)
             {
-                _lastKnownPlayerPosition = _playerTarget.position;
+                bool canSeePlayer = _vision.CanSeePlayer();
+                
+                if (canSeePlayer)
+                {
+                    // Vision system updates the last known position internally
+                    // Update our local last known position from vision system
+                    if (_vision.HasLastKnownPosition)
+                    {
+                        _lastKnownPlayerPosition = _vision.LastKnownPlayerPosition;
+                    }
+                    
+                    // If we can see player but don't have target set, set it
+                    if (!_hasPlayerTarget)
+                    {
+                        Debug.Log($"[EnemyController] Vision detected player! Setting target...");
+                        FindPlayer();
+                    }
+                    else
+                    {
+                        // Already has target, keep tracking the position
+                        if (HasPlayerTarget)
+                        {
+                            _lastKnownPlayerPosition = _playerTarget.position;
+                            
+                            // Update vision system's last known position as well
+                            if (_vision != null)
+                            {
+                                _vision.UpdateLastKnownPosition(_playerTarget.position);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Can't see player anymore
+                    if (_hasPlayerTarget)
+                    {
+                        Debug.Log($"[EnemyController] Lost sight of player. Keeping last known position: {_lastKnownPlayerPosition}");
+                    }
+                }
+            }
+            else
+            {
+                // Fallback: if no vision system, use old tracking method
+                if (HasPlayerTarget)
+                {
+                    _lastKnownPlayerPosition = _playerTarget.position;
+                }
             }
         }
 
@@ -646,6 +714,15 @@ namespace Resonance.Enemies.Core
             _hasPlayerTarget = true;
             _lastKnownPlayerPosition = player.position;
             
+            // Also update vision system's last known position
+            if (_vision != null)
+            {
+                _vision.UpdateLastKnownPosition(player.position);
+            }
+            
+            Debug.Log($"[EnemyController] ✓ Player target set: {player.name} at {player.position}");
+            Debug.Log($"[EnemyController] HasPlayerTarget = {_hasPlayerTarget}");
+            
             OnPlayerDetected?.Invoke(player);
         }
 
@@ -657,6 +734,10 @@ namespace Resonance.Enemies.Core
             _playerTarget = null;
             _hasPlayerTarget = false;
             _isPlayerInAttackRange = false; // Also reset attack range
+            
+            // Note: We don't clear the vision system's last known position here
+            // This allows the enemy to remember where they last saw the player
+            
             OnPlayerLost?.Invoke();
         }
 

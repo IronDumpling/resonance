@@ -104,6 +104,19 @@ namespace Resonance.Enemies.Data
         [Tooltip("普通攻击到能量的比例")]
         public float normalAttackToEnergyRatio = 0.5f;
         
+        [Header("Vision System")]
+        [Tooltip("视野扇形角度 (度)")]
+        [Range(0f, 360f)]
+        public float visionAngle = 120f;
+        [Tooltip("最大视野距离")]
+        public float visionDistance = 15f;
+        [Tooltip("眼睛位置相对于敌人根节点的高度偏移")]
+        public float eyeHeightOffset = 0f;
+        [Tooltip("视野高度范围 (以眼睛位置为中心，上下对称)")]
+        public float visionHeightRange = 1.5f;
+        [Tooltip("视野检测层 (用于射线检测)")]
+        public LayerMask visionObstacleLayers = ~0; // Default to all layers
+        
         [Header("Hitbox Damage Multipliers")]
         [Tooltip("Damage multipliers for each hitbox type")]
         public List<HitboxMultiplierConfig> hitboxMultipliers = new List<HitboxMultiplierConfig>();
@@ -336,6 +349,11 @@ namespace Resonance.Enemies.Data
 
             detectionRange = Mathf.Max(0.1f, detectionRange);
             normalAttackToEnergyRatio = Mathf.Clamp01(normalAttackToEnergyRatio);
+            
+            // 视野系统验证
+            visionAngle = Mathf.Clamp(visionAngle, 0f, 360f);
+            visionDistance = Mathf.Max(0.1f, visionDistance);
+            visionHeightRange = Mathf.Max(0.1f, visionHeightRange);
             
             // 移动属性验证
             moveSpeed = Mathf.Max(0.1f, moveSpeed);

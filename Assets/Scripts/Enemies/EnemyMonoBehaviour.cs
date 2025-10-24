@@ -31,7 +31,6 @@ namespace Resonance.Enemies
         [SerializeField] private TextMeshProUGUI _waveUIText;
 
         [Header("Detection System")]
-        [SerializeField] private SphereCollider _detectionTrigger;
         [SerializeField] private SphereCollider _attackTrigger;
         
         [Header("Patrol System")]
@@ -342,8 +341,8 @@ namespace Resonance.Enemies
 
         private void SetupDetectionSystem()
         {
-            // Setup detection collider
-            SetupDetectionTrigger();
+            // Setup vision system
+            SetupVisionSystem();
             
             // Setup attack collider
             SetupAttackTrigger();
@@ -353,42 +352,21 @@ namespace Resonance.Enemies
             
             // Setup hitbox system
             SetupHitboxSystem();
-
-            // Set initial trigger radius
-            SetupTriggerRadius();
         }
         
-        private void SetupDetectionTrigger()
+        private void SetupVisionSystem()
         {
-            // Try to find existing detection collider
-            Transform detectionChild = transform.Find("DetectionRange");
-            
-            if (detectionChild != null)
+            // EnemyVision component will be automatically added and initialized by EnemyController
+            // We just need to ensure the component exists on this GameObject
+            EnemyVision vision = GetComponent<EnemyVision>();
+            if (vision == null)
             {
-                _detectionTrigger = detectionChild.GetComponent<SphereCollider>();
-                
-                // Ensure it has a SphereCollider
-                if (_detectionTrigger == null)
-                {
-                    _detectionTrigger = detectionChild.gameObject.AddComponent<SphereCollider>();
-                    _detectionTrigger.isTrigger = true;
-                }
-                
-                // Check and add EnemyTrigger if needed
-                SetupTriggerComponent(detectionChild.gameObject, TriggerType.Detection);
+                vision = gameObject.AddComponent<EnemyVision>();
+                Debug.Log($"EnemyMonoBehaviour: Added EnemyVision component to {gameObject.name}");
             }
             else
             {
-                GameObject detectionGO = new GameObject("DetectionRange");
-                detectionGO.transform.SetParent(transform);
-                detectionGO.transform.localPosition = Vector3.zero;
-                detectionGO.layer = gameObject.layer;
-                
-                _detectionTrigger = detectionGO.AddComponent<SphereCollider>();
-                _detectionTrigger.isTrigger = true;
-                
-                // Add trigger component
-                SetupTriggerComponent(detectionGO, TriggerType.Detection);
+                Debug.Log($"EnemyMonoBehaviour: EnemyVision component already exists on {gameObject.name}");
             }
         }
         
@@ -407,12 +385,10 @@ namespace Resonance.Enemies
                     _attackTrigger = attackChild.gameObject.AddComponent<SphereCollider>();
                     _attackTrigger.isTrigger = true;
                 }
-                
-                // Check and add EnemyTrigger if needed
-                SetupTriggerComponent(attackChild.gameObject, TriggerType.Attack);
             }
             else
             {
+                // Create new AttackRange GameObject
                 GameObject attackGO = new GameObject("AttackRange");
                 attackGO.transform.SetParent(transform);
                 attackGO.transform.localPosition = Vector3.zero;
@@ -421,9 +397,22 @@ namespace Resonance.Enemies
                 _attackTrigger = attackGO.AddComponent<SphereCollider>();
                 _attackTrigger.isTrigger = true;
                 
-                // Add trigger component
-                SetupTriggerComponent(attackGO, TriggerType.Attack);
+                attackChild = attackGO.transform;
             }
+            
+            // Ensure EnemyAttackTrigger component exists
+            EnemyAttackTrigger attackTrigger = attackChild.GetComponent<EnemyAttackTrigger>();
+            if (attackTrigger == null)
+            {
+                attackTrigger = attackChild.gameObject.AddComponent<EnemyAttackTrigger>();
+            }
+
+            if (_baseStats != null)
+            {
+                _attackTrigger.radius = _baseStats.normalAttackStats.range;
+            }
+
+            attackTrigger.Initialize(this);
         }
         
         private void SetupDamageHitbox()
@@ -504,22 +493,6 @@ namespace Resonance.Enemies
             }
         }
         
-        private void SetupTriggerComponent(GameObject triggerObject, TriggerType triggerType)
-        {
-            // Check if EnemyTrigger already exists
-            EnemyTrigger existingTrigger = triggerObject.GetComponent<EnemyTrigger>();
-            
-            if (existingTrigger != null)
-            {
-                existingTrigger.Initialize(this, triggerType);
-            }
-            else
-            {
-                EnemyTrigger newTrigger = triggerObject.AddComponent<EnemyTrigger>();
-                newTrigger.Initialize(this, triggerType);
-            }
-        }
-
         private void SetupWaveUI()
         {
             if(_waveUI == null)
@@ -603,41 +576,17 @@ namespace Resonance.Enemies
             
             Debug.Log($"EnemyMonoBehaviour: Patrol waypoints set - A: {PatrolWaypointA}, B: {PatrolWaypointB}");
         }
-
-        private void SetupTriggerRadius()
-        {
-            if (_baseStats == null) return;
-
-            if (_detectionTrigger != null)
-            {
-                _detectionTrigger.radius = _baseStats.detectionRange;
-            }
-
-            if (_attackTrigger != null)
-            {
-                _attackTrigger.radius = _baseStats.normalAttackStats.range;
-            }
-        }
         
         private void VerifyDetectionSystem()
         {            
-            // Check detection collider and trigger component
-            if (_detectionTrigger != null)
-            {
-                EnemyTrigger detectionTrigger = _detectionTrigger.GetComponent<EnemyTrigger>();
-                if (detectionTrigger == null)
-                {
-                    SetupTriggerComponent(_detectionTrigger.gameObject, TriggerType.Detection);
-                }
-            }
-            
-            // Check attack collider and trigger component
+            // Check attack collider and trigger component (detection now handled by Vision system)
             if (_attackTrigger != null)
             {
-                EnemyTrigger attackTrigger = _attackTrigger.GetComponent<EnemyTrigger>();
+                EnemyAttackTrigger attackTrigger = _attackTrigger.GetComponent<EnemyAttackTrigger>();
                 if (attackTrigger == null)
                 {
-                    SetupTriggerComponent(_attackTrigger.gameObject, TriggerType.Attack);
+                    attackTrigger = _attackTrigger.gameObject.AddComponent<EnemyAttackTrigger>();
+                    attackTrigger.Initialize(this);
                 }
             }
             
@@ -912,7 +861,7 @@ namespace Resonance.Enemies
         /// <summary>
         /// 处理触发器进入事件
         /// </summary>
-        public void HandleTriggerEnter(TriggerType triggerType, Collider other)
+        public void HandleTriggerEnter(Collider other)
         {
             if (!IsInitialized)
             {
@@ -927,78 +876,33 @@ namespace Resonance.Enemies
                 return;
             }
 
-            Transform playerTransform = other.transform;
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} detected Player {playerTransform.name} in {triggerType} trigger");
-            Debug.Log($"EnemyMonoBehaviour: About to execute switch, triggerType = {triggerType} ({(int)triggerType})");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} detected Player in attack range trigger");
 
-            switch (triggerType)
-            {
-                case TriggerType.Detection:
-                    Debug.Log($"EnemyMonoBehaviour: Executing Detection case");
-                    _enemyController.SetPlayerTarget(playerTransform);
-                    Debug.Log($"EnemyMonoBehaviour: After SetPlayerTarget, HasPlayerTarget = {_enemyController.HasPlayerTarget}");
-                    break;
-
-                case TriggerType.Attack:
-                    Debug.Log($"EnemyMonoBehaviour: Executing Attack case");
-                    _enemyController.SetPlayerInAttackRange(true);
-                    Debug.Log($"EnemyMonoBehaviour: Player entered attack range");
-                    break;
-                    
-                default:
-                    Debug.LogError($"EnemyMonoBehaviour: Unknown trigger type: {triggerType}");
-                    break;
-            }
-            
-            Debug.Log($"EnemyMonoBehaviour: After switch statement");
+            _enemyController.SetPlayerInAttackRange(true);
         }
 
         /// <summary>
         /// 处理触发器退出事件
         /// </summary>
-        public void HandleTriggerExit(TriggerType triggerType, Collider other)
+        public void HandleTriggerExit(Collider other)
         {
             if (!IsInitialized) return;
             
             // 只检测玩家
             if (!other.CompareTag("Player")) return;
             
-            switch (triggerType)
-            {
-                case TriggerType.Detection:
-                    _enemyController.LosePlayer();
-                    break;
-
-                case TriggerType.Attack:
-                    _enemyController.SetPlayerInAttackRange(false);
-                    Debug.Log($"EnemyMonoBehaviour: Player left attack range");
-                    break;
-            }
+            _enemyController.SetPlayerInAttackRange(false);
         }
 
         /// <summary>
         /// 处理触发器停留事件
         /// </summary>
-        public void HandleTriggerStay(TriggerType triggerType, Collider other)
+        public void HandleTriggerStay(Collider other)
         {
             if (!IsInitialized) return;
 
-            Transform playerTransform = other.transform;
-
-            switch (triggerType)
-            {
-                case TriggerType.Detection:
-                    // 玩家进入检测范围
-                    _enemyController.SetPlayerTarget(playerTransform);
-                    // Debug.Log($"EnemyMonoBehaviour: Player still in detection range");
-                    break;
-
-                case TriggerType.Attack:
-                    // 玩家进入攻击范围
-                    _enemyController.SetPlayerInAttackRange(true);
-                    // Debug.Log($"EnemyMonoBehaviour: Player still in attack range");
-                    break;
-            }
+            // 玩家进入攻击范围
+            _enemyController.SetPlayerInAttackRange(true);
         }
 
         #endregion

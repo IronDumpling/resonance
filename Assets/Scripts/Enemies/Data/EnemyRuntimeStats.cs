@@ -34,6 +34,13 @@ namespace Resonance.Enemies.Data
         public float detectionRange;
         public float normalAttackToEnergyRatio;
         
+        [Header("Vision System")]
+        public float visionAngle;
+        public float visionDistance;
+        public float eyeHeightOffset;
+        public float visionHeightRange;
+        public LayerMask visionObstacleLayers;
+        
         [Header("Hitbox Damage Multipliers")]
         public List<HitboxMultiplierConfig> hitboxMultipliers;
         
@@ -99,6 +106,13 @@ namespace Resonance.Enemies.Data
             waveAttackStats = baseStats.waveAttackStats.Clone();
             detectionRange = baseStats.detectionRange;
             normalAttackToEnergyRatio = baseStats.normalAttackToEnergyRatio;
+            
+            // 视野系统
+            visionAngle = baseStats.visionAngle;
+            visionDistance = baseStats.visionDistance;
+            eyeHeightOffset = baseStats.eyeHeightOffset;
+            visionHeightRange = baseStats.visionHeightRange;
+            visionObstacleLayers = baseStats.visionObstacleLayers;
             
             // Hitbox multipliers - Copy the list for independent configuration
             hitboxMultipliers = new List<HitboxMultiplierConfig>(baseStats.hitboxMultipliers ?? new List<HitboxMultiplierConfig>());

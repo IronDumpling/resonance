@@ -43,10 +43,9 @@ namespace Resonance.Enemies.BTNodes.Actions
             {
                 _updateTimer = 0f;
                 
-                // Get current target position
-                Vector3 targetPosition = Controller.HasPlayerTarget 
-                    ? Controller.PlayerTarget.position 
-                    : Controller.LastKnownPlayerPosition;
+                // Get target position from vision system's last known position
+                // This allows the enemy to continue chasing even if line of sight is temporarily lost
+                Vector3 targetPosition = Controller.LastKnownPlayerPosition;
                 
                 // Update NavMeshAgent destination
                 if (NavAgent != null && NavAgent.isOnNavMesh)
