@@ -45,7 +45,7 @@ namespace Resonance.Player
         [SerializeField] private Camera _playerCamera;
 
         [Header("Shooting")]
-        [SerializeField] private Vector3 _shootOriginOffset = new Vector3(0, 0.5f, 0.5f);
+        [SerializeField] private Vector3 _shootOriginOffset = new Vector3(0, 0f, 0.5f);
         
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo = false;
@@ -77,6 +77,8 @@ namespace Resonance.Player
         // Properties
         public PlayerController Controller => _playerController;
         public bool IsInitialized => _playerController != null;
+
+        public Vector3 ShootOriginOffset => _shootOriginOffset;
 
         #region Unity Lifecycle
 
@@ -504,8 +506,7 @@ namespace Resonance.Player
                 return;
             }
             
-            // 计算射击起始位置(从玩家中心稍微前方)
-            // Vector3 shootOrigin = transform.position + Vector3.up + transform.forward * 0.5f;
+            // Vector3 shootOrigin = transform.position + transform.forward * 0.5f;
             Vector3 shootOrigin = transform.position + _shootOriginOffset;
             
             var result = _playerController.PerformShoot(shootOrigin);

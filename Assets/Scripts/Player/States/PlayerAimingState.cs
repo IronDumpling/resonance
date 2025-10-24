@@ -15,6 +15,7 @@ namespace Resonance.Player.States
     {
         private PlayerController _playerController;
         private Vector3 _shootOrigin;
+        private Vector3 _shootOriginOffset;
         private IUIService _uiService;
         
         public string Name => "Aiming";
@@ -44,7 +45,9 @@ namespace Resonance.Player.States
             }
             
             // Calculate shoot origin (player position + height offset)
-            _shootOrigin = _playerController.PlayerGameObject.transform.position + Vector3.up * 1.5f;
+            GameObject playerGameObject = _playerController.PlayerGameObject;
+            _shootOriginOffset = playerGameObject.GetComponent<PlayerMonoBehaviour>().ShootOriginOffset;
+            _shootOrigin = playerGameObject.transform.position + _shootOriginOffset;
             
             // Show crosshair UI
             ShowCrosshairUI();
@@ -61,7 +64,7 @@ namespace Resonance.Player.States
             }
             
             // Update shoot origin
-            _shootOrigin = _playerController.PlayerGameObject.transform.position + Vector3.up * 1.5f;
+            _shootOrigin = _playerController.PlayerGameObject.transform.position + _shootOriginOffset;
             
             // Update weapon systems (accuracy and recoil)
             if (_playerController.ShootingSystem != null)
