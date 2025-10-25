@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Resonance.Enemies;
 using Resonance.Enemies.Triggers;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Data

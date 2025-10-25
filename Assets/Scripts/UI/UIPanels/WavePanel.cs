@@ -1,12 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 using Resonance.Core;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
+using Resonance.Utilities;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Enemies.Triggers;
 
 namespace Resonance.UI
@@ -17,31 +19,42 @@ namespace Resonance.UI
         [SerializeField] private RectTransform _waveScopeArea;
         [SerializeField] private LineRenderer _targetWaveLine;
         [SerializeField] private LineRenderer _sourceWaveLine;
+
+        [Header("Wave Visual Configuration")]
         [SerializeField] private float _waveScrollSpeed = 1f;
-        [SerializeField] private TextMeshProUGUI _qteValueText; // to be removed
+        [SerializeField] private float _waveStopScrollDuration = 1f;
+        [SerializeField] private int _waveLinePointCount = 128; // Number of points to sample from wave
+        [SerializeField] private float _waveDisplayWidth = 10f; // Display width in world units
+        [SerializeField] private float _waveDisplayHeight = 2f; // Display height multiplier
+
         [SerializeField] private TextMeshProUGUI _instructionText;
         
-        // Player damage configuration
-        [Header("Player Damage Configuration")]
-        [SerializeField] private float _baseCoreDamage = 50f;
-        [SerializeField] private float _maxDamageMultiplier = 3f;
-        [SerializeField] private float _damageScaleFactor = 10f;
+        // Wave attack damage configuration
+        [Header("Wave Damage Configuration")]
+        [SerializeField] private float _baseCoreDamage = 10f;
+        [SerializeField] private float _perfectMatchMultiplier = 3f;  // Perfect: >90%
+        [SerializeField] private float _goodMatchMultiplier = 1f;     // Good: >75%
+        [SerializeField] private float _missMatchMultiplier = 0f;     // Miss: <75%
 
-        // Wave QTE Logic
+        // Wave system references
         private IInputService _inputService;
         private bool _isInitialized = false;
         private bool _isWaveActive = false;
-        private float _qteValue = 0f;
-        private EnemyHitbox _targetCore;
         
-        // Enemy-specific QTE Configuration
-        // private QTEConfig _qteConfig;
-        // private Tween _qteTween;
-        // private float _qteStartTime;
+        private IWavable _sourceWavable;  // The attacker
+        private IWavable _targetWavable;  // The target being attacked
+        private Wave _sourceWave;
+        private Wave _targetWave;
+        
+        private EnemyHitbox _targetCore;  // Reference to target core for damage application
+        
+        // Wave scrolling state
+        private float _scrollOffset = 0f;
+        private bool _isScrolling = true;
+        private Coroutine _scrollStopCoroutine;
         
         // Input filtering
         private float _panelOpenTime = 0f;
-        // private const float QTE_INPUT_DELAY = 0.2f; // Delay before accepting QTE input after panel opens
 
         protected override void Awake()
         {
@@ -68,6 +81,9 @@ namespace Resonance.UI
                 Debug.Log("WavePanel: Subscribed to QTE input events");
             }
             
+            // Initialize LineRenderers
+            InitializeLineRenderers();
+            
             _isInitialized = true;
         }
 
@@ -79,15 +95,19 @@ namespace Resonance.UI
             _panelOpenTime = Time.time;
             Debug.Log($"WavePanel: Panel open time recorded: {_panelOpenTime}");
             
-            // Don't start QTE immediately - wait for SetTargetCore to be called
+            // Reset scrolling state
+            _scrollOffset = 0f;
+            _isScrolling = true;
+            
+            // Don't start wave display immediately - wait for SetWaveAttackContext to be called
         }
 
         protected override void OnHide()
         {
             Debug.Log("WavePanel: Hidden");
             
-            // Stop QTE sequence
-            StopQTE();
+            // Stop wave display
+            StopWaveDisplay();
         }
 
         protected override void OnCleanup()
@@ -99,12 +119,15 @@ namespace Resonance.UI
                 Debug.Log("WavePanel: Unsubscribed from QTE input events");
             }
             
-            // Stop QTE and clean up DoTween
-            StopQTE();
+            // Stop wave display
+            StopWaveDisplay();
             
-            // Kill any remaining tweens
-            // _qteTween?.Kill();
-            // _qteTween = null;
+            // Stop any running coroutines
+            if (_scrollStopCoroutine != null)
+            {
+                StopCoroutine(_scrollStopCoroutine);
+                _scrollStopCoroutine = null;
+            }
             
             _isInitialized = false;
             Debug.Log("WavePanel: Cleaned up");
@@ -116,48 +139,15 @@ namespace Resonance.UI
         
         /// <summary>
         /// Validate and auto-find UI elements if not assigned in Inspector
-        /// Follows Unity hierarchy: WavePanel -> Panel -> Text (TMPro)
         /// </summary>
         private void ValidateUIElements()
         {
-            // Auto-find QTE Value Text if not assigned
-            if (_qteValueText == null)
-            {
-                // Try to find: WavePanel/Panel/Text
-                Transform panelChild = transform.Find("Panel");
-                if (panelChild != null)
-                {
-                    Transform textChild = panelChild.Find("QTEText");
-                    if (textChild != null)
-                    {
-                        _qteValueText = textChild.GetComponent<TextMeshProUGUI>();
-                        if (_qteValueText != null)
-                        {
-                            Debug.Log("WavePanel: Auto-found QTE Value Text at Panel/Text");
-                        }
-                        else
-                        {
-                            Debug.LogWarning("WavePanel: Found Text GameObject but no TextMeshProUGUI component");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning("WavePanel: Could not find Text child under Panel");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("WavePanel: Could not find Panel child");
-                }
-            }
-            
             // Auto-find Instruction Text if not assigned
             if (_instructionText == null)
             {
                 Transform panelChild = transform.Find("Panel");
                 if (panelChild != null)
                 {
-                    // Look for a child named "InstructionText" or any other TextMeshProUGUI
                     Transform instructionChild = panelChild.Find("InstructionText");
                     if (instructionChild != null)
                     {
@@ -171,21 +161,7 @@ namespace Resonance.UI
             }
             
             // Validate that essential elements are found
-            TestQTETextDisplay();
-        }
-        
-        /// <summary>
-        /// Test the QTE text display to ensure it works correctly
-        /// </summary>
-        private void TestQTETextDisplay()
-        {
-            
-            if (_qteValueText == null)
-            {
-                Debug.LogError("WavePanel: QTE Value Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
-                              "Please assign it in Inspector or ensure hierarchy: WavePanel/Panel/Text");
-            }
-            else if (_instructionText == null)
+            if (_instructionText == null)
             {
                 Debug.LogError("WavePanel: Instruction Text (TextMeshProUGUI) is not assigned and could not be auto-found. " +
                               "Please assign it in Inspector or ensure hierarchy: WavePanel/Panel/InstructionText");
@@ -193,267 +169,409 @@ namespace Resonance.UI
             else
             {
                 // Test initial display
-                _qteValueText.text = "0.00";
-                _qteValueText.color = Color.white;
-
-                _instructionText.text = "Press F when the value is close to 0!";
+                _instructionText.text = "Align the waves and press F!";
                 _instructionText.color = Color.white;
-
-                Debug.Log($"WavePanel: QTE Text component validated - " +
-                         $"GameObject: {_qteValueText.gameObject.name}, " +
-                         $"Active: {_qteValueText.gameObject.activeInHierarchy}, " +
-                         $"Enabled: {_qteValueText.enabled}, " +
-                         $"Font: {(_qteValueText.font != null ? _qteValueText.font.name : "null")}");
+                Debug.Log("WavePanel: Instruction Text validated");
+            }
+            
+            // Validate LineRenderers
+            if (_sourceWaveLine == null)
+            {
+                Debug.LogError("WavePanel: Source Wave LineRenderer is not assigned!");
+            }
+            
+            if (_targetWaveLine == null)
+            {
+                Debug.LogError("WavePanel: Target Wave LineRenderer is not assigned!");
             }
         }
         
         #endregion
         
-        #region QTE Logic
+        #region Wave System Logic
         
         /// <summary>
-        /// Set the target core for this QTE session
+        /// Set the wave attack context (source and target IWavables)
         /// </summary>
-        /// <param name="targetCore">The enemy core being attacked</param>
-        public void SetTargetCore(EnemyHitbox targetCore)
+        /// <param name="sourceWavable">The attacker (player or enemy)</param>
+        /// <param name="targetWavable">The target being attacked</param>
+        /// <param name="targetCore">The target core hitbox for damage application</param>
+        public void SetWaveAttackContext(IWavable sourceWavable, IWavable targetWavable, EnemyHitbox targetCore)
         {
-            _targetCore = targetCore;
-            
-            // Get QTE configuration from the target core
-            // if (_targetCore != null && _targetCore.IsValidForQTE())
-            // {
-            //     _qteConfig = _targetCore.GetQTEConfig();
-            //     Debug.Log($"WavePanel: Set target core to {targetCore.name} with QTE config - " +
-            //              $"Ease: {_qteConfig?.easeType}, Duration: {_qteConfig?.cycleDuration}, Window: {_qteConfig?.targetWindow}");
-            // }
-            // else
-            // {
-            //     // Use default configuration as fallback
-            //     _qteConfig = new QTEConfig
-            //     {
-            //         easeType = Ease.InOutSine,
-            //         cycleDuration = 3f,
-            //         targetWindow = 0.2f
-            //     };
-            //     Debug.LogWarning($"WavePanel: Target core invalid for QTE, using default configuration");
-            // }
-            
-            // Now that we have the configuration, start the QTE sequence
-            StartQTE();
-        }
-        
-        /// <summary>
-        /// Start the QTE sequence
-        /// </summary>
-        private void StartQTE()
-        {
-            // if (!_isInitialized || _qteConfig == null) return;
-            
-            // _isWaveActive = true;
-            // _qteStartTime = Time.time;
-            
-            // Start DoTween animation using enemy-specific configuration
-            // Kill any existing tween
-            // _qteTween?.Kill();
-            
-            // Create a looping tween that oscillates between 1 and -1
-            // _qteValue = 1f; // Start at 1
-            
-            // Force initial UI update before starting tween
-            // UpdateQTEUI();
-            
-            // _qteTween = DOTween.To(() => _qteValue, x => _qteValue = x, -1f, _qteConfig.cycleDuration / 2f)
-            //     .SetEase(_qteConfig.easeType)
-            //     .SetLoops(-1, LoopType.Yoyo)
-            //     .OnUpdate(() => UpdateQTEUI())
-            //     .OnStart(() => {
-            //         Debug.Log("WavePanel: DoTween animation started");
-            //         UpdateQTEUI(); // Ensure UI is updated when tween starts
-            //     });
-            
-            // Debug.Log($"WavePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
-        }
-        
-        /// <summary>
-        /// Stop the QTE sequence
-        /// </summary>
-        private void StopQTE()
-        {
-            // _isWaveActive = false;
-            
-            // // Kill the DoTween animation
-            // _qteTween?.Kill();
-            // _qteTween = null;
-            
-            // Debug.Log("WavePanel: Stopped QTE sequence");
-        }
-        
-        /// <summary>
-        /// Update method - DoTween handles the animation, we just need to check for timeouts
-        /// </summary>
-        private void Update()
-        {
-            if (!_isWaveActive) return;
-        }
-        
-        /// <summary>
-        /// Update QTE UI elements
-        /// </summary>
-        private void UpdateQTEUI()
-        {
-            // Update TMPro text with QTE value
-            if (_qteValueText != null)
+            if (sourceWavable == null || targetWavable == null)
             {
-                // Format the value to 2 decimal places for display
-                string formattedValue = _qteValue.ToString("F2");
-                _qteValueText.text = formattedValue;
-                
-                // Change color based on proximity to target using enemy-specific window
-                float proximityToZero = Mathf.Abs(_qteValue);
-                // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
-                float targetWindow = 0.2f;
-                
-                if (proximityToZero <= targetWindow)
-                {
-                    _qteValueText.color = Color.green; // Good timing
-                }
-                else if (proximityToZero <= targetWindow * 2f)
-                {
-                    _qteValueText.color = Color.yellow; // Okay timing
-                }
-                else
-                {
-                    _qteValueText.color = Color.red; // Poor timing
-                }
-                
-                // Ensure the text component is enabled and visible
-                // if (!_qteValueText.gameObject.activeInHierarchy)
-                // {
-                    // Debug.LogWarning("WavePanel: QTE Value Text GameObject is not active");
-                // }
-            }
-            else
-            {
-                Debug.LogWarning("WavePanel: QTE Value Text (TextMeshProUGUI) is null - cannot update QTE display");
-            }
-        }
-        
-        /// <summary>
-        /// Handle QTE input from player
-        /// </summary>
-        private void OnQTEInput()
-        {
-            Debug.Log($"WavePanel: OnQTEInput called - _isWaveActive: {_isWaveActive}, Current time: {Time.time}, Panel open time: {_panelOpenTime}");
-            
-            if (!_isWaveActive) 
-            {
-                Debug.Log("WavePanel: QTE input ignored - QTE not active");
+                Debug.LogError("WavePanel: Cannot set wave attack context with null wavables");
                 return;
             }
             
-            // Check if enough time has passed since panel opened to accept input
-            float timeSinceOpen = Time.time - _panelOpenTime;
-            // Debug.Log($"WavePanel: Time since panel open: {timeSinceOpen:F3}s, Required delay: {QTE_INPUT_DELAY}s");
+            _sourceWavable = sourceWavable;
+            _targetWavable = targetWavable;
+            _targetCore = targetCore;
             
-            // if (timeSinceOpen < QTE_INPUT_DELAY)
-            // {
-                // Debug.Log($"WavePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
-                // return;
-            // }
+            _sourceWave = sourceWavable.GetWave();
+            _targetWave = targetWavable.GetWave();
             
-            float proximityToZero = Mathf.Abs(_qteValue);
-            // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
-            float targetWindow = 0.2f;
-            bool isSuccess = proximityToZero <= targetWindow;
-            
-            // Debug.Log($"WavePanel: QTE input accepted. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
-            
-            if (isSuccess)
+            if (_sourceWave == null || _targetWave == null)
             {
-                HandleQTESuccess();
+                Debug.LogError("WavePanel: Cannot get waves from wavables");
+                return;
             }
-            else
+            
+            Debug.Log($"WavePanel: Set wave attack context - Source wave: {_sourceWave.WaveformType}, Target wave: {_targetWave.WaveformType}");
+            
+            // Start wave display
+            StartWaveDisplay();
+        }
+        
+        /// <summary>
+        /// Start the wave display
+        /// </summary>
+        private void StartWaveDisplay()
+        {
+            if (!_isInitialized || _sourceWave == null || _targetWave == null) return;
+            
+            _isWaveActive = true;
+            _scrollOffset = 0f;
+            _isScrolling = true;
+            
+            // Update wave lines immediately
+            UpdateWaveLines();
+            
+            Debug.Log("WavePanel: Started wave display");
+        }
+        
+        /// <summary>
+        /// Stop the wave display
+        /// </summary>
+        private void StopWaveDisplay()
+        {
+            _isWaveActive = false;
+            _isScrolling = false;
+            
+            // Stop scroll coroutine if running
+            if (_scrollStopCoroutine != null)
             {
-                HandleQTEFailure();
+                StopCoroutine(_scrollStopCoroutine);
+                _scrollStopCoroutine = null;
+            }
+            
+            // Clear wave line renderers
+            if (_sourceWaveLine != null)
+            {
+                _sourceWaveLine.positionCount = 0;
+            }
+            
+            if (_targetWaveLine != null)
+            {
+                _targetWaveLine.positionCount = 0;
+            }
+            
+            Debug.Log("WavePanel: Stopped wave display");
+        }
+        
+        /// <summary>
+        /// Update method - updates wave scrolling and rendering
+        /// </summary>
+        private void Update()
+        {
+            if (!_isWaveActive || !_isInitialized) return;
+            
+            // Update scroll offset if scrolling
+            if (_isScrolling)
+            {
+                _scrollOffset += _waveScrollSpeed * Time.deltaTime;
+                // Wrap around when offset exceeds 1 (one full wavelength)
+                if (_scrollOffset >= 1f)
+                {
+                    _scrollOffset -= 1f;
+                }
+            }
+            
+            // Update wave line rendering
+            UpdateWaveLines();
+        }
+        
+        /// <summary>
+        /// Initialize LineRenderers with proper configuration
+        /// </summary>
+        private void InitializeLineRenderers()
+        {
+            if (_sourceWaveLine != null)
+            {
+                _sourceWaveLine.positionCount = _waveLinePointCount;
+                _sourceWaveLine.useWorldSpace = false;
+                Debug.Log("WavePanel: Initialized source wave LineRenderer");
+            }
+            
+            if (_targetWaveLine != null)
+            {
+                _targetWaveLine.positionCount = _waveLinePointCount;
+                _targetWaveLine.useWorldSpace = false;
+                Debug.Log("WavePanel: Initialized target wave LineRenderer");
             }
         }
         
         /// <summary>
-        /// Handle successful QTE input
+        /// Update wave line rendering based on current waves and scroll offset
         /// </summary>
-        private void HandleQTESuccess()
+        private void UpdateWaveLines()
         {
-            if (_targetCore == null) return;
+            if (_sourceWave == null || _targetWave == null) return;
+            if (_sourceWaveLine == null || _targetWaveLine == null) return;
             
-            // Calculate damage based on timing accuracy
-            float accuracy = Mathf.Abs(_qteValue); // Distance from 0
-            float damageMultiplier = CalculateDamageMultiplier(accuracy);
+            // Sample points from both waves
+            for (int i = 0; i < _waveLinePointCount; i++)
+            {
+                float t = (float)i / (_waveLinePointCount - 1); // 0 to 1
+                float x = t * _waveDisplayWidth - _waveDisplayWidth * 0.5f; // Center at 0
+                
+                // Source wave: apply scroll offset
+                float sourceNormalizedPos = (t + _scrollOffset) % 1f;
+                float sourceValue = _sourceWave.GetWaveValue(sourceNormalizedPos);
+                Vector3 sourcePosition = new Vector3(x, sourceValue * _waveDisplayHeight, 0f);
+                _sourceWaveLine.SetPosition(i, sourcePosition);
+                
+                // Target wave: no scroll (stationary)
+                float targetValue = _targetWave.GetWaveValue(t);
+                Vector3 targetPosition = new Vector3(x, targetValue * _waveDisplayHeight, 0f);
+                _targetWaveLine.SetPosition(i, targetPosition);
+            }
+        }
+        
+        /// <summary>
+        /// Handle QTE input from player - calculate wave match and apply damage
+        /// </summary>
+        private void OnQTEInput()
+        {
+            Debug.Log($"WavePanel: OnQTEInput called - _isWaveActive: {_isWaveActive}");
+            
+            if (!_isWaveActive) 
+            {
+                Debug.Log("WavePanel: Input ignored - wave not active");
+                return;
+            }
+            
+            if (_sourceWave == null || _targetWave == null)
+            {
+                Debug.LogError("WavePanel: Cannot process input - waves are null");
+                return;
+            }
+            
+            // Calculate wave match percentage
+            float matchPercentage = CalculateWaveMatch();
+            WaveInteractionResult result = GetInteractionResult(matchPercentage);
+            
+            Debug.Log($"WavePanel: Wave match: {matchPercentage:F1}%, Result: {result}");
+            
+            // Stop scrolling temporarily
+            StopScrollingTemporarily();
+            
+            // Apply damage based on match quality
+            ApplyWaveDamage(matchPercentage, result);
+            
+            // Show feedback
+            ShowMatchFeedback(matchPercentage, result);
+        }
+        
+        /// <summary>
+        /// Calculate wave match percentage (0-100%)
+        /// Compares source and target wave values at all sample points
+        /// </summary>
+        private float CalculateWaveMatch()
+        {
+            float totalDifference = 0f;
+            int sampleCount = _waveLinePointCount;
+            
+            // Sample both waves at the same points
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / (sampleCount - 1); // 0 to 1
+                
+                // Source wave with current scroll offset
+                float sourceNormalizedPos = (t + _scrollOffset) % 1f;
+                float sourceValue = _sourceWave.GetWaveValue(sourceNormalizedPos);
+                
+                // Target wave (stationary)
+                float targetValue = _targetWave.GetWaveValue(t);
+                
+                // Calculate absolute difference (normalized to 0-2 range since values are -1 to 1)
+                float difference = Mathf.Abs(sourceValue - targetValue);
+                totalDifference += difference;
+            }
+            
+            // Calculate average difference
+            float avgDifference = totalDifference / sampleCount;
+            
+            // Convert to match percentage
+            // avgDifference ranges from 0 (perfect match) to 2 (complete mismatch)
+            // Convert to 0-100% where 0 difference = 100% match
+            float matchPercentage = Mathf.Clamp01(1f - (avgDifference / 2f)) * 100f;
+            
+            return matchPercentage;
+        }
+        
+        /// <summary>
+        /// Get wave interaction result based on match percentage
+        /// </summary>
+        private WaveInteractionResult GetInteractionResult(float matchPercentage)
+        {
+            if (matchPercentage > 90f)
+                return WaveInteractionResult.Perfect;
+            else if (matchPercentage > 75f)
+                return WaveInteractionResult.Good;
+            else
+                return WaveInteractionResult.Miss;
+        }
+        
+        /// <summary>
+        /// Stop scrolling temporarily, then resume after delay
+        /// </summary>
+        private void StopScrollingTemporarily()
+        {
+            _isScrolling = false;
+            
+            // Stop any existing coroutine
+            if (_scrollStopCoroutine != null)
+            {
+                StopCoroutine(_scrollStopCoroutine);
+            }
+            
+            // Start new coroutine to resume scrolling
+            _scrollStopCoroutine = StartCoroutine(ResumeScrollingAfterDelay());
+        }
+        
+        /// <summary>
+        /// Coroutine to resume scrolling after delay
+        /// </summary>
+        private IEnumerator ResumeScrollingAfterDelay()
+        {
+            yield return new WaitForSeconds(_waveStopScrollDuration);
+            _isScrolling = true;
+            _scrollStopCoroutine = null;
+        }
+        
+        /// <summary>
+        /// Apply wave damage to target based on match quality
+        /// </summary>
+        private void ApplyWaveDamage(float matchPercentage, WaveInteractionResult result)
+        {
+            if (_targetCore == null)
+            {
+                Debug.LogError("WavePanel: Cannot apply damage - target core is null");
+                return;
+            }
+            
+            // Calculate damage multiplier based on result
+            float damageMultiplier = GetDamageMultiplier(result);
             float finalDamage = _baseCoreDamage * damageMultiplier;
             
-            Debug.Log($"WavePanel: QTE Success! Accuracy: {accuracy:F3}, Multiplier: {damageMultiplier:F2}, Damage: {finalDamage:F1}");
+            Debug.Log($"WavePanel: Applying {finalDamage:F1} core damage (multiplier: {damageMultiplier}x)");
             
-            // Apply core damage to target enemy
+            // Apply core damage
             bool damageApplied = ApplyCoreDamageToEnemy(finalDamage);
             
-            if (damageApplied)
-            {
-                // Provide visual feedback with damage info
-                ShowSuccessFeedback(finalDamage, accuracy);
-                
-                // Play success effects
-                PlaySuccessEffects();
-            }
-            else
+            if (!damageApplied)
             {
                 Debug.LogWarning("WavePanel: Failed to apply core damage to enemy");
-                ShowFailureFeedback("Failed to apply damage!");
             }
-            
-            // Continue QTE sequence instead of stopping - player can perform multiple QTEs
-            // The QTE will only end when the WaveAttackAction itself ends (enemy state change, etc.)
-            Debug.Log("WavePanel: QTE success processed, continuing sequence for more attempts");
         }
         
         /// <summary>
-        /// Handle failed QTE input
+        /// Get damage multiplier based on interaction result
         /// </summary>
-        private void HandleQTEFailure()
+        private float GetDamageMultiplier(WaveInteractionResult result)
         {
-            float accuracy = Mathf.Abs(_qteValue);
-            // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
-            float targetWindow = 0.2f;
+            switch (result)
+            {
+                case WaveInteractionResult.Perfect:
+                    return _perfectMatchMultiplier;
+                case WaveInteractionResult.Good:
+                    return _goodMatchMultiplier;
+                case WaveInteractionResult.Miss:
+                    return _missMatchMultiplier;
+                default:
+                    return 1f;
+            }
+        }
+        
+        /// <summary>
+        /// Show feedback based on match quality
+        /// </summary>
+        private void ShowMatchFeedback(float matchPercentage, WaveInteractionResult result)
+        {
+            if (_instructionText == null) return;
             
-            Debug.Log($"WavePanel: QTE Failed! Accuracy: {accuracy:F3}, Required: {targetWindow:F3}");
+            string resultText = GetResultText(result);
+            float damage = _baseCoreDamage * GetDamageMultiplier(result);
             
-            // Show failure feedback with accuracy info
-            ShowFailureFeedback($"MISSED! (Off by {accuracy:F2}) Try again...");
+            _instructionText.text = $"{resultText}! Match: {matchPercentage:F0}% - {damage:F0} Core Damage";
+            _instructionText.color = GetResultColor(result);
             
-            // Play failure effects
-            PlayFailureEffects();
+            // Play audio/visual effects
+            PlayMatchEffects(result);
+        }
+        
+        /// <summary>
+        /// Get result text string
+        /// </summary>
+        private string GetResultText(WaveInteractionResult result)
+        {
+            switch (result)
+            {
+                case WaveInteractionResult.Perfect:
+                    return "PERFECT";
+                case WaveInteractionResult.Good:
+                    return "GOOD";
+                case WaveInteractionResult.Miss:
+                    return "MISS";
+                default:
+                    return "UNKNOWN";
+            }
+        }
+        
+        /// <summary>
+        /// Get result color
+        /// </summary>
+        private Color GetResultColor(WaveInteractionResult result)
+        {
+            switch (result)
+            {
+                case WaveInteractionResult.Perfect:
+                    return Color.cyan;
+                case WaveInteractionResult.Good:
+                    return Color.green;
+                case WaveInteractionResult.Miss:
+                    return Color.red;
+                default:
+                    return Color.white;
+            }
+        }
+        
+        /// <summary>
+        /// Play match effects based on result
+        /// </summary>
+        private void PlayMatchEffects(WaveInteractionResult result)
+        {
+            var audioService = ServiceRegistry.Get<IAudioService>();
+            if (audioService == null) return;
             
-            // Continue QTE sequence on failure (player can try again)
+            switch (result)
+            {
+                case WaveInteractionResult.Perfect:
+                    audioService.PlaySFX2D(AudioClipType.EnemyHit, 1.0f, 1.2f);
+                    break;
+                case WaveInteractionResult.Good:
+                    audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.8f, 1.0f);
+                    break;
+                case WaveInteractionResult.Miss:
+                    audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.4f, 0.6f);
+                    break;
+            }
         }
         
         #endregion
         
         #region Damage System
-        
-        /// <summary>
-        /// Calculate damage multiplier based on QTE accuracy
-        /// Uses inverse relationship: closer to 0 = higher damage
-        /// </summary>
-        /// <param name="accuracy">Distance from 0 (0 = perfect, higher = worse)</param>
-        /// <returns>Damage multiplier (1.0 to maxDamageMultiplier)</returns>
-        private float CalculateDamageMultiplier(float accuracy)
-        {
-            // Use inverse function: multiplier = maxMultiplier / (1 + accuracy * scaleFactor)
-            // This creates a curve where perfect accuracy (0) gives max damage,
-            // and accuracy decreases damage exponentially
-            float multiplier = _maxDamageMultiplier / (1f + accuracy * _damageScaleFactor);
-            
-            // Ensure minimum multiplier of 1.0 for any successful QTE
-            return Mathf.Max(1f, multiplier);
-        }
         
         /// <summary>
         /// Apply core damage to the target enemy
@@ -490,88 +608,6 @@ namespace Resonance.UI
             
             Debug.Log($"WavePanel: Applied {damage:F1} core damage to {enemyMono.name}");
             return true;
-        }
-        
-        /// <summary>
-        /// Show success feedback with damage information
-        /// </summary>
-        /// <param name="damage">Amount of damage dealt</param>
-        /// <param name="accuracy">QTE accuracy value</param>
-        private void ShowSuccessFeedback(float damage, float accuracy)
-        {
-            if (_instructionText != null)
-            {
-                string accuracyGrade = GetAccuracyGrade(accuracy);
-                _instructionText.text = $"SUCCESS! {damage:F0} Core Damage ({accuracyGrade})";
-                _instructionText.color = Color.green;
-            }
-        }
-        
-        /// <summary>
-        /// Show failure feedback
-        /// </summary>
-        /// <param name="message">Failure message to display</param>
-        private void ShowFailureFeedback(string message)
-        {
-            if (_instructionText != null)
-            {
-                _instructionText.text = message;
-                _instructionText.color = Color.red;
-            }
-        }
-        
-        /// <summary>
-        /// Get accuracy grade based on QTE performance
-        /// </summary>
-        /// <param name="accuracy">Distance from perfect (0)</param>
-        /// <returns>Grade string (Perfect, Excellent, Good, etc.)</returns>
-        private string GetAccuracyGrade(float accuracy)
-        {
-            // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
-            float targetWindow = 0.2f;
-
-            if (accuracy <= targetWindow * 0.25f)
-                return "PERFECT";
-            else if (accuracy <= targetWindow * 0.5f)
-                return "EXCELLENT";
-            else if (accuracy <= targetWindow * 0.75f)
-                return "GOOD";
-            else
-                return "OK";
-        }
-        
-        /// <summary>
-        /// Play success effects (audio/visual)
-        /// </summary>
-        private void PlaySuccessEffects()
-        {
-            // Play success audio
-            var audioService = ServiceRegistry.Get<IAudioService>();
-            if (audioService != null)
-            {
-                // TODO: Add specific wave success audio clip
-                audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.8f, 1.2f); 
-            }
-            
-            // TODO: Add visual effects (screen flash, particles, etc.)
-            Debug.Log("WavePanel: Playing success effects");
-        }
-        
-        /// <summary>
-        /// Play failure effects (audio/visual)
-        /// </summary>
-        private void PlayFailureEffects()
-        {
-            // Play failure audio
-            var audioService = ServiceRegistry.Get<IAudioService>();
-            if (audioService != null)
-            {
-                // TODO: Add specific wave failure audio clip
-                audioService.PlaySFX2D(AudioClipType.EnemyHit, 0.4f, 0.6f); 
-            }
-            
-            // TODO: Add visual effects (screen shake, red flash, etc.)
-            Debug.Log("WavePanel: Playing failure effects");
         }
         
         #endregion

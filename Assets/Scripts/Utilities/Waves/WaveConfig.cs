@@ -1,5 +1,6 @@
 using UnityEngine;
 using DG.Tweening;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Utilities.Waves
 {

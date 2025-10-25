@@ -5,6 +5,7 @@ using Resonance.UI;
 using Resonance.Core;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 using Resonance.Interfaces.Services;
 using Resonance.Player;

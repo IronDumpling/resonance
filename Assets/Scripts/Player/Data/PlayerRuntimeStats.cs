@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Player.Data
@@ -55,7 +56,7 @@ namespace Resonance.Player.Data
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
         public bool IsAlive => currentHealth > 0f;
         public bool IsDead => currentHealth <= 0f;
-        public bool IsCoreDestroyed => crystalCore == null || crystalCore.CoreHealthState == Resonance.Utilities.CoreHealthState.Destroyed;
+        public bool IsCoreDestroyed => crystalCore == null || crystalCore.CoreHealthState == CoreHealthState.Destroyed;
         public bool CanUseHealthRestore => crystalCore != null && crystalCore.CanConsumeSlot();
 
         public PlayerRuntimeStats(PlayerBaseStats baseStats)

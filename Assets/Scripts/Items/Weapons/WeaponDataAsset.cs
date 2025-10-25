@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Objects;
 using Resonance.Items.Core;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Items
 {

@@ -10,6 +10,7 @@ using Resonance.Enemies.Triggers;
 using Resonance.Items;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
+using Resonance.Utilities.Waves;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 
@@ -1118,7 +1119,21 @@ namespace Resonance.Player
 
         #endregion
 
-         #region Debug
+        #region IWavable Implementation
+
+        /// <summary>
+        /// Get the Wave object from CrystalCore
+        /// </summary>
+        public Wave GetWave()
+        {
+            return IsInitialized && _playerController.Stats.crystalCore != null 
+                ? _playerController.Stats.crystalCore.Wave 
+                : null;
+        }
+
+        #endregion
+
+        #region Debug
 
         private void DrawDebugInfo()
         {

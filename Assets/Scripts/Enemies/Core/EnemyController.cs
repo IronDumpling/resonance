@@ -6,6 +6,7 @@ using Resonance.Enemies.Movement;
 using Resonance.Enemies.Triggers;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;

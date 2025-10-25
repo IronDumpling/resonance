@@ -1,10 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Items;
+using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
-using Resonance.Enemies.Triggers;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Shooting
 {

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Utilities.Waves
 {

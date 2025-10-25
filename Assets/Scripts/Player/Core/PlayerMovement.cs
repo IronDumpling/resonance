@@ -1,5 +1,5 @@
 using UnityEngine;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Player.Data;
 
 namespace Resonance.Player.Core

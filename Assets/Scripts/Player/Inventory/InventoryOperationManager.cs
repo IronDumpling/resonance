@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Player.Inventory;
 using Resonance.Player.Inventory.Operations;
 using Resonance.Interfaces.Operations;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 using System.Collections.Generic;
 

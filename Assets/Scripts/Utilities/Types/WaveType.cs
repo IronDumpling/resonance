@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.Types
 {
     /// <summary>
     /// Wave chaos state enumeration
@@ -21,5 +21,15 @@ namespace Resonance.Utilities
         Triangle,
         Sawtooth,
         Custom
+    }
+
+    /// <summary>
+    /// Wave interaction result enumeration
+    /// </summary>
+    public enum WaveInteractionResult
+    {
+        Perfect, // > 90%
+        Good,  // > 75%
+        Miss   // < 75%
     }
 }

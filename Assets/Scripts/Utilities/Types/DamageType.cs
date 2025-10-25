@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.Types
 {
     /// <summary>
     /// Damage type enumeration

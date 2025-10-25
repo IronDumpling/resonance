@@ -9,6 +9,8 @@ using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
+using Resonance.Utilities.Waves;
 
 namespace Resonance.Enemies
 {
@@ -945,6 +947,20 @@ namespace Resonance.Enemies
                     Debug.Log($"EnemyMonoBehaviour: {gameObject.name} set wave UI color to {colorName}");
                 }
             }
+        }
+
+        #endregion
+
+        #region IWavable Implementation
+
+        /// <summary>
+        /// Get the Wave object from CrystalCore
+        /// </summary>
+        public Wave GetWave()
+        {
+            return IsInitialized && _enemyController.Stats.crystalCore != null 
+                ? _enemyController.Stats.crystalCore.Wave 
+                : null;
         }
 
         #endregion
