@@ -3,6 +3,7 @@ using Unity.Cinemachine;
 using Resonance.Core;
 using Resonance.Player.Actions;
 using Resonance.Enemies.Triggers;
+using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 
 namespace Resonance.Cameras
@@ -107,8 +108,10 @@ namespace Resonance.Cameras
         /// <summary>
         /// Handle wave action started - switch to player camera
         /// </summary>
+        /// <param name="sourceWavable">The source wavable (player or enemy)</param>
+        /// <param name="targetWavable">The target wavable (player or enemy)</param>
         /// <param name="targetCore">The target core hitbox (not used for camera switching)</param>
-        private void OnWaveStarted(EnemyHitbox targetCore)
+        private void OnWaveStarted(IWavable sourceWavable, IWavable targetWavable, EnemyHitbox targetCore)
         {
             Debug.Log("LevelCameraManager: Wave started, switching to player camera");
             SwitchToPlayerCamera();

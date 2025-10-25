@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Player.Actions;
 using Resonance.Enemies;
@@ -191,13 +192,16 @@ namespace Resonance.Core.StateMachine.States
         /// <summary>
         /// Handle wave action started event
         /// </summary>
-        /// <param name="targetCore">The target core being attacked</param>
-        private void OnWaveStarted(EnemyHitbox targetCore)
+        /// <param name="sourceWavable">The attacker (player or enemy)</param>
+        /// <param name="targetWavable">The target being attacked</param>
+        /// <param name="targetCore">The target core hitbox</param>
+        private void OnWaveStarted(Interfaces.IWavable sourceWavable, Interfaces.IWavable targetWavable, EnemyHitbox targetCore)
         {
             // Risk mitigation: Defensive programming
-            if (targetCore == null)
+            if (sourceWavable == null || targetWavable == null || targetCore == null)
             {
-                Debug.LogWarning("GameplayState: OnWaveStarted called with null target core");
+                Debug.LogWarning($"GameplayState: OnWaveStarted called with null parameters - source: {(sourceWavable != null ? "valid" : "null")}, " +
+                               $"target: {(targetWavable != null ? "valid" : "null")}, core: {(targetCore != null ? targetCore.name : "null")}");
                 return;
             }
             
@@ -214,13 +218,13 @@ namespace Resonance.Core.StateMachine.States
                 return;
             }
             
-            Debug.Log($"GameplayState: Wave started on target {targetCore.name}");
+            Debug.Log($"GameplayState: Wave started from source to target core {targetCore.name}");
             
             // Store target reference
             _currentWaveTarget = targetCore;
             
-            // Update existing WaveState with new target
-            _waveState.SetTargetCore(targetCore);
+            // Update existing WaveState with wave attack context
+            _waveState.SetWaveAttackContext(sourceWavable, targetWavable, targetCore);
             
             // Transition to Wave substate (Risk mitigation: Atomic state transition)
             if (!_subStateMachine.ChangeState("Wave"))

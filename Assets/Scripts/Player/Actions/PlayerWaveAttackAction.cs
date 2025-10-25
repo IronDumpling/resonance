@@ -3,6 +3,7 @@ using Resonance.Core;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Player.Triggers;
+using Resonance.Interfaces;
 using Resonance.Interfaces.Operations;
 using Resonance.Interfaces.Services;
 using Resonance.Enemies.Data;
@@ -20,7 +21,7 @@ namespace Resonance.Player.Actions
     public class PlayerWaveAttackAction : IPlayerAction
     {
         // Static events for state machine integration
-        public static event System.Action<EnemyHitbox> OnWaveAttackActionStarted;
+        public static event System.Action<IWavable, IWavable, EnemyHitbox> OnWaveAttackActionStarted; // source, target, targetCore
         public static event System.Action OnWaveAttackActionEnded;
 
         // Action properties
@@ -230,10 +231,16 @@ namespace Resonance.Player.Actions
             // Play wave audio/effects
             PlayWaveEffects();
 
+            // Get IWavable references for event
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            IWavable sourceWavable = playerService?.CurrentPlayer as IWavable;
+            IWavable targetWavable = _targetCoreHitbox?.GetEnemyMonoBehaviour() as IWavable;
+            
             // Trigger the wave started event for state machine and camera system
-            OnWaveAttackActionStarted?.Invoke(_targetCoreHitbox);
+            OnWaveAttackActionStarted?.Invoke(sourceWavable, targetWavable, _targetCoreHitbox);
 
-            Debug.Log($"PlayerWaveAttackAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
+            Debug.Log($"PlayerWaveAttackAction: Started with source: {(sourceWavable != null ? "valid" : "null")}, " +
+                     $"target: {(targetWavable != null ? "valid" : "null")}, target core: {_targetCoreHitbox.name}");
         }
 
         /// <summary>

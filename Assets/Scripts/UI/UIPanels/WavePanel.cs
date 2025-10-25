@@ -22,16 +22,16 @@ namespace Resonance.UI
 
         [Header("Wave Visual Configuration")]
         [SerializeField] private float _waveScrollSpeed = 1f;
-        [SerializeField] private float _waveStopScrollDuration = 1f;
-        [SerializeField] private int _waveLinePointCount = 128; // Number of points to sample from wave
-        [SerializeField] private float _waveDisplayWidth = 10f; // Display width in world units
-        [SerializeField] private float _waveDisplayHeight = 2f; // Display height multiplier
+        [SerializeField] private float _waveStopScrollDuration = 0.5f;
+        [SerializeField] private int _waveLinePointCount = 1024; // Number of points to sample from wave
+        [SerializeField] private float _waveDisplayWidth = 100f; // Display width in world units
+        [SerializeField] private float _waveDisplayHeight = 50f; // Display height multiplier
 
         [SerializeField] private TextMeshProUGUI _instructionText;
         
         // Wave attack damage configuration
         [Header("Wave Damage Configuration")]
-        [SerializeField] private float _baseCoreDamage = 10f;
+        [SerializeField] private float _baseCoreDamage = 15f;
         [SerializeField] private float _perfectMatchMultiplier = 3f;  // Perfect: >90%
         [SerializeField] private float _goodMatchMultiplier = 1f;     // Good: >75%
         [SerializeField] private float _missMatchMultiplier = 0f;     // Miss: <75%

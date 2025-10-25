@@ -152,7 +152,7 @@ LineRenderer:
     shadowBias: 0.5
     generateLightingData: 0
   m_MaskInteraction: 0
-  m_UseWorldSpace: 1
+  m_UseWorldSpace: 0
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
 --- !u!1 &2743820636045403311
@@ -277,12 +277,15 @@ MonoBehaviour:
   _targetWaveLine: {fileID: 1893521292183233516}
   _sourceWaveLine: {fileID: 5540271172190854697}
   _waveScrollSpeed: 1
-  _waveStopScrollDuration: 1
-  _qteValueText: {fileID: 0}
+  _waveStopScrollDuration: 0.5
+  _waveLinePointCount: 1024
+  _waveDisplayWidth: 300
+  _waveDisplayHeight: 100
   _instructionText: {fileID: 3396357682942226585}
-  _baseCoreDamage: 25
-  _maxDamageMultiplier: 3
-  _damageScaleFactor: 10
+  _baseCoreDamage: 15
+  _perfectMatchMultiplier: 3
+  _goodMatchMultiplier: 1
+  _missMatchMultiplier: 0
 --- !u!1 &3147674885721764560
 GameObject:
   m_ObjectHideFlags: 0
@@ -435,7 +438,7 @@ LineRenderer:
     shadowBias: 0.5
     generateLightingData: 0
   m_MaskInteraction: 0
-  m_UseWorldSpace: 1
+  m_UseWorldSpace: 0
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
 --- !u!1 &5761070660113159587
@@ -492,7 +495,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5761070660113159587}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
