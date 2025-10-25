@@ -20,6 +20,6 @@ namespace Resonance.Utilities
         Square,
         Triangle,
         Sawtooth,
-        Noise
+        Custom
     }
 }

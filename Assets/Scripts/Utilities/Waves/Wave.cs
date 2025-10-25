@@ -20,7 +20,7 @@ namespace Resonance.Utilities.Waves
 
         [Header("Sampled Representation")]
         [SerializeField] private float[] _waveformTable; // Stores one full cycle of the wave sampled at discrete points, normalized between -1 and 1.
-        public const int WAVEFORM_RESOLUTION = 1024; // Standard resolution for the LUT
+        [SerializeField] private readonly int WAVEFORM_RESOLUTION = 1024; // Standard resolution for the LUT
         
         #endregion
         
@@ -41,6 +41,7 @@ namespace Resonance.Utilities.Waves
         public float Amplitude => _amplitude;
         public float Length => _length;
         public float[] WaveformTable => _waveformTable;
+        public int WaveformResolution => WAVEFORM_RESOLUTION;
         
         public float CurrentChaos => _currentChaos;
         public float MaxChaos => _maxChaos;
@@ -83,10 +84,109 @@ namespace Resonance.Utilities.Waves
                 _amplitude = 1.0f;
                 _length = 10.0f;
             }
-            
+
+            GenerateBaseWaveformTable(_waveformType);
             _currentChaos = 0f;
             _chaosState = WaveChaosState.Order;
         }
+
+        #region Wave Methods
+
+        public float GetWaveValue(float normalizedPosition)
+        {
+            if (_waveformTable == null || _waveformTable.Length == 0) return 0f;
+
+            // 1. Calculate the phase within the sampled table
+            float phase = (normalizedPosition * _frequency) % 1.0f;
+            phase = (phase < 0.0f) ? phase + 1.0f : phase;
+
+            // 2. Map phase to table index with linear interpolation
+            float index = phase * (_waveformTable.Length - 1);
+            int index1 = Mathf.FloorToInt(index);
+            int index2 = (index1 + 1 < _waveformTable.Length) ? index1 + 1 : 0;
+            float fraction = index - index1;
+
+            // 3. Get the values at the indices
+            float value1 = _waveformTable[index1];
+            float value2 = _waveformTable[index2];
+            float interpolatedValue = Mathf.LerpUnclamped(value1, value2, fraction);
+
+            float resultValue = interpolatedValue * _amplitude;
+
+            if (_chaosState == WaveChaosState.Chaos)
+            {
+                float chaosFactor = ChaosPercentage;
+                resultValue += Random.Range(-_amplitude * chaosFactor, _amplitude * chaosFactor);
+            }
+
+            return resultValue;
+        }
+
+        public void UpdateWaveProperties(WaveformType waveformType, float frequency, float amplitude, float length, float[] waveformTable)
+        {
+            bool changed = false;
+
+            if (waveformType != _waveformType)
+            {
+                _waveformType = waveformType;
+                GenerateBaseWaveformTable(waveformType);
+                changed = true;
+            }
+            if (frequency != _frequency)
+            {
+                _frequency = frequency;
+                changed = true;
+            }
+            if (amplitude != _amplitude)
+            {
+                _amplitude = amplitude;
+                changed = true;
+            }
+            if (length != _length)
+            {
+                _length = length;
+                changed = true;
+            }
+            if (waveformTable != null && waveformTable.Length == _waveformTable.Length)
+            {
+                if (_waveformTable == null || !AreTablesEqual(waveformTable, _waveformTable))
+                {
+                    _waveformTable = waveformTable;
+                    changed = true;
+                }
+            }
+            else if (waveformTable != null)
+            {
+                Debug.LogWarning("Wave: Waveform table length mismatch. Cannot update waveform table.");
+            }
+
+            if (changed)
+            {
+                OnWavePropertiesChanged?.Invoke();
+                Debug.Log($"Wave: Wave properties changed. Waveform type: {_waveformType}, Frequency: {_frequency}," +
+                          $"Amplitude: {_amplitude}, Length: {_length}");
+            }
+        }
+
+        private bool AreTablesEqual(float[] table1, float[] table2)
+        {
+            if (table1 == null || table2 == null || table1.Length != table2.Length) return false;
+            for (int i = 0; i < table1.Length; i++)
+            {
+                if (Mathf.Approximately(table1[i], table2[i])) return false;
+            }
+            return true;
+        }
+
+        private void GenerateBaseWaveformTable(WaveformType waveformType)
+        {
+            _waveformType = waveformType;
+            _waveformTable = WaveformGenerator.Generate(waveformType, WAVEFORM_RESOLUTION);
+            OnWavePropertiesChanged?.Invoke();
+            Debug.Log($"Wave: Base waveform table generated. Waveform type: {_waveformType}");
+        }
+
+        #endregion
         
         #region Chaos Methods
         

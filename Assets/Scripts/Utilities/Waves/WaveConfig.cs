@@ -19,6 +19,8 @@ namespace Resonance.Utilities.Waves
         public float amplitude = 1.0f;
         [Tooltip("Length")]
         public float length = 10.0f;
+        [Tooltip("Waveform Resolution")]
+        public int waveformResolution = 1024;
         
         [Header("Wave Chaos Configuration")]
         [Tooltip("Wave Chaos Max Value")]

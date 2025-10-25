@@ -60,6 +60,12 @@ namespace Resonance.Utilities.CrystalCore
         #region Properties - Core Wave
         
         public Wave Wave => _wave;
+        public WaveformType WaveformType => _wave?.WaveformType ?? WaveformType.Sine;
+        public float Frequency => _wave?.Frequency ?? 1.0f;
+        public float Amplitude => _wave?.Amplitude ?? 1.0f;
+        public float Length => _wave?.Length ?? 10.0f;
+        public float[] WaveformTable => _wave?.WaveformTable ?? new float[0];
+        public int WaveformResolution => _wave?.WaveformResolution ?? 1024;
         public float CurrentChaos => _wave?.CurrentChaos ?? 0f;
         public float MaxChaos => _wave?.MaxChaos ?? 0f;
         public float ChaosThreshold => _wave?.ChaosThreshold ?? 0f;
@@ -339,6 +345,20 @@ namespace Resonance.Utilities.CrystalCore
         #endregion
         
         #region Core Wave Methods
+
+        /// <summary>
+        /// Set wave
+        /// </summary>
+        public void SetWave(Wave wave)
+        {
+            if (wave == null) return;
+            float chaos = CurrentChaos;
+            _wave = wave;
+            _wave.AddChaos(chaos);
+            UpdateCalculatedValues();
+            Debug.Log($"CrystalCore: Set wave. Waveform type: {_wave?.WaveformType ?? WaveformType.Sine}, Frequency: {_wave?.Frequency ?? 1.0f},"+
+                      $" Amplitude: {_wave?.Amplitude ?? 1.0f}, Length: {_wave?.Length ?? 10.0f}, Chaos: {chaos}");
+        }
         
         /// <summary>
         /// Add chaos (delegate to Wave)
