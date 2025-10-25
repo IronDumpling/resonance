@@ -19,13 +19,15 @@ namespace Resonance.Utilities
         Intact,     // Core health > 0
         Destroyed   // Core health = 0
     }
-    
+
     /// <summary>
-    /// Wave chaos state enumeration
+    /// Crystal energy tier
+    /// Based on energy/maximum energy percentage
     /// </summary>
-    public enum WaveChaosState
+    public enum CrystalEnergyTier
     {
-        Order,      // Chaos < threshold
-        Chaos       // Chaos >= max
+        Abundant,   // > 80% - Abundant
+        Normal,     // > 30%, ≤ 80% - Normal  
+        Low         // > 0%, ≤ 30% - Low
     }
 }

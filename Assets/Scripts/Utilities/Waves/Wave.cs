@@ -10,7 +10,21 @@ namespace Resonance.Utilities.Waves
     [System.Serializable]
     public class Wave
     {
-        #region Serialized Fields
+        #region Wave Properties
+
+        [Header("Shape & Dimensions")]
+        [SerializeField] private WaveformType _waveformType = WaveformType.Sine; // The base shape generated
+        [SerializeField] private float _frequency = 1.0f;     // Cycles per unit length
+        [SerializeField] private float _amplitude = 1.0f;     // Peak amplitude (max deviation from 0)
+        [SerializeField] private float _length = 10.0f;     // The spatial length of one full pattern repetition before cycling
+
+        [Header("Sampled Representation")]
+        [SerializeField] private float[] _waveformTable; // Stores one full cycle of the wave sampled at discrete points, normalized between -1 and 1.
+        public const int WAVEFORM_RESOLUTION = 1024; // Standard resolution for the LUT
+        
+        #endregion
+        
+        #region Chaos Fields
         
         [Header("Wave Chaos")]
         [SerializeField] private float _currentChaos;
@@ -18,19 +32,21 @@ namespace Resonance.Utilities.Waves
         [SerializeField] private float _chaosThreshold = 18f;
         [SerializeField] private WaveChaosState _chaosState;
         
-        [Header("QTE Configuration")]
-        [SerializeField] private QTEConfig _qteConfig;
-        
         #endregion
         
         #region Properties
+
+        public WaveformType WaveformType => _waveformType;
+        public float Frequency => _frequency;
+        public float Amplitude => _amplitude;
+        public float Length => _length;
+        public float[] WaveformTable => _waveformTable;
         
         public float CurrentChaos => _currentChaos;
         public float MaxChaos => _maxChaos;
         public float ChaosThreshold => _chaosThreshold;
         public WaveChaosState ChaosState => _chaosState;
         public float ChaosPercentage => _maxChaos > 0 ? _currentChaos / _maxChaos : 0f;
-        public QTEConfig QTE => _qteConfig;
         
         #endregion
         
@@ -38,6 +54,7 @@ namespace Resonance.Utilities.Waves
         
         public System.Action<float, float> OnChaosChanged; // current, max
         public System.Action<WaveChaosState> OnChaosStateChanged;
+        public System.Action OnWavePropertiesChanged;
         
         #endregion
         
@@ -46,33 +63,29 @@ namespace Resonance.Utilities.Waves
         /// </summary>
         public Wave(WaveConfig config)
         {
+            _waveformTable = new float[WAVEFORM_RESOLUTION];
+            
             if (config != null)
             {
                 _maxChaos = config.maxChaos;
                 _chaosThreshold = config.chaosThreshold;
-                _qteConfig = config.qteConfig ?? new QTEConfig();
+                _waveformType = config.waveformType;
+                _frequency = config.frequency;
+                _amplitude = config.amplitude;
+                _length = config.length;
             }
             else
             {
                 _maxChaos = 100f;
                 _chaosThreshold = 18f;
-                _qteConfig = new QTEConfig();
+                _waveformType = WaveformType.Sine;
+                _frequency = 1.0f;
+                _amplitude = 1.0f;
+                _length = 10.0f;
             }
             
             _currentChaos = 0f;
             _chaosState = WaveChaosState.Order;
-        }
-        
-        /// <summary>
-        /// Legacy constructor for backward compatibility
-        /// </summary>
-        public Wave(float maxChaos, float chaosThreshold, QTEConfig qteConfig = null)
-        {
-            _maxChaos = maxChaos;
-            _chaosThreshold = chaosThreshold;
-            _currentChaos = 0f;
-            _chaosState = WaveChaosState.Order;
-            _qteConfig = qteConfig ?? new QTEConfig();
         }
         
         #region Chaos Methods
@@ -151,30 +164,6 @@ namespace Resonance.Utilities.Waves
                 OnChaosChanged?.Invoke(_currentChaos, _maxChaos);
                 Debug.Log("Wave: Chaos reset to 0");
             }
-        }
-        
-        #endregion
-        
-        #region QTE Methods
-        
-        /// <summary>
-        /// Set QTE configuration
-        /// </summary>
-        public void SetQTEConfig(QTEConfig config)
-        {
-            if (config != null)
-            {
-                _qteConfig = config;
-                Debug.Log($"Wave: QTE config updated - Ease: {config.easeType}, Duration: {config.cycleDuration}, Window: {config.targetWindow}");
-            }
-        }
-        
-        /// <summary>
-        /// Get QTE configuration
-        /// </summary>
-        public QTEConfig GetQTEConfig()
-        {
-            return _qteConfig;
         }
         
         #endregion

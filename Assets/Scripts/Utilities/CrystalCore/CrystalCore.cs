@@ -5,19 +5,8 @@ using Resonance.Utilities.Waves;
 namespace Resonance.Utilities.CrystalCore
 {
     /// <summary>
-    /// 晶核能量等级
-    /// 基于能量/最大能量上限的百分比
-    /// </summary>
-    public enum CrystalEnergyTier
-    {
-        Abundant,   // > 80% - 充盈
-        Normal,     // > 30%, ≤ 80% - 正常  
-        Low         // > 0%, ≤ 30% - 低下
-    }
-
-    /// <summary>
-    /// 晶核系统 - 玩家和敌人共用的晶核管理系统
-    /// 包含三个部分：生命、能量、波纹
+    /// Crystal core system - shared crystal core management system for player and enemy
+    /// Contains three parts: Health, Energy, Wave
     /// </summary>
     [System.Serializable]
     public class CrystalCore
@@ -102,9 +91,9 @@ namespace Resonance.Utilities.CrystalCore
         #endregion
         
         /// <summary>
-        /// 构造函数
+        /// Constructor
         /// </summary>
-        public CrystalCore(CrystalCoreConfig config, QTEConfig qteConfig = null)
+        public CrystalCore(CrystalCoreConfig config)
         {
             if (config != null)
             {
@@ -112,41 +101,36 @@ namespace Resonance.Utilities.CrystalCore
                 _maxCoreHealth = Mathf.Round(config.initialMaxCoreHealth);
                 _currentCoreHealth = _maxCoreHealth;
                 
-                // 最大能量值 = 当前晶核生命值
+                // Maximum energy = current core health
                 _maxEnergy = _currentCoreHealth;
                 
-                // 玩家从0能量开始, 敌人拥有满能量
+                // Player starts with 0 energy, enemy starts with full energy
                 _currentEnergy = config.startWithFullEnergy ? _maxEnergy : 0f;
                 
-                // 波纹系统初始化 - 使用WaveConfig或legacy参数
+                // Wave system initialization - using WaveConfig
                 if (config.waveConfig != null)
                 {
                     _wave = new Wave(config.waveConfig);
                 }
-                else
-                {
-                    // Legacy fallback - 使用默认值
-                    _wave = new Wave(100f, 18f, qteConfig);
-                }
             }
             else
             {
-                // 默认配置：3格生命值 = 90点
+                // Default configuration: 3 slots * 30 energy per slot = 90 health
                 _energyPerSlot = Mathf.Round(30f);
-                _maxCoreHealth = Mathf.Round(90f); // 3 slots * 30 per slot
+                _maxCoreHealth = Mathf.Round(90f);
                 _currentCoreHealth = _maxCoreHealth;
                 _maxEnergy = _maxCoreHealth;
                 _currentEnergy = 0f;
                 
-                // 默认波纹配置
-                _wave = new Wave(100f, 18f, qteConfig);
+                // Default wave configuration
+                _wave = new Wave(new WaveConfig());
             }
 
             UpdateCalculatedValues();
         }
         
         /// <summary>
-        /// 更新计算值(槽位、等级等)
+        /// Update calculated values (slots, tier, etc.)
         /// </summary>
         public void UpdateCalculatedValues()
         {
@@ -155,7 +139,7 @@ namespace Resonance.Utilities.CrystalCore
             // current slots is the current energy / energy per slot
             _currentSlots = Mathf.FloorToInt(_currentEnergy / _energyPerSlot);
             
-            // 计算能量等级
+            // Calculate energy tier
             var previousTier = _energyTier;
             float energyPercent = EnergyPercentage;
             
@@ -166,7 +150,7 @@ namespace Resonance.Utilities.CrystalCore
             else
                 _energyTier = CrystalEnergyTier.Low;
 
-            // 触发事件
+            // Trigger events
             if (previousTier != _energyTier)
             {
                 OnEnergyTierChanged?.Invoke(_energyTier);
@@ -176,7 +160,7 @@ namespace Resonance.Utilities.CrystalCore
         #region Core Health Methods
         
         /// <summary>
-        /// 晶核受到生命伤害
+        /// Take core health damage
         /// </summary>
         public float TakeCoreHealthDamage(float damage)
         {
@@ -188,10 +172,10 @@ namespace Resonance.Utilities.CrystalCore
 
             if (actualDamage > 0f)
             {
-                // 最大能量值同步到当前晶核生命值
+                // Maximum energy value synchronized to current core health
                 _maxEnergy = _currentCoreHealth;
                 
-                // 如果当前能量超过新的最大能量, 调整当前能量
+                // If current energy exceeds new maximum energy, adjust current energy
                 if (_currentEnergy > _maxEnergy)
                 {
                     _currentEnergy = _maxEnergy;
@@ -201,7 +185,7 @@ namespace Resonance.Utilities.CrystalCore
                 UpdateCalculatedValues();
                 OnCoreHealthChanged?.Invoke(_currentCoreHealth, _maxCoreHealth);
                 
-                // 晶核死亡
+                // Core death
                 if (_currentCoreHealth <= 0f)
                 {
                     OnCoreDestroyed?.Invoke();
@@ -214,7 +198,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 修复晶核生命
+        /// Repair core health
         /// </summary>
         public float RepairCoreHealth(float repairAmount)
         {
@@ -226,7 +210,7 @@ namespace Resonance.Utilities.CrystalCore
 
             if (actualRepair > 0f)
             {
-                // 最大能量值同步到当前晶核生命值
+                // Maximum energy value synchronized to current core health
                 _maxEnergy = _currentCoreHealth;
                 
                 UpdateCalculatedValues();
@@ -239,7 +223,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 完全修复晶核生命
+        /// Fully repair core health
         /// </summary>
         public void FullRepairCoreHealth()
         {
@@ -247,7 +231,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 提升最大晶核生命值(成长系统)
+        /// Upgrade maximum core health (growth system)
         /// </summary>
         public void UpgradeMaxCoreHealth(float amount)
         {
@@ -255,7 +239,7 @@ namespace Resonance.Utilities.CrystalCore
             
             _maxCoreHealth = Mathf.Round(_maxCoreHealth + amount);
             
-            // 如果当前生命值等于之前的最大值, 也提升当前生命值
+            // If current health equals previous maximum, also upgrade current health
             if (_currentCoreHealth >= _maxCoreHealth - amount)
             {
                 _currentCoreHealth = _maxCoreHealth;
@@ -274,7 +258,7 @@ namespace Resonance.Utilities.CrystalCore
         #region Core Energy Methods
         
         /// <summary>
-        /// 增加能量
+        /// Add energy
         /// </summary>
         public float AddEnergy(float amount)
         {
@@ -295,7 +279,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 消耗能量
+        /// Consume energy
         /// </summary>
         public bool ConsumeEnergy(float amount)
         {
@@ -310,7 +294,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 消耗一个能量槽
+        /// Consume one energy slot
         /// </summary>
         public bool ConsumeEnergySlot()
         {
@@ -318,7 +302,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 检查是否有足够能量
+        /// Check if has enough energy
         /// </summary>
         public bool HasEnoughEnergy(float amount)
         {
@@ -326,7 +310,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 检查是否可以消耗一个能量槽
+        /// Check if can consume one energy slot
         /// </summary>
         public bool CanConsumeSlot()
         {
@@ -334,7 +318,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 获取当前能量的槽位数
+        /// Get current energy slots
         /// </summary>
         public float GetEnergyInSlots()
         {
@@ -342,7 +326,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 设置为满能量模式(敌人使用)
+        /// Set to full energy mode (enemy uses)
         /// </summary>
         public void SetFullEnergy()
         {
@@ -357,7 +341,7 @@ namespace Resonance.Utilities.CrystalCore
         #region Core Wave Methods
         
         /// <summary>
-        /// 增加紊乱值 (委托给 Wave)
+        /// Add chaos (delegate to Wave)
         /// </summary>
         public float AddChaos(float amount)
         {
@@ -365,7 +349,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 更新紊乱值 (自然恢复, 每帧调用, 委托给 Wave)
+        /// Update chaos (natural recovery, called every frame, delegate to Wave)
         /// </summary>
         public void UpdateChaos(float chaosRecoveryRate, float deltaTime)
         {
@@ -373,7 +357,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 重置紊乱值 (委托给 Wave)
+        /// Reset chaos (delegate to Wave)
         /// </summary>
         public void ResetChaos()
         {
@@ -385,7 +369,7 @@ namespace Resonance.Utilities.CrystalCore
         #region Save/Load
         
         /// <summary>
-        /// 获取保存数据
+        /// Get save data
         /// </summary>
         public CrystalCoreSaveData GetSaveData()
         {
@@ -400,7 +384,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 从保存数据加载
+        /// Load from save data
         /// </summary>
         public void LoadFromSaveData(CrystalCoreSaveData saveData)
         {
@@ -433,7 +417,7 @@ namespace Resonance.Utilities.CrystalCore
         #endregion
         
         /// <summary>
-        /// 清理事件订阅
+        /// Cleanup event subscriptions
         /// </summary>
         public void Cleanup()
         {
@@ -446,7 +430,7 @@ namespace Resonance.Utilities.CrystalCore
     }
 
     /// <summary>
-    /// 晶核保存数据结构
+    /// Crystal core save data structure
     /// </summary>
     [System.Serializable]
     public class CrystalCoreSaveData

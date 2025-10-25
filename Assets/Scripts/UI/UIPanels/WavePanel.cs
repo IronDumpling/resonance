@@ -32,13 +32,13 @@ namespace Resonance.UI
         private EnemyHitbox _targetCore;
         
         // Enemy-specific QTE Configuration
-        private QTEConfig _qteConfig;
-        private Tween _qteTween;
-        private float _qteStartTime;
+        // private QTEConfig _qteConfig;
+        // private Tween _qteTween;
+        // private float _qteStartTime;
         
         // Input filtering
         private float _panelOpenTime = 0f;
-        private const float QTE_INPUT_DELAY = 0.2f; // Delay before accepting QTE input after panel opens
+        // private const float QTE_INPUT_DELAY = 0.2f; // Delay before accepting QTE input after panel opens
 
         protected override void Awake()
         {
@@ -100,8 +100,8 @@ namespace Resonance.UI
             StopQTE();
             
             // Kill any remaining tweens
-            _qteTween?.Kill();
-            _qteTween = null;
+            // _qteTween?.Kill();
+            // _qteTween = null;
             
             _isInitialized = false;
             Debug.Log("WavePanel: Cleaned up");
@@ -217,23 +217,23 @@ namespace Resonance.UI
             _targetCore = targetCore;
             
             // Get QTE configuration from the target core
-            if (_targetCore != null && _targetCore.IsValidForQTE())
-            {
-                _qteConfig = _targetCore.GetQTEConfig();
-                Debug.Log($"WavePanel: Set target core to {targetCore.name} with QTE config - " +
-                         $"Ease: {_qteConfig?.easeType}, Duration: {_qteConfig?.cycleDuration}, Window: {_qteConfig?.targetWindow}");
-            }
-            else
-            {
-                // Use default configuration as fallback
-                _qteConfig = new QTEConfig
-                {
-                    easeType = Ease.InOutSine,
-                    cycleDuration = 3f,
-                    targetWindow = 0.2f
-                };
-                Debug.LogWarning($"WavePanel: Target core invalid for QTE, using default configuration");
-            }
+            // if (_targetCore != null && _targetCore.IsValidForQTE())
+            // {
+            //     _qteConfig = _targetCore.GetQTEConfig();
+            //     Debug.Log($"WavePanel: Set target core to {targetCore.name} with QTE config - " +
+            //              $"Ease: {_qteConfig?.easeType}, Duration: {_qteConfig?.cycleDuration}, Window: {_qteConfig?.targetWindow}");
+            // }
+            // else
+            // {
+            //     // Use default configuration as fallback
+            //     _qteConfig = new QTEConfig
+            //     {
+            //         easeType = Ease.InOutSine,
+            //         cycleDuration = 3f,
+            //         targetWindow = 0.2f
+            //     };
+            //     Debug.LogWarning($"WavePanel: Target core invalid for QTE, using default configuration");
+            // }
             
             // Now that we have the configuration, start the QTE sequence
             StartQTE();
@@ -244,31 +244,31 @@ namespace Resonance.UI
         /// </summary>
         private void StartQTE()
         {
-            if (!_isInitialized || _qteConfig == null) return;
+            // if (!_isInitialized || _qteConfig == null) return;
             
-            _isQTEActive = true;
-            _qteStartTime = Time.time;
+            // _isQTEActive = true;
+            // _qteStartTime = Time.time;
             
             // Start DoTween animation using enemy-specific configuration
             // Kill any existing tween
-            _qteTween?.Kill();
+            // _qteTween?.Kill();
             
             // Create a looping tween that oscillates between 1 and -1
-            _qteValue = 1f; // Start at 1
+            // _qteValue = 1f; // Start at 1
             
             // Force initial UI update before starting tween
-            UpdateQTEUI();
+            // UpdateQTEUI();
             
-            _qteTween = DOTween.To(() => _qteValue, x => _qteValue = x, -1f, _qteConfig.cycleDuration / 2f)
-                .SetEase(_qteConfig.easeType)
-                .SetLoops(-1, LoopType.Yoyo)
-                .OnUpdate(() => UpdateQTEUI())
-                .OnStart(() => {
-                    Debug.Log("WavePanel: DoTween animation started");
-                    UpdateQTEUI(); // Ensure UI is updated when tween starts
-                });
+            // _qteTween = DOTween.To(() => _qteValue, x => _qteValue = x, -1f, _qteConfig.cycleDuration / 2f)
+            //     .SetEase(_qteConfig.easeType)
+            //     .SetLoops(-1, LoopType.Yoyo)
+            //     .OnUpdate(() => UpdateQTEUI())
+            //     .OnStart(() => {
+            //         Debug.Log("WavePanel: DoTween animation started");
+            //         UpdateQTEUI(); // Ensure UI is updated when tween starts
+            //     });
             
-            Debug.Log($"WavePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
+            // Debug.Log($"WavePanel: Started QTE sequence with {_qteConfig.easeType} ease, {_qteConfig.cycleDuration}s cycle");
         }
         
         /// <summary>
@@ -276,13 +276,13 @@ namespace Resonance.UI
         /// </summary>
         private void StopQTE()
         {
-            _isQTEActive = false;
+            // _isQTEActive = false;
             
-            // Kill the DoTween animation
-            _qteTween?.Kill();
-            _qteTween = null;
+            // // Kill the DoTween animation
+            // _qteTween?.Kill();
+            // _qteTween = null;
             
-            Debug.Log("WavePanel: Stopped QTE sequence");
+            // Debug.Log("WavePanel: Stopped QTE sequence");
         }
         
         /// <summary>
@@ -307,7 +307,8 @@ namespace Resonance.UI
                 
                 // Change color based on proximity to target using enemy-specific window
                 float proximityToZero = Mathf.Abs(_qteValue);
-                float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+                // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+                float targetWindow = 0.2f;
                 
                 if (proximityToZero <= targetWindow)
                 {
@@ -323,10 +324,10 @@ namespace Resonance.UI
                 }
                 
                 // Ensure the text component is enabled and visible
-                if (!_qteValueText.gameObject.activeInHierarchy)
-                {
-                    Debug.LogWarning("WavePanel: QTE Value Text GameObject is not active");
-                }
+                // if (!_qteValueText.gameObject.activeInHierarchy)
+                // {
+                    // Debug.LogWarning("WavePanel: QTE Value Text GameObject is not active");
+                // }
             }
             else
             {
@@ -349,19 +350,20 @@ namespace Resonance.UI
             
             // Check if enough time has passed since panel opened to accept input
             float timeSinceOpen = Time.time - _panelOpenTime;
-            Debug.Log($"WavePanel: Time since panel open: {timeSinceOpen:F3}s, Required delay: {QTE_INPUT_DELAY}s");
+            // Debug.Log($"WavePanel: Time since panel open: {timeSinceOpen:F3}s, Required delay: {QTE_INPUT_DELAY}s");
             
-            if (timeSinceOpen < QTE_INPUT_DELAY)
-            {
-                Debug.Log($"WavePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
-                return;
-            }
+            // if (timeSinceOpen < QTE_INPUT_DELAY)
+            // {
+                // Debug.Log($"WavePanel: QTE input ignored - too soon after panel open ({timeSinceOpen:F3}s < {QTE_INPUT_DELAY}s)");
+                // return;
+            // }
             
             float proximityToZero = Mathf.Abs(_qteValue);
-            float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+            // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+            float targetWindow = 0.2f;
             bool isSuccess = proximityToZero <= targetWindow;
             
-            Debug.Log($"WavePanel: QTE input accepted. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
+            // Debug.Log($"WavePanel: QTE input accepted. Value: {_qteValue:F2}, Target Window: {targetWindow:F2}, Success: {isSuccess}");
             
             if (isSuccess)
             {
@@ -415,7 +417,8 @@ namespace Resonance.UI
         private void HandleQTEFailure()
         {
             float accuracy = Mathf.Abs(_qteValue);
-            float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+            // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+            float targetWindow = 0.2f;
             
             Debug.Log($"WavePanel: QTE Failed! Accuracy: {accuracy:F3}, Required: {targetWindow:F3}");
             
@@ -521,8 +524,9 @@ namespace Resonance.UI
         /// <returns>Grade string (Perfect, Excellent, Good, etc.)</returns>
         private string GetAccuracyGrade(float accuracy)
         {
-            float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
-            
+            // float targetWindow = _qteConfig?.targetWindow ?? 0.2f;
+            float targetWindow = 0.2f;
+
             if (accuracy <= targetWindow * 0.25f)
                 return "PERFECT";
             else if (accuracy <= targetWindow * 0.5f)

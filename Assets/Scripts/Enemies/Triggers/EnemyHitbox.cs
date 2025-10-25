@@ -234,13 +234,13 @@ namespace Resonance.Enemies.Triggers
         /// Get QTE configuration data from enemy's Wave system
         /// </summary>
         /// <returns>QTE configuration data or null if not available</returns>
-        public QTEConfig GetQTEConfig()
-        {
-            var enemyStats = GetEnemyStats();
-            if (enemyStats?.crystalCore?.Wave == null) return null;
+        // public QTEConfig GetQTEConfig()
+        // {
+        //     var enemyStats = GetEnemyStats();
+        //     if (enemyStats?.crystalCore?.Wave == null) return null;
 
-            return enemyStats.crystalCore.Wave.GetQTEConfig();
-        }
+        //     return enemyStats.crystalCore.Wave.GetQTEConfig();
+        // }
 
         /// <summary>
         /// Check if this hitbox is valid for QTE operations

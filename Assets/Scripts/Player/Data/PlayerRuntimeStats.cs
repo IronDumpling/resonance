@@ -67,7 +67,7 @@ namespace Resonance.Player.Data
 
             // Copy crystal core attributes
             // Player uses default QTE configuration
-            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig, null);
+            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig);
             healthRestoreValue = baseStats.HealthRestoreValue;
             physicalDamageToCoreEnergyRatio = baseStats.PhysicalDamageToCoreEnergyRatio;
             
