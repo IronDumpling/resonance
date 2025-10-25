@@ -17,7 +17,7 @@ namespace Resonance.Enemies
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.
     /// Implements IDamageable interface for damage handling.
     /// </summary>
-    public class EnemyMonoBehaviour : MonoBehaviour, IDamageable
+    public class EnemyMonoBehaviour : MonoBehaviour, IDamageable, IWavable
     {
         [Header("Enemy Configuration")]
         [SerializeField] private EnemyBaseStats _baseStats;

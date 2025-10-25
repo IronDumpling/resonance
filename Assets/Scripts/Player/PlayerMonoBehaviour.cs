@@ -20,7 +20,7 @@ namespace Resonance.Player
     /// Acts as a bridge between Unity's GameObject system and the player logic.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable
+    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable, IWavable
     {
         [Header("Player Configuration")]
         [SerializeField] private PlayerBaseStats _baseStats;

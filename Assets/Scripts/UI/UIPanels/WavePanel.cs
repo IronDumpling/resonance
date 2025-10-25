@@ -8,14 +8,17 @@ using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 using Resonance.Utilities;
 using Resonance.Enemies.Triggers;
-using DG.Tweening;
 
 namespace Resonance.UI
 {
     public class WavePanel : UIPanel
     {
-        [Header("QTE UI Elements")]
-        [SerializeField] private TextMeshProUGUI _qteValueText;
+        [Header("Wave UI Elements")]
+        [SerializeField] private RectTransform _waveScopeArea;
+        [SerializeField] private LineRenderer _targetWaveLine;
+        [SerializeField] private LineRenderer _sourceWaveLine;
+        [SerializeField] private float _waveScrollSpeed = 1f;
+        [SerializeField] private TextMeshProUGUI _qteValueText; // to be removed
         [SerializeField] private TextMeshProUGUI _instructionText;
         
         // Player damage configuration
@@ -24,10 +27,10 @@ namespace Resonance.UI
         [SerializeField] private float _maxDamageMultiplier = 3f;
         [SerializeField] private float _damageScaleFactor = 10f;
 
-        // QTE Logic
+        // Wave QTE Logic
         private IInputService _inputService;
         private bool _isInitialized = false;
-        private bool _isQTEActive = false;
+        private bool _isWaveActive = false;
         private float _qteValue = 0f;
         private EnemyHitbox _targetCore;
         
@@ -246,7 +249,7 @@ namespace Resonance.UI
         {
             // if (!_isInitialized || _qteConfig == null) return;
             
-            // _isQTEActive = true;
+            // _isWaveActive = true;
             // _qteStartTime = Time.time;
             
             // Start DoTween animation using enemy-specific configuration
@@ -276,7 +279,7 @@ namespace Resonance.UI
         /// </summary>
         private void StopQTE()
         {
-            // _isQTEActive = false;
+            // _isWaveActive = false;
             
             // // Kill the DoTween animation
             // _qteTween?.Kill();
@@ -290,7 +293,7 @@ namespace Resonance.UI
         /// </summary>
         private void Update()
         {
-            if (!_isQTEActive) return;
+            if (!_isWaveActive) return;
         }
         
         /// <summary>
@@ -340,9 +343,9 @@ namespace Resonance.UI
         /// </summary>
         private void OnQTEInput()
         {
-            Debug.Log($"WavePanel: OnQTEInput called - _isQTEActive: {_isQTEActive}, Current time: {Time.time}, Panel open time: {_panelOpenTime}");
+            Debug.Log($"WavePanel: OnQTEInput called - _isWaveActive: {_isWaveActive}, Current time: {Time.time}, Panel open time: {_panelOpenTime}");
             
-            if (!_isQTEActive) 
+            if (!_isWaveActive) 
             {
                 Debug.Log("WavePanel: QTE input ignored - QTE not active");
                 return;
