@@ -8,6 +8,7 @@ using Resonance.Player.Triggers;
 using Resonance.Core;
 using Resonance.Enemies.Triggers;
 using Resonance.Items;
+using Resonance.Cameras;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
@@ -58,6 +59,8 @@ namespace Resonance.Player
         private IInteractionService _interactionService;
         private WaveAttackTrigger _waveAttackTrigger;
         private PlayerInteractTrigger _playerInteractTrigger;
+        private LevelCameraManager _cameraManager;
+        private bool _cameraManagerInitialized = false;
 
         // Visual Materials
         private Material _normalMaterial;
@@ -686,7 +689,7 @@ namespace Resonance.Player
                 angleInDegrees += 360f;
             }
             
-            return angleInDegrees;
+            return angleInDegrees-90f; // TODO: tempfix for now
         }
 
         /// <summary>
@@ -924,6 +927,9 @@ namespace Resonance.Player
             // Controller handles invulnerability check and applies all damage types
             _playerController.TakeDamage(damageInfo);
 
+            // Trigger camera impulse for hit feedback
+            TriggerPlayerHitImpulse(damageInfo);
+
             // Show visual feedback
             ShowDamageEffect(damageInfo);
         }
@@ -986,6 +992,61 @@ namespace Resonance.Player
         public float MaxChaos => IsInitialized && _playerController.Stats.crystalCore != null 
             ? _playerController.Stats.crystalCore.MaxChaos 
             : 0f;
+
+        #endregion
+
+        #region Camera Impulse
+
+        /// <summary>
+        /// Initialize camera manager when needed
+        /// Called from TriggerPlayerHitImpulse if not already initialized
+        /// </summary>
+        private void InitializeCameraManager()
+        {
+            if (_cameraManagerInitialized) return;
+            
+            _cameraManager = FindAnyObjectByType<LevelCameraManager>();
+            if (_cameraManager != null)
+            {
+                _cameraManagerInitialized = true;
+                Debug.Log("PlayerMonoBehaviour: LevelCameraManager connected successfully");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerMonoBehaviour: LevelCameraManager not found. Camera shake effects will be disabled.");
+                _cameraManagerInitialized = false;
+            }
+        }
+
+        /// <summary>
+        /// Trigger player hit camera impulse when taking damage
+        /// </summary>
+        /// <param name="damageInfo">Damage information</param>
+        private void TriggerPlayerHitImpulse(DamageInfo damageInfo)
+        {
+            // Initialize camera manager if not already done
+            InitializeCameraManager();
+            
+            if (_cameraManager == null) return;
+
+            var impulseSource = _cameraManager.GetPlayerHitImpulse();
+            if (impulseSource == null) return;
+
+            // Calculate impulse force based on total damage
+            float totalDamage = damageInfo.GetTotalDamage();
+            
+            // Base force is 1.0, scale by damage (clamped to reasonable range)
+            float impulseForce = Mathf.Clamp(totalDamage * 0.1f, 0.5f, 2.0f);
+            
+            // Generate impulse
+            impulseSource.GenerateImpulse(impulseForce);
+
+            if (_showDebugInfo)
+            {
+                Debug.Log($"PlayerMonoBehaviour: Player hit impulse triggered with force {impulseForce:F2} " +
+                         $"(total damage: {totalDamage:F1})");
+            }
+        }
 
         #endregion
 

@@ -21,7 +21,7 @@ MonoBehaviour:
   damages:
     physicalDamage: 20
     coreDamage: 0
-    chaosDamage: 10
+    chaosDamage: 7
   accuracyConfig:
     baseRadius: 50
     minRadius: 20
@@ -88,6 +88,10 @@ MonoBehaviour:
       m_RotationOrder: 4
     recoveryDelay: 0.3
     recoverySpeed: 3
+    enableCameraImpulse: 1
+    impulseForce: 1
+    scaleToDamage: 0
+    damageScaleFactor: 0.05
   weaponIcon: {fileID: 21300000, guid: 80810c76e8475864f9934095558ce785, type: 3}
   itemPrefab: {fileID: 8436483010609681290, guid: 46a603edf29af2547a51e2530a16e9d8, type: 3}
   gridWidth: 3

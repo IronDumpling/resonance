@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.Cinemachine;
 using System.Collections.Generic;
 using Resonance.Items;
+using Resonance.Cameras;
 using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -32,6 +33,7 @@ namespace Resonance.Player.Shooting
         
         // Camera impulse reference
         private CinemachineImpulseSource _impulseSource;
+        private bool _impulseSourceInitialized = false;
         
         // Weapon systems
         private WeaponAccuracySystem _accuracySystem;
@@ -60,7 +62,6 @@ namespace Resonance.Player.Shooting
             SetupCamera();
             SetupLineRenderers(playerObject);
             SetupAudioService();
-            SetupCameraImpulse(playerObject);
             
             // Set default layer masks
             SetDefaultLayerMasks();
@@ -81,20 +82,34 @@ namespace Resonance.Player.Shooting
                 Debug.Log("ShootingSystem: AudioService connected successfully");
             }
         }
-
+        
         /// <summary>
-        /// Set camera impulse source reference
+        /// Initialize camera impulse source when needed
+        /// Called from TriggerCameraImpulse if not already initialized
         /// </summary>
-        private void SetupCameraImpulse(GameObject playerObject)
+        private void InitializeCameraImpulse()
         {
-            _impulseSource = playerObject.GetComponent<CinemachineImpulseSource>();
-            if (_impulseSource == null)
+            if (_impulseSourceInitialized) return;
+            
+            var cameraManager = Object.FindAnyObjectByType<LevelCameraManager>();
+            if (cameraManager != null)
             {
-                Debug.LogWarning("ShootingSystem: CinemachineImpulseSource not found on player object. Camera shake will be disabled.");
+                _impulseSource = cameraManager.GetShootRecoilImpulse();
+                if (_impulseSource != null)
+                {
+                    _impulseSourceInitialized = true;
+                    Debug.Log("ShootingSystem: Shoot recoil impulse source connected from LevelCameraManager");
+                }
+                else
+                {
+                    Debug.LogWarning("ShootingSystem: Shoot recoil impulse source not found in LevelCameraManager. Camera shake will be disabled.");
+                    _impulseSourceInitialized = false;
+                }
             }
             else
             {
-                Debug.Log("ShootingSystem: CinemachineImpulseSource connected successfully");
+                Debug.LogWarning("ShootingSystem: LevelCameraManager not found. Camera shake will be disabled.");
+                _impulseSourceInitialized = false;
             }
         }
 
@@ -875,6 +890,9 @@ namespace Resonance.Player.Shooting
         /// <param name="totalDamage">Total damage dealt (for scaling)</param>
         private void TriggerCameraImpulse(WeaponDataAsset weaponData, float totalDamage)
         {
+            // Initialize impulse source if not already done
+            InitializeCameraImpulse();
+            
             if (_impulseSource == null) return;
             if (weaponData == null) return;
 

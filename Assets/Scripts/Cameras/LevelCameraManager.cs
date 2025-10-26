@@ -22,9 +22,20 @@ namespace Resonance.Cameras
         [SerializeField] private bool _autoSetupPlayerFollow = true;
         [SerializeField] private Vector3 _playerCameraOffset = new Vector3(0, 2, 0);
         
+        [Header("Camera Impulse Sources")]
+        [SerializeField] private string _impulseSourceParentName = "Camera_Impulse_Source";
+        [SerializeField] private string _shootRecoilImpulseName = "Player_Shoot_Recoil_Impulse";
+        [SerializeField] private string _playerHitImpulseName = "Player_Hit_Impulse";
+        [SerializeField] private string _waveAttackMissImpulseName = "Player_Wave_Attack_Miss_Impulse";
+        
         // State tracking
         private bool _isInWaveMode = false;
         private Transform _playerTransform;
+        
+        // Impulse source references
+        private CinemachineImpulseSource _shootRecoilImpulse;
+        private CinemachineImpulseSource _playerHitImpulse;
+        private CinemachineImpulseSource _waveAttackMissImpulse;
         
         // Events
         public System.Action<bool> OnWaveModeChanged;
@@ -38,6 +49,9 @@ namespace Resonance.Cameras
         {
             base.Start();
             
+            // Setup impulse sources
+            SetupImpulseSources();
+            
             // Setup player following after base initialization
             if (_autoSetupPlayerFollow)
             {
@@ -49,6 +63,64 @@ namespace Resonance.Cameras
             
             // Ensure we start with the fixed camera
             SwitchToFixedCamera();
+        }
+        
+        /// <summary>
+        /// Setup and cache impulse source references
+        /// </summary>
+        private void SetupImpulseSources()
+        {
+            Transform impulseParent = transform.Find(_impulseSourceParentName);
+            if (impulseParent == null)
+            {
+                Debug.LogWarning($"LevelCameraManager: Impulse source parent '{_impulseSourceParentName}' not found!");
+                return;
+            }
+            
+            // Find shoot recoil impulse
+            Transform shootRecoilTransform = impulseParent.Find(_shootRecoilImpulseName);
+            if (shootRecoilTransform != null)
+            {
+                _shootRecoilImpulse = shootRecoilTransform.GetComponent<CinemachineImpulseSource>();
+                if (_shootRecoilImpulse != null)
+                {
+                    Debug.Log($"LevelCameraManager: Found shoot recoil impulse source: {_shootRecoilImpulseName}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"LevelCameraManager: Shoot recoil impulse '{_shootRecoilImpulseName}' not found!");
+            }
+            
+            // Find player hit impulse
+            Transform playerHitTransform = impulseParent.Find(_playerHitImpulseName);
+            if (playerHitTransform != null)
+            {
+                _playerHitImpulse = playerHitTransform.GetComponent<CinemachineImpulseSource>();
+                if (_playerHitImpulse != null)
+                {
+                    Debug.Log($"LevelCameraManager: Found player hit impulse source: {_playerHitImpulseName}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"LevelCameraManager: Player hit impulse '{_playerHitImpulseName}' not found!");
+            }
+            
+            // Find wave attack miss impulse
+            Transform waveAttackMissTransform = impulseParent.Find(_waveAttackMissImpulseName);
+            if (waveAttackMissTransform != null)
+            {
+                _waveAttackMissImpulse = waveAttackMissTransform.GetComponent<CinemachineImpulseSource>();
+                if (_waveAttackMissImpulse != null)
+                {
+                    Debug.Log($"LevelCameraManager: Found wave attack miss impulse source: {_waveAttackMissImpulseName}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"LevelCameraManager: Wave attack miss impulse '{_waveAttackMissImpulseName}' not found!");
+            }
         }
         
         /// <summary>
@@ -230,6 +302,37 @@ namespace Resonance.Cameras
                 Debug.Log($"LevelCameraManager: Configured wave camera settings (FOV: {fieldOfView})");
             }
         }
+        
+        #region Camera Impulse Sources
+        
+        /// <summary>
+        /// Get the shoot recoil impulse source
+        /// Used for shooting camera shake
+        /// </summary>
+        public CinemachineImpulseSource GetShootRecoilImpulse()
+        {
+            return _shootRecoilImpulse;
+        }
+        
+        /// <summary>
+        /// Get the player hit impulse source
+        /// Used for player taking damage camera shake
+        /// </summary>
+        public CinemachineImpulseSource GetPlayerHitImpulse()
+        {
+            return _playerHitImpulse;
+        }
+        
+        /// <summary>
+        /// Get the wave attack miss impulse source
+        /// Used for wave attack miss camera shake
+        /// </summary>
+        public CinemachineImpulseSource GetWaveAttackMissImpulse()
+        {
+            return _waveAttackMissImpulse;
+        }
+        
+        #endregion
         
         protected override void OnDestroy()
         {
