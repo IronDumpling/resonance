@@ -1011,7 +1011,7 @@ namespace Resonance.Enemies
             Vector3 healthBarPosition = healthBarCenter + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
             Gizmos.DrawCube(healthBarPosition, healthBarSize);
             
-            // core health (bottom bar)
+            // core health (middle bar)
             Gizmos.color = Color.blue;
             Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
@@ -1021,10 +1021,22 @@ namespace Resonance.Enemies
             Vector3 coreBarPosition = barPosition + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
             Gizmos.DrawCube(coreBarPosition, coreBarSize);
             
+            // chaos bar (bottom bar)
+            Vector3 chaosBarPosition = barPosition + Vector3.down * barHeight * 0.6f;
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawCube(chaosBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            
+            float chaosPercentage = _enemyController.Stats.crystalCore.ChaosPercentage;
+            Gizmos.color = Color.yellow;
+            Vector3 chaosBarSize = new Vector3(barWidth * chaosPercentage, barHeight * 0.5f, 0.1f);
+            Vector3 chaosBarFillPosition = chaosBarPosition + Vector3.left * (barWidth * (1f - chaosPercentage) * 0.5f);
+            Gizmos.DrawCube(chaosBarFillPosition, chaosBarSize);
+            
             // Border
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             Gizmos.DrawWireCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(chaosBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
         }
 
         void OnDrawGizmosSelected()

@@ -21,7 +21,7 @@ MonoBehaviour:
   damages:
     physicalDamage: 20
     coreDamage: 0
-    chaosDamage: 5
+    chaosDamage: 10
   accuracyConfig:
     baseRadius: 50
     minRadius: 20
