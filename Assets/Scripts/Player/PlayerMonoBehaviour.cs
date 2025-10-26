@@ -1131,6 +1131,19 @@ namespace Resonance.Player
                 : null;
         }
 
+        /// <summary>
+        /// Get the base damage value for wave attacks
+        /// For player, this comes from waveAttackDamages
+        /// </summary>
+        public float GetWaveBaseDamage()
+        {
+            if (IsInitialized && _playerController.Stats.waveAttackDamages != null)
+            {
+                return _playerController.Stats.waveAttackDamages.GetDamage(DamageType.CoreHealth);
+            }
+            return 0f;
+        }
+
         #endregion
 
         #region Debug

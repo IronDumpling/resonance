@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Utilities.Waves;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Interfaces
 {
@@ -13,5 +14,10 @@ namespace Resonance.Interfaces
         /// Get the Wave object associated with this IWavable
         /// </summary>
         Wave GetWave();
+
+        /// <summary>
+        /// Get the base damage value for wave attacks
+        /// </summary>
+        float GetWaveBaseDamage();
     }
 }

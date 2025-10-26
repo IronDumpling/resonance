@@ -30,7 +30,6 @@ namespace Resonance.UI
         [SerializeField] private TextMeshProUGUI _instructionText;
         
         [Header("Wave Damage Configuration")]
-        [SerializeField] private float _baseCoreDamage = 15f;
         [SerializeField] private float _perfectMatchMultiplier = 3f;  // Perfect: >90%
         [SerializeField] private float _goodMatchMultiplier = 1f;     // Good: >75%
         [SerializeField] private float _missMatchMultiplier = 0f;     // Miss: <75%
@@ -546,7 +545,8 @@ namespace Resonance.UI
             if (_instructionText == null) return;
             
             string resultText = GetResultText(result);
-            float damage = _baseCoreDamage * GetDamageMultiplier(result);
+            float baseCoreDamage = GetBaseCoreDamage();
+            float damage = baseCoreDamage * GetDamageMultiplier(result);
             
             _instructionText.text = $"{resultText}! Match: {matchPercentage:F0}% - {damage:F0} Core Damage";
             _instructionText.color = GetResultColor(result);
@@ -631,6 +631,20 @@ namespace Resonance.UI
         #region Damage System
 
         /// <summary>
+        /// Get the base core damage from the source wavable (attacker)
+        /// </summary>
+        private float GetBaseCoreDamage()
+        {
+            if (_sourceWavable != null)
+            {
+                return _sourceWavable.GetWaveBaseDamage();
+            }
+            
+            Debug.LogWarning("WavePanel: Source wavable is null, returning 0 damage");
+            return 0f;
+        }
+
+        /// <summary>
         /// Apply wave damage to target based on match quality
         /// </summary>
         private void ApplyWaveDamage(float matchPercentage, WaveInteractionResult result)
@@ -643,9 +657,10 @@ namespace Resonance.UI
             
             // Calculate damage multiplier based on result
             float damageMultiplier = GetDamageMultiplier(result);
-            float finalDamage = _baseCoreDamage * damageMultiplier;
+            float baseCoreDamage = GetBaseCoreDamage();
+            float finalDamage = baseCoreDamage * damageMultiplier;
             
-            Debug.Log($"WavePanel: Applying {finalDamage:F1} core damage (multiplier: {damageMultiplier}x)");
+            Debug.Log($"WavePanel: Applying {finalDamage:F1} core damage (base: {baseCoreDamage:F1}, multiplier: {damageMultiplier}x)");
             
             // Apply core damage
             bool damageApplied = ApplyCoreDamageToEnemy(finalDamage);

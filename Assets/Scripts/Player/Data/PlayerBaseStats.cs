@@ -27,6 +27,10 @@ namespace Resonance.Player.Data
         [Tooltip("Physical damage to crystal core energy ratio")]
         [SerializeField] private float _physicalDamageToCoreEnergyRatio = 0.4f;
 
+        [Header("Wave Attack Attributes")]
+        [Tooltip("Wave attack damages")]
+        [SerializeField] private Damages _waveAttackDamages;
+
         [Header("Movement Attributes")]
         [Tooltip("Walk speed")]
         [SerializeField] private float _walkSpeed = 3f;
@@ -69,6 +73,9 @@ namespace Resonance.Player.Data
         public CrystalCoreConfig CrystalCoreConfig => _crystalCoreConfig;
         public float HealthRestoreValue => _healthRestoreValue;
         public float PhysicalDamageToCoreEnergyRatio => _physicalDamageToCoreEnergyRatio;
+
+        // Wave attack attributes accessors
+        public Damages WaveAttackDamages => _waveAttackDamages;
 
         // Movement attributes accessors
         public float WalkSpeed => _walkSpeed;

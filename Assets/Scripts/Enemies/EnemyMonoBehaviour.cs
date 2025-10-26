@@ -963,6 +963,18 @@ namespace Resonance.Enemies
                 : null;
         }
 
+        /// <summary>
+        /// Get the base damage value for wave attacks
+        /// </summary>
+        public float GetWaveBaseDamage()
+        {
+            if (IsInitialized && _enemyController.Stats.waveAttackStats.damages != null)
+            {
+                return _enemyController.Stats.waveAttackStats.damages.GetDamage(DamageType.CoreHealth);
+            }
+            return 0f;
+        }
+
         #endregion
 
         #region Debug

@@ -24,6 +24,9 @@ namespace Resonance.Player.Data
         public float physicalDamageToCoreEnergyRatio;
         public float chaosRecoveryRate;
 
+        [Header("Wave Attack Attributes")]
+        public Damages waveAttackDamages;
+
         [Header("Movement Attributes")]
         public float walkSpeed;
         public float runSpeed;
@@ -72,6 +75,9 @@ namespace Resonance.Player.Data
             healthRestoreValue = baseStats.HealthRestoreValue;
             physicalDamageToCoreEnergyRatio = baseStats.PhysicalDamageToCoreEnergyRatio;
             
+            // Copy wave attack attributes
+            waveAttackDamages = baseStats.WaveAttackDamages;
+
             // Copy movement attributes
             walkSpeed = baseStats.WalkSpeed;
             runSpeed = baseStats.RunSpeed;
