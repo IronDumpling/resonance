@@ -49,6 +49,23 @@ namespace Resonance.Utilities.Waves
         public WaveChaosState ChaosState => _chaosState;
         public float ChaosPercentage => _maxChaos > 0 ? _currentChaos / _maxChaos : 0f;
         
+        /// <summary>
+        /// Get the chaos intensity as a value between 0 and 1
+        /// Formula: (currentChaos - chaosThreshold) / (maxChaos - chaosThreshold)
+        /// 0 = no chaos effect, 1 = full chaos effect
+        /// </summary>
+        public float ChaosIntensity
+        {
+            get
+            {
+                if (_currentChaos <= _chaosThreshold)
+                    return 0f;
+                
+                float intensity = (_currentChaos - _chaosThreshold) / (_maxChaos - _chaosThreshold);
+                return Mathf.Clamp01(intensity);
+            }
+        }
+        
         #endregion
         
         #region Events
@@ -113,10 +130,11 @@ namespace Resonance.Utilities.Waves
 
             float resultValue = interpolatedValue * _amplitude;
 
-            if (_chaosState == WaveChaosState.Chaos)
+            // Apply chaos effect based on chaos intensity
+            float chaosIntensity = ChaosIntensity;
+            if (chaosIntensity > 0f)
             {
-                float chaosFactor = ChaosPercentage;
-                resultValue += Random.Range(-_amplitude * chaosFactor, _amplitude * chaosFactor);
+                resultValue = ApplyChaosEffect(resultValue, chaosIntensity, normalizedPosition);
             }
 
             return resultValue;
@@ -187,8 +205,45 @@ namespace Resonance.Utilities.Waves
         }
 
         #endregion
-        
+
         #region Chaos Methods
+        
+        /// <summary>
+        /// Apply chaos effect to wave value based on intensity
+        /// At intensity 1: completely random values in [-amplitude, +amplitude] range
+        /// At intensity 0: original wave value
+        /// Smooth transition between the two states
+        /// </summary>
+        /// <param name="originalValue">The original wave value</param>
+        /// <param name="chaosIntensity">Chaos intensity (0-1)</param>
+        /// <param name="normalizedPosition">Normalized position for consistent random seeding</param>
+        /// <returns>Modified wave value with chaos effect applied</returns>
+        private float ApplyChaosEffect(float originalValue, float chaosIntensity, float normalizedPosition)
+        {
+            // Generate a completely random value in the amplitude range
+            // Use normalizedPosition as seed for consistent randomness per position
+            Random.State oldState = Random.state;
+            Random.InitState(Mathf.RoundToInt(normalizedPosition * 10000f) + Mathf.RoundToInt(Time.time * 1000f));
+            
+            float randomValue = Random.Range(-_amplitude, _amplitude);
+            
+            // Restore original random state
+            Random.state = oldState;
+            
+            // Interpolate between original value and random value based on chaos intensity
+            // At intensity 0: return originalValue
+            // At intensity 1: return randomValue
+            float chaoticValue = Mathf.Lerp(originalValue, randomValue, chaosIntensity);
+            
+            // Add additional frequency modulation for extra chaos when intensity is high
+            if (chaosIntensity > 0.5f)
+            {
+                float frequencyModulation = Random.Range(0.8f, 1.2f);
+                chaoticValue *= Mathf.Lerp(1f, frequencyModulation, (chaosIntensity - 0.5f) * 2f);
+            }
+            
+            return chaoticValue;
+        }
         
         /// <summary>
         /// Add chaos value
