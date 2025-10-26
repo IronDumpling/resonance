@@ -71,7 +71,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 662e24cdcac205f459ddbb54d1c1ac68, type: 2}
+  - {fileID: 2100000, guid: b48c4e63fd605d446b2114d433339141, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -98,7 +98,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 1
+    widthMultiplier: 5
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -278,9 +278,6 @@ MonoBehaviour:
   _sourceWaveLine: {fileID: 5540271172190854697}
   _waveScrollSpeed: 1
   _waveStopScrollDuration: 0.5
-  _waveLinePointCount: 1024
-  _waveDisplayWidth: 300
-  _waveDisplayHeight: 100
   _instructionText: {fileID: 3396357682942226585}
   _baseCoreDamage: 15
   _perfectMatchMultiplier: 3
@@ -384,7 +381,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 1
+    widthMultiplier: 5
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -548,8 +545,8 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2347946826292452727}
   - {fileID: 6399918004129117400}
+  - {fileID: 2347946826292452727}
   m_Father: {fileID: 3241291387111082700}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}

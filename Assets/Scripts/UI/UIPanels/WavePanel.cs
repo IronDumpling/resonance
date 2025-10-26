@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
 using Resonance.Core;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
@@ -23,9 +24,6 @@ namespace Resonance.UI
         [Header("Wave Visual Configuration")]
         [SerializeField] private float _waveScrollSpeed = 1f;
         [SerializeField] private float _waveStopScrollDuration = 0.5f;
-        [SerializeField] private int _waveLinePointCount = 1024; // Number of points to sample from wave
-        [SerializeField] private float _waveDisplayWidth = 100f; // Display width in world units
-        [SerializeField] private float _waveDisplayHeight = 50f; // Display height multiplier
 
         [SerializeField] private TextMeshProUGUI _instructionText;
         
@@ -296,16 +294,18 @@ namespace Resonance.UI
         /// </summary>
         private void InitializeLineRenderers()
         {
+            int waveformCount = Wave.WaveformResolution;
+            
             if (_sourceWaveLine != null)
             {
-                _sourceWaveLine.positionCount = _waveLinePointCount;
+                _sourceWaveLine.positionCount = waveformCount;
                 _sourceWaveLine.useWorldSpace = false;
                 Debug.Log("WavePanel: Initialized source wave LineRenderer");
             }
             
             if (_targetWaveLine != null)
             {
-                _targetWaveLine.positionCount = _waveLinePointCount;
+                _targetWaveLine.positionCount = waveformCount;
                 _targetWaveLine.useWorldSpace = false;
                 Debug.Log("WavePanel: Initialized target wave LineRenderer");
             }
@@ -319,21 +319,32 @@ namespace Resonance.UI
             if (_sourceWave == null || _targetWave == null) return;
             if (_sourceWaveLine == null || _targetWaveLine == null) return;
             
+            Rect scopeRect = _waveScopeArea.rect;
+            float scopeWidth = scopeRect.width;
+            float scopeHeight = scopeRect.height;
+            Vector2 scopePivot = _waveScopeArea.pivot;
+
+            int waveformCount = Wave.WaveformResolution;
+
             // Sample points from both waves
-            for (int i = 0; i < _waveLinePointCount; i++)
+            for (int i = 0; i < waveformCount; i++)
             {
-                float t = (float)i / (_waveLinePointCount - 1); // 0 to 1
-                float x = t * _waveDisplayWidth - _waveDisplayWidth * 0.5f; // Center at 0
+                float t = (float)i / (waveformCount - 1); // 0 to 1
+                float x = t * scopeWidth - scopeWidth* scopePivot.x; // Center at 0
                 
-                // Source wave: apply scroll offset
-                float sourceNormalizedPos = (t + _scrollOffset) % 1f;
-                float sourceValue = _sourceWave.GetWaveValue(sourceNormalizedPos);
-                Vector3 sourcePosition = new Vector3(x, sourceValue * _waveDisplayHeight, 0f);
+                // Source wave: Scroll
+                float sourceScrollPos = (t + _scrollOffset) % 1f;
+                float sourceValueRaw = _sourceWave.GetWaveValue(sourceScrollPos);
+                float sourceNormalizedY = (_sourceWave.Amplitude > 0) ? (sourceValueRaw / _sourceWave.Amplitude + 1f) * 0.5f : 0.5f;
+                float sourceY = sourceNormalizedY * scopeHeight - scopeHeight * scopePivot.y;
+                Vector3 sourcePosition = new (x, sourceY, 0f);
                 _sourceWaveLine.SetPosition(i, sourcePosition);
                 
-                // Target wave: no scroll (stationary)
-                float targetValue = _targetWave.GetWaveValue(t);
-                Vector3 targetPosition = new Vector3(x, targetValue * _waveDisplayHeight, 0f);
+                // Target wave: Stationary
+                float targetValueRaw = _targetWave.GetWaveValue(t);
+                float targetNormalizedY = (_targetWave.Amplitude > 0) ? (targetValueRaw / _targetWave.Amplitude + 1f) * 0.5f : 0.5f;
+                float targetY = targetNormalizedY * scopeHeight - scopeHeight * scopePivot.y;
+                Vector3 targetPosition = new (x, targetY, 0f);
                 _targetWaveLine.SetPosition(i, targetPosition);
             }
         }
@@ -380,7 +391,7 @@ namespace Resonance.UI
         private float CalculateWaveMatch()
         {
             float totalDifference = 0f;
-            int sampleCount = _waveLinePointCount;
+            int sampleCount = Wave.WaveformResolution;
             
             // Sample both waves at the same points
             for (int i = 0; i < sampleCount; i++)

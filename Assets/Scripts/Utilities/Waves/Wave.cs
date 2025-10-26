@@ -20,7 +20,7 @@ namespace Resonance.Utilities.Waves
 
         [Header("Sampled Representation")]
         [SerializeField] private float[] _waveformTable; // Stores one full cycle of the wave sampled at discrete points, normalized between -1 and 1.
-        [SerializeField] private readonly int WAVEFORM_RESOLUTION = 1024; // Standard resolution for the LUT
+        [SerializeField] private static int WAVEFORM_RESOLUTION = 1024; // Standard resolution for the LUT
         
         #endregion
         
@@ -41,7 +41,7 @@ namespace Resonance.Utilities.Waves
         public float Amplitude => _amplitude;
         public float Length => _length;
         public float[] WaveformTable => _waveformTable;
-        public int WaveformResolution => WAVEFORM_RESOLUTION;
+        public static int WaveformResolution => WAVEFORM_RESOLUTION;
         
         public float CurrentChaos => _currentChaos;
         public float MaxChaos => _maxChaos;

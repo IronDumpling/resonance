@@ -65,7 +65,7 @@ namespace Resonance.Utilities.CrystalCore
         public float Amplitude => _wave?.Amplitude ?? 1.0f;
         public float Length => _wave?.Length ?? 10.0f;
         public float[] WaveformTable => _wave?.WaveformTable ?? new float[0];
-        public int WaveformResolution => _wave?.WaveformResolution ?? 1024;
+        public static int WaveformResolution => Wave.WaveformResolution;
         public float CurrentChaos => _wave?.CurrentChaos ?? 0f;
         public float MaxChaos => _wave?.MaxChaos ?? 0f;
         public float ChaosThreshold => _wave?.ChaosThreshold ?? 0f;
