@@ -453,20 +453,51 @@ namespace Resonance.UI
                 return;
             }
             
+            if (_targetWavable == null)
+            {
+                Debug.LogError("WavePanel: Cannot process input - target wavable is null");
+                return;
+            }
+            
+            // Check chaos states of both waves
+            var (sourceState, targetState) = CheckChaosStates();
+            
             // Calculate wave match percentage
             float matchPercentage = CalculateWaveMatch();
             WaveInteractionResult result = GetInteractionResult(matchPercentage);
             
-            Debug.Log($"WavePanel: Wave match: {matchPercentage:F1}%, Result: {result}");
+            // Override result based on chaos states
+            WaveInteractionResult effectiveResult = result;
+            if (sourceState == WaveChaosState.Chaos || targetState == WaveChaosState.Chaos)
+            {
+                if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Chaos)
+                {
+                    // Both chaos - special case, will be handled in ProcessWaveInteraction
+                    Debug.Log("WavePanel: Both waves in Chaos - special interaction");
+                }
+                else
+                {
+                    // One is chaos - force perfect
+                    effectiveResult = WaveInteractionResult.Perfect;
+                    Debug.Log($"WavePanel: Chaos state detected - forcing Perfect result");
+                }
+            }
+            
+            Debug.Log($"WavePanel: Wave match: {matchPercentage:F1}%, Result: {result}, Effective Result: {effectiveResult}");
             
             // Stop scrolling temporarily
             StopScrollingTemporarily();
             
-            // Apply damage based on match quality
-            ApplyWaveDamage(matchPercentage, result);
+            // Process wave interaction based on chaos states
+            bool damageApplied = ProcessWaveInteraction(sourceState, targetState, matchPercentage, effectiveResult);
             
-            // Show feedback
-            ShowMatchFeedback(matchPercentage, result);
+            if (!damageApplied)
+            {
+                Debug.LogWarning("WavePanel: Failed to process wave interaction");
+            }
+            
+            // Show feedback (use effective result for visual feedback)
+            ShowMatchFeedback(matchPercentage, effectiveResult);
         }
         
         /// <summary>
@@ -637,7 +668,8 @@ namespace Resonance.UI
         {
             if (_sourceWavable != null)
             {
-                return _sourceWavable.GetWaveBaseDamage();
+                Damages damages = _sourceWavable.GetWaveBaseDamages();
+                return damages.GetDamage(DamageType.CoreHealth);
             }
             
             Debug.LogWarning("WavePanel: Source wavable is null, returning 0 damage");
@@ -645,32 +677,115 @@ namespace Resonance.UI
         }
 
         /// <summary>
-        /// Apply wave damage to target based on match quality
+        /// Get the base damages from the source wavable (attacker)
         /// </summary>
-        private void ApplyWaveDamage(float matchPercentage, WaveInteractionResult result)
+        private Damages GetBaseDamages()
         {
-            if (_targetCore == null)
+            if (_sourceWavable != null)
             {
-                Debug.LogError("WavePanel: Cannot apply damage - target core is null");
-                return;
+                return _sourceWavable.GetWaveBaseDamages();
             }
             
-            // Calculate damage multiplier based on result
-            float damageMultiplier = GetDamageMultiplier(result);
-            float baseCoreDamage = GetBaseCoreDamage();
-            float finalDamage = baseCoreDamage * damageMultiplier;
-            
-            Debug.Log($"WavePanel: Applying {finalDamage:F1} core damage (base: {baseCoreDamage:F1}, multiplier: {damageMultiplier}x)");
-            
-            // Apply core damage
-            bool damageApplied = ApplyCoreDamageToEnemy(finalDamage);
-            
-            if (!damageApplied)
-            {
-                Debug.LogWarning("WavePanel: Failed to apply core damage to enemy");
-            }
+            Debug.LogWarning("WavePanel: Source wavable is null, returning empty damages");
+            return new Damages();
         }
-        
+
+        /// <summary>
+        /// Check the chaos states of both source and target waves
+        /// </summary>
+        /// <returns>Tuple of (source chaos state, target chaos state)</returns>
+        private (WaveChaosState sourceState, WaveChaosState targetState) CheckChaosStates()
+        {
+            WaveChaosState sourceState = _sourceWave?.ChaosState ?? WaveChaosState.Order;
+            WaveChaosState targetState = _targetWave?.ChaosState ?? WaveChaosState.Order;
+            
+            Debug.Log($"WavePanel: Chaos states - Source: {sourceState}, Target: {targetState}");
+            
+            return (sourceState, targetState);
+        }
+
+        /// <summary>
+        /// Calculate final damages by applying multiplier to both CoreHealth and Chaos damage
+        /// </summary>
+        private Damages CalculateFinalDamages(float damageMultiplier)
+        {
+            Damages baseDamages = GetBaseDamages();
+            float baseCoreDamage = baseDamages.GetDamage(DamageType.CoreHealth);
+            float baseChaosDamage = baseDamages.GetDamage(DamageType.Chaos);
+            
+            Damages finalDamages = new Damages();
+            finalDamages.SetDamage(DamageType.CoreHealth, baseCoreDamage * damageMultiplier);
+            finalDamages.SetDamage(DamageType.Chaos, baseChaosDamage * damageMultiplier);
+            
+            Debug.Log($"WavePanel: Calculated damages - " +
+                      $"CoreHealth: {finalDamages.GetDamage(DamageType.CoreHealth):F1} " +
+                      $"(base: {baseCoreDamage:F1}), " +
+                      $"Chaos: {finalDamages.GetDamage(DamageType.Chaos):F1} " +
+                      $"(base: {baseChaosDamage:F1}), " +
+                      $"Multiplier: {damageMultiplier}x");
+            
+            return finalDamages;
+        }
+
+        /// <summary>
+        /// Process wave interaction based on chaos states
+        /// Handles different combinations of Order and Chaos states
+        /// </summary>
+        private bool ProcessWaveInteraction(WaveChaosState sourceState, WaveChaosState targetState, 
+                                           float matchPercentage, WaveInteractionResult result)
+        {
+            // Case 1: Both are in Order state - use normal matching logic
+            if (sourceState == WaveChaosState.Order && targetState == WaveChaosState.Order)
+            {
+                Debug.Log("WavePanel: Both waves in Order state - using normal matching logic");
+                
+                float damageMultiplier = GetDamageMultiplier(result);
+                Damages finalDamages = CalculateFinalDamages(damageMultiplier);
+                
+                return _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage (Order)");
+            }
+            
+            // Case 2: Source is Chaos - always perfect match
+            else if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Order)
+            {
+                Debug.Log("WavePanel: Source in Chaos state - forcing Perfect result");
+                
+                float damageMultiplier = GetDamageMultiplier(WaveInteractionResult.Perfect);
+                Damages finalDamages = CalculateFinalDamages(damageMultiplier);
+                
+                return _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage (Source Chaos)");
+            }
+            
+            // Case 3: Target is Chaos - always perfect match
+            else if (sourceState == WaveChaosState.Order && targetState == WaveChaosState.Chaos)
+            {
+                Debug.Log("WavePanel: Target in Chaos state - forcing Perfect result");
+                
+                float damageMultiplier = GetDamageMultiplier(WaveInteractionResult.Perfect);
+                Damages finalDamages = CalculateFinalDamages(damageMultiplier);
+                
+                return _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage (Target Chaos)");
+            }
+            
+            // Case 4: Both are Chaos - reset both chaos values and exit wave state
+            else if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Chaos)
+            {
+                Debug.Log("WavePanel: Both waves in Chaos state - resetting chaos and exiting wave state");
+                
+                // Reset both chaos values
+                _sourceWave?.ResetChaos();
+                _targetWave?.ResetChaos();
+                
+                // TODO: Exit wave state
+                // Hide();
+                
+                return true;
+            }
+            
+            Debug.LogWarning($"WavePanel: Unexpected chaos state combination - Source: {sourceState}, Target: {targetState}");
+            return false;
+        }
+
         /// <summary>
         /// Get damage multiplier based on interaction result
         /// </summary>
@@ -687,43 +802,6 @@ namespace Resonance.UI
                 default:
                     return 1f;
             }
-        }
-        
-        /// <summary>
-        /// Apply core damage to the target enemy
-        /// </summary>
-        /// <param name="damage">Amount of core damage to apply</param>
-        /// <returns>True if damage was successfully applied</returns>
-        private bool ApplyCoreDamageToEnemy(float damage)
-        {
-            var enemyMono = _targetCore.GetEnemyMonoBehaviour();
-            if (enemyMono == null)
-            {
-                Debug.LogError("WavePanel: Cannot apply damage - enemy MonoBehaviour is null");
-                return false;
-            }
-            
-            // Get player position for damage source
-            var playerService = ServiceRegistry.Get<IPlayerService>();
-            Vector3 playerPosition = playerService?.CurrentPlayer?.transform.position ?? Vector3.zero;
-            GameObject playerObject = playerService?.CurrentPlayer?.gameObject;
-
-            Damages damages = new Damages();
-            damages.SetDamage(DamageType.CoreHealth, damage);
-            
-            // Create damage information
-            DamageInfo damageInfo = new DamageInfo(
-                damages: damages,
-                sourcePosition: playerPosition,
-                sourceObject: playerObject,
-                description: "Wave QTE Core Damage"
-            );
-            
-            // Apply damage through the enemy's damage system
-            enemyMono.TakeDamage(damageInfo);
-            
-            Debug.Log($"WavePanel: Applied {damage:F1} core damage to {enemyMono.name}");
-            return true;
         }
         
         #endregion

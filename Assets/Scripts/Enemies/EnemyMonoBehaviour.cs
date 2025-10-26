@@ -966,13 +966,65 @@ namespace Resonance.Enemies
         /// <summary>
         /// Get the base damage value for wave attacks
         /// </summary>
-        public float GetWaveBaseDamage()
+        public Damages GetWaveBaseDamages()
         {
             if (IsInitialized && _enemyController.Stats.waveAttackStats.damages != null)
             {
-                return _enemyController.Stats.waveAttackStats.damages.GetDamage(DamageType.CoreHealth);
+                return _enemyController.Stats.waveAttackStats.damages;
             }
-            return 0f;
+            return new Damages();
+        }
+
+        /// <summary>
+        /// Apply wave damages from a source wavable
+        /// </summary>
+        /// <param name="damages">Damages to apply</param>
+        /// <param name="sourceWavable">The source of the wave attack</param>
+        /// <param name="description">Description of the damage source</param>
+        /// <returns>True if damage was successfully applied</returns>
+        public bool ApplyWaveDamages(Damages damages, IWavable sourceWavable, string description = "Wave Damage")
+        {
+            if (!IsInitialized)
+            {
+                Debug.LogError($"EnemyMonoBehaviour: Cannot apply wave damages - not initialized");
+                return false;
+            }
+
+            if (damages == null)
+            {
+                Debug.LogError($"EnemyMonoBehaviour: Cannot apply wave damages - damages is null");
+                return false;
+            }
+
+            // Get source information
+            Vector3 sourcePosition = Vector3.zero;
+            GameObject sourceObject = null;
+
+            if (sourceWavable != null)
+            {
+                if (sourceWavable is MonoBehaviour sourceMono)
+                {
+                    sourcePosition = sourceMono.transform.position;
+                    sourceObject = sourceMono.gameObject;
+                }
+            }
+
+            // Create damage info
+            DamageInfo damageInfo = new DamageInfo(
+                damages: damages,
+                sourcePosition: sourcePosition,
+                sourceObject: sourceObject,
+                description: description
+            );
+
+            // Apply damage through the enemy's damage system
+            TakeDamage(damageInfo);
+
+            Debug.Log($"EnemyMonoBehaviour: Applied wave damages to {name} - " +
+                      $"CoreHealth: {damages.GetDamage(DamageType.CoreHealth):F1}, " +
+                      $"Chaos: {damages.GetDamage(DamageType.Chaos):F1}");
+            
+            return true;
         }
 
         #endregion

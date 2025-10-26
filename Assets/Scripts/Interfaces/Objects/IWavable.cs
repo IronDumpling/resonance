@@ -16,8 +16,17 @@ namespace Resonance.Interfaces
         Wave GetWave();
 
         /// <summary>
-        /// Get the base damage value for wave attacks
+        /// Get the base damages for wave attacks
         /// </summary>
-        float GetWaveBaseDamage();
+        Damages GetWaveBaseDamages();
+
+        /// <summary>
+        /// Apply wave damages from a source wavable
+        /// </summary>
+        /// <param name="damages">Damages to apply</param>
+        /// <param name="sourceWavable">The source of the wave attack</param>
+        /// <param name="description">Description of the damage source</param>
+        /// <returns>True if damage was successfully applied</returns>
+        bool ApplyWaveDamages(Damages damages, IWavable sourceWavable, string description = "Wave Damage");
     }
 }
