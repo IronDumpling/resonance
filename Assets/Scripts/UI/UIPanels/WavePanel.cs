@@ -22,18 +22,24 @@ namespace Resonance.UI
         [SerializeField] private LineRenderer _sourceWaveLine;
 
         [Header("Wave Visual Configuration")]
+        [SerializeField] private float _waveLineWidth = 0.002f;
         [SerializeField] private float _waveScrollSpeed = 1f;
         [SerializeField] private float _waveStopScrollDuration = 0.5f;
 
+        [Header("Information UI Elements")]
         [SerializeField] private TextMeshProUGUI _instructionText;
         
-        // Wave attack damage configuration
         [Header("Wave Damage Configuration")]
         [SerializeField] private float _baseCoreDamage = 15f;
         [SerializeField] private float _perfectMatchMultiplier = 3f;  // Perfect: >90%
         [SerializeField] private float _goodMatchMultiplier = 1f;     // Good: >75%
         [SerializeField] private float _missMatchMultiplier = 0f;     // Miss: <75%
 
+        private Canvas _canvas;
+        private Camera _renderCamera;
+        private float _defaultPlaneDistance = 1f;
+        private Vector3[] _scopeAreaCorners = new Vector3[4];
+        
         // Wave system references
         private IInputService _inputService;
         private bool _isInitialized = false;
@@ -54,14 +60,51 @@ namespace Resonance.UI
         // Input filtering
         private float _panelOpenTime = 0f;
 
+        #region Unity Lifecycle
+
+        /// <summary>
+        /// Awake method - initializes the WavePanel
+        /// </summary>
         protected override void Awake()
         {
             base.Awake();
             _panelName = "WavePanel";
             _layer = UILayer.Game;
             _hideOnStart = true;
+
+            _canvas = GetComponent<Canvas>();
+            if (_canvas == null)
+            {
+                Debug.LogError("WavePanel: Canvas component not found on this GameObject");
+                enabled = false;
+                return;
+            }
         }
-        
+
+        /// <summary>
+        /// Update method - updates wave scrolling and rendering
+        /// </summary>
+        private void Update()
+        {
+            if (!_isWaveActive || !_isInitialized) return;
+            
+            // Update scroll offset if scrolling
+            if (_isScrolling)
+            {
+                _scrollOffset += _waveScrollSpeed * Time.deltaTime;
+                // Wrap around when offset exceeds 1 (one full wavelength)
+                if (_scrollOffset >= 1f)
+                {
+                    _scrollOffset -= 1f;
+                }
+            }
+            
+            // Update wave line rendering
+            UpdateWaveLines();
+        }
+
+        #endregion
+
         #region UIPanel Overrides
 
         protected override void OnInitialize()
@@ -78,6 +121,9 @@ namespace Resonance.UI
                 _inputService.OnQTE += OnQTEInput;
                 Debug.Log("WavePanel: Subscribed to QTE input events");
             }
+
+            // Initialize canvas camera
+            InitializeCanvasCamera();
             
             // Initialize LineRenderers
             InitializeLineRenderers();
@@ -185,8 +231,74 @@ namespace Resonance.UI
         }
         
         #endregion
+
+        #region Canvas Camera Logic
+
+        /// <summary>
+        /// Initialize the canvas camera
+        /// </summary>
+        private void InitializeCanvasCamera()
+        {
+            if (_canvas == null) return;
+
+            // 1. Set render mode
+            _canvas.renderMode = RenderMode.ScreenSpaceCamera;
+
+            // 2. Find and set render camera
+            GameObject cameraGO = GameObject.FindWithTag("MainCamera");
+            if (cameraGO != null)
+            {
+                _renderCamera = cameraGO.GetComponent<Camera>();
+                if (_renderCamera != null)
+                {
+                    _canvas.worldCamera = _renderCamera;
+                    Debug.Log("WavePanel: Found and assigned Render Camera: " + _renderCamera.name);
+                }
+                else
+                {
+                    Debug.LogError("WavePanel: GameObject tagged 'MainCamera' does not have a Camera component!");
+                }
+            }
+            else
+            {
+                Debug.LogError("WavePanel: Could not find GameObject tagged 'MainCamera'!");
+            }
+
+            // 3. Set Plane Distance
+            // Set a value close to the camera's near clip plane to ensure the UI is in front of most objects
+            _canvas.planeDistance = (_renderCamera != null) ? _renderCamera.nearClipPlane + 0.1f : _defaultPlaneDistance;
+            Debug.Log($"WavePanel: Set Plane Distance to: {_canvas.planeDistance}");
+        }
+
+        #endregion
         
         #region Wave System Logic
+
+        /// <summary>
+        /// Initialize LineRenderers with proper configuration
+        /// </summary>
+        private void InitializeLineRenderers()
+        {
+            int waveformCount = Wave.WaveformResolution;
+            
+            if (_sourceWaveLine != null)
+            {
+                _sourceWaveLine.positionCount = waveformCount;
+                _sourceWaveLine.useWorldSpace = true;
+                _sourceWaveLine.startWidth = _waveLineWidth;
+                _sourceWaveLine.endWidth = _waveLineWidth;
+                Debug.Log("WavePanel: Initialized source wave LineRenderer");
+            }
+            
+            if (_targetWaveLine != null)
+            {
+                _targetWaveLine.positionCount = waveformCount;
+                _targetWaveLine.useWorldSpace = true;
+                _targetWaveLine.startWidth = _waveLineWidth;
+                _targetWaveLine.endWidth = _waveLineWidth;
+                Debug.Log("WavePanel: Initialized target wave LineRenderer");
+            }
+        }
         
         /// <summary>
         /// Set the wave attack context (source and target IWavables)
@@ -231,6 +343,18 @@ namespace Resonance.UI
             _isWaveActive = true;
             _scrollOffset = 0f;
             _isScrolling = true;
+
+            if (_sourceWaveLine != null)
+            {
+                _sourceWaveLine.enabled = true;
+                _sourceWaveLine.positionCount = Wave.WaveformResolution;
+            }
+
+            if (_targetWaveLine != null)
+            {
+                _targetWaveLine.enabled = true;
+                _targetWaveLine.positionCount = Wave.WaveformResolution;
+            }
             
             // Update wave lines immediately
             UpdateWaveLines();
@@ -257,58 +381,16 @@ namespace Resonance.UI
             if (_sourceWaveLine != null)
             {
                 _sourceWaveLine.positionCount = 0;
+                _sourceWaveLine.enabled = false;
             }
             
             if (_targetWaveLine != null)
             {
                 _targetWaveLine.positionCount = 0;
+                _targetWaveLine.enabled = false;
             }
             
             Debug.Log("WavePanel: Stopped wave display");
-        }
-        
-        /// <summary>
-        /// Update method - updates wave scrolling and rendering
-        /// </summary>
-        private void Update()
-        {
-            if (!_isWaveActive || !_isInitialized) return;
-            
-            // Update scroll offset if scrolling
-            if (_isScrolling)
-            {
-                _scrollOffset += _waveScrollSpeed * Time.deltaTime;
-                // Wrap around when offset exceeds 1 (one full wavelength)
-                if (_scrollOffset >= 1f)
-                {
-                    _scrollOffset -= 1f;
-                }
-            }
-            
-            // Update wave line rendering
-            UpdateWaveLines();
-        }
-        
-        /// <summary>
-        /// Initialize LineRenderers with proper configuration
-        /// </summary>
-        private void InitializeLineRenderers()
-        {
-            int waveformCount = Wave.WaveformResolution;
-            
-            if (_sourceWaveLine != null)
-            {
-                _sourceWaveLine.positionCount = waveformCount;
-                _sourceWaveLine.useWorldSpace = false;
-                Debug.Log("WavePanel: Initialized source wave LineRenderer");
-            }
-            
-            if (_targetWaveLine != null)
-            {
-                _targetWaveLine.positionCount = waveformCount;
-                _targetWaveLine.useWorldSpace = false;
-                Debug.Log("WavePanel: Initialized target wave LineRenderer");
-            }
         }
         
         /// <summary>
@@ -318,11 +400,13 @@ namespace Resonance.UI
         {
             if (_sourceWave == null || _targetWave == null) return;
             if (_sourceWaveLine == null || _targetWaveLine == null) return;
-            
-            Rect scopeRect = _waveScopeArea.rect;
-            float scopeWidth = scopeRect.width;
-            float scopeHeight = scopeRect.height;
-            Vector2 scopePivot = _waveScopeArea.pivot;
+
+            _waveScopeArea.GetWorldCorners(_scopeAreaCorners);
+            float worldWidth = Vector3.Distance(_scopeAreaCorners[0], _scopeAreaCorners[3]);
+            float worldHeight = Vector3.Distance(_scopeAreaCorners[0], _scopeAreaCorners[1]);
+
+            Vector3 bottomLeftOrigin = _scopeAreaCorners[0];
+            float worldZ = bottomLeftOrigin.z;
 
             int waveformCount = Wave.WaveformResolution;
 
@@ -330,23 +414,25 @@ namespace Resonance.UI
             for (int i = 0; i < waveformCount; i++)
             {
                 float t = (float)i / (waveformCount - 1); // 0 to 1
-                float x = t * scopeWidth - scopeWidth* scopePivot.x; // Center at 0
+                float x = bottomLeftOrigin.x + t * worldWidth;
                 
-                // Source wave: Scroll
+                // Source wave Y Position: Scroll
                 float sourceScrollPos = (t + _scrollOffset) % 1f;
                 float sourceValueRaw = _sourceWave.GetWaveValue(sourceScrollPos);
                 float sourceNormalizedY = (_sourceWave.Amplitude > 0) ? (sourceValueRaw / _sourceWave.Amplitude + 1f) * 0.5f : 0.5f;
-                float sourceY = sourceNormalizedY * scopeHeight - scopeHeight * scopePivot.y;
-                Vector3 sourcePosition = new (x, sourceY, 0f);
+                float sourceY = bottomLeftOrigin.y + sourceNormalizedY * worldHeight;
+                Vector3 sourcePosition = new (x, sourceY, worldZ);
                 _sourceWaveLine.SetPosition(i, sourcePosition);
                 
-                // Target wave: Stationary
+                // Target wave Y Position: Stationary
                 float targetValueRaw = _targetWave.GetWaveValue(t);
                 float targetNormalizedY = (_targetWave.Amplitude > 0) ? (targetValueRaw / _targetWave.Amplitude + 1f) * 0.5f : 0.5f;
-                float targetY = targetNormalizedY * scopeHeight - scopeHeight * scopePivot.y;
-                Vector3 targetPosition = new (x, targetY, 0f);
+                float targetY = bottomLeftOrigin.y + targetNormalizedY * worldHeight;
+                Vector3 targetPosition = new (x, targetY, worldZ);
                 _targetWaveLine.SetPosition(i, targetPosition);
             }
+
+            Debug.Log($"WavePanel: Source wave amplitude: {_sourceWave.Amplitude}, Target wave amplitude: {_targetWave.Amplitude}");
         }
         
         /// <summary>
@@ -422,19 +508,6 @@ namespace Resonance.UI
         }
         
         /// <summary>
-        /// Get wave interaction result based on match percentage
-        /// </summary>
-        private WaveInteractionResult GetInteractionResult(float matchPercentage)
-        {
-            if (matchPercentage > 90f)
-                return WaveInteractionResult.Perfect;
-            else if (matchPercentage > 75f)
-                return WaveInteractionResult.Good;
-            else
-                return WaveInteractionResult.Miss;
-        }
-        
-        /// <summary>
         /// Stop scrolling temporarily, then resume after delay
         /// </summary>
         private void StopScrollingTemporarily()
@@ -460,50 +533,10 @@ namespace Resonance.UI
             _isScrolling = true;
             _scrollStopCoroutine = null;
         }
-        
-        /// <summary>
-        /// Apply wave damage to target based on match quality
-        /// </summary>
-        private void ApplyWaveDamage(float matchPercentage, WaveInteractionResult result)
-        {
-            if (_targetCore == null)
-            {
-                Debug.LogError("WavePanel: Cannot apply damage - target core is null");
-                return;
-            }
-            
-            // Calculate damage multiplier based on result
-            float damageMultiplier = GetDamageMultiplier(result);
-            float finalDamage = _baseCoreDamage * damageMultiplier;
-            
-            Debug.Log($"WavePanel: Applying {finalDamage:F1} core damage (multiplier: {damageMultiplier}x)");
-            
-            // Apply core damage
-            bool damageApplied = ApplyCoreDamageToEnemy(finalDamage);
-            
-            if (!damageApplied)
-            {
-                Debug.LogWarning("WavePanel: Failed to apply core damage to enemy");
-            }
-        }
-        
-        /// <summary>
-        /// Get damage multiplier based on interaction result
-        /// </summary>
-        private float GetDamageMultiplier(WaveInteractionResult result)
-        {
-            switch (result)
-            {
-                case WaveInteractionResult.Perfect:
-                    return _perfectMatchMultiplier;
-                case WaveInteractionResult.Good:
-                    return _goodMatchMultiplier;
-                case WaveInteractionResult.Miss:
-                    return _missMatchMultiplier;
-                default:
-                    return 1f;
-            }
-        }
+
+        #endregion
+
+        #region Visual Feedback Logic
         
         /// <summary>
         /// Show feedback based on match quality
@@ -520,6 +553,19 @@ namespace Resonance.UI
             
             // Play audio/visual effects
             PlayMatchEffects(result);
+        }
+        
+        /// <summary>
+        /// Get wave interaction result based on match percentage
+        /// </summary>
+        private WaveInteractionResult GetInteractionResult(float matchPercentage)
+        {
+            if (matchPercentage > 90f)
+                return WaveInteractionResult.Perfect;
+            else if (matchPercentage > 75f)
+                return WaveInteractionResult.Good;
+            else
+                return WaveInteractionResult.Miss;
         }
         
         /// <summary>
@@ -583,6 +629,50 @@ namespace Resonance.UI
         #endregion
         
         #region Damage System
+
+        /// <summary>
+        /// Apply wave damage to target based on match quality
+        /// </summary>
+        private void ApplyWaveDamage(float matchPercentage, WaveInteractionResult result)
+        {
+            if (_targetCore == null)
+            {
+                Debug.LogError("WavePanel: Cannot apply damage - target core is null");
+                return;
+            }
+            
+            // Calculate damage multiplier based on result
+            float damageMultiplier = GetDamageMultiplier(result);
+            float finalDamage = _baseCoreDamage * damageMultiplier;
+            
+            Debug.Log($"WavePanel: Applying {finalDamage:F1} core damage (multiplier: {damageMultiplier}x)");
+            
+            // Apply core damage
+            bool damageApplied = ApplyCoreDamageToEnemy(finalDamage);
+            
+            if (!damageApplied)
+            {
+                Debug.LogWarning("WavePanel: Failed to apply core damage to enemy");
+            }
+        }
+        
+        /// <summary>
+        /// Get damage multiplier based on interaction result
+        /// </summary>
+        private float GetDamageMultiplier(WaveInteractionResult result)
+        {
+            switch (result)
+            {
+                case WaveInteractionResult.Perfect:
+                    return _perfectMatchMultiplier;
+                case WaveInteractionResult.Good:
+                    return _goodMatchMultiplier;
+                case WaveInteractionResult.Miss:
+                    return _missMatchMultiplier;
+                default:
+                    return 1f;
+            }
+        }
         
         /// <summary>
         /// Apply core damage to the target enemy
