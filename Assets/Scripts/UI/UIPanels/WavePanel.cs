@@ -149,17 +149,25 @@ namespace Resonance.UI
         {
             Debug.Log("WavePanel: Hidden");
             
+            // Ensure player input is re-enabled when panel is hidden
+            if (_inputService != null)
+            {
+                _inputService.EnablePlayerInput();
+                Debug.Log("WavePanel: Player input re-enabled on panel hide");
+            }
+            
             // Stop wave display
             StopWaveDisplay();
         }
 
         protected override void OnCleanup()
         {
-            // Unsubscribe from events
+            // Ensure player input is re-enabled during cleanup
             if (_inputService != null)
             {
+                _inputService.EnablePlayerInput();
                 _inputService.OnQTE -= OnQTEInput;
-                Debug.Log("WavePanel: Unsubscribed from QTE input events");
+                Debug.Log("WavePanel: Player input re-enabled and unsubscribed from QTE input events");
             }
             
             // Stop wave display
@@ -458,6 +466,12 @@ namespace Resonance.UI
                 Debug.LogError("WavePanel: Cannot process input - target wavable is null");
                 return;
             }
+
+            if (!_isScrolling)
+            {
+                Debug.Log("WavePanel: Input ignored - wave is not scrolling");
+                return;
+            }
             
             // Check chaos states of both waves
             var (sourceState, targetState) = CheckChaosStates();
@@ -539,10 +553,18 @@ namespace Resonance.UI
         
         /// <summary>
         /// Stop scrolling temporarily, then resume after delay
+        /// Also disables wave input during the pause
         /// </summary>
         private void StopScrollingTemporarily()
         {
             _isScrolling = false;
+            
+            // Disable wave input during wave animation pause
+            if (_inputService != null)
+            {
+                _inputService.DisableWaveInput();
+                Debug.Log("WavePanel: Wave input disabled during wave animation pause");
+            }
             
             // Stop any existing coroutine
             if (_scrollStopCoroutine != null)
@@ -556,10 +578,19 @@ namespace Resonance.UI
         
         /// <summary>
         /// Coroutine to resume scrolling after delay
+        /// Also re-enables wave input when resuming
         /// </summary>
         private IEnumerator ResumeScrollingAfterDelay()
         {
             yield return new WaitForSeconds(_waveStopScrollDuration);
+            
+            // Re-enable wave input when resuming scrolling
+            if (_inputService != null)
+            {
+                _inputService.EnableWaveInput();
+                Debug.Log("WavePanel: Wave input re-enabled after wave animation pause");
+            }
+            
             _isScrolling = true;
             _scrollStopCoroutine = null;
         }

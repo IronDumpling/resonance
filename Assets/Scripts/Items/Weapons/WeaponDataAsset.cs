@@ -70,7 +70,6 @@ namespace Resonance.Items
         [Header("Recoil Offset (World Space)")]
         [Tooltip("Base recoil offset per shot - affected by consecutive shots and aiming (X: horizontal, Y: vertical, Z: backward)")]
         public Vector3 recoilOffset = new Vector3(0f, 1f, 0f);
-        
         [Tooltip("Random variance range for recoil - affected by accuracy (perfect aim = 0.1x, worst aim = 1.0x)")]
         public Vector3 recoilVariance = new Vector3(0.5f, 0.5f, 0.5f);
         
@@ -81,9 +80,18 @@ namespace Resonance.Items
         [Header("Recoil Recovery")]
         [Tooltip("Delay before recoil starts recovering (seconds)")]
         public float recoveryDelay = 0.3f;
-        
         [Tooltip("Recoil recovery speed (units per second)")]
         public float recoverySpeed = 3.0f;
+        
+        [Header("Camera Impulse")]
+        [Tooltip("Enable camera impulse shake on shooting")]
+        public bool enableCameraImpulse = true;
+        [Tooltip("Base impulse force for camera shake")]
+        public float impulseForce = 1.0f;
+        [Tooltip("Impulse force multiplier based on damage dealt (higher damage = stronger shake)")]
+        public bool scaleToDamage = false;
+        [Tooltip("Impulse force scale factor when scaling to damage (force = impulseForce * (damage * damageScaleFactor))")]
+        public float damageScaleFactor = 0.05f;
     }
 
     /// <summary>
