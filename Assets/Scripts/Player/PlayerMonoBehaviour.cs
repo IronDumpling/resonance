@@ -178,9 +178,9 @@ namespace Resonance.Player
             // Cleanup WaveAttackTrigger events
             if (_waveAttackTrigger != null)
             {
-                _waveAttackTrigger.OnCoreHitboxEntered -= OnCoreHitboxEnteredRange;
-                _waveAttackTrigger.OnCoreHitboxExited -= OnCoreHitboxExitedRange;
-                _waveAttackTrigger.OnCoreHitboxesChanged -= OnCoreHitboxesChangedInRange;
+                _waveAttackTrigger.OnWavableEntered -= OnWavableEnteredRange;
+                _waveAttackTrigger.OnWavableExited -= OnWavableExitedRange;
+                _waveAttackTrigger.OnWavablesChanged -= OnWavablesChangedInRange;
             }
 
             // Cleanup PlayerInteractTrigger
@@ -301,9 +301,9 @@ namespace Resonance.Player
             _waveAttackTrigger.Initialize(_playerController, waveAttackRange, waveInteractionLayerMask);
 
             // Subscribe to events for debugging
-            _waveAttackTrigger.OnCoreHitboxEntered += OnCoreHitboxEnteredRange;
-            _waveAttackTrigger.OnCoreHitboxExited += OnCoreHitboxExitedRange;
-            _waveAttackTrigger.OnCoreHitboxesChanged += OnCoreHitboxesChangedInRange;
+            _waveAttackTrigger.OnWavableEntered += OnWavableEnteredRange;
+            _waveAttackTrigger.OnWavableExited += OnWavableExitedRange;
+            _waveAttackTrigger.OnWavablesChanged += OnWavablesChangedInRange;
 
             Debug.Log($"PlayerMonoBehaviour: WaveAttackTrigger initialized with range {waveAttackRange} and layer mask {waveInteractionLayerMask.value}");
         }
@@ -419,7 +419,7 @@ namespace Resonance.Player
             if (!IsInitialized) return;
 
             // Short press F -> WaveAttackAction only when Core hitboxes are in range
-            if (HasCoreHitboxesInWaveAttackRange())
+            if (HasWavablesInWaveAttackRange())
             {
                 // Try to start WaveAttackAction
                 bool waveAttackStarted = _playerController.TryStartAction("WaveAttack");
@@ -450,7 +450,7 @@ namespace Resonance.Player
             if (isPressed)
             {
                 // F key pressed - try to start HealAction only when no Core hitboxes in range
-                if (!HasCoreHitboxesInWaveAttackRange())
+                if (!HasWavablesInWaveAttackRange())
                 {
                     bool recoverStarted = _playerController.TryStartAction("Heal");
                     if (recoverStarted)
@@ -1102,11 +1102,11 @@ namespace Resonance.Player
         /// Called when a Core hitbox enters wave attack range
         /// </summary>
         /// <param name="hitbox">The Core hitbox that entered range</param>
-        private void OnCoreHitboxEnteredRange(EnemyHitbox hitbox)
+        private void OnWavableEnteredRange(IWavable wavable)
         {
-            if (hitbox != null)
+            if (wavable != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} entered wave attack range");
+                Debug.Log($"PlayerMonoBehaviour: IWavable entered wave attack range");
             }
         }
 
@@ -1114,21 +1114,21 @@ namespace Resonance.Player
         /// Called when a Core hitbox exits wave attack range
         /// </summary>
         /// <param name="hitbox">The Core hitbox that exited range</param>
-        private void OnCoreHitboxExitedRange(EnemyHitbox hitbox)
+        private void OnWavableExitedRange(IWavable wavable)
         {
-            if (hitbox != null)
+            if (wavable != null)
             {
-                Debug.Log($"PlayerMonoBehaviour: Core hitbox {hitbox.name} exited wave attack range");
+                Debug.Log($"PlayerMonoBehaviour: IWavable exited wave attack range");
             }
         }
 
         /// <summary>
-        /// Called when the list of Core hitboxes in range changes
+        /// Called when the list of IWavables in range changes
         /// </summary>
-        private void OnCoreHitboxesChangedInRange()
+        private void OnWavablesChangedInRange()
         {
-            int coreHitboxCount = _waveAttackTrigger?.CoreHitboxCount ?? 0;
-            Debug.Log($"PlayerMonoBehaviour: Core hitboxes in wave attack range: {coreHitboxCount}");
+            int wavableCount = _waveAttackTrigger?.WavableCount ?? 0;
+            Debug.Log($"PlayerMonoBehaviour: IWavables in wave attack range: {wavableCount}");
         }
 
         /// <summary>
@@ -1136,37 +1136,9 @@ namespace Resonance.Player
         /// Used by PlayerActionController for priority logic
         /// </summary>
         /// <returns>True if there are Core hitboxes in range</returns>
-        public bool HasCoreHitboxesInWaveAttackRange()
+        public bool HasWavablesInWaveAttackRange()
         {
-            return _waveAttackTrigger?.HasCoreHitboxesInRange ?? false;
-        }
-
-        /// <summary>
-        /// Get the number of Core hitboxes in wave attack range
-        /// </summary>
-        /// <returns>Number of Core hitboxes in range</returns>
-        public int GetCoreHitboxCount()
-        {
-            return _waveAttackTrigger?.CoreHitboxCount ?? 0;
-        }
-
-        /// <summary>
-        /// Get the closest Core hitbox in wave attack range
-        /// Used by PlayerWaveAttackAction to find target
-        /// </summary>
-        /// <returns>Closest Core hitbox or null if none</returns>
-        public EnemyHitbox GetClosestCoreHitbox()
-        {
-            return _waveAttackTrigger?.GetClosestCoreHitbox();
-        }
-
-        /// <summary>
-        /// Get all Core hitboxes in wave attack range
-        /// </summary>
-        /// <returns>List of Core hitboxes in range</returns>
-        public List<EnemyHitbox> GetCoreHitboxesInRange()
-        {
-            return _waveAttackTrigger?.CoreHitboxesInRange ?? new List<EnemyHitbox>();
+            return _waveAttackTrigger?.HasWavablesInRange ?? false;
         }
 
         /// <summary>

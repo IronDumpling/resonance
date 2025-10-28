@@ -10,7 +10,7 @@ namespace Resonance.Player.Actions
 {
     /// <summary>
     /// Player Heal Action - triggered by holding F key when no Core hitboxes are in wave attack range
-    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyHitbox with enabled collider in WaveAttackRange
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, NO Core type EnemyPhysicalHitbox with enabled collider in WaveAttackRange
     /// Behavior: Player cannot move, consumes 1 CoreHealth slot every 1s, restores Health
     /// End condition: Release F key, or interrupted by damage, or reach full health, or no more core health
     /// </summary>
@@ -64,7 +64,7 @@ namespace Resonance.Player.Actions
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer != null)
             {
-                if (playerService.CurrentPlayer.HasCoreHitboxesInWaveAttackRange())
+                if (playerService.CurrentPlayer.HasWavablesInWaveAttackRange())
                 {
                     Debug.Log("PlayerHealAction: Cannot start - Core hitboxes in range (WaveAttackAction has priority)");
                     return false;
@@ -300,7 +300,7 @@ namespace Resonance.Player.Actions
         {
             // Check if Core hitboxes entered range (WaveAttackAction gets priority)
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            if (playerService?.CurrentPlayer?.HasCoreHitboxesInWaveAttackRange() == true)
+            if (playerService?.CurrentPlayer?.HasWavablesInWaveAttackRange() == true)
             {
                 Debug.Log("PlayerHealAction: Core hitboxes entered range, should cancel for WaveAttackAction priority");
                 return true;

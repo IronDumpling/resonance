@@ -182,8 +182,7 @@ namespace Resonance.Cameras
         /// </summary>
         /// <param name="sourceWavable">The source wavable (player or enemy)</param>
         /// <param name="targetWavable">The target wavable (player or enemy)</param>
-        /// <param name="targetCore">The target core hitbox (not used for camera switching)</param>
-        private void OnWaveStarted(IWavable sourceWavable, IWavable targetWavable, EnemyHitbox targetCore)
+        private void OnWaveStarted(IWavable sourceWavable, IWavable targetWavable)
         {
             Debug.Log("LevelCameraManager: Wave started, switching to player camera");
             SwitchToPlayerCamera();

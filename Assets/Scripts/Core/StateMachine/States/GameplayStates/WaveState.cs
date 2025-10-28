@@ -21,32 +21,29 @@ namespace Resonance.Core.StateMachine.States
         private IInputService _inputService;
         private IWavable _sourceWavable;  // The attacker (player or enemy)
         private IWavable _targetWavable;  // The target being attacked
-        private EnemyHitbox _targetCore;  // Reference for damage application
         private bool _isInitialized = false;
         
         // Safety timeout mechanism (Risk mitigation: Prevent stuck states)
         private float _stateEnterTime = 0f;
         private const float MAX_RESONANCE_DURATION = 30f; // 30 seconds timeout
 
-        public WaveState(IWavable sourceWavable = null, IWavable targetWavable = null, EnemyHitbox targetCore = null)
+        public WaveState(IWavable sourceWavable = null, IWavable targetWavable = null)
         {
             _sourceWavable = sourceWavable;
             _targetWavable = targetWavable;
-            _targetCore = targetCore;
         }
         
         /// <summary>
         /// Set the wave attack context before entering the state
         /// This must be called before Enter() if constructor was called with null parameters
         /// </summary>
-        public void SetWaveAttackContext(IWavable sourceWavable, IWavable targetWavable, EnemyHitbox targetCore)
+        public void SetWaveAttackContext(IWavable sourceWavable, IWavable targetWavable)
         {
             _sourceWavable = sourceWavable;
             _targetWavable = targetWavable;
-            _targetCore = targetCore;
             
             Debug.Log($"WaveState: Set wave attack context - Source: {(sourceWavable != null ? "valid" : "null")}, " +
-                     $"Target: {(targetWavable != null ? "valid" : "null")}, Core: {targetCore?.name}");
+                     $"Target: {(targetWavable != null ? "valid" : "null")}");
         }
 
         public void Enter()
@@ -67,8 +64,8 @@ namespace Resonance.Core.StateMachine.States
                 var wavePanel = _uiService.GetPanel<WavePanel>("WavePanel");
                 if (wavePanel != null)
                 {
-                    wavePanel.SetWaveAttackContext(_sourceWavable, _targetWavable, _targetCore);
-                    Debug.Log($"WaveState: Initialized WavePanel with source and target wavables, target core: {_targetCore?.name}");
+                    wavePanel.SetWaveAttackContext(_sourceWavable, _targetWavable);
+                    Debug.Log($"WaveState: Initialized WavePanel with source and target wavables");
                 }
             }
             
@@ -99,9 +96,9 @@ namespace Resonance.Core.StateMachine.States
             }
             
             // Monitor target core state for safety (defensive programming)
-            if (_targetCore == null || !_targetCore.IsInitialized)
+            if (_targetWavable == null)
             {
-                Debug.LogWarning("WaveState: Target core is null or not initialized");
+                Debug.LogWarning("WaveState: Target core is null");
                 return;
             }
             
@@ -129,7 +126,7 @@ namespace Resonance.Core.StateMachine.States
             }
             
             // Clear references
-            _targetCore = null;
+            _targetWavable = null;
             _isInitialized = false;
         }
 

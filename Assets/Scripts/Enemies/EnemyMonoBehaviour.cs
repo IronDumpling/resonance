@@ -19,7 +19,7 @@ namespace Resonance.Enemies
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.
     /// Implements IDamageable interface for damage handling.
     /// </summary>
-    public class EnemyMonoBehaviour : MonoBehaviour, IDamageable, IWavable
+    public class EnemyMonoBehaviour : MonoBehaviour, IDamageable
     {
         [Header("Enemy Configuration")]
         [SerializeField] private EnemyBaseStats _baseStats;
@@ -461,28 +461,28 @@ namespace Resonance.Enemies
             Transform visualChild = _visualTransform ?? transform.Find("Visual");
             if (visualChild == null)
             {
-                Debug.LogWarning($"EnemyMonoBehaviour: No Visual child found for weakpoint system setup on {gameObject.name}");
+                Debug.LogWarning($"EnemyMonoBehaviour: No Visual child found for hitbox system setup on {gameObject.name}");
                 return;
             }
             
             SetupEnemyHitboxManagerComponent(visualChild.gameObject);
         }
         
-        private void SetupEnemyHitboxManagerComponent(GameObject weakpointsObject)
+        private void SetupEnemyHitboxManagerComponent(GameObject hitboxManager)
         {
             // Check if EnemyHitboxManager already exists
-            EnemyHitboxManager existingActivator = weakpointsObject.GetComponent<EnemyHitboxManager>();
+            EnemyHitboxManager existingActivator = hitboxManager.GetComponent<EnemyHitboxManager>();
             
             if (existingActivator != null)
             {
                 existingActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {weakpointsObject.name}");
+                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {hitboxManager.name}");
             }
             else
             {
-                EnemyHitboxManager newActivator = weakpointsObject.AddComponent<EnemyHitboxManager>();
+                EnemyHitboxManager newActivator = hitboxManager.AddComponent<EnemyHitboxManager>();
                 newActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {weakpointsObject.name}");
+                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {hitboxManager.name}");
             }
         }
         
@@ -586,21 +586,6 @@ namespace Resonance.Enemies
                 if (damageHitbox == null)
                 {
                     SetupDamageHitboxComponent(damageHitboxChild.gameObject);
-                }
-            }
-            
-            // Check weakpoint system
-            Transform visualChild = _visualTransform ?? transform.Find("Visual");
-            if (visualChild != null)
-            {
-                Transform weakpointsChild = visualChild.Find("Weakpoints");
-                if (weakpointsChild != null)
-                {
-                    EnemyHitboxManager weakpointActivator = weakpointsChild.GetComponent<EnemyHitboxManager>();
-                    if (weakpointActivator == null)
-                    {
-                        SetupEnemyHitboxManagerComponent(weakpointsChild.gameObject);
-                    }
                 }
             }
         }
@@ -951,84 +936,6 @@ namespace Resonance.Enemies
 
         #endregion
 
-        #region IWavable Implementation
-
-        /// <summary>
-        /// Get the Wave object from CrystalCore
-        /// </summary>
-        public Wave GetWave()
-        {
-            return IsInitialized && _enemyController.Stats.crystalCore != null 
-                ? _enemyController.Stats.crystalCore.Wave 
-                : null;
-        }
-
-        /// <summary>
-        /// Get the base damage value for wave attacks
-        /// </summary>
-        public Damages GetWaveBaseDamages()
-        {
-            if (IsInitialized && _enemyController.Stats.waveAttackStats.damages != null)
-            {
-                return _enemyController.Stats.waveAttackStats.damages;
-            }
-            return new Damages();
-        }
-
-        /// <summary>
-        /// Apply wave damages from a source wavable
-        /// </summary>
-        /// <param name="damages">Damages to apply</param>
-        /// <param name="sourceWavable">The source of the wave attack</param>
-        /// <param name="description">Description of the damage source</param>
-        /// <returns>True if damage was successfully applied</returns>
-        public bool ApplyWaveDamages(Damages damages, IWavable sourceWavable, string description = "Wave Damage")
-        {
-            if (!IsInitialized)
-            {
-                Debug.LogError($"EnemyMonoBehaviour: Cannot apply wave damages - not initialized");
-                return false;
-            }
-
-            if (damages == null)
-            {
-                Debug.LogError($"EnemyMonoBehaviour: Cannot apply wave damages - damages is null");
-                return false;
-            }
-
-            // Get source information
-            Vector3 sourcePosition = Vector3.zero;
-            GameObject sourceObject = null;
-
-            if (sourceWavable != null)
-            {
-                if (sourceWavable is MonoBehaviour sourceMono)
-                {
-                    sourcePosition = sourceMono.transform.position;
-                    sourceObject = sourceMono.gameObject;
-                }
-            }
-
-            // Create damage info
-            DamageInfo damageInfo = new DamageInfo(
-                damages: damages,
-                sourcePosition: sourcePosition,
-                sourceObject: sourceObject,
-                description: description
-            );
-
-            // Apply damage through the enemy's damage system
-            TakeDamage(damageInfo);
-
-            Debug.Log($"EnemyMonoBehaviour: Applied wave damages to {name} - " +
-                      $"CoreHealth: {damages.GetDamage(DamageType.CoreHealth):F1}, " +
-                      $"Chaos: {damages.GetDamage(DamageType.Chaos):F1}");
-            
-            return true;
-        }
-
-        #endregion
-
         #region Debug
 
         private void DrawDebugInfo()
@@ -1129,17 +1036,6 @@ namespace Resonance.Enemies
             }
         }
 
-        #endregion
-        
-        #region Editor Validation
-        
-        void OnValidate()
-        {
-            // Validate patrol configuration
-            if (_waitAtWaypointDuration < 0f)
-                _waitAtWaypointDuration = 0f;
-        }
-        
         #endregion
     }
 }

@@ -4,12 +4,13 @@ using System.Linq;
 using Resonance.Player.Core;
 using Resonance.Enemies;
 using Resonance.Enemies.Triggers;
+using Resonance.Interfaces;
 using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Triggers
 {
     /// <summary>
-    /// Trigger component that detects Core type EnemyHitbox components with enabled colliders within wave attack range.
+    /// Trigger component that detects IWavable targets (EnemyCrystalCoreHitbox) with enabled colliders within wave attack range.
     /// Should be attached to the WaveAttackRange GameObject under the Player.
     /// </summary>
     public class WaveAttackTrigger : MonoBehaviour
@@ -21,19 +22,19 @@ namespace Resonance.Player.Triggers
         // Layer mask for filtering
         private LayerMask _waveInteractionLayerMask = LayerDict.GetLayer("Enemy");
 
-        // Core hitbox tracking
-        private List<EnemyHitbox> _coreHitboxesInRange = new List<EnemyHitbox>();
-        private EnemyHitbox _lastClosestCore = null;
+        // IWavable target tracking (EnemyCrystalCoreHitbox components)
+        private List<IWavable> _coreHitboxesInRange = new List<IWavable>();
+        private IWavable _lastClosestCore = null;
 
         // Events
-        public System.Action<EnemyHitbox> OnCoreHitboxEntered;
-        public System.Action<EnemyHitbox> OnCoreHitboxExited;
-        public System.Action OnCoreHitboxesChanged; // General event for any change in core hitboxes
+        public System.Action<IWavable> OnWavableEntered;
+        public System.Action<IWavable> OnWavableExited;
+        public System.Action OnWavablesChanged; // General event for any change in core hitboxes
 
         // Properties
-        public bool HasCoreHitboxesInRange => _coreHitboxesInRange.Count > 0;
-        public int CoreHitboxCount => _coreHitboxesInRange.Count;
-        public List<EnemyHitbox> CoreHitboxesInRange => new List<EnemyHitbox>(_coreHitboxesInRange);
+        public bool HasWavablesInRange => _coreHitboxesInRange.Count > 0;
+        public int WavableCount => _coreHitboxesInRange.Count;
+        public List<IWavable> WavablesInRange => new List<IWavable>(_coreHitboxesInRange);
 
         #region Unity Lifecycle
 
@@ -114,20 +115,24 @@ namespace Resonance.Player.Triggers
                 return; // Not on the correct layer
             }
 
-            // Check if it's a Core type EnemyHitbox
-            var hitbox = other.GetComponent<EnemyHitbox>();
-            if (hitbox == null) return;
+            // Check if it's an IWavable (EnemyCrystalCoreHitbox)
+            var wavable = other.GetComponent<IWavable>();
+            if (wavable == null) return;
+            
+            // Must be EnemyCrystalCoreHitbox
+            var coreHitbox = wavable as EnemyCrystalCoreHitbox;
+            if (coreHitbox == null) return;
 
-            // Only track Core type hitboxes with enabled colliders
-            if (hitbox.type == EnemyHitboxType.Core && other.enabled && hitbox.IsInitialized)
+            // Only track IWavable targets with enabled colliders and initialized state
+            if (other.enabled && coreHitbox.IsInitialized)
             {
-                if (!_coreHitboxesInRange.Contains(hitbox))
+                if (!_coreHitboxesInRange.Contains(wavable))
                 {
-                    _coreHitboxesInRange.Add(hitbox);
-                    OnCoreHitboxEntered?.Invoke(hitbox);
-                    OnCoreHitboxesChanged?.Invoke();
+                    _coreHitboxesInRange.Add(wavable);
+                    OnWavableEntered?.Invoke(wavable);
+                    OnWavablesChanged?.Invoke();
                     UpdateClosestCoreNotification();
-                    Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} entered range");
+                    Debug.Log($"WaveAttackTrigger: IWavable target {coreHitbox.name} entered range");
                 }
             }
         }
@@ -142,18 +147,21 @@ namespace Resonance.Player.Triggers
                 return; // Not on the correct layer
             }
 
-            // Check if it's a Core type EnemyHitbox
-            var hitbox = other.GetComponent<EnemyHitbox>();
-            if (hitbox == null) return;
+            // Check if it's an IWavable (EnemyCrystalCoreHitbox)
+            var wavable = other.GetComponent<IWavable>();
+            if (wavable == null) return;
+            
+            var coreHitbox = wavable as EnemyCrystalCoreHitbox;
+            if (coreHitbox == null) return;
 
             // Remove from tracking list if present
-            if (_coreHitboxesInRange.Contains(hitbox))
+            if (_coreHitboxesInRange.Contains(wavable))
             {
-                _coreHitboxesInRange.Remove(hitbox);
-                OnCoreHitboxExited?.Invoke(hitbox);
-                OnCoreHitboxesChanged?.Invoke();
+                _coreHitboxesInRange.Remove(wavable);
+                OnWavableExited?.Invoke(wavable);
+                OnWavablesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} exited range");
+                Debug.Log($"WaveAttackTrigger: IWavable target {coreHitbox.name} exited range");
             }
         }
 
@@ -167,30 +175,33 @@ namespace Resonance.Player.Triggers
                 return; // Not on the correct layer
             }
 
-            // Check if Core hitbox collider state changed
-            var hitbox = other.GetComponent<EnemyHitbox>();
-            if (hitbox == null || hitbox.type != EnemyHitboxType.Core || !hitbox.IsInitialized) return;
+            // Check if IWavable target collider state changed
+            var wavable = other.GetComponent<IWavable>();
+            if (wavable == null) return;
+            
+            var coreHitbox = wavable as EnemyCrystalCoreHitbox;
+            if (coreHitbox == null || !coreHitbox.IsInitialized) return;
 
-            bool isInList = _coreHitboxesInRange.Contains(hitbox);
+            bool isInList = _coreHitboxesInRange.Contains(wavable);
             bool shouldBeInList = other.enabled;
 
             if (shouldBeInList && !isInList)
             {
                 // Collider became enabled, add to list
-                _coreHitboxesInRange.Add(hitbox);
-                OnCoreHitboxEntered?.Invoke(hitbox);
-                OnCoreHitboxesChanged?.Invoke();
+                _coreHitboxesInRange.Add(wavable);
+                OnWavableEntered?.Invoke(wavable);
+                OnWavablesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} collider enabled");
+                Debug.Log($"WaveAttackTrigger: IWavable target {coreHitbox.name} collider enabled");
             }
             else if (!shouldBeInList && isInList)
             {
                 // Collider became disabled, remove from list
-                _coreHitboxesInRange.Remove(hitbox);
-                OnCoreHitboxExited?.Invoke(hitbox);
-                OnCoreHitboxesChanged?.Invoke();
+                _coreHitboxesInRange.Remove(wavable);
+                OnWavableExited?.Invoke(wavable);
+                OnWavablesChanged?.Invoke();
                 UpdateClosestCoreNotification();
-                Debug.Log($"WaveAttackTrigger: Core hitbox {hitbox.name} collider disabled");
+                Debug.Log($"WaveAttackTrigger: IWavable target {coreHitbox.name} collider disabled");
             }
         }
 
@@ -199,18 +210,18 @@ namespace Resonance.Player.Triggers
         #region Core Hitbox Validation
 
         /// <summary>
-        /// Validate if a hitbox should be tracked based on current criteria
+        /// Validate if an IWavable target should be tracked based on current criteria
         /// </summary>
-        /// <param name="hitbox">The hitbox to validate</param>
+        /// <param name="wavable">The IWavable to validate</param>
         /// <param name="collider">The collider component</param>
-        /// <returns>True if hitbox should be tracked</returns>
-        private bool IsValidCoreHitbox(EnemyHitbox hitbox, Collider collider)
+        /// <returns>True if IWavable should be tracked</returns>
+        private bool IsValidWavableTarget(IWavable wavable, Collider collider)
         {
-            return hitbox != null && 
-                   hitbox.IsInitialized && 
-                   hitbox.type == EnemyHitboxType.Core && 
-                   collider != null && 
-                   collider.enabled;
+            if (wavable == null || collider == null || !collider.enabled)
+                return false;
+                
+            var coreHitbox = wavable as EnemyCrystalCoreHitbox;
+            return coreHitbox != null && coreHitbox.IsInitialized;
         }
 
         #endregion
@@ -218,28 +229,36 @@ namespace Resonance.Player.Triggers
         #region Closest Core Notification
 
         /// <summary>
-        /// Update closest core notification when core hitboxes list changes
+        /// Update closest IWavable target notification when targets list changes
         /// </summary>
         private void UpdateClosestCoreNotification()
         {
-            var currentClosest = GetClosestCoreHitbox();
+            var currentClosest = GetClosestWavable();
             
             if (currentClosest != _lastClosestCore)
             {
                 // Notify old closest target to change to white
                 if (_lastClosestCore != null)
                 {
-                    var oldEnemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
+                    var oldEnemyMono = GetEnemyMonoFromWavable(_lastClosestCore);
                     oldEnemyMono?.SetWaveUIColor(Color.white);
-                    Debug.Log($"WaveAttackTrigger: {_lastClosestCore.name} is no longer closest target, set to white");
+                    
+                    if (_lastClosestCore is MonoBehaviour oldMono)
+                    {
+                        Debug.Log($"WaveAttackTrigger: {oldMono.name} is no longer closest target, set to white");
+                    }
                 }
                 
                 // Notify new closest target to change to red
                 if (currentClosest != null)
                 {
-                    var newEnemyMono = GetEnemyMonoFromHitbox(currentClosest);
+                    var newEnemyMono = GetEnemyMonoFromWavable(currentClosest);
                     newEnemyMono?.SetWaveUIColor(Color.red);
-                    Debug.Log($"WaveAttackTrigger: {currentClosest.name} is now closest target, set to red");
+                    
+                    if (currentClosest is MonoBehaviour newMono)
+                    {
+                        Debug.Log($"WaveAttackTrigger: {newMono.name} is now closest target, set to red");
+                    }
                 }
                 
                 _lastClosestCore = currentClosest;
@@ -248,83 +267,95 @@ namespace Resonance.Player.Triggers
         
         /// <summary>
         /// Force refresh all UI colors - useful after wave actions end
-        /// Also cleans up invalid hitboxes from tracking list
+        /// Also cleans up invalid IWavable targets from tracking list
         /// </summary>
         public void ForceRefreshUIColors()
         {
             // First, validate and clean up the tracking list
-            var hitboxesToRemove = new List<EnemyHitbox>();
+            var targetsToRemove = new List<IWavable>();
             
-            foreach (var hitbox in _coreHitboxesInRange)
+            foreach (var wavable in _coreHitboxesInRange)
             {
-                if (hitbox != null)
+                if (wavable != null && wavable is MonoBehaviour mono)
                 {
-                    var collider = hitbox.GetComponent<Collider>();
+                    var collider = mono.GetComponent<Collider>();
                     
-                    // Check if hitbox is still valid for tracking
-                    if (!IsValidCoreHitbox(hitbox, collider))
+                    // Check if wavable is still valid for tracking
+                    if (!IsValidWavableTarget(wavable, collider))
                     {
-                        hitboxesToRemove.Add(hitbox);
-                        Debug.Log($"WaveAttackTrigger: Removing invalid core hitbox {hitbox.name} from tracking list");
+                        targetsToRemove.Add(wavable);
+                        Debug.Log($"WaveAttackTrigger: Removing invalid IWavable target {mono.name} from tracking list");
                     }
                     else
                     {
-                        // Reset UI color for valid hitboxes
-                        var enemyMono = GetEnemyMonoFromHitbox(hitbox);
+                        // Reset UI color for valid targets
+                        var enemyMono = GetEnemyMonoFromWavable(wavable);
                         enemyMono?.SetWaveUIColor(Color.white);
                     }
                 }
                 else
                 {
-                    hitboxesToRemove.Add(hitbox);
+                    targetsToRemove.Add(wavable);
                 }
             }
             
-            // Remove invalid hitboxes
-            foreach (var hitbox in hitboxesToRemove)
+            // Remove invalid targets
+            foreach (var wavable in targetsToRemove)
             {
-                _coreHitboxesInRange.Remove(hitbox);
-                OnCoreHitboxExited?.Invoke(hitbox);
+                _coreHitboxesInRange.Remove(wavable);
+                OnWavableExited?.Invoke(wavable);
             }
             
-            // Trigger change event if we removed any hitboxes
-            if (hitboxesToRemove.Count > 0)
+            // Trigger change event if we removed any targets
+            if (targetsToRemove.Count > 0)
             {
-                OnCoreHitboxesChanged?.Invoke();
+                OnWavablesChanged?.Invoke();
             }
             
             // Clear last closest and force update
             _lastClosestCore = null;
             UpdateClosestCoreNotification();
             
-            Debug.Log($"WaveAttackTrigger: Force refreshed all UI colors, removed {hitboxesToRemove.Count} invalid hitboxes");
+            Debug.Log($"WaveAttackTrigger: Force refreshed all UI colors, removed {targetsToRemove.Count} invalid targets");
         }
 
         /// <summary>
-        /// Get EnemyMonoBehaviour from EnemyHitbox by traversing up the hierarchy
+        /// Get EnemyMonoBehaviour from IWavable (EnemyCrystalCoreHitbox) by traversing up the hierarchy
         /// </summary>
-        /// <param name="hitbox">The EnemyHitbox to find the parent EnemyMonoBehaviour for</param>
+        /// <param name="wavable">The IWavable to find the parent EnemyMonoBehaviour for</param>
         /// <returns>EnemyMonoBehaviour if found, null otherwise</returns>
-        private EnemyMonoBehaviour GetEnemyMonoFromHitbox(EnemyHitbox hitbox)
+        private EnemyMonoBehaviour GetEnemyMonoFromWavable(IWavable wavable)
         {
-            if (hitbox == null) return null;
-
-            // The EnemyHitbox should be on a child of the enemy's Visual object
-            // Hierarchy: Enemy -> Visual -> Weakpoints -> Core (EnemyHitbox)
-            // We need to traverse up to find the root Enemy GameObject
-            Transform current = hitbox.transform;
+            if (wavable == null) return null;
             
-            while (current != null)
+            // Try to get from EnemyCrystalCoreHitbox directly
+            if (wavable is EnemyCrystalCoreHitbox coreHitbox)
             {
-                var enemyMono = current.GetComponentInParent<EnemyMonoBehaviour>();
+                var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
                 if (enemyMono != null)
                 {
                     return enemyMono;
                 }
-                current = current.parent;
+            }
+
+            // Fallback: traverse up hierarchy
+            if (wavable is MonoBehaviour mono)
+            {
+                Transform current = mono.transform;
+                
+                while (current != null)
+                {
+                    var enemyMono = current.GetComponentInParent<EnemyMonoBehaviour>();
+                    if (enemyMono != null)
+                    {
+                        return enemyMono;
+                    }
+                    current = current.parent;
+                }
+                
+                Debug.LogWarning($"WaveAttackTrigger: Could not find EnemyMonoBehaviour for IWavable {mono.name}");
             }
             
-            Debug.LogWarning($"WaveAttackTrigger: Could not find EnemyMonoBehaviour for hitbox {hitbox.name}");
             return null;
         }
 
@@ -333,10 +364,10 @@ namespace Resonance.Player.Triggers
         #region Public Interface
 
         /// <summary>
-        /// Manually refresh the state of all core hitboxes in range
+        /// Manually refresh the state of all IWavable targets in range
         /// Useful for ensuring accuracy when collider states change externally
         /// </summary>
-        public void RefreshCoreHitboxStates()
+        public void RefreshWavableStates()
         {
             if (!_isInitialized) return;
 
@@ -344,48 +375,48 @@ namespace Resonance.Player.Triggers
             var collider = GetComponent<SphereCollider>();
             if (collider == null) return;
 
-            var hitboxesToCheck = new List<EnemyHitbox>(_coreHitboxesInRange);
+            var targetsToCheck = new List<IWavable>(_coreHitboxesInRange);
             
-            foreach (var hitbox in hitboxesToCheck)
+            foreach (var wavable in targetsToCheck)
             {
-                if (hitbox != null)
+                if (wavable != null && wavable is MonoBehaviour mono)
                 {
-                    var hitboxCollider = hitbox.GetComponent<Collider>();
-                    if (!IsValidCoreHitbox(hitbox, hitboxCollider))
+                    var wavableCollider = mono.GetComponent<Collider>();
+                    if (!IsValidWavableTarget(wavable, wavableCollider))
                     {
-                        // Remove invalid hitboxes
-                        _coreHitboxesInRange.Remove(hitbox);
-                        OnCoreHitboxExited?.Invoke(hitbox);
-                        OnCoreHitboxesChanged?.Invoke();
-                        Debug.Log($"WaveAttackTrigger: Removed invalid core hitbox {hitbox.name}");
+                        // Remove invalid targets
+                        _coreHitboxesInRange.Remove(wavable);
+                        OnWavableExited?.Invoke(wavable);
+                        OnWavablesChanged?.Invoke();
+                        Debug.Log($"WaveAttackTrigger: Removed invalid IWavable target {mono.name}");
                     }
                 }
             }
 
-            Debug.Log($"WaveAttackTrigger: Refreshed states for {hitboxesToCheck.Count} core hitboxes");
+            Debug.Log($"WaveAttackTrigger: Refreshed states for {targetsToCheck.Count} IWavable targets");
         }
 
         /// <summary>
-        /// Get the closest core hitbox in range
+        /// Get the closest IWavable target in range
         /// </summary>
-        /// <returns>Closest core hitbox or null if none</returns>
-        public EnemyHitbox GetClosestCoreHitbox()
+        /// <returns>Closest IWavable target or null if none</returns>
+        public IWavable GetClosestWavable()
         {
             if (_coreHitboxesInRange.Count == 0) return null;
 
             Vector3 playerPosition = transform.position;
-            EnemyHitbox closest = null;
+            IWavable closest = null;
             float closestDistance = float.MaxValue;
 
-            foreach (var hitbox in _coreHitboxesInRange)
+            foreach (var wavable in _coreHitboxesInRange)
             {
-                if (hitbox != null)
+                if (wavable != null && wavable is MonoBehaviour mono)
                 {
-                    float distance = Vector3.Distance(playerPosition, hitbox.transform.position);
+                    float distance = Vector3.Distance(playerPosition, mono.transform.position);
                     if (distance < closestDistance)
                     {
                         closestDistance = distance;
-                        closest = hitbox;
+                        closest = wavable;
                     }
                 }
             }
@@ -394,13 +425,13 @@ namespace Resonance.Player.Triggers
         }
 
         /// <summary>
-        /// Check if a specific core hitbox is in range and has an enabled collider
+        /// Check if a specific IWavable target is in range and has an enabled collider
         /// </summary>
-        /// <param name="hitbox">The hitbox to check</param>
-        /// <returns>True if core hitbox is in range and has enabled collider</returns>
-        public bool IsCoreHitboxInRange(EnemyHitbox hitbox)
+        /// <param name="wavable">The IWavable to check</param>
+        /// <returns>True if IWavable is in range and has enabled collider</returns>
+        public bool IsWavableInRange(IWavable wavable)
         {
-            return hitbox != null && _coreHitboxesInRange.Contains(hitbox);
+            return wavable != null && _coreHitboxesInRange.Contains(wavable);
         }
 
         #endregion
@@ -424,15 +455,15 @@ namespace Resonance.Player.Triggers
         private void Cleanup()
         {
             // Reset closest core tracking before clearing
-            if (_lastClosestCore != null)
+            if (_lastClosestCore != null && _lastClosestCore is EnemyCrystalCoreHitbox coreHitbox)
             {
-                var enemyMono = GetEnemyMonoFromHitbox(_lastClosestCore);
+                var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
                 enemyMono?.SetWaveUIColor(Color.white);
             }
             
-            OnCoreHitboxEntered = null;
-            OnCoreHitboxExited = null;
-            OnCoreHitboxesChanged = null;
+            OnWavableEntered = null;
+            OnWavableExited = null;
+            OnWavablesChanged = null;
 
             _coreHitboxesInRange.Clear();
             _lastClosestCore = null;
@@ -451,18 +482,18 @@ namespace Resonance.Player.Triggers
             if (collider != null)
             {
                 // Draw the detection range
-                Gizmos.color = HasCoreHitboxesInRange ? Color.red : Color.yellow;
+                Gizmos.color = HasWavablesInRange ? Color.red : Color.yellow;
                 Gizmos.DrawWireSphere(transform.position, collider.radius);
-                // Draw connections to core hitboxes
+                // Draw connections to IWavable targets
                 if (_coreHitboxesInRange != null)
                 {
                     Gizmos.color = Color.red;
-                    foreach (var hitbox in _coreHitboxesInRange)
+                    foreach (var wavable in _coreHitboxesInRange)
                     {
-                        if (hitbox != null)
+                        if (wavable != null && wavable is MonoBehaviour mono)
                         {
-                            Gizmos.DrawLine(transform.position, hitbox.transform.position);
-                            Gizmos.DrawWireCube(hitbox.transform.position, Vector3.one * 0.5f);
+                            Gizmos.DrawLine(transform.position, mono.transform.position);
+                            Gizmos.DrawWireCube(mono.transform.position, Vector3.one * 0.5f);
                         }
                     }
                 }

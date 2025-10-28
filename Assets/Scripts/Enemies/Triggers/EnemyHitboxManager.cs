@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Interfaces;
 using Resonance.Enemies.Core;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Enemies.Triggers
 {
@@ -17,7 +18,7 @@ namespace Resonance.Enemies.Triggers
         // References
         private EnemyMonoBehaviour _enemyMono;
         private EnemyController _enemyController;
-        private Collider[] _healthHitboxes;  // Head, Body, etc.
+        private Collider[] _physicalHitboxes;  // Head, Body, etc.
         private Collider[] _coreHitboxes;    // Core, etc.
         
         // State
@@ -58,19 +59,19 @@ namespace Resonance.Enemies.Triggers
         }
 
         /// <summary>
-        /// Setup weakpoint colliders and attach EnemyHitbox components
+        /// Setup weakpoint colliders and attach EnemyPhysicalHitbox components
         /// </summary>
         private void SetupWeakpointColliders()
         {
-            _healthHitboxes = new Collider[2];
+            _physicalHitboxes = new Collider[2];
             _coreHitboxes = new Collider[1];
             
             // Find health weakpoints (Head, etc.)
             Transform headTransform = transform.Find("Head");
             if (headTransform != null)
             {
-                _healthHitboxes[0] = GetOrCreateCollider(headTransform.gameObject);
-                SetupEnemyHitbox(headTransform.gameObject, EnemyHitboxType.Head);
+                _physicalHitboxes[0] = GetOrCreateCollider(headTransform.gameObject);
+                SetupEnemyPhysicalHitbox(headTransform.gameObject, HitboxType.Head);
             }
             else if (_debugMode)
             {
@@ -81,8 +82,8 @@ namespace Resonance.Enemies.Triggers
             Transform bodyTransform = transform.Find("Body");
             if (bodyTransform != null)
             {
-                _healthHitboxes[1] = GetOrCreateCollider(bodyTransform.gameObject);
-                SetupEnemyHitbox(bodyTransform.gameObject, EnemyHitboxType.Body);
+                _physicalHitboxes[1] = GetOrCreateCollider(bodyTransform.gameObject);
+                SetupEnemyPhysicalHitbox(bodyTransform.gameObject, HitboxType.Body);
             }
             else if (_debugMode)
             {
@@ -94,7 +95,7 @@ namespace Resonance.Enemies.Triggers
             if (coreTransform != null)
             {
                 _coreHitboxes[0] = GetOrCreateCollider(coreTransform.gameObject);
-                SetupEnemyHitbox(coreTransform.gameObject, EnemyHitboxType.Core);
+                SetupEnemyCrystalCoreHitbox(coreTransform.gameObject, HitboxType.Core);
             }
             else if (_debugMode)
             {
@@ -103,7 +104,7 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log($"EnemyHitboxManager: Found {_healthHitboxes.Length} health and {_coreHitboxes.Length} core weakpoints");
+                Debug.Log($"EnemyHitboxManager: Found {_physicalHitboxes.Length} health and {_coreHitboxes.Length} core weakpoints");
             }
         }
 
@@ -143,20 +144,67 @@ namespace Resonance.Enemies.Triggers
         }
 
         /// <summary>
-        /// Setup EnemyHitbox component for a weakpoint GameObject
-        /// Configures damage multipliers based on hitbox type
+        /// Setup EnemyPhysicalHitbox component for a weakpoint GameObject
+        /// Configures damage multipliers based on hitbox type (Head, Body, Knee only)
         /// </summary>
-        private void SetupEnemyHitbox(GameObject weakpointObject, EnemyHitboxType type)
+        private void SetupEnemyPhysicalHitbox(GameObject weakpointObject, HitboxType type)
         {
             // Get hitbox multiplier configuration from enemy runtime stats
             var multiplierConfig = _enemyController.Stats.GetHitboxMultiplierConfig(type);
             
-            EnemyHitbox existingHitbox = weakpointObject.GetComponent<EnemyHitbox>();
+            EnemyPhysicalHitbox existingHitbox = weakpointObject.GetComponent<EnemyPhysicalHitbox>();
             
             if (existingHitbox == null)
             {
-                EnemyHitbox newHitbox = weakpointObject.AddComponent<EnemyHitbox>();
+                EnemyPhysicalHitbox newHitbox = weakpointObject.AddComponent<EnemyPhysicalHitbox>();
                 newHitbox.type = type;
+                
+                // Apply multipliers from configuration (physical hitboxes don't use coreHealthMultiplier)
+                newHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
+                newHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
+                
+                // Initialize the hitbox with enemy reference
+                newHitbox.Initialize(_enemyMono);
+                
+                if (_debugMode)
+                {
+                    Debug.Log($"EnemyHitboxManager: Added EnemyPhysicalHitbox ({type}) with multipliers from configuration - " +
+                             $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
+                             $"Chaos: x{newHitbox.chaosMultiplier:F1}");
+                }
+            }
+            else
+            {
+                // Update existing hitbox multipliers from configuration
+                existingHitbox.type = type;
+                existingHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
+                existingHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
+                
+                existingHitbox.Initialize(_enemyMono);
+                
+                if (_debugMode)
+                {
+                    Debug.Log($"EnemyHitboxManager: Updated EnemyPhysicalHitbox ({type}) with multipliers from configuration - " +
+                             $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
+                             $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Setup EnemyCrystalCoreHitbox component for a weakpoint GameObject
+        /// Configures damage multipliers based on hitbox type
+        /// </summary>
+        private void SetupEnemyCrystalCoreHitbox(GameObject weakpointObject, HitboxType type)
+        {
+            // Get hitbox multiplier configuration from enemy runtime stats
+            var multiplierConfig = _enemyController.Stats.GetHitboxMultiplierConfig(type);
+            
+            EnemyCrystalCoreHitbox existingHitbox = weakpointObject.GetComponent<EnemyCrystalCoreHitbox>();
+            
+            if (existingHitbox == null)
+            {
+                EnemyCrystalCoreHitbox newHitbox = weakpointObject.AddComponent<EnemyCrystalCoreHitbox>();
                 
                 // Apply multipliers from configuration
                 newHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
@@ -168,7 +216,7 @@ namespace Resonance.Enemies.Triggers
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitboxManager: Added EnemyHitbox ({type}) with multipliers from configuration - " +
+                    Debug.Log($"EnemyHitboxManager: Added EnemyCrystalCoreHitbox with multipliers from configuration - " +
                              $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
                              $"Core: x{newHitbox.coreHealthMultiplier:F1}, " +
                              $"Chaos: x{newHitbox.chaosMultiplier:F1}");
@@ -177,7 +225,6 @@ namespace Resonance.Enemies.Triggers
             else
             {
                 // Update existing hitbox multipliers from configuration
-                existingHitbox.type = type;
                 existingHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
                 existingHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
                 existingHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
@@ -186,7 +233,7 @@ namespace Resonance.Enemies.Triggers
                 
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitboxManager: Updated EnemyHitbox ({type}) with multipliers from configuration - " +
+                    Debug.Log($"EnemyHitboxManager: Updated EnemyCrystalCoreHitbox with multipliers from configuration - " +
                              $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
                              $"Core: x{existingHitbox.coreHealthMultiplier:F1}, " +
                              $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
@@ -297,7 +344,7 @@ namespace Resonance.Enemies.Triggers
             }
             
             // Force enable all health hitboxes to ensure they're properly turned on
-            foreach (var healthHitbox in _healthHitboxes)
+            foreach (var healthHitbox in _physicalHitboxes)
             {
                 if (healthHitbox != null)
                 {
@@ -325,9 +372,9 @@ namespace Resonance.Enemies.Triggers
         /// </summary>
         void SetPhysicalHitboxes(bool enabled) 
         { 
-            if (_healthHitboxes != null)
+            if (_physicalHitboxes != null)
             {
-                foreach (var collider in _healthHitboxes)
+                foreach (var collider in _physicalHitboxes)
                 {
                     if (collider != null)
                     {
@@ -366,7 +413,7 @@ namespace Resonance.Enemies.Triggers
         /// <summary>
         /// Get count of health weakpoints
         /// </summary>
-        public int PhysicalHitboxCount => _healthHitboxes?.Length ?? 0;
+        public int PhysicalHitboxCount => _physicalHitboxes?.Length ?? 0;
 
         /// <summary>
         /// Get count of core weakpoints

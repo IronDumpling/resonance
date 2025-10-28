@@ -49,8 +49,6 @@ namespace Resonance.UI
         private Wave _sourceWave;
         private Wave _targetWave;
         
-        private EnemyHitbox _targetCore;  // Reference to target core for damage application
-        
         // Wave scrolling state
         private float _scrollOffset = 0f;
         private bool _isScrolling = true;
@@ -312,8 +310,7 @@ namespace Resonance.UI
         /// </summary>
         /// <param name="sourceWavable">The attacker (player or enemy)</param>
         /// <param name="targetWavable">The target being attacked</param>
-        /// <param name="targetCore">The target core hitbox for damage application</param>
-        public void SetWaveAttackContext(IWavable sourceWavable, IWavable targetWavable, EnemyHitbox targetCore)
+        public void SetWaveAttackContext(IWavable sourceWavable, IWavable targetWavable)
         {
             if (sourceWavable == null || targetWavable == null)
             {
@@ -323,7 +320,6 @@ namespace Resonance.UI
             
             _sourceWavable = sourceWavable;
             _targetWavable = targetWavable;
-            _targetCore = targetCore;
             
             _sourceWave = sourceWavable.GetWave();
             _targetWave = targetWavable.GetWave();

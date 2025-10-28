@@ -300,7 +300,7 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// Get hitbox multiplier configuration by hitbox type
         /// </summary>
-        public HitboxMultiplierConfig GetHitboxMultiplierConfig(EnemyHitboxType hitboxType)
+        public HitboxMultiplierConfig GetHitboxMultiplierConfig(HitboxType hitboxType)
         {
             if (hitboxMultipliers == null || hitboxMultipliers.Count == 0)
             {

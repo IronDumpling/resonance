@@ -17,7 +17,6 @@ namespace Resonance.Core.StateMachine.States
         
         // Substate management
         private BaseStateMachine _subStateMachine;
-        private EnemyHitbox _currentWaveTarget;
         
         // Substates
         private WaveState _waveState;
@@ -154,7 +153,6 @@ namespace Resonance.Core.StateMachine.States
             // Cleanup substate machine
             _subStateMachine?.Clear();
             _subStateMachine = null;
-            _currentWaveTarget = null;
         }
 
         public bool CanTransitionTo(IState newState)
@@ -194,14 +192,13 @@ namespace Resonance.Core.StateMachine.States
         /// </summary>
         /// <param name="sourceWavable">The attacker (player or enemy)</param>
         /// <param name="targetWavable">The target being attacked</param>
-        /// <param name="targetCore">The target core hitbox</param>
-        private void OnWaveStarted(Interfaces.IWavable sourceWavable, Interfaces.IWavable targetWavable, EnemyHitbox targetCore)
+        private void OnWaveStarted(Interfaces.IWavable sourceWavable, Interfaces.IWavable targetWavable)
         {
             // Risk mitigation: Defensive programming
-            if (sourceWavable == null || targetWavable == null || targetCore == null)
+            if (sourceWavable == null || targetWavable == null)
             {
                 Debug.LogWarning($"GameplayState: OnWaveStarted called with null parameters - source: {(sourceWavable != null ? "valid" : "null")}, " +
-                               $"target: {(targetWavable != null ? "valid" : "null")}, core: {(targetCore != null ? targetCore.name : "null")}");
+                               $"target: {(targetWavable != null ? "valid" : "null")}");
                 return;
             }
             
@@ -211,27 +208,13 @@ namespace Resonance.Core.StateMachine.States
                 return;
             }
             
-            // Prevent multiple simultaneous wave attacks
-            if (_currentWaveTarget != null)
-            {
-                Debug.LogWarning("GameplayState: Already in Wave state, ignoring new wave start");
-                return;
-            }
-            
-            Debug.Log($"GameplayState: Wave started from source to target core {targetCore.name}");
-            
-            // Store target reference
-            _currentWaveTarget = targetCore;
-            
             // Update existing WaveState with wave attack context
-            _waveState.SetWaveAttackContext(sourceWavable, targetWavable, targetCore);
+            _waveState.SetWaveAttackContext(sourceWavable, targetWavable);
             
             // Transition to Wave substate (Risk mitigation: Atomic state transition)
             if (!_subStateMachine.ChangeState("Wave"))
             {
                 Debug.LogError("GameplayState: Failed to transition to Wave substate");
-                // Cleanup on failure
-                _currentWaveTarget = null;
                 return;
             }
             
@@ -256,9 +239,6 @@ namespace Resonance.Core.StateMachine.States
             {
                 Debug.Log("GameplayState: Successfully transitioned back to Normal substate");
             }
-            
-            // Cleanup target reference
-            _currentWaveTarget = null;
         }
 
         /// <summary>

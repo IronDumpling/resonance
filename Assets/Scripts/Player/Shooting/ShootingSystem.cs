@@ -681,10 +681,10 @@ namespace Resonance.Player.Shooting
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
             // First check if it hit a weakpoint
-            EnemyHitbox weakpointHitbox = hitObject.GetComponent<EnemyHitbox>();
+            EnemyPhysicalHitbox weakpointHitbox = hitObject.GetComponent<EnemyPhysicalHitbox>();
             if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
             {
-                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
+                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyPhysicalHitbox");
                 
                 // Create damage info with all damage types and multiplier
                 DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject, damageMultiplier);
