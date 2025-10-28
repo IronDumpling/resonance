@@ -450,18 +450,6 @@ namespace Resonance.UI
                 Debug.Log("WavePanel: Input ignored - wave not active");
                 return;
             }
-            
-            if (_sourceWave == null || _targetWave == null)
-            {
-                Debug.LogError("WavePanel: Cannot process input - waves are null");
-                return;
-            }
-            
-            if (_targetWavable == null)
-            {
-                Debug.LogError("WavePanel: Cannot process input - target wavable is null");
-                return;
-            }
 
             if (!_isScrolling)
             {
@@ -469,46 +457,110 @@ namespace Resonance.UI
                 return;
             }
             
-            // Check chaos states of both waves
-            var (sourceState, targetState) = CheckChaosStates();
-            
-            // Calculate wave match percentage
-            float matchPercentage = CalculateWaveMatch();
-            WaveInteractionResult result = GetInteractionResult(matchPercentage);
-            
-            // Override result based on chaos states
-            WaveInteractionResult effectiveResult = result;
-            if (sourceState == WaveChaosState.Chaos || targetState == WaveChaosState.Chaos)
-            {
-                if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Chaos)
-                {
-                    // Both chaos - special case, will be handled in ProcessWaveInteraction
-                    Debug.Log("WavePanel: Both waves in Chaos - special interaction");
-                }
-                else
-                {
-                    // One is chaos - force perfect
-                    effectiveResult = WaveInteractionResult.Perfect;
-                    Debug.Log($"WavePanel: Chaos state detected - forcing Perfect result");
-                }
-            }
-            
-            Debug.Log($"WavePanel: Wave match: {matchPercentage:F1}%, Result: {result}, Effective Result: {effectiveResult}");
+            // Trigger QTE (without forced result, let it calculate)
+            ProcessWaveTrigger(null);
             
             // Stop scrolling temporarily
             StopScrollingTemporarily();
+        }
+
+        #endregion
+        
+        #region Public QTE Interface
+        
+        /// <summary>
+        /// Get current wave match percentage (for AI polling)
+        /// </summary>
+        /// <returns>Match percentage (0-100), or -1 if wave not active</returns>
+        public float GetCurrentMatchPercentage()
+        {
+            if (!_isWaveActive || _sourceWave == null || _targetWave == null)
+            {
+                return -1f;
+            }
             
-            // Process wave interaction based on chaos states
-            bool damageApplied = ProcessWaveInteraction(sourceState, targetState, matchPercentage, effectiveResult);
+            return CalculateWaveMatch();
+        }
+        
+        /// <summary>
+        /// Process wave trigger - calculate/apply damage and show feedback
+        /// Can be called by player input or enemy AI
+        /// </summary>
+        /// <param name="forcedResult">If provided, use this result instead of calculating from match percentage</param>
+        /// <returns>The effective interaction result</returns>
+        public WaveInteractionResult ProcessWaveTrigger(WaveInteractionResult? forcedResult = null)
+        {
+            if (_sourceWave == null || _targetWave == null)
+            {
+                Debug.LogError("WavePanel: Cannot process trigger - waves are null");
+                return WaveInteractionResult.Miss;
+            }
+            
+            if (_targetWavable == null)
+            {
+                Debug.LogError("WavePanel: Cannot process trigger - target wavable is null");
+                return WaveInteractionResult.Miss;
+            }
+
+            // Determine the effective result
+            WaveInteractionResult effectiveResult;
+            float matchPercentage = 0f;
+            
+            if (forcedResult.HasValue)
+            {
+                // AI forced result (e.g., Perfect)
+                effectiveResult = forcedResult.Value;
+                matchPercentage = 100f; // Use max for display
+                Debug.Log($"WavePanel: Using forced result: {effectiveResult}");
+            }
+            else
+            {
+                // Calculate from current wave alignment
+                matchPercentage = CalculateWaveMatch();
+                WaveInteractionResult result = GetInteractionResult(matchPercentage);
+                
+                // Check chaos states
+                var (sourceState, targetState) = CheckChaosStates();
+                
+                // Override result based on chaos states
+                effectiveResult = result;
+                if (sourceState == WaveChaosState.Chaos || targetState == WaveChaosState.Chaos)
+                {
+                    if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Chaos)
+                    {
+                        // Both chaos - special case
+                        Debug.Log("WavePanel: Both waves in Chaos - special interaction");
+                    }
+                    else
+                    {
+                        // One is chaos - force perfect
+                        effectiveResult = WaveInteractionResult.Perfect;
+                        Debug.Log($"WavePanel: Chaos state detected - forcing Perfect result");
+                    }
+                }
+                
+                Debug.Log($"WavePanel: Calculated match: {matchPercentage:F1}%, Result: {result}, Effective Result: {effectiveResult}");
+            }
+            
+            // Check chaos states for damage processing
+            var (finalSourceState, finalTargetState) = CheckChaosStates();
+            
+            // Process wave interaction (apply damage)
+            bool damageApplied = ProcessWaveInteraction(finalSourceState, finalTargetState, matchPercentage, effectiveResult);
             
             if (!damageApplied)
             {
                 Debug.LogWarning("WavePanel: Failed to process wave interaction");
             }
             
-            // Show feedback (use effective result for visual feedback)
+            // Show visual/audio feedback
             ShowMatchFeedback(matchPercentage, effectiveResult);
+            
+            return effectiveResult;
         }
+        #endregion
+        
+        #region Wave Calculation
         
         /// <summary>
         /// Calculate wave match percentage (0-100%)
