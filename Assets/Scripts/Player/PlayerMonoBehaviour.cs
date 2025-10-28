@@ -22,7 +22,7 @@ namespace Resonance.Player
     /// Acts as a bridge between Unity's GameObject system and the player logic.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable, IWavable
+    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable
     {
         [Header("Player Configuration")]
         [SerializeField] private PlayerBaseStats _baseStats;
@@ -100,6 +100,9 @@ namespace Resonance.Player
             SetupVisualComponents();
 
             InitializePlayer();
+            
+            // Setup hitbox system
+            SetupHitboxSystem();
         }
 
         void Start()
@@ -266,6 +269,37 @@ namespace Resonance.Player
 
             OnPlayerInitialized?.Invoke(_playerController);
             Debug.Log("PlayerMonoBehaviour: Player controller initialized with shooting system");
+        }
+
+        /// <summary>
+        /// Setup player hitbox system
+        /// </summary>
+        private void SetupHitboxSystem()
+        {
+            // Try to find existing Visual child
+            Transform visualChild = _playerVisual ?? transform.Find("Visual");
+            if (visualChild == null)
+            {
+                Debug.LogWarning($"PlayerMonoBehaviour: No Visual child found for hitbox system setup on {gameObject.name}");
+                return;
+            }
+            
+            GameObject visualObject = visualChild.gameObject;
+            
+            // Check if PlayerHitboxManager already exists
+            PlayerHitboxManager existingManager = visualObject.GetComponent<PlayerHitboxManager>();
+            
+            if (existingManager != null)
+            {
+                existingManager.Initialize(this);
+                Debug.Log($"PlayerMonoBehaviour: Initialized existing PlayerHitboxManager on {visualObject.name}");
+            }
+            else
+            {
+                PlayerHitboxManager newManager = visualObject.AddComponent<PlayerHitboxManager>();
+                newManager.Initialize(this);
+                Debug.Log($"PlayerMonoBehaviour: Added and initialized new PlayerHitboxManager on {visualObject.name}");
+            }
         }
 
         /// <summary>
@@ -1148,85 +1182,6 @@ namespace Resonance.Player
         public string GetWaveAttackRangeDebugInfo()
         {
             return _waveAttackTrigger?.GetDebugInfo() ?? "WaveAttackTrigger not initialized";
-        }
-
-        #endregion
-
-        #region IWavable Implementation
-
-        /// <summary>
-        /// Get the Wave object from CrystalCore
-        /// </summary>
-        public Wave GetWave()
-        {
-            return IsInitialized && _playerController.Stats.crystalCore != null 
-                ? _playerController.Stats.crystalCore.Wave 
-                : null;
-        }
-
-        /// <summary>
-        /// Get the base damages for wave attacks
-        /// For player, this comes from waveAttackDamages
-        /// </summary>
-        public Damages GetWaveBaseDamages()
-        {
-            if (IsInitialized && _playerController.Stats.waveAttackDamages != null)
-            {
-                return _playerController.Stats.waveAttackDamages;
-            }
-            return new Damages();
-        }
-
-        /// <summary>
-        /// Apply wave damages from a source wavable
-        /// </summary>
-        /// <param name="damages">Damages to apply</param>
-        /// <param name="sourceWavable">The source of the wave attack</param>
-        /// <param name="description">Description of the damage source</param>
-        /// <returns>True if damage was successfully applied</returns>
-        public bool ApplyWaveDamages(Damages damages, IWavable sourceWavable, string description = "Wave Damage")
-        {
-            if (!IsInitialized)
-            {
-                Debug.LogError($"PlayerMonoBehaviour: Cannot apply wave damages - not initialized");
-                return false;
-            }
-
-            if (damages == null)
-            {
-                Debug.LogError($"PlayerMonoBehaviour: Cannot apply wave damages - damages is null");
-                return false;
-            }
-
-            // Get source information
-            Vector3 sourcePosition = Vector3.zero;
-            GameObject sourceObject = null;
-
-            if (sourceWavable != null)
-            {
-                if (sourceWavable is MonoBehaviour sourceMono)
-                {
-                    sourcePosition = sourceMono.transform.position;
-                    sourceObject = sourceMono.gameObject;
-                }
-            }
-
-            // Create damage info
-            DamageInfo damageInfo = new DamageInfo(
-                damages: damages,
-                sourcePosition: sourcePosition,
-                sourceObject: sourceObject,
-                description: description
-            );
-
-            // Apply damage through the player's damage system
-            TakeDamage(damageInfo);
-
-            Debug.Log($"PlayerMonoBehaviour: Applied wave damages to {name} - " +
-                      $"CoreHealth: {damages.GetDamage(DamageType.CoreHealth):F1}, " +
-                      $"Chaos: {damages.GetDamage(DamageType.Chaos):F1}");
-            
-            return true;
         }
 
         #endregion
