@@ -27,6 +27,14 @@ namespace Resonance.Core.StateMachine.States
         private float _stateEnterTime = 0f;
         private const float MAX_RESONANCE_DURATION = 30f; // 30 seconds timeout
 
+        public static event System.Action OnWaveStateEntered;
+        public static event System.Action OnWaveStateExited;
+
+        /// <summary>
+        /// Constructor for WaveState
+        /// </summary>
+        /// <param name="sourceWavable">The source of the wave attack</param>
+        /// <param name="targetWavable">The target being attacked</param>
         public WaveState(IWavable sourceWavable = null, IWavable targetWavable = null)
         {
             _sourceWavable = sourceWavable;
@@ -81,6 +89,8 @@ namespace Resonance.Core.StateMachine.States
             _stateEnterTime = Time.time;
             
             _isInitialized = true;
+            
+            OnWaveStateEntered?.Invoke();
         }
 
         public void Update()
@@ -128,6 +138,8 @@ namespace Resonance.Core.StateMachine.States
             // Clear references
             _targetWavable = null;
             _isInitialized = false;
+
+            OnWaveStateExited?.Invoke();
         }
 
         public bool CanTransitionTo(IState newState)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Cinemachine;
 using Resonance.Core;
+using Resonance.Core.StateMachine.States;
 using Resonance.Player.Actions;
 using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
@@ -164,8 +165,8 @@ namespace Resonance.Cameras
         /// </summary>
         private void SubscribeToWaveEvents()
         {
-            PlayerWaveAttackAction.OnWaveAttackActionStarted += OnWaveStarted;
-            PlayerWaveAttackAction.OnWaveAttackActionEnded += OnWaveEnded;
+            WaveState.OnWaveStateEntered += OnWaveStateEntered;
+            WaveState.OnWaveStateExited += OnWaveStateExited;
         }
         
         /// <summary>
@@ -173,27 +174,25 @@ namespace Resonance.Cameras
         /// </summary>
         private void UnsubscribeFromWaveEvents()
         {
-            PlayerWaveAttackAction.OnWaveAttackActionStarted -= OnWaveStarted;
-            PlayerWaveAttackAction.OnWaveAttackActionEnded -= OnWaveEnded;
+            WaveState.OnWaveStateEntered -= OnWaveStateEntered;
+            WaveState.OnWaveStateExited -= OnWaveStateExited;
         }
         
         /// <summary>
         /// Handle wave action started - switch to player camera
         /// </summary>
-        /// <param name="sourceWavable">The source wavable (player or enemy)</param>
-        /// <param name="targetWavable">The target wavable (player or enemy)</param>
-        private void OnWaveStarted(IWavable sourceWavable, IWavable targetWavable)
+        private void OnWaveStateEntered()
         {
             Debug.Log("LevelCameraManager: Wave started, switching to player camera");
             SwitchToPlayerCamera();
         }
         
         /// <summary>
-        /// Handle wave action ended - switch back to fixed camera
+        /// Handle wave state exited - switch back to fixed camera
         /// </summary>
-        private void OnWaveEnded()
+        private void OnWaveStateExited()
         {
-            Debug.Log("LevelCameraManager: Wave ended, switching to fixed camera");
+            Debug.Log("LevelCameraManager: Wave state exited, switching to fixed camera");
             SwitchToFixedCamera();
         }
         
