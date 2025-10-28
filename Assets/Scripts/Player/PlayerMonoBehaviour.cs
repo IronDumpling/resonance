@@ -61,6 +61,7 @@ namespace Resonance.Player
         private PlayerInteractTrigger _playerInteractTrigger;
         private LevelCameraManager _cameraManager;
         private bool _cameraManagerInitialized = false;
+        private PlayerHitboxManager _hitboxManager;
 
         // Visual Materials
         private Material _normalMaterial;
@@ -81,6 +82,8 @@ namespace Resonance.Player
         // Properties
         public PlayerController Controller => _playerController;
         public bool IsInitialized => _playerController != null;
+        public PlayerHitboxManager HitboxManager => _hitboxManager;
+        public PlayerCrystalCoreHitbox CrystalCoreHitbox => _hitboxManager?.GetCrystalCoreHitbox();
 
         public Vector3 ShootOriginOffset => _shootOriginOffset;
 
@@ -229,19 +232,7 @@ namespace Resonance.Player
                 Debug.Log($"PlayerMonoBehaviour: Set Player tag on Visual child: {visualChild.name}");
             }
             
-            // Check Visual child object's collider settings
-            Collider visualCollider = visualChild.GetComponent<Collider>();
-            if (visualCollider != null)
-            {
-                Debug.Log($"PlayerMonoBehaviour: Visual collider found - Name: {visualChild.name}, " +
-                         $"Layer: {visualChild.gameObject.layer} ({LayerMask.LayerToName(visualChild.gameObject.layer)}), " +
-                         $"Tag: {visualChild.tag}, IsTrigger: {visualCollider.isTrigger}");
-            }
-            else
-            {
-                Debug.LogWarning($"PlayerMonoBehaviour: No collider found on Visual child {visualChild.name}");
-            }
-
+            // Get Body renderer
             Transform bodyTransform = visualChild.Find("Body");
             if (bodyTransform != null)
             {
@@ -292,12 +283,14 @@ namespace Resonance.Player
             if (existingManager != null)
             {
                 existingManager.Initialize(this);
+                _hitboxManager = existingManager;
                 Debug.Log($"PlayerMonoBehaviour: Initialized existing PlayerHitboxManager on {visualObject.name}");
             }
             else
             {
                 PlayerHitboxManager newManager = visualObject.AddComponent<PlayerHitboxManager>();
                 newManager.Initialize(this);
+                _hitboxManager = newManager;
                 Debug.Log($"PlayerMonoBehaviour: Added and initialized new PlayerHitboxManager on {visualObject.name}");
             }
         }

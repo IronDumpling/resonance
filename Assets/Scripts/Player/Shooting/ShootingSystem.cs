@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Cinemachine;
 using System.Collections.Generic;
+using Resonance.Core;
 using Resonance.Items;
 using Resonance.Cameras;
 using Resonance.Enemies.Triggers;

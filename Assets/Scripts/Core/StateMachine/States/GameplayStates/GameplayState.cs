@@ -6,6 +6,7 @@ using Resonance.Interfaces.Services;
 using Resonance.Player.Actions;
 using Resonance.Enemies;
 using Resonance.Enemies.Triggers;
+using Resonance.Enemies.BTNodes.Actions;
 using Resonance.Items;
 
 namespace Resonance.Core.StateMachine.States
@@ -41,6 +42,11 @@ namespace Resonance.Core.StateMachine.States
             PlayerWaveAttackAction.OnWaveAttackActionStarted += OnWaveStarted;
             PlayerWaveAttackAction.OnWaveAttackActionEnded += OnWaveEnded;
             Debug.Log("GameplayState: Subscribed to PlayerWaveAttackAction events");
+            
+            // Subscribe to Enemy WaveAttackAction events
+            WaveAttackAction.OnWaveAttackActionStarted += OnWaveStarted;
+            WaveAttackAction.OnWaveAttackActionEnded += OnWaveEnded;
+            Debug.Log("GameplayState: Subscribed to Enemy WaveAttackAction events");
             
             // Subscribe to InfoReadingState events
             InfoReadingState.OnInfoReadingEnded += OnInfoReadingEnded;
@@ -128,6 +134,11 @@ namespace Resonance.Core.StateMachine.States
             PlayerWaveAttackAction.OnWaveAttackActionStarted -= OnWaveStarted;
             PlayerWaveAttackAction.OnWaveAttackActionEnded -= OnWaveEnded;
             Debug.Log("GameplayState: Unsubscribed from PlayerWaveAttackAction events");
+            
+            // Unsubscribe from Enemy WaveAttackAction events
+            WaveAttackAction.OnWaveAttackActionStarted -= OnWaveStarted;
+            WaveAttackAction.OnWaveAttackActionEnded -= OnWaveEnded;
+            Debug.Log("GameplayState: Unsubscribed from Enemy WaveAttackAction events");
             
             // Unsubscribe from InfoReadingState events
             InfoReadingState.OnInfoReadingEnded -= OnInfoReadingEnded;

@@ -18,6 +18,7 @@ namespace Resonance.Player.Triggers
         // References
         private PlayerMonoBehaviour _playerMono;
         private PlayerController _playerController;
+        private PlayerCrystalCoreHitbox _crystalCoreHitbox;
         
         // State
         private bool _isInitialized = false;
@@ -201,6 +202,21 @@ namespace Resonance.Player.Triggers
                              $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
                 }
             }
+            
+            // Store reference to crystal core hitbox
+            _crystalCoreHitbox = existingHitbox ?? hitboxObject.GetComponent<PlayerCrystalCoreHitbox>();
+            
+            // Ensure the collider is always enabled for player crystal core
+            Collider coreCollider = hitboxObject.GetComponent<Collider>();
+            if (coreCollider != null)
+            {
+                coreCollider.enabled = true;
+                
+                if (_debugMode)
+                {
+                    Debug.Log($"PlayerHitboxManager: Ensured PlayerCrystalCoreHitbox collider is enabled");
+                }
+            }
         }
 
         #endregion
@@ -211,6 +227,15 @@ namespace Resonance.Player.Triggers
         /// Check if hitbox manager is properly initialized
         /// </summary>
         public bool IsInitialized => _isInitialized;
+
+        /// <summary>
+        /// Get the player's crystal core hitbox
+        /// </summary>
+        /// <returns>PlayerCrystalCoreHitbox or null if not found</returns>
+        public PlayerCrystalCoreHitbox GetCrystalCoreHitbox()
+        {
+            return _crystalCoreHitbox;
+        }
 
         #endregion
     }

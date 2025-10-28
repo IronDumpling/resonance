@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using BehaviorDesigner.Runtime;
 using System.Collections;
+using Resonance.Core;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.Movement;
@@ -54,6 +55,7 @@ namespace Resonance.Enemies
         private EnemyAnimator _enemyAnimator;
         private IAudioService _audioService;
         private Animator _animator;
+        private EnemyHitboxManager _hitboxManager;
 
         // Visual Materials
         private Material _normalMaterial;
@@ -70,6 +72,8 @@ namespace Resonance.Enemies
         // Properties
         public EnemyController Controller => _enemyController;
         public bool IsInitialized => _isInitialized && _enemyController != null;
+        public EnemyHitboxManager HitboxManager => _hitboxManager;
+        public EnemyCrystalCoreHitbox CrystalCoreHitbox => _hitboxManager?.GetCrystalCoreHitbox();
 
         #region Unity Lifecycle
 
@@ -468,21 +472,23 @@ namespace Resonance.Enemies
             SetupEnemyHitboxManagerComponent(visualChild.gameObject);
         }
         
-        private void SetupEnemyHitboxManagerComponent(GameObject hitboxManager)
+        private void SetupEnemyHitboxManagerComponent(GameObject hitboxManagerObject)
         {
             // Check if EnemyHitboxManager already exists
-            EnemyHitboxManager existingActivator = hitboxManager.GetComponent<EnemyHitboxManager>();
+            EnemyHitboxManager existingActivator = hitboxManagerObject.GetComponent<EnemyHitboxManager>();
             
             if (existingActivator != null)
             {
                 existingActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {hitboxManager.name}");
+                _hitboxManager = existingActivator;
+                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {hitboxManagerObject.name}");
             }
             else
             {
-                EnemyHitboxManager newActivator = hitboxManager.AddComponent<EnemyHitboxManager>();
+                EnemyHitboxManager newActivator = hitboxManagerObject.AddComponent<EnemyHitboxManager>();
                 newActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {hitboxManager.name}");
+                _hitboxManager = newActivator;
+                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {hitboxManagerObject.name}");
             }
         }
         

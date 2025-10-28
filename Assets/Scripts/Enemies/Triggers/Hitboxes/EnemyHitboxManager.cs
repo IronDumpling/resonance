@@ -1,6 +1,7 @@
 using UnityEngine;
 using Resonance.Interfaces;
 using Resonance.Enemies.Core;
+using Resonance.Enemies.Data;
 using Resonance.Utilities.Types;
 
 namespace Resonance.Enemies.Triggers
@@ -20,6 +21,7 @@ namespace Resonance.Enemies.Triggers
         private EnemyController _enemyController;
         private Collider[] _physicalHitboxes;  // Head, Body, etc.
         private Collider[] _coreHitboxes;    // Core, etc.
+        private EnemyCrystalCoreHitbox _crystalCoreHitbox;
         
         // State
         private bool _isInitialized = false;
@@ -239,6 +241,9 @@ namespace Resonance.Enemies.Triggers
                              $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
                 }
             }
+            
+            // Store reference to crystal core hitbox
+            _crystalCoreHitbox = existingHitbox ?? weakpointObject.GetComponent<EnemyCrystalCoreHitbox>();
         }
 
         #endregion
@@ -403,6 +408,59 @@ namespace Resonance.Enemies.Triggers
 
         #endregion
 
+        #region Wave Attack Collider Management
+
+        /// <summary>
+        /// Enable enemy's crystal core collider for wave attack
+        /// Called when enemy starts wave attack action
+        /// </summary>
+        public void EnableCoreColliderForWaveAttack()
+        {
+            if (!_isInitialized) return;
+            
+            // Enable only the core hitboxes (keep physical hitboxes as they are)
+            SetCoreHitboxes(true);
+            
+            // Show wave UI when core hitboxes are enabled
+            _enemyMono?.ShowWaveUI();
+            
+            if (_debugMode)
+            {
+                Debug.Log("EnemyHitboxManager: Enabled core collider for wave attack");
+            }
+        }
+
+        /// <summary>
+        /// Disable enemy's crystal core collider after wave attack
+        /// Called when enemy ends wave attack action
+        /// Should only disable if enemy is not in Reviving state
+        /// </summary>
+        public void DisableCoreColliderAfterWaveAttack()
+        {
+            if (!_isInitialized) return;
+            
+            // Only disable if enemy is not in Reviving state
+            // (Reviving state needs core colliders enabled for player wave attacks)
+            if (_enemyController != null && _enemyController.CurrentState != EnemyState.Reviving)
+            {
+                SetCoreHitboxes(false);
+                
+                // Hide wave UI when core hitboxes are disabled
+                _enemyMono?.HideWaveUI();
+                
+                if (_debugMode)
+                {
+                    Debug.Log("EnemyHitboxManager: Disabled core collider after wave attack");
+                }
+            }
+            else if (_debugMode)
+            {
+                Debug.Log("EnemyHitboxManager: Keeping core collider enabled (enemy in Reviving state)");
+            }
+        }
+
+        #endregion
+
         #region Public Interface
 
         /// <summary>
@@ -419,6 +477,15 @@ namespace Resonance.Enemies.Triggers
         /// Get count of core weakpoints
         /// </summary>
         public int CoreHitboxCount => _coreHitboxes?.Length ?? 0;
+
+        /// <summary>
+        /// Get the enemy's crystal core hitbox
+        /// </summary>
+        /// <returns>EnemyCrystalCoreHitbox or null if not found</returns>
+        public EnemyCrystalCoreHitbox GetCrystalCoreHitbox()
+        {
+            return _crystalCoreHitbox;
+        }
 
         #endregion
     }

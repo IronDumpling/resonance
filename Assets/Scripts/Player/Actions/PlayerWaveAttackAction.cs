@@ -245,9 +245,9 @@ namespace Resonance.Player.Actions
             // Play wave audio/effects
             PlayWaveEffects();
 
-            // Get IWavable references for event
+            // Get IWavable references for event (use player's own CrystalCoreHitbox as source)
             var playerService = ServiceRegistry.Get<IPlayerService>();
-            IWavable sourceWavable = playerService?.CurrentPlayer as IWavable;
+            IWavable sourceWavable = playerService?.CurrentPlayer?.CrystalCoreHitbox;
             
             // Trigger the wave started event for state machine and camera system
             OnWaveAttackActionStarted?.Invoke(sourceWavable, _targetWavable);
