@@ -22,6 +22,9 @@ namespace Resonance.Utilities.Waves
                 case WaveformType.Sawtooth:
                     GenerateSawtooth(table, resolution); // Default rising sawtooth
                     break;
+                case WaveformType.Constant:
+                    GenerateConstant(table, resolution);
+                    break;
                 case WaveformType.Custom: // Custom means it's a result of operations
                     Debug.LogWarning("WaveformGenerator: Custom waveform type not implemented.");
                     break;
@@ -32,6 +35,8 @@ namespace Resonance.Utilities.Waves
             }
             return table;
         }
+
+        #region Default Generate Waveform Methods
 
         private static void GenerateSine(float[] table, int resolution)
         {
@@ -73,12 +78,27 @@ namespace Resonance.Utilities.Waves
                 table[i] = -1.0f + 2.0f * ((float)i / resolution);
             }
         }
+
+        private static void GenerateConstant(float[] table, int resolution)
+        {
+            for (int i = 0; i < resolution; i++)
+            {
+                table[i] = 0.0f;
+            }
+        }
+
+        #endregion
+
+        #region Parameterized Generate Waveform Methods
+
         // You can add more generators (e.g., falling sawtooth) or parameterized ones
-         public static float[] GenerateSquareParameterized(int resolution, float dutyCycle)
-         {
-             float[] table = new float[resolution];
-             GenerateSquare(table, resolution, dutyCycle);
-             return table;
-         }
+        public static float[] GenerateSquareParameterized(int resolution, float dutyCycle)
+        {
+            float[] table = new float[resolution];
+            GenerateSquare(table, resolution, dutyCycle);
+            return table;
+        }
+
+        #endregion
     }
 }

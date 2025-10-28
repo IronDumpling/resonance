@@ -20,6 +20,7 @@ namespace Resonance.Utilities.Types
         Square,
         Triangle,
         Sawtooth,
+        Constant,
         Custom
     }
 

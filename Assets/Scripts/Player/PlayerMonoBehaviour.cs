@@ -634,56 +634,56 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// 从ShootingSystem获取鼠标目标点
-        /// 使用与射击系统相同的逻辑, 确保玩家朝向和射击方向一致
+        /// From ShootingSystem get the mouse target point
+        /// Use the same logic as the ShootingSystem, ensure the player is facing the shooting direction
         /// </summary>
-        /// <returns>鼠标指向的世界坐标点</returns>
+        /// <returns>The world coordinate point the mouse is pointing at</returns>
         private Vector3 GetMouseTargetPointFromShootingSystem()
         {
             if (!IsInitialized) return Vector3.zero;
 
-            // 使用ShootingSystem的统一鼠标目标点逻辑
+            // Use the same logic as the ShootingSystem
             return _playerController.ShootingSystem?.GetCurrentMouseTargetPoint() ?? Vector3.zero;
         }
 
         /// <summary>
-        /// 计算Player Visual应该面向的Y轴旋转角度
-        /// 使用与ShootingSystem相同的鼠标目标点, 确保玩家朝向和射击方向一致
-        /// 算法说明：
-        /// 1. 计算从Player到目标点的方向向量(仅考虑XZ平面)
-        /// 2. 使用Atan2函数计算该方向在XZ平面的角度
-        /// 3. 转换为Unity的Y轴旋转角度
+        /// Calculate the Y axis rotation angle the Player Visual should face
+        /// Use the same mouse target point as the ShootingSystem, ensure the player is facing the shooting direction
+        /// Algorithm:
+        /// 1. Calculate the direction vector from the Player to the target point (only consider the XZ plane)
+        /// 2. Use the Atan2 function to calculate the angle of the direction in the XZ plane
+        /// 3. Convert to the Y axis rotation angle in Unity
         /// </summary>
-        /// <param name="playerPosition">玩家位置</param>
-        /// <param name="targetPosition">目标点世界坐标(来自ShootingSystem)</param>
-        /// <returns>Y轴旋转角度(度数)</returns>
+        /// <param name="playerPosition">The position of the Player</param>
+        /// <param name="targetPosition">The world coordinate point of the target (from the ShootingSystem)</param>
+        /// <returns>The Y axis rotation angle (degrees)</returns>
         private float CalculatePlayerYRotation(Vector3 playerPosition, Vector3 targetPosition)
         {
-            // 步骤1: 计算从Player到目标点的方向向量
+            // Step 1: Calculate the direction vector from the Player to the target point
             Vector3 directionToTarget = targetPosition - playerPosition;
             
-            // 步骤2: 将Y轴分量设为0, 确保只考虑XZ平面的旋转
+            // Step 2: Set the Y axis component to 0, ensure only considering the rotation in the XZ plane
             directionToTarget.y = 0f;
             
-            // 步骤3: 确保方向向量有效(避免除零错误)
+            // Step 3: Ensure the direction vector is valid (avoid division by zero)
             if (directionToTarget.sqrMagnitude < 0.001f)
             {
-                // 如果目标点和玩家位置过于接近, 保持当前旋转
+                // If the target point and the player position are too close, keep the current rotation
                 return _playerVisual.eulerAngles.y;
             }
             
-            // 步骤4: 标准化方向向量
+            // Step 4: Normalize the direction vector
             directionToTarget.Normalize();
             
-            // 步骤5: 使用Atan2计算角度
-            // Atan2(z, x) 计算从X轴正方向到(x,z)点的角度
-            // Unity的前方是Z轴正方向, 所以我们使用 Atan2(x, z)
+            // Step 5: Use Atan2 to calculate the angle
+            // Atan2(z, x) Calculate the angle from the X axis positive direction to the (x,z) point
+            // Unity's forward is the Z axis positive direction, so we use Atan2(x, z)
             float angleInRadians = Mathf.Atan2(directionToTarget.x, directionToTarget.z);
             
-            // 步骤6: 转换为度数
+            // Step 6: Convert to degrees
             float angleInDegrees = angleInRadians * Mathf.Rad2Deg;
             
-            // 步骤7: 确保角度在0-360度范围内
+            // Step 7: Ensure the angle is within the range of 0-360 degrees
             if (angleInDegrees < 0f)
             {
                 angleInDegrees += 360f;
@@ -693,27 +693,27 @@ namespace Resonance.Player
         }
 
         /// <summary>
-        /// 平滑地旋转Player Visual到目标Y轴角度
-        /// 使用Quaternion.Slerp进行球面线性插值, 确保旋转自然
+        /// Smoothly rotate the Player Visual to the target Y axis angle
+        /// Use Quaternion.Slerp to perform spherical linear interpolation, ensure the rotation is natural
         /// </summary>
-        /// <param name="targetYRotation">目标Y轴旋转角度</param>
+        /// <param name="targetYRotation">The target Y axis rotation angle</param>
         private void ApplyPlayerYRotation(float targetYRotation)
         {
-            // 获取当前旋转
+            // Get the current rotation
             Vector3 currentEulerAngles = _playerVisual.eulerAngles;
             
-            // 创建目标旋转(保持X和Z轴不变, 只改变Y轴)
+            // Create the target rotation (keep the X and Z axes unchanged, only change the Y axis)
             Vector3 targetEulerAngles = new Vector3(
-                currentEulerAngles.x,  // 保持X轴旋转
-                targetYRotation,       // 设置新的Y轴旋转
-                currentEulerAngles.z   // 保持Z轴旋转
+                currentEulerAngles.x,  // Keep the X axis rotation
+                targetYRotation,       // Set the new Y axis rotation
+                currentEulerAngles.z   // Keep the Z axis rotation
             );
             
-            // 转换为Quaternion
+            // Convert to Quaternion
             Quaternion currentRotation = _playerVisual.rotation;
             Quaternion targetRotation = Quaternion.Euler(targetEulerAngles);
             
-            // 使用球面线性插值进行平滑旋转
+            // Use spherical linear interpolation to smoothly rotate
             _playerVisual.rotation = Quaternion.Slerp(
                 currentRotation, 
                 targetRotation, 
@@ -726,24 +726,24 @@ namespace Resonance.Player
         #region Aiming Line Management
 
         /// <summary>
-        /// 更新瞄准线显示
+        /// Update the aiming line display
         /// </summary>
         private void UpdateAimingLine()
         {
             if (!IsInitialized) return;
             
-            // 只在瞄准状态下显示瞄准线
+            // Only show the aiming line in aiming state
             if (_playerController.IsAiming)
             {
-                // 计算射击起始位置(与射击时相同)
+                // Calculate the shooting origin position (the same as when shooting)
                 Vector3 shootOrigin = transform.position + _shootOriginOffset;
                 
-                // 更新瞄准线
+                // Update the aiming line
                 _playerController.ShootingSystem?.UpdateAimingLine(shootOrigin);
             }
             else
             {
-                // 不在瞄准状态时隐藏瞄准线
+                // Hide the aiming line when not in aiming state
                 _playerController.ShootingSystem?.HideAimingLine();
             }
         }
@@ -758,61 +758,61 @@ namespace Resonance.Player
 
             if (_playerController.IsAiming)
             {
-                // 获取鼠标世界坐标
+                // Get the mouse world coordinate
                 Vector3 mouseWorldPosition = GetMouseWorldPosition();
                 if (mouseWorldPosition != Vector3.zero)
                 {
-                    // 计算Right Arm的全方向旋转
+                    // Calculate the full direction rotation of the Right Arm
                     Quaternion targetArmRotation = CalculateRightArmRotation(_rightArm.position, mouseWorldPosition);
                     
-                    // 应用平滑旋转(全方向)
+                    // Apply smooth rotation (full direction)
                     ApplyRightArmRotation(targetArmRotation);
                 }
             }
-            // 当不在瞄准状态时, 可以添加返回默认位置的逻辑
+            // When not in aiming state, can add logic to return to the default position
         }
 
         /// <summary>
-        /// 计算Right Arm应该指向的全方向旋转
-        /// 算法说明：
-        /// 1. 计算从手臂到鼠标的方向向量(3D全方向)
-        /// 2. 使用Quaternion.LookRotation计算旋转
-        /// 3. 保持Up向量为世界坐标的上方向, 确保旋转自然
+        /// Calculate the full direction rotation the Right Arm should face
+        /// Algorithm:
+        /// 1. Calculate the direction vector from the arm to the mouse (3D full direction)
+        /// 2. Use Quaternion.LookRotation to calculate the rotation
+        /// 3. Keep the Up vector as the world coordinate's up direction, ensure the rotation is natural
         /// </summary>
-        /// <param name="armPosition">手臂位置</param>
-        /// <param name="mousePosition">鼠标世界坐标</param>
-        /// <returns>目标旋转四元数</returns>
+        /// <param name="armPosition">The position of the arm</param>
+        /// <param name="mousePosition">The world coordinate of the mouse</param>
+        /// <returns>The target rotation Quaternion</returns>
         private Quaternion CalculateRightArmRotation(Vector3 armPosition, Vector3 mousePosition)
         {
-            // 步骤1: 计算从手臂到鼠标的方向向量(全3D方向)
+            // Step 1: Calculate the direction vector from the arm to the mouse (3D full direction)
             Vector3 directionToMouse = mousePosition - armPosition;
             
-            // 步骤2: 检查方向向量是否有效
+            // Step 2: Check if the direction vector is valid
             if (directionToMouse.sqrMagnitude < 0.001f)
             {
-                // 如果距离过近, 保持当前旋转
+                // If the distance is too close, keep the current rotation
                 return _rightArm.rotation;
             }
             
-            // 步骤3: 标准化方向向量
+            // Step 3: Normalize the direction vector
             directionToMouse.Normalize();
             
-            // 步骤4: 使用LookRotation计算目标旋转
-            // LookRotation(forward, up) 创建一个旋转, 使前方指向forward方向
-            // 使用Vector3.up作为上方向, 确保旋转看起来自然
+            // Step 4: Use LookRotation to calculate the target rotation
+            // LookRotation(forward, up) Create a rotation, make the forward direction point to the forward direction
+            // Use Vector3.up as the up direction, ensure the rotation looks natural
             Quaternion targetRotation = Quaternion.LookRotation(directionToMouse, Vector3.up);
             
             return targetRotation;
         }
 
         /// <summary>
-        /// 平滑地旋转Right Arm到目标旋转
-        /// 使用Quaternion.Slerp进行球面线性插值
+        /// Smoothly rotate the Right Arm to the target rotation
+        /// Use Quaternion.Slerp to perform spherical linear interpolation
         /// </summary>
-        /// <param name="targetRotation">目标旋转四元数</param>
+        /// <param name="targetRotation">The target rotation Quaternion</param>
         private void ApplyRightArmRotation(Quaternion targetRotation)
         {
-            // 使用球面线性插值进行平滑旋转(全方向)
+            // Use spherical linear interpolation to smoothly rotate (full direction)
             _rightArm.rotation = Quaternion.Slerp(
                 _rightArm.rotation, 
                 targetRotation, 
@@ -824,7 +824,7 @@ namespace Resonance.Player
         {
             if (_playerCamera == null) return Vector3.zero;
 
-            // Get mouse position using new Input System
+            // Get mouse position using the new Input System
             Vector2 mousePosition = Mouse.current?.position.ReadValue() ?? Vector2.zero;
             
             if (mousePosition == Vector2.zero)
