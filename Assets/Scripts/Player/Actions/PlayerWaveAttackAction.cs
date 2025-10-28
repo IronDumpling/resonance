@@ -432,7 +432,7 @@ namespace Resonance.Player.Actions
         /// <param name="hitbox">The IWavable hitbox that was disabled</param>
         private void OnTargetWavableColliderDisabled(EnemyCrystalCoreHitbox hitbox)
         {
-            if (hitbox != null && hitbox == _targetWavable)
+            if (hitbox != null && hitbox == (_targetWavable as UnityEngine.Object))
             {
                 Debug.Log("PlayerWaveAttackAction: Target wavable collider disabled - ending wave action");
                 
