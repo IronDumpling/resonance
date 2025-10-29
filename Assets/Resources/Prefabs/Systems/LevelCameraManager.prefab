@@ -174,6 +174,10 @@ MonoBehaviour:
   _playerCameraName: CM_PlayerCamera
   _autoSetupPlayerFollow: 1
   _playerCameraOffset: {x: 0, y: 2, z: 0}
+  _impulseSourceParentName: Camera_Impulse_Source
+  _shootRecoilImpulseName: Player_Shoot_Recoil_Impulse
+  _playerHitImpulseName: Player_Hit_Impulse
+  _waveAttackMissImpulseName: Player_Wave_Attack_Miss_Impulse
 --- !u!1 &5501803424102829244
 GameObject:
   m_ObjectHideFlags: 0
@@ -526,6 +530,7 @@ GameObject:
   - component: {fileID: 4768786061017898296}
   - component: {fileID: 5231470481515694227}
   - component: {fileID: 4041557439962820525}
+  - component: {fileID: 127886571184623837}
   m_Layer: 0
   m_Name: CM_PlayerCamera
   m_TagString: Untagged
@@ -623,6 +628,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Damping: 0
+--- !u!114 &127886571184623837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7583781389487478427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00b2d199b96b516448144ab30fb26aed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseListener
+  ApplyAfter: 2
+  ChannelMask: 1
+  Gain: 1
+  Use2DDistance: 0
+  UseCameraSpace: 1
+  SignalCombinationMode: 0
+  ReactionSettings:
+    m_SecondaryNoise: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    Duration: 1
+    m_NoiseOffsets: {x: 0, y: 0, z: 0}
 --- !u!1 &8988669783740799453
 GameObject:
   m_ObjectHideFlags: 0
