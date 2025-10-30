@@ -466,11 +466,8 @@ namespace Resonance.UI
                 return;
             }
             
-            // Trigger QTE (without forced result, let it calculate)
+            // Trigger Attack QTE
             ProcessWaveTrigger(null);
-            
-            // Stop scrolling temporarily
-            StopScrollingTemporarily();
         }
 
         private void OnLogicBind1Input()
@@ -582,9 +579,13 @@ namespace Resonance.UI
             
             // Show visual/audio feedback
             ShowMatchFeedback(matchPercentage, effectiveResult);
+
+            // Stop scrolling temporarily
+            StopScrollingTemporarily();
             
             return effectiveResult;
         }
+
         #endregion
         
         #region Wave Calculation

@@ -31,7 +31,7 @@ namespace Resonance.Enemies.BTNodes.Actions
         // AI configuration
         [SerializeField] private float _aiCheckInterval = 1f; // How often to check wave match
         [SerializeField] private float _perfectMatchThreshold = 90f; // AI tries for perfect match
-        [SerializeField] private int _maxAttackAttempts = 2; // Maximum QTE attempts
+        [SerializeField] private int _maxAttackAttempts = 1; // Maximum QTE attempts
         [SerializeField] private float _minTimeBetweenAttempts = 2f; // Cooldown between attempts
         
         // Animation wait duration - Time to wait for animation before starting AI attacks (fallback if event doesn't fire)
