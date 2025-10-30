@@ -22,8 +22,11 @@ namespace Resonance.Interfaces.Services
         event Action OnRotateItemRight;
 
         event Action OnInformationClose; // Close information (E key)
-        
+        event Action OnNextPage; // Next page input during Information mode
+        event Action OnLastPage; // Last page input during Information mode
+
         event Action OnQTE; // QTE input during Wave mode
+        event Action OnLogicBind1; // Logic bind 1 input during Wave mode
 
         void EnableInventoryInput();
         void DisableInventoryInput();

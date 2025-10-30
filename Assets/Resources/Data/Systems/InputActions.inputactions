@@ -398,6 +398,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "NextPage",
+                    "type": "Button",
+                    "id": "82fa4f5c-eeaf-4237-9c16-09d18cc0de77",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "LastPage",
+                    "type": "Button",
+                    "id": "dbf5a069-04b7-43bf-b4e4-30348e706392",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -409,6 +427,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "CloseInformation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "556d41b1-abce-49b5-9598-2bdd0699f707",
+                    "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "NextPage",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "862317b0-2b76-4fad-9169-250ace6defae",
+                    "path": "<Keyboard>/a",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LastPage",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -426,6 +466,15 @@
                     "processors": "",
                     "interactions": "Tap",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "LogicBind1",
+                    "type": "Button",
+                    "id": "4d139aae-748c-4c3a-8aff-b9a931b6be34",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -437,6 +486,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "QTE",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9384d977-e300-4fa7-b468-5f6b15d04928",
+                    "path": "<Keyboard>/c",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "LogicBind1",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
