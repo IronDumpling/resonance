@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Resonance.Utilities
+namespace Resonance.Core
 {
     public static class ServiceRegistry
     {

@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using BehaviorDesigner.Runtime;
 using System.Collections;
+using Resonance.Core;
 using Resonance.Enemies.Core;
 using Resonance.Enemies.Data;
 using Resonance.Enemies.Movement;
@@ -9,6 +10,8 @@ using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
+using Resonance.Utilities.Waves;
 
 namespace Resonance.Enemies
 {
@@ -52,6 +55,7 @@ namespace Resonance.Enemies
         private EnemyAnimator _enemyAnimator;
         private IAudioService _audioService;
         private Animator _animator;
+        private EnemyHitboxManager _hitboxManager;
 
         // Visual Materials
         private Material _normalMaterial;
@@ -68,6 +72,8 @@ namespace Resonance.Enemies
         // Properties
         public EnemyController Controller => _enemyController;
         public bool IsInitialized => _isInitialized && _enemyController != null;
+        public EnemyHitboxManager HitboxManager => _hitboxManager;
+        public EnemyCrystalCoreHitbox CrystalCoreHitbox => _hitboxManager?.GetCrystalCoreHitbox();
 
         #region Unity Lifecycle
 
@@ -459,28 +465,30 @@ namespace Resonance.Enemies
             Transform visualChild = _visualTransform ?? transform.Find("Visual");
             if (visualChild == null)
             {
-                Debug.LogWarning($"EnemyMonoBehaviour: No Visual child found for weakpoint system setup on {gameObject.name}");
+                Debug.LogWarning($"EnemyMonoBehaviour: No Visual child found for hitbox system setup on {gameObject.name}");
                 return;
             }
             
             SetupEnemyHitboxManagerComponent(visualChild.gameObject);
         }
         
-        private void SetupEnemyHitboxManagerComponent(GameObject weakpointsObject)
+        private void SetupEnemyHitboxManagerComponent(GameObject hitboxManagerObject)
         {
             // Check if EnemyHitboxManager already exists
-            EnemyHitboxManager existingActivator = weakpointsObject.GetComponent<EnemyHitboxManager>();
+            EnemyHitboxManager existingActivator = hitboxManagerObject.GetComponent<EnemyHitboxManager>();
             
             if (existingActivator != null)
             {
                 existingActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {weakpointsObject.name}");
+                _hitboxManager = existingActivator;
+                Debug.Log($"EnemyMonoBehaviour: Initialized existing EnemyHitboxManager on {hitboxManagerObject.name}");
             }
             else
             {
-                EnemyHitboxManager newActivator = weakpointsObject.AddComponent<EnemyHitboxManager>();
+                EnemyHitboxManager newActivator = hitboxManagerObject.AddComponent<EnemyHitboxManager>();
                 newActivator.Initialize(this);
-                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {weakpointsObject.name}");
+                _hitboxManager = newActivator;
+                Debug.Log($"EnemyMonoBehaviour: Added and initialized new EnemyHitboxManager on {hitboxManagerObject.name}");
             }
         }
         
@@ -584,21 +592,6 @@ namespace Resonance.Enemies
                 if (damageHitbox == null)
                 {
                     SetupDamageHitboxComponent(damageHitboxChild.gameObject);
-                }
-            }
-            
-            // Check weakpoint system
-            Transform visualChild = _visualTransform ?? transform.Find("Visual");
-            if (visualChild != null)
-            {
-                Transform weakpointsChild = visualChild.Find("Weakpoints");
-                if (weakpointsChild != null)
-                {
-                    EnemyHitboxManager weakpointActivator = weakpointsChild.GetComponent<EnemyHitboxManager>();
-                    if (weakpointActivator == null)
-                    {
-                        SetupEnemyHitboxManagerComponent(weakpointsChild.gameObject);
-                    }
                 }
             }
         }
@@ -983,7 +976,7 @@ namespace Resonance.Enemies
             Vector3 healthBarPosition = healthBarCenter + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
             Gizmos.DrawCube(healthBarPosition, healthBarSize);
             
-            // core health (bottom bar)
+            // core health (middle bar)
             Gizmos.color = Color.blue;
             Gizmos.DrawCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
@@ -993,10 +986,22 @@ namespace Resonance.Enemies
             Vector3 coreBarPosition = barPosition + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
             Gizmos.DrawCube(coreBarPosition, coreBarSize);
             
+            // chaos bar (bottom bar)
+            Vector3 chaosBarPosition = barPosition + Vector3.down * barHeight * 0.6f;
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawCube(chaosBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            
+            float chaosPercentage = _enemyController.Stats.crystalCore.ChaosPercentage;
+            Gizmos.color = Color.yellow;
+            Vector3 chaosBarSize = new Vector3(barWidth * chaosPercentage, barHeight * 0.5f, 0.1f);
+            Vector3 chaosBarFillPosition = chaosBarPosition + Vector3.left * (barWidth * (1f - chaosPercentage) * 0.5f);
+            Gizmos.DrawCube(chaosBarFillPosition, chaosBarSize);
+            
             // Border
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             Gizmos.DrawWireCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(chaosBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
         }
 
         void OnDrawGizmosSelected()
@@ -1037,17 +1042,6 @@ namespace Resonance.Enemies
             }
         }
 
-        #endregion
-        
-        #region Editor Validation
-        
-        void OnValidate()
-        {
-            // Validate patrol configuration
-            if (_waitAtWaypointDuration < 0f)
-                _waitAtWaypointDuration = 0f;
-        }
-        
         #endregion
     }
 }

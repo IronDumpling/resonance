@@ -213,20 +213,23 @@ namespace Resonance.Enemies.Triggers
 
         /// <summary>
         /// Attempt to deal damage to the target
+        /// Wave attacks NO LONGER deal damage through hitbox - they use WavePanel QTE system
         /// </summary>
         private bool AttemptDamage(IDamageable target, Collider targetCollider)
         {
-            // Use current attack type's AttackStats
-            AttackStats currentAttackStats = _enemyController.GetCurrentAttackStats();
-            Damages damages = currentAttackStats.damages;
-            
+            // Check current attack type
+            AttackType currentAttackType = _enemyController.CurrentAttackType;
             string attackTypeName = "";
 
-            switch (_enemyController.CurrentAttackType)
+            switch (currentAttackType)
             {
                 case AttackType.Wave:
                     attackTypeName = "Wave attack";
-                    break;
+                    if (_debugMode)
+                    {
+                        Debug.Log($"EnemyDamageHitbox: Wave attack collision detected with {target} - damage handled by WavePanel QTE");
+                    }
+                    return true;
                 case AttackType.Normal:
                     attackTypeName = "Normal attack";
                     break;
@@ -234,6 +237,10 @@ namespace Resonance.Enemies.Triggers
                     attackTypeName = "Unknown attack";
                     break;
             }
+
+            // For Normal attacks, proceed with damage as usual
+            AttackStats currentAttackStats = _enemyController.GetCurrentAttackStats();
+            Damages damages = currentAttackStats.damages;
 
             // Create damage info
             DamageInfo damageInfo = new DamageInfo(

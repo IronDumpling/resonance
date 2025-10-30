@@ -3,6 +3,7 @@ using Resonance.Core;
 using Resonance.Player.Core;
 using Resonance.Player.Data;
 using Resonance.Player.Triggers;
+using Resonance.Interfaces;
 using Resonance.Interfaces.Operations;
 using Resonance.Interfaces.Services;
 using Resonance.Enemies.Data;
@@ -12,15 +13,15 @@ using Resonance.Utilities;
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player Core Attack Action - triggered by short press F when Core hitboxes are in wave attack range
-    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, Core type EnemyHitbox with enabled collider in WaveAttackRange
+    /// Player Core Attack Action - triggered by short press F when IWavable targets are in wave attack range
+    /// Conditions: PlayerNormalState, CoreHealth >= 1 slot, IWavable (EnemyCrystalCoreHitbox) with enabled collider in WaveAttackRange
     /// Behavior: Player cannot move, is invulnerable to health damage, consumes 1 CoreHealth slot
-    /// End condition: Target Core hitbox collider becomes disabled or exits range
+    /// End condition: Target IWavable collider becomes disabled or exits range
     /// </summary>
     public class PlayerWaveAttackAction : IPlayerAction
     {
         // Static events for state machine integration
-        public static event System.Action<EnemyHitbox> OnWaveAttackActionStarted;
+        public static event System.Action<IWavable, IWavable> OnWaveAttackActionStarted; // source, target
         public static event System.Action OnWaveAttackActionEnded;
 
         // Action properties
@@ -32,8 +33,8 @@ namespace Resonance.Player.Actions
         // Runtime state
         private bool _isActive = false;
         private bool _isFinished = false;
-        private EnemyHitbox _targetCoreHitbox = null;
         private float _actionStartTime = 0f;
+        private IWavable _targetWavable = null; // Current target for wave attack
 
         private PlayerController _player;
 
@@ -70,7 +71,7 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            // Must have Core hitboxes in wave attack range
+            // Must have IWavable targets in wave attack range
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null)
             {
@@ -78,43 +79,43 @@ namespace Resonance.Player.Actions
                 return false;
             }
 
-            if (!playerService.CurrentPlayer.HasCoreHitboxesInWaveAttackRange())
+            if (!playerService.CurrentPlayer.HasWavablesInWaveAttackRange())
             {
-                Debug.Log("PlayerWaveAttackAction: Cannot start - no Core hitboxes in wave attack range");
+                Debug.Log("PlayerWaveAttackAction: Cannot start - no IWavable targets in wave attack range");
                 return false;
             }
 
-            // Additional check: verify target cores are in valid states
+            // Additional check: verify IWavable targets are in valid states
             var waveAttackTrigger = playerService.CurrentPlayer.GetComponentInChildren<WaveAttackTrigger>();
             if (waveAttackTrigger != null)
             {
-                var coreHitboxes = waveAttackTrigger.CoreHitboxesInRange;
-                Debug.Log($"PlayerWaveAttackAction: Found {coreHitboxes.Count} core hitboxes in range");
+                var coreHitboxes = waveAttackTrigger.WavablesInRange;
+                Debug.Log($"PlayerWaveAttackAction: Found {coreHitboxes.Count} wavable targets in range");
                 
-                bool hasValidCore = false;
+                bool hasValidTarget = false;
                 
                 foreach (var core in coreHitboxes)
                 {
-                    if (core != null)
+                    if (core != null && core is IWavable wavable)
                     {
-                        bool isValid = IsValidTargetCore(core);
-                        Debug.Log($"PlayerWaveAttackAction: Core {core.name} validity check: {isValid}");
+                        bool isValid = IsValidTargetWavable(wavable);
+                        Debug.Log($"PlayerWaveAttackAction: Wavable {(core as MonoBehaviour)?.name} validity check: {isValid}");
                         
                         if (isValid)
                         {
-                            hasValidCore = true;
+                            hasValidTarget = true;
                             break;
                         }
                     }
                     else
                     {
-                        Debug.Log("PlayerWaveAttackAction: Found null core in range list");
+                        Debug.Log("PlayerWaveAttackAction: Found null or non-IWavable target in range list");
                     }
                 }
                 
-                if (!hasValidCore)
+                if (!hasValidTarget)
                 {
-                    Debug.Log("PlayerWaveAttackAction: Cannot start - no valid target cores (cores may be in invalid states)");
+                    Debug.Log("PlayerWaveAttackAction: Cannot start - no valid IWavable targets (targets may be in invalid states)");
                     return false;
                 }
             }
@@ -129,21 +130,35 @@ namespace Resonance.Player.Actions
         }
         
         /// <summary>
-        /// Check if a core hitbox is in a valid state for wave
+        /// Check if a wavable target is in a valid state for wave attack
         /// </summary>
-        /// <param name="coreHitbox">Core hitbox to check</param>
-        /// <returns>True if core is valid for wave</returns>
-        private bool IsValidTargetCore(EnemyHitbox coreHitbox)
+        /// <param name="wavable">IWavable target to check</param>
+        /// <returns>True if wavable is valid for wave attack</returns>
+        private bool IsValidTargetWavable(IWavable wavable)
         {
-            if (coreHitbox == null)
+            if (wavable == null)
             {
-                Debug.Log("PlayerWaveAttackAction: IsValidTargetCore - coreHitbox is null");
+                Debug.Log("PlayerWaveAttackAction: IsValidTargetWavable - wavable is null");
+                return false;
+            }
+            
+            // IWavable must be a MonoBehaviour (EnemyCrystalCoreHitbox)
+            if (!(wavable is MonoBehaviour mono))
+            {
+                Debug.Log("PlayerWaveAttackAction: IsValidTargetWavable - wavable is not a MonoBehaviour");
+                return false;
+            }
+            
+            // Check if it's an EnemyCrystalCoreHitbox
+            if (!(wavable is EnemyCrystalCoreHitbox coreHitbox))
+            {
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetWavable - {mono.name} is not an EnemyCrystalCoreHitbox");
                 return false;
             }
                 
             if (!coreHitbox.IsInitialized)
             {
-                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} not initialized");
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetWavable - {mono.name} not initialized");
                 return false;
             }
                 
@@ -151,13 +166,13 @@ namespace Resonance.Player.Actions
             var collider = coreHitbox.GetComponent<Collider>();
             if (collider == null)
             {
-                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} has no collider");
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetWavable - {mono.name} has no collider");
                 return false;
             }
             
             if (!collider.enabled)
             {
-                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} collider is disabled");
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetWavable - {mono.name} collider is disabled");
                 return false;
             }
                 
@@ -165,14 +180,14 @@ namespace Resonance.Player.Actions
             var enemyMono = coreHitbox.GetEnemyMonoBehaviour();
             if (enemyMono == null)
             {
-                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} has no EnemyMonoBehaviour");
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetWavable - {mono.name} has no EnemyMonoBehaviour");
                 return false;
             }
                 
             var enemyController = enemyMono.Controller;
             if (enemyController == null)
             {
-                Debug.Log($"PlayerWaveAttackAction: IsValidTargetCore - {coreHitbox.name} has no EnemyController");
+                Debug.Log($"PlayerWaveAttackAction: IsValidTargetWavable - {mono.name} has no EnemyController");
                 return false;
             }
                 
@@ -198,11 +213,11 @@ namespace Resonance.Player.Actions
 
             _player = player;
 
-            // Find target Core hitbox
-            _targetCoreHitbox = FindTargetCoreHitbox();
-            if (_targetCoreHitbox == null)
+            // Find target IWavable
+            _targetWavable = FindTargetWavable();
+            if (_targetWavable == null)
             {
-                Debug.LogWarning("PlayerWaveAttackAction: No valid target Core hitbox found");
+                Debug.LogError("PlayerWaveAttackAction: Cannot start - no valid IWavable target found");
                 _isFinished = true;
                 return;
             }
@@ -220,20 +235,25 @@ namespace Resonance.Player.Actions
             _isFinished = false;
             _actionStartTime = Time.time;
 
-            // Subscribe to target Core hitbox events
-            if (_targetCoreHitbox != null)
+            // Subscribe to collider events
+            if (_targetWavable is EnemyCrystalCoreHitbox coreHitbox)
             {
-                _targetCoreHitbox.OnColliderDisabled += OnTargetCoreColliderDisabled;
-                Debug.Log($"PlayerWaveAttackAction: Subscribed to collider events for core hitbox {_targetCoreHitbox.name}");
+                coreHitbox.OnColliderDisabled += OnTargetWavableColliderDisabled;
+                Debug.Log("PlayerWaveAttackAction: Subscribed to target wavable collider events");
             }
 
             // Play wave audio/effects
             PlayWaveEffects();
 
+            // Get IWavable references for event (use player's own CrystalCoreHitbox as source)
+            var playerService = ServiceRegistry.Get<IPlayerService>();
+            IWavable sourceWavable = playerService?.CurrentPlayer?.CrystalCoreHitbox;
+            
             // Trigger the wave started event for state machine and camera system
-            OnWaveAttackActionStarted?.Invoke(_targetCoreHitbox);
+            OnWaveAttackActionStarted?.Invoke(sourceWavable, _targetWavable);
 
-            Debug.Log($"PlayerWaveAttackAction: Started with target Core hitbox {_targetCoreHitbox.name} - camera should switch to player view");
+            Debug.Log($"PlayerWaveAttackAction: Started with source: {(sourceWavable != null ? "valid" : "null")}, " +
+                     $"target: {(_targetWavable != null ? "valid" : "null")}");
         }
 
         /// <summary>
@@ -256,34 +276,37 @@ namespace Resonance.Player.Actions
                 return; 
             }
 
-            // Check if target Core hitbox is still valid for wave
-            bool targetCoreNull = _targetCoreHitbox == null;
-            bool targetCoreValid = !targetCoreNull && IsValidTargetCore(_targetCoreHitbox);
-            bool targetCoreInRange = !targetCoreNull && IsTargetCoreStillInRange(_targetCoreHitbox);
+            // Check if target Wavable is still valid for wave
+            bool targetWavableNull = _targetWavable == null;
+            bool targetWavableValid = !targetWavableNull && IsValidTargetWavable(_targetWavable);
+            bool targetWavableInRange = !targetWavableNull && IsTargetWavableStillInRange(_targetWavable);
 
-            if (targetCoreNull || !targetCoreValid || !targetCoreInRange)
+            if (targetWavableNull || !targetWavableValid || !targetWavableInRange)
             {
-                // Core hitbox no longer valid or in range
+                // Wavable no longer valid or in range
                 if (actionDuration >= MIN_ACTION_DURATION)
                 {
-                    if (targetCoreNull)
+                    if (targetWavableNull)
                     {
-                        Debug.Log("PlayerWaveAttackAction: Target Core hitbox is null, ending action");
+                        Debug.Log("PlayerWaveAttackAction: Target Wavable is null, ending action");
                     }
-                    else if (!targetCoreValid)
+                    else if (!targetWavableValid)
                     {
-                        Debug.Log("PlayerWaveAttackAction: Target Core hitbox no longer in valid state, ending action");
+                        Debug.Log("PlayerWaveAttackAction: Target Wavable no longer in valid state, ending action");
                         
                         // Get detailed state info
-                        var enemyController = _targetCoreHitbox.GetEnemyController();
-                        if (enemyController != null)
+                        if (_targetWavable is EnemyCrystalCoreHitbox coreHitbox)
                         {
-                            Debug.Log($"PlayerWaveAttackAction: Enemy state: {enemyController.CurrentState}");
+                            var enemyController = coreHitbox.GetEnemyController();
+                            if (enemyController != null)
+                            {
+                                Debug.Log($"PlayerWaveAttackAction: Enemy state: {enemyController.CurrentState}");
+                            }
                         }
                     }
-                    else if (!targetCoreInRange)
+                    else if (!targetWavableInRange)
                     {
-                        Debug.Log("PlayerWaveAttackAction: Target Core hitbox is no longer in range, ending action");
+                        Debug.Log("PlayerWaveAttackAction: Target Wavable is no longer in range, ending action");
                     }
                     
                     _isFinished = true;
@@ -323,60 +346,95 @@ namespace Resonance.Player.Actions
         }
 
         /// <summary>
-        /// Find the target Core hitbox for wave action
+        /// Find the target IWavable for wave action
         /// </summary>
-        /// <returns>The target Core hitbox or null if none found</returns>
-        private EnemyHitbox FindTargetCoreHitbox()
+        /// <returns>The target IWavable or null if none found</returns>
+        private IWavable FindTargetWavable()
         {
             var playerService = ServiceRegistry.Get<IPlayerService>();
             if (playerService?.CurrentPlayer == null) return null;
 
-            // Get the closest Core hitbox from WaveAttackTrigger
+            // Get the closest IWavable target from WaveAttackTrigger
             var playerMono = playerService.CurrentPlayer;
+            var waveAttackTrigger = playerMono.GetComponentInChildren<WaveAttackTrigger>();
             
-            // Get the closest Core hitbox directly
-            var closestCoreHitbox = playerMono.GetClosestCoreHitbox();
-            if (closestCoreHitbox != null)
+            if (waveAttackTrigger == null)
             {
-                Debug.Log($"PlayerWaveAttackAction: Found target Core hitbox {closestCoreHitbox.name}");
-                return closestCoreHitbox;
+                Debug.Log("PlayerWaveAttackAction: WaveAttackTrigger not found");
+                return null;
+            }
+            
+            // Find the closest valid IWavable from the targets in range
+            IWavable closestWavable = null;
+            float closestDistance = float.MaxValue;
+            
+            foreach (var target in waveAttackTrigger.WavablesInRange)
+            {
+                if (target != null && target is IWavable wavable && IsValidTargetWavable(wavable))
+                {
+                    var targetMono = target as MonoBehaviour;
+                    if (targetMono != null)
+                    {
+                        float distance = Vector3.Distance(playerMono.transform.position, targetMono.transform.position);
+                        if (distance < closestDistance)
+                        {
+                            closestDistance = distance;
+                            closestWavable = wavable;
+                        }
+                    }
+                }
+            }
+            
+            if (closestWavable != null)
+            {
+                var wavableMono = closestWavable as MonoBehaviour;
+                Debug.Log($"PlayerWaveAttackAction: Found target IWavable {wavableMono?.name} at distance {closestDistance:F2}");
+                return closestWavable;
             }
 
-            Debug.Log("PlayerWaveAttackAction: No Core hitboxes found in range");
+            Debug.Log("PlayerWaveAttackAction: No valid IWavable targets found in range");
             return null;
         }
 
         /// <summary>
-        /// Check if the target Core hitbox is still in range (collider state is handled by events)
+        /// Check if the target IWavable is still in range (collider state is handled by events)
         /// </summary>
-        /// <param name="hitbox">Core hitbox to check</param>
-        /// <returns>True if Core hitbox is still in range</returns>
-        private bool IsTargetCoreStillInRange(EnemyHitbox hitbox)
+        /// <param name="wavable">IWavable target to check</param>
+        /// <returns>True if IWavable is still in range</returns>
+        private bool IsTargetWavableStillInRange(IWavable wavable)
         {
-            if (hitbox == null) return false;
-
-            // Check if hitbox is still initialized and is Core type
-            if (!hitbox.IsInitialized || hitbox.type != EnemyHitboxType.Core) return false;
+            if (wavable == null) return false;
 
             // Check if still in range (through PlayerService)
             var playerService = ServiceRegistry.Get<IPlayerService>();
             var playerMono = playerService?.CurrentPlayer;
             if (playerMono == null) return false;
 
-            // Check if this specific hitbox is still being tracked
-            var coreHitboxesInRange = playerMono.GetCoreHitboxesInRange();
-            return coreHitboxesInRange.Contains(hitbox);
+            // Get WaveAttackTrigger to check current targets in range
+            var waveAttackTrigger = playerMono.GetComponentInChildren<WaveAttackTrigger>();
+            if (waveAttackTrigger == null) return false;
+
+            // Check if this specific wavable is still being tracked
+            foreach (var target in waveAttackTrigger.WavablesInRange)
+            {
+                if (target != null && target is IWavable targetWavable && targetWavable == wavable)
+                {
+                    return true;
+                }
+            }
+            
+            return false;
         }
         
         /// <summary>
-        /// Handle target core hitbox collider disabled event
+        /// Handle target wavable collider disabled event
         /// </summary>
-        /// <param name="hitbox">The hitbox that was disabled</param>
-        private void OnTargetCoreColliderDisabled(EnemyHitbox hitbox)
+        /// <param name="hitbox">The IWavable hitbox that was disabled</param>
+        private void OnTargetWavableColliderDisabled(EnemyCrystalCoreHitbox hitbox)
         {
-            if (hitbox == _targetCoreHitbox)
+            if (hitbox != null && hitbox == (_targetWavable as UnityEngine.Object))
             {
-                Debug.Log("PlayerWaveAttackAction: Target core collider disabled - ending wave action");
+                Debug.Log("PlayerWaveAttackAction: Target wavable collider disabled - ending wave action");
                 
                 // Check minimum duration before ending
                 float actionDuration = Time.time - _actionStartTime;
@@ -438,11 +496,11 @@ namespace Resonance.Player.Actions
             _isActive = false;
             _isFinished = true;
 
-            // Unsubscribe from Core hitbox events
-            if (_targetCoreHitbox != null)
+            // Unsubscribe from wavable collider events
+            if (_targetWavable != null && _targetWavable is EnemyCrystalCoreHitbox coreHitbox)
             {
-                _targetCoreHitbox.OnColliderDisabled -= OnTargetCoreColliderDisabled;
-                Debug.Log("PlayerWaveAttackAction: Unsubscribed from core hitbox collider events");
+                coreHitbox.OnColliderDisabled -= OnTargetWavableColliderDisabled;
+                Debug.Log("PlayerWaveAttackAction: Unsubscribed from wavable collider events");
             }
 
             // Stop effects
@@ -462,7 +520,7 @@ namespace Resonance.Player.Actions
             OnWaveAttackActionEnded?.Invoke();
 
             // Clear target reference
-            _targetCoreHitbox = null;
+            _targetWavable = null;
 
             Debug.Log("PlayerWaveAttackAction: Cleaned up - camera should switch back to fixed view");
         }

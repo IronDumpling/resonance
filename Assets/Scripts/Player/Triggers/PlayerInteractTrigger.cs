@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Interfaces.Objects;
 using Resonance.Interfaces.Services;
 using Resonance.Items;
-using Resonance.Utilities;
+using Resonance.Core;
 using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Triggers

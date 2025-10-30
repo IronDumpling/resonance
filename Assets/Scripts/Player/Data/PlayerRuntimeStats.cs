@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Player.Data
@@ -22,6 +23,9 @@ namespace Resonance.Player.Data
         public float healthRestoreValue;
         public float physicalDamageToCoreEnergyRatio;
         public float chaosRecoveryRate;
+
+        [Header("Wave Attack Attributes")]
+        public Damages waveAttackDamages;
 
         [Header("Movement Attributes")]
         public float walkSpeed;
@@ -55,7 +59,7 @@ namespace Resonance.Player.Data
         public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
         public bool IsAlive => currentHealth > 0f;
         public bool IsDead => currentHealth <= 0f;
-        public bool IsCoreDestroyed => crystalCore == null || crystalCore.CoreHealthState == Resonance.Utilities.CoreHealthState.Destroyed;
+        public bool IsCoreDestroyed => crystalCore == null || crystalCore.CoreHealthState == CoreHealthState.Destroyed;
         public bool CanUseHealthRestore => crystalCore != null && crystalCore.CanConsumeSlot();
 
         public PlayerRuntimeStats(PlayerBaseStats baseStats)
@@ -67,10 +71,13 @@ namespace Resonance.Player.Data
 
             // Copy crystal core attributes
             // Player uses default QTE configuration
-            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig, null);
+            crystalCore = new CrystalCore(baseStats.CrystalCoreConfig);
             healthRestoreValue = baseStats.HealthRestoreValue;
             physicalDamageToCoreEnergyRatio = baseStats.PhysicalDamageToCoreEnergyRatio;
             
+            // Copy wave attack attributes
+            waveAttackDamages = baseStats.WaveAttackDamages;
+
             // Copy movement attributes
             walkSpeed = baseStats.WalkSpeed;
             runSpeed = baseStats.RunSpeed;

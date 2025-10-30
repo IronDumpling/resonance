@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Utilities
+namespace Resonance.Utilities.Types
 {
     /// <summary>
     /// Item type enum

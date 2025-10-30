@@ -1,70 +1,70 @@
 using UnityEngine;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 
 namespace Resonance.Utilities.CrystalCore
 {
     /// <summary>
-    /// 晶核配置数据
-    /// 用于配置不同类型的晶核(玩家/敌人)
+    /// Crystal Core Configuration Data
+    /// Used to configure different types of crystal cores (Player/Enemy)
     /// </summary>
     [CreateAssetMenu(fileName = "New Crystal Core Config", menuName = "Resonance/Core/Crystal Core Config")]
     public class CrystalCoreConfig : ScriptableObject
     {
         [Header("Core Health Configuration")]
-        [Tooltip("初始最大晶核生命值(格数 * 每格能量值, 例如3格 * 30 = 90)")]
+        [Tooltip("Initial Maximum Core Health (Slots * Energy Per Slot, e.g. 3 slots * 30 energy = 90)")]
         public float initialMaxCoreHealth = 90f;
         
-        [Tooltip("每个能量槽的能量值")]
+        [Tooltip("Energy Per Slot")]
         public float energyPerSlot = 30f;
         
-        [Tooltip("是否以满能量开始(敌人用, 玩家从0开始)")]
+        [Tooltip("Start with Full Energy (Enemy uses, Player starts at 0)")]
         public bool startWithFullEnergy = false;
         
         [Header("Core Wave Configuration")]
-        [Tooltip("Wave配置")]
+        [Tooltip("Wave Configuration")]
         public WaveConfig waveConfig;
         
         [Header("Upgrade Configuration")]
-        [Tooltip("是否可以升级最大生命值")]
+        [Tooltip("Can Upgrade Maximum Health")]
         public bool canUpgradeMaxHealth = true;
         
-        [Tooltip("生命值升级的步长(每格30点)")]
+        [Tooltip("Health Upgrade Step (e.g. 30 points per slot)")]
         public float healthUpgradeStep = 30f;
         
-        [Tooltip("最大可升级到的生命值")]
+        [Tooltip("Maximum Upgradeable Health")]
         public float maxUpgradeableHealth = 180f;
         
         [Header("Visual Configuration")]
-        [Tooltip("晶核材质路径")]
+        [Tooltip("Crystal Core Material Path")]
         public string coreMaterialPath = "Art/Materials/CrystalCore";
         
-        [Tooltip("能量充盈时的颜色")]
+        [Tooltip("Abundant Color")]
         public Color abundantColor = Color.cyan;
         
-        [Tooltip("能量正常时的颜色")]
+        [Tooltip("Normal Color")]
         public Color normalColor = Color.blue;
         
-        [Tooltip("能量低下时的颜色")]
+        [Tooltip("Low Color")]
         public Color lowColor = Color.red;
         
         
         [Header("Audio Configuration")]
-        [Tooltip("能量消耗音效")]
+        [Tooltip("Energy Consume Sound")]
         public AudioClip energyConsumeSound;
         
-        [Tooltip("能量获得音效")]
+        [Tooltip("Energy Gain Sound")]
         public AudioClip energyGainSound;
         
-        [Tooltip("晶核生命损坏音效")]
+        [Tooltip("Core Health Damage Sound")]
         public AudioClip coreHealthDamageSound;
         
-        [Tooltip("晶核生命修复音效")]
+        [Tooltip("Core Health Repair Sound")]
         public AudioClip coreHealthRepairSound;
         
 
         /// <summary>
-        /// 验证配置数据
+        /// Validate Configuration Data
         /// </summary>
         public bool ValidateConfig()
         {
@@ -111,7 +111,7 @@ namespace Resonance.Utilities.CrystalCore
         }
 
         /// <summary>
-        /// 获取指定生命值下的槽位数量
+        /// Get Slots for Health
         /// </summary>
         public int GetSlotsForHealth(float health)
         {
@@ -119,7 +119,7 @@ namespace Resonance.Utilities.CrystalCore
         }
 
         /// <summary>
-        /// 获取指定槽位数的生命值
+        /// Get Health for Slots
         /// </summary>
         public float GetHealthForSlots(int slots)
         {
@@ -127,7 +127,7 @@ namespace Resonance.Utilities.CrystalCore
         }
 
         /// <summary>
-        /// 计算下一个升级等级的生命值
+        /// Calculate Next Upgrade Health
         /// </summary>
         public float GetNextUpgradeHealth(float currentHealth)
         {
@@ -140,7 +140,7 @@ namespace Resonance.Utilities.CrystalCore
         }
 
         /// <summary>
-        /// 检查是否可以升级生命值
+        /// Check if Can Upgrade Health
         /// </summary>
         public bool CanUpgradeHealth(float currentHealth)
         {
@@ -148,7 +148,7 @@ namespace Resonance.Utilities.CrystalCore
         }
 
         /// <summary>
-        /// 根据能量等级获取颜色
+        /// Get Color for Energy Tier
         /// </summary>
         public Color GetColorForEnergyTier(CrystalEnergyTier tier)
         {
@@ -166,7 +166,7 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// 根据波纹状态获取颜色
+        /// Get Color for Chaos State
         /// </summary>
         public Color GetColorForChaosState(WaveChaosState state)
         {
@@ -187,7 +187,7 @@ namespace Resonance.Utilities.CrystalCore
 
         void OnValidate()
         {
-            // 确保数值在合理范围内
+            // Ensure values are within reasonable range
             initialMaxCoreHealth = Mathf.Max(energyPerSlot, initialMaxCoreHealth);
             energyPerSlot = Mathf.Max(1f, energyPerSlot);
             
@@ -197,7 +197,7 @@ namespace Resonance.Utilities.CrystalCore
                 maxUpgradeableHealth = Mathf.Max(initialMaxCoreHealth, maxUpgradeableHealth);
             }
 
-            // 确保槽位配置合理
+            // Ensure slot configuration is reasonable
             if (energyPerSlot > initialMaxCoreHealth)
             {
                 energyPerSlot = initialMaxCoreHealth;

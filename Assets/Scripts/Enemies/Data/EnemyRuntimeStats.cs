@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Resonance.Enemies;
 using Resonance.Enemies.Triggers;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Data
@@ -300,7 +300,7 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// Get hitbox multiplier configuration by hitbox type
         /// </summary>
-        public HitboxMultiplierConfig GetHitboxMultiplierConfig(EnemyHitboxType hitboxType)
+        public HitboxMultiplierConfig GetHitboxMultiplierConfig(HitboxType hitboxType)
         {
             if (hitboxMultipliers == null || hitboxMultipliers.Count == 0)
             {

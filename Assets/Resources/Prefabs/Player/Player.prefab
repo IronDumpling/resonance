@@ -182,7 +182,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1430024339774719344}
-  - component: {fileID: 8160734110080525015}
   m_Layer: 3
   m_Name: Visual
   m_TagString: Player
@@ -209,27 +208,6 @@ Transform:
   - {fileID: 3796866725771318706}
   m_Father: {fileID: 2134476378356392898}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &8160734110080525015
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1473324125748448087}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 2, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1853366530857230275
 GameObject:
   m_ObjectHideFlags: 0
@@ -244,7 +222,7 @@ GameObject:
   - component: {fileID: 4489257687367226550}
   m_Layer: 3
   m_Name: Core
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -710,6 +688,7 @@ GameObject:
   - component: {fileID: 5968823712400744037}
   - component: {fileID: 7633423545555590880}
   - component: {fileID: 1906920542563134268}
+  - component: {fileID: 2175027608372751065}
   m_Layer: 3
   m_Name: Body
   m_TagString: Player
@@ -788,3 +767,26 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!136 &2175027608372751065
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9113306168425573958}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}

@@ -1,54 +1,27 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Interfaces;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Triggers
 {
-    public enum EnemyHitboxType 
-    { 
-        Head,
-        Body,
-        Knee,
-        Core, 
-    }
-
     /// <summary>
-    /// Hitbox damage multiplier configuration
-    /// Defines how each hitbox type modifies incoming damage
-    /// </summary>
-    [System.Serializable]
-    public class HitboxMultipliers
-    {
-        public float physicalHealthMultiplier = 1f;
-        public float coreHealthMultiplier = 0f;
-        public float chaosMultiplier = 1f;
-
-        public HitboxMultipliers(float physical, float core, float chaos)
-        {
-            physicalHealthMultiplier = physical;
-            coreHealthMultiplier = core;
-            chaosMultiplier = chaos;
-        }
-    }
-
-    /// <summary>
-    /// Weakpoint hitbox component - acts as a damage modifier
+    /// Physical hitbox component for Head, Body, Knee - acts as a damage modifier
     /// Modifies damage when hit by shooting system,
     /// then forwards the modified damage to the enemy's main damage handler
+    /// Note: This class should NOT be used for Core hitboxes (use EnemyCrystalCoreHitbox instead)
     /// </summary>
-    public class EnemyHitbox : MonoBehaviour
+    public class EnemyPhysicalHitbox : MonoBehaviour, IHitbox
     {
-        public EnemyHitboxType type;
+        [Header("Hitbox Type")]
+        [Tooltip("Type of hitbox (Head, Body, Knee only - NOT Core)")]
+        public HitboxType type;
         
         [Header("Damage Multipliers")]
         [Tooltip("Physical health damage multiplier")]
         public float physicalHealthMultiplier = 1f;
-        
-        [Tooltip("Core health damage multiplier (only Core hitbox should have > 0)")]
-        public float coreHealthMultiplier = 0f;
         
         [Tooltip("Chaos damage multiplier")]
         public float chaosMultiplier = 1f;
@@ -67,8 +40,8 @@ namespace Resonance.Enemies.Triggers
         private bool _lastColliderEnabled = false;
         
         // Events for collider state changes
-        public System.Action<EnemyHitbox> OnColliderEnabled;
-        public System.Action<EnemyHitbox> OnColliderDisabled;
+        public System.Action<EnemyPhysicalHitbox> OnColliderEnabled;
+        public System.Action<EnemyPhysicalHitbox> OnColliderDisabled;
 
         #region Unity Lifecycle
 
@@ -84,7 +57,7 @@ namespace Resonance.Enemies.Triggers
                 OnColliderEnabled?.Invoke(this);
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitbox: {type} collider enabled on {gameObject.name}");
+                    Debug.Log($"EnemyPhysicalHitbox: {type} collider enabled on {gameObject.name}");
                 }
             }
         }
@@ -96,7 +69,7 @@ namespace Resonance.Enemies.Triggers
                 OnColliderDisabled?.Invoke(this);
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitbox: {type} collider disabled on {gameObject.name}");
+                    Debug.Log($"EnemyPhysicalHitbox: {type} collider disabled on {gameObject.name}");
                 }
             }
         }
@@ -114,7 +87,7 @@ namespace Resonance.Enemies.Triggers
                         OnColliderEnabled?.Invoke(this);
                         if (_debugMode)
                         {
-                            Debug.Log($"EnemyHitbox: {type} collider enabled on {gameObject.name}");
+                            Debug.Log($"EnemyPhysicalHitbox: {type} collider enabled on {gameObject.name}");
                         }
                     }
                     else
@@ -122,7 +95,7 @@ namespace Resonance.Enemies.Triggers
                         OnColliderDisabled?.Invoke(this);
                         if (_debugMode)
                         {
-                            Debug.Log($"EnemyHitbox: {type} collider disabled on {gameObject.name}");
+                            Debug.Log($"EnemyPhysicalHitbox: {type} collider disabled on {gameObject.name}");
                         }
                     }
                     _lastColliderEnabled = currentEnabled;
@@ -149,7 +122,7 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log($"EnemyHitbox: Initialized {type} weakpoint on {gameObject.name}");
+                Debug.Log($"EnemyPhysicalHitbox: Initialized {type} weakpoint on {gameObject.name}");
             }
         }
 
@@ -169,14 +142,14 @@ namespace Resonance.Enemies.Triggers
             {
                 if (_debugMode)
                 {
-                    Debug.LogWarning($"EnemyHitbox: Cannot process damage - not initialized or no enemy reference");
+                    Debug.LogWarning($"EnemyPhysicalHitbox: Cannot process damage - not initialized or no enemy reference");
                 }
                 return new DamageInfo(new List<KeyValuePair<DamageType, float>>(), Vector3.zero);
             }
 
             if (_debugMode)
             {
-                Debug.Log($"EnemyHitbox ({type}): Processing damage - {damageInfo}");
+                Debug.Log($"EnemyPhysicalHitbox ({type}): Processing damage - {damageInfo}");
             }
 
             // Modify damage based on hitbox multipliers
@@ -190,7 +163,7 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log($"EnemyHitbox ({type}): Applied modified damage - {modifiedDamage}");
+                Debug.Log($"EnemyPhysicalHitbox ({type}): Applied modified damage - {modifiedDamage}");
             }
             
             return modifiedDamage;
@@ -230,42 +203,14 @@ namespace Resonance.Enemies.Triggers
             return _enemyMono.Controller;
         }
 
-        /// <summary>
-        /// Get QTE configuration data from enemy's Wave system
-        /// </summary>
-        /// <returns>QTE configuration data or null if not available</returns>
-        public QTEConfig GetQTEConfig()
-        {
-            var enemyStats = GetEnemyStats();
-            if (enemyStats?.crystalCore?.Wave == null) return null;
-
-            return enemyStats.crystalCore.Wave.GetQTEConfig();
-        }
-
-        /// <summary>
-        /// Check if this hitbox is valid for QTE operations
-        /// </summary>
-        /// <returns>True if QTE can be performed on this hitbox</returns>
-        public bool IsValidForQTE()
-        {
-            return _isInitialized && 
-                   _enemyMono != null && 
-                   type == EnemyHitboxType.Core && 
-                   _collider != null && 
-                   _collider.enabled &&
-                   _enemyMono.Controller != null &&
-                   _enemyMono.Controller.Stats != null &&
-                   _enemyMono.Controller.Stats.crystalCore != null &&
-                   _enemyMono.Controller.Stats.crystalCore.Wave != null;
-        }
-
         #endregion
 
         #region Damage Modification
 
         /// <summary>
         /// Modify damage based on hitbox multipliers
-        /// Applies specific multipliers for each damage type
+        /// Applies specific multipliers for PhysicalHealth and Chaos damage types
+        /// Note: CoreHealth damage is blocked (multiplier = 0) as this is a physical hitbox
         /// </summary>
         /// <param name="originalDamage">Original damage info</param>
         /// <param name="hitPoint">Hit point position</param>
@@ -280,18 +225,15 @@ namespace Resonance.Enemies.Triggers
             // Create new damage dictionary with modified values
             Damages modifiedDamages = new Damages();
 
+            // Apply physical health multiplier
             if (originalDamage.damages.HasDamage(DamageType.PhysicalHealth))
             {
                 float originalAmount = originalDamage.damages.GetDamage(DamageType.PhysicalHealth);
                 float modifiedAmount = originalAmount * physicalHealthMultiplier;
                 if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.PhysicalHealth, modifiedAmount);
             }
-            if (originalDamage.damages.HasDamage(DamageType.CoreHealth))
-            {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.CoreHealth);
-                float modifiedAmount = originalAmount * coreHealthMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.CoreHealth, modifiedAmount);
-            }
+            
+            // Apply chaos multiplier
             if (originalDamage.damages.HasDamage(DamageType.Chaos))
             {
                 float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
@@ -314,6 +256,7 @@ namespace Resonance.Enemies.Triggers
 
         /// <summary>
         /// Get multiplier for specific damage type
+        /// Physical hitboxes only support PhysicalHealth and Chaos damage
         /// </summary>
         private float GetMultiplier(DamageType damageType)
         {
@@ -322,7 +265,7 @@ namespace Resonance.Enemies.Triggers
                 case DamageType.PhysicalHealth:
                     return physicalHealthMultiplier;
                 case DamageType.CoreHealth:
-                    return coreHealthMultiplier;
+                    return 0f; // Physical hitboxes do not transmit CoreHealth damage
                 case DamageType.Chaos:
                     return chaosMultiplier;
                 default:
@@ -345,7 +288,7 @@ namespace Resonance.Enemies.Triggers
                 Instantiate(hitVFX, at, Quaternion.identity);
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitbox: Spawned hit VFX at {at}");
+                    Debug.Log($"EnemyPhysicalHitbox: Spawned hit VFX at {at}");
                 }
             }
             
@@ -354,7 +297,7 @@ namespace Resonance.Enemies.Triggers
                 AudioSource.PlayClipAtPoint(hitSFX, at);
                 if (_debugMode)
                 {
-                    Debug.Log($"EnemyHitbox: Played hit SFX at {at}");
+                    Debug.Log($"EnemyPhysicalHitbox: Played hit SFX at {at}");
                 }
             }
         }

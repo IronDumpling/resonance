@@ -10,6 +10,7 @@ using Resonance.Player.Data;
 using Resonance.Player.Inventory;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 
 namespace Resonance.UI
 {

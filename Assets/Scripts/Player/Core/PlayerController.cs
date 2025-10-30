@@ -7,6 +7,7 @@ using Resonance.Player.Shooting;
 using Resonance.Player.Inventory;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 using Resonance.Items;
 using Resonance.Interfaces.Objects;

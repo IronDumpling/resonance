@@ -1,10 +1,14 @@
 using UnityEngine;
+using Unity.Cinemachine;
 using System.Collections.Generic;
+using Resonance.Core;
 using Resonance.Items;
+using Resonance.Cameras;
+using Resonance.Enemies.Triggers;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
-using Resonance.Enemies.Triggers;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Shooting
 {
@@ -27,6 +31,10 @@ namespace Resonance.Player.Shooting
         
         // Audio service reference
         private IAudioService _audioService;
+        
+        // Camera impulse reference
+        private CinemachineImpulseSource _impulseSource;
+        private bool _impulseSourceInitialized = false;
         
         // Weapon systems
         private WeaponAccuracySystem _accuracySystem;
@@ -73,6 +81,36 @@ namespace Resonance.Player.Shooting
             else
             {
                 Debug.Log("ShootingSystem: AudioService connected successfully");
+            }
+        }
+        
+        /// <summary>
+        /// Initialize camera impulse source when needed
+        /// Called from TriggerCameraImpulse if not already initialized
+        /// </summary>
+        private void InitializeCameraImpulse()
+        {
+            if (_impulseSourceInitialized) return;
+            
+            var cameraManager = Object.FindAnyObjectByType<LevelCameraManager>();
+            if (cameraManager != null)
+            {
+                _impulseSource = cameraManager.GetShootRecoilImpulse();
+                if (_impulseSource != null)
+                {
+                    _impulseSourceInitialized = true;
+                    Debug.Log("ShootingSystem: Shoot recoil impulse source connected from LevelCameraManager");
+                }
+                else
+                {
+                    Debug.LogWarning("ShootingSystem: Shoot recoil impulse source not found in LevelCameraManager. Camera shake will be disabled.");
+                    _impulseSourceInitialized = false;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("ShootingSystem: LevelCameraManager not found. Camera shake will be disabled.");
+                _impulseSourceInitialized = false;
             }
         }
 
@@ -258,6 +296,9 @@ namespace Resonance.Player.Shooting
             
             // Play shooting audio
             PlayShootingAudio(shootOrigin, gunData);
+            
+            // Trigger camera impulse
+            TriggerCameraImpulse(gunData, finalTotalDamage);
             
             // Trigger shooting event with total final damage
             OnShoot?.Invoke(shootOrigin, finalTotalDamage);
@@ -641,10 +682,10 @@ namespace Resonance.Player.Shooting
             Debug.Log($"ShootingSystem: ProcessHit called for {hitObject.name} (Layer: {hitObject.layer})");
             
             // First check if it hit a weakpoint
-            EnemyHitbox weakpointHitbox = hitObject.GetComponent<EnemyHitbox>();
+            EnemyPhysicalHitbox weakpointHitbox = hitObject.GetComponent<EnemyPhysicalHitbox>();
             if (weakpointHitbox != null && weakpointHitbox.IsInitialized)
             {
-                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyHitbox");
+                Debug.Log($"ShootingSystem: Hit weakpoint {hitObject.name}, delegating to EnemyPhysicalHitbox");
                 
                 // Create damage info with all damage types and multiplier
                 DamageInfo damageInfo = gunData.CreateDamageInfo(damageSource, _playerTransform.gameObject, damageMultiplier);
@@ -837,6 +878,46 @@ namespace Resonance.Player.Shooting
             }
 
             return AudioClipType.PlayerHit;
+        }
+
+        #endregion
+
+        #region Camera Impulse
+
+        /// <summary>
+        /// Trigger camera impulse based on weapon configuration
+        /// </summary>
+        /// <param name="weaponData">Weapon data containing recoil configuration</param>
+        /// <param name="totalDamage">Total damage dealt (for scaling)</param>
+        private void TriggerCameraImpulse(WeaponDataAsset weaponData, float totalDamage)
+        {
+            // Initialize impulse source if not already done
+            InitializeCameraImpulse();
+            
+            if (_impulseSource == null) return;
+            if (weaponData == null) return;
+
+            // Check if impulse is enabled for this weapon
+            if (!weaponData.recoilConfig.enableCameraImpulse)
+            {
+                return;
+            }
+
+            // Calculate impulse force
+            float impulseForce = weaponData.recoilConfig.impulseForce;
+
+            // Scale to damage if enabled
+            if (weaponData.recoilConfig.scaleToDamage)
+            {
+                float damageScale = totalDamage * weaponData.recoilConfig.damageScaleFactor;
+                impulseForce *= damageScale;
+            }
+
+            // Generate impulse with calculated force
+            _impulseSource.GenerateImpulse(impulseForce);
+
+            Debug.Log($"ShootingSystem: Camera impulse triggered with force {impulseForce:F2} " +
+                     $"(base: {weaponData.recoilConfig.impulseForce}, damage: {totalDamage:F1})");
         }
 
         #endregion

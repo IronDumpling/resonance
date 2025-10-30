@@ -12,20 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20e9121dbffa7504caa2c2557a54a0c9, type: 3}
   m_Name: EnemyWaveConfig_1
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.Utilities.Wave.WaveConfig
+  waveformType: 0
+  frequency: 1
+  amplitude: 1
+  length: 10
+  waveformResolution: 1024
   maxChaos: 20
-  chaosThreshold: 18
+  chaosThreshold: 16
   orderColor: {r: 0, g: 0, b: 1, a: 1}
   chaosColor: {r: 1, g: 0, b: 1, a: 1}
   waveMaterialPath: Art/Materials/Wave
   chaosAddSound: {fileID: 0}
   enterChaosStateSound: {fileID: 0}
   enterOrderStateSound: {fileID: 0}
-  qteConfig:
-    easeType: 4
-    cycleDuration: 3
-    targetWindow: 0.2
-    successColor: {r: 0, g: 1, b: 0, a: 1}
-    failureColor: {r: 1, g: 0, b: 0, a: 1}
-    targetColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
-    successSound: {fileID: 0}
-    failureSound: {fileID: 0}

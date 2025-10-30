@@ -1,4 +1,6 @@
 using UnityEngine;
+using DG.Tweening;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Utilities.Waves
 {
@@ -9,36 +11,41 @@ namespace Resonance.Utilities.Waves
     [CreateAssetMenu(fileName = "New Wave Config", menuName = "Resonance/Core/Wave Config")]
     public class WaveConfig : ScriptableObject
     {
-        [Header("Wave Chaos Configuration")]
-        [Tooltip("最大紊乱值")]
-        public float maxChaos = 20f;
+        [Header("Wave Properties")]
+        [Tooltip("Waveform type")]
+        public WaveformType waveformType = WaveformType.Sine;
+        [Tooltip("Frequency")]
+        public float frequency = 1.0f;
+        [Tooltip("Amplitude")]
+        public float amplitude = 1.0f;
+        [Tooltip("Length")]
+        public float length = 10.0f;
+        [Tooltip("Waveform Resolution")]
+        public int waveformResolution = 1024;
         
-        [Tooltip("紊乱阈值(低于此值进入秩序状态)")]
+        [Header("Wave Chaos Configuration")]
+        [Tooltip("Wave Chaos Max Value")]
+        public float maxChaos = 20f;
+        [Tooltip("Wave Chaos Threshold Value")]
         public float chaosThreshold = 16f;
         
         [Header("Wave Visual Configuration")]
-        [Tooltip("波纹秩序状态颜色")]
+        [Tooltip("Wave Order Color")]
         public Color orderColor = Color.blue;
-        
-        [Tooltip("波纹紊乱状态颜色")]
+        [Tooltip("Wave Chaos Color")]
         public Color chaosColor = Color.magenta;
-        
-        [Tooltip("波纹材质路径")]
+        [Tooltip("Wave Material Path")]
         public string waveMaterialPath = "Art/Materials/Wave";
         
         [Header("Wave Audio Configuration")]
-        [Tooltip("紊乱增加音效")]
+        [Tooltip("Wave Chaos Add Sound")]
         public AudioClip chaosAddSound;
         
-        [Tooltip("进入紊乱状态音效")]
+        [Tooltip("Wave Enter Chaos State Sound")]
         public AudioClip enterChaosStateSound;
         
-        [Tooltip("进入秩序状态音效")]
+        [Tooltip("Wave Enter Order State Sound")]
         public AudioClip enterOrderStateSound;
-        
-        [Header("QTE Configuration")]
-        [Tooltip("QTE配置")]
-        public QTEConfig qteConfig = new QTEConfig();
         
         /// <summary>
         /// 验证Wave配置
@@ -57,12 +64,6 @@ namespace Resonance.Utilities.Waves
                 return false;
             }
             
-            if (qteConfig != null && !qteConfig.ValidateConfig())
-            {
-                Debug.LogError($"WaveConfig: {name} has invalid QTE config");
-                return false;
-            }
-            
             return true;
         }
         
@@ -72,12 +73,6 @@ namespace Resonance.Utilities.Waves
         {
             maxChaos = Mathf.Max(1f, maxChaos);
             chaosThreshold = Mathf.Clamp(chaosThreshold, 0f, maxChaos - 1f);
-            
-            if (qteConfig != null)
-            {
-                qteConfig.cycleDuration = Mathf.Max(0.5f, qteConfig.cycleDuration);
-                qteConfig.targetWindow = Mathf.Clamp(qteConfig.targetWindow, 0.05f, 0.5f);
-            }
         }
         
         #endregion

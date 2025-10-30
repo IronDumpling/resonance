@@ -42,9 +42,12 @@ namespace Resonance.Core.GlobalServices
 
         // Information Map events
         public event Action OnInformationClose; // Close information (E key)
+        public event Action OnNextPage; // Next page input during Information mode
+        public event Action OnLastPage; // Last page input during Information mode
 
         // Wave Map events
-        public event Action OnQTE; // QTE input (F key during Wave mode)
+        public event Action OnAttackQTE; // QTE input (F key during Wave mode)
+        public event Action OnLogicBind1; // Logic bind 1 input during Wave mode
 
         public void Initialize()
         {
@@ -112,9 +115,12 @@ namespace Resonance.Core.GlobalServices
 
             // Information input callbacks
             _informationMap["CloseInformation"].performed += OnInformationClosePerformed;
+            _informationMap["NextPage"].performed += OnNextPagePerformed;
+            _informationMap["LastPage"].performed += OnLastPagePerformed;
 
             // Wave input callbacks
-            _waveMap["QTE"].performed += OnQTEPerformed;
+            _waveMap["AttackQTE"].performed += OnAttackQTEPerformed;
+            _waveMap["LogicBind1"].performed += OnLogicBind1Performed;
         }
 
         #region Player Map Input Callbacks
@@ -239,14 +245,32 @@ namespace Resonance.Core.GlobalServices
             Debug.Log("InputService: Information close press performed");
         }
 
+        private void OnNextPagePerformed(InputAction.CallbackContext context)
+        {
+            OnNextPage?.Invoke();
+            Debug.Log("InputService: Next page press performed");
+        }
+
+        private void OnLastPagePerformed(InputAction.CallbackContext context)
+        {
+            OnLastPage?.Invoke();
+            Debug.Log("InputService: Last page press performed");
+        }
+
         #endregion
 
         #region Wave Map Input Callbacks
 
-        private void OnQTEPerformed(InputAction.CallbackContext context)
+        private void OnAttackQTEPerformed(InputAction.CallbackContext context)
         {
-            OnQTE?.Invoke();
+            OnAttackQTE?.Invoke();
             Debug.Log("InputService: QTE press performed");
+        }
+
+        private void OnLogicBind1Performed(InputAction.CallbackContext context)
+        {
+            OnLogicBind1?.Invoke();
+            Debug.Log("InputService: Logic bind 1 press performed");
         }
 
         #endregion
@@ -356,7 +380,10 @@ namespace Resonance.Core.GlobalServices
             OnRotateItemLeft = null;
             OnRotateItemRight = null;
             OnInformationClose = null;
-            OnQTE = null;
+            OnNextPage = null;
+            OnLastPage = null;
+            OnAttackQTE = null;
+            OnLogicBind1 = null;
 
             State = SystemState.Shutdown;
         }

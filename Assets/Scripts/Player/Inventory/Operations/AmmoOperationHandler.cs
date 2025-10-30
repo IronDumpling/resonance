@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 using Resonance.Interfaces.Operations;
 

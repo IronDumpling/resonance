@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 
 namespace Resonance.Player.Inventory

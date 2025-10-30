@@ -5,6 +5,7 @@ using Resonance.Interfaces.Services;
 using Resonance.Interfaces.Objects;
 using Resonance.Items;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 using Resonance.Player.Core;
 using Resonance.Core.StateMachine.States;
@@ -298,7 +299,7 @@ namespace Resonance.Core.GlobalServices
                     bool added = false;
                     
                     // Special handling for Consumable (Ammo) - use ConsumableManager for stacking
-                    if (gridItem.ItemType == Utilities.ItemType.Consumable)
+                    if (gridItem.ItemType == ItemType.Consumable)
                     {
                         var consumableManager = playerController.ConsumableManager;
                         if (consumableManager != null)
@@ -350,7 +351,7 @@ namespace Resonance.Core.GlobalServices
             
             private void AutoEquipIfWeapon(GridItem item, PlayerController controller)
             {
-                if (item.ItemType == Utilities.ItemType.Weapon)
+                if (item.ItemType == ItemType.Weapon)
                 {
                     controller.WeaponManager?.EquipWeapon(item.ItemID);
                     Debug.Log($"PickupStrategy: Auto-equipped weapon {item.ItemName}");

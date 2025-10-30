@@ -3,7 +3,7 @@ using DG.Tweening;
 using System.Linq;
 using System.Collections.Generic;
 using Resonance.Enemies.Triggers;
-using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Enemies.Data
@@ -43,7 +43,7 @@ namespace Resonance.Enemies.Data
     public struct HitboxMultiplierConfig
     {
         [Tooltip("Hitbox type")]
-        public EnemyHitboxType hitboxType;
+        public HitboxType hitboxType;
         
         [Tooltip("Multiplier for physical health damage")]
         public float physicalHealthMultiplier;
@@ -240,7 +240,7 @@ namespace Resonance.Enemies.Data
         /// <summary>
         /// Get hitbox multiplier configuration by hitbox type
         /// </summary>
-        public HitboxMultiplierConfig GetHitboxMultiplierConfig(EnemyHitboxType hitboxType)
+        public HitboxMultiplierConfig GetHitboxMultiplierConfig(HitboxType hitboxType)
         {
             if (hitboxMultipliers == null || hitboxMultipliers.Count == 0)
             {
@@ -256,42 +256,42 @@ namespace Resonance.Enemies.Data
         /// Get default hitbox multiplier configuration for a specific type
         /// Used when no custom configuration is found
         /// </summary>
-        public static HitboxMultiplierConfig GetDefaultMultiplierConfig(EnemyHitboxType hitboxType)
+        public static HitboxMultiplierConfig GetDefaultMultiplierConfig(HitboxType hitboxType)
         {
             switch (hitboxType)
             {
-                case EnemyHitboxType.Head:
+                case HitboxType.Head:
                     return new HitboxMultiplierConfig
                     {
-                        hitboxType = EnemyHitboxType.Head,
+                        hitboxType = HitboxType.Head,
                         physicalHealthMultiplier = 1.5f,
                         coreHealthMultiplier = 0f,
                         chaosMultiplier = 1.5f
                     };
                     
-                case EnemyHitboxType.Core:
+                case HitboxType.Core:
                     return new HitboxMultiplierConfig
                     {
-                        hitboxType = EnemyHitboxType.Core,
+                        hitboxType = HitboxType.Core,
                         physicalHealthMultiplier = 0f,
                         coreHealthMultiplier = 1f,
                         chaosMultiplier = 0f
                     };
                     
-                case EnemyHitboxType.Knee:
+                case HitboxType.Knee:
                     return new HitboxMultiplierConfig
                     {
-                        hitboxType = EnemyHitboxType.Knee,
+                        hitboxType = HitboxType.Knee,
                         physicalHealthMultiplier = 0.5f,
                         coreHealthMultiplier = 0f,
                         chaosMultiplier = 2f
                     };
                     
-                case EnemyHitboxType.Body:
+                case HitboxType.Body:
                 default:
                     return new HitboxMultiplierConfig
                     {
-                        hitboxType = EnemyHitboxType.Body,
+                        hitboxType = HitboxType.Body,
                         physicalHealthMultiplier = 1f,
                         coreHealthMultiplier = 0f,
                         chaosMultiplier = 0.5f
@@ -314,10 +314,10 @@ namespace Resonance.Enemies.Data
                 return;
             
             // Add default configurations for all hitbox types
-            hitboxMultipliers.Add(GetDefaultMultiplierConfig(EnemyHitboxType.Head));
-            hitboxMultipliers.Add(GetDefaultMultiplierConfig(EnemyHitboxType.Body));
-            hitboxMultipliers.Add(GetDefaultMultiplierConfig(EnemyHitboxType.Knee));
-            hitboxMultipliers.Add(GetDefaultMultiplierConfig(EnemyHitboxType.Core));
+            hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Head));
+            hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Body));
+            hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Knee));
+            hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Core));
             
             Debug.Log($"EnemyBaseStats: {enemyName} initialized default hitbox multiplier configurations");
         }

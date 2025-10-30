@@ -1,6 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
+using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
 using Resonance.Enemies.Triggers;
 using Resonance.UI;
@@ -17,16 +19,39 @@ namespace Resonance.Core.StateMachine.States
         
         private IUIService _uiService;
         private IInputService _inputService;
-        private EnemyHitbox _targetCore;
+        private IWavable _sourceWavable;  // The attacker (player or enemy)
+        private IWavable _targetWavable;  // The target being attacked
         private bool _isInitialized = false;
         
         // Safety timeout mechanism (Risk mitigation: Prevent stuck states)
         private float _stateEnterTime = 0f;
-        private const float MAX_RESONANCE_DURATION = 30f; // 30 seconds timeout
+        private const float MAX_WAVE_STATE_DURATION = 30f; // 30 seconds timeout
 
-        public WaveState(EnemyHitbox targetCore)
+        public static event System.Action OnWaveStateEntered;
+        public static event System.Action OnWaveStateExited;
+
+        /// <summary>
+        /// Constructor for WaveState
+        /// </summary>
+        /// <param name="sourceWavable">The source of the wave attack</param>
+        /// <param name="targetWavable">The target being attacked</param>
+        public WaveState(IWavable sourceWavable = null, IWavable targetWavable = null)
         {
-            _targetCore = targetCore;
+            _sourceWavable = sourceWavable;
+            _targetWavable = targetWavable;
+        }
+        
+        /// <summary>
+        /// Set the wave attack context before entering the state
+        /// This must be called before Enter() if constructor was called with null parameters
+        /// </summary>
+        public void SetWaveAttackContext(IWavable sourceWavable, IWavable targetWavable)
+        {
+            _sourceWavable = sourceWavable;
+            _targetWavable = targetWavable;
+            
+            Debug.Log($"WaveState: Set wave attack context - Source: {(sourceWavable != null ? "valid" : "null")}, " +
+                     $"Target: {(targetWavable != null ? "valid" : "null")}");
         }
 
         public void Enter()
@@ -43,12 +68,12 @@ namespace Resonance.Core.StateMachine.States
                 _uiService.ShowPanelsForState("Gameplay/Wave");
                 Debug.Log("WaveState: Showed WavePanel");
                 
-                // Pass target core information to WavePanel
+                // Pass wave attack context to WavePanel
                 var wavePanel = _uiService.GetPanel<WavePanel>("WavePanel");
                 if (wavePanel != null)
                 {
-                    wavePanel.SetTargetCore(_targetCore);
-                    Debug.Log($"WaveState: Initialized WavePanel with target {_targetCore?.name}");
+                    wavePanel.SetWaveAttackContext(_sourceWavable, _targetWavable);
+                    Debug.Log($"WaveState: Initialized WavePanel with source and target wavables");
                 }
             }
             
@@ -64,6 +89,8 @@ namespace Resonance.Core.StateMachine.States
             _stateEnterTime = Time.time;
             
             _isInitialized = true;
+            
+            OnWaveStateEntered?.Invoke();
         }
 
         public void Update()
@@ -71,7 +98,7 @@ namespace Resonance.Core.StateMachine.States
             if (!_isInitialized) return;
             
             // Safety timeout check (Risk mitigation: Prevent stuck states)
-            if (Time.time - _stateEnterTime > MAX_RESONANCE_DURATION)
+            if (Time.time - _stateEnterTime > MAX_WAVE_STATE_DURATION)
             {
                 Debug.LogWarning("WaveState: Timeout reached, forcing exit from Wave state");
                 // This will be handled by the parent GameplayState through normal exit mechanisms
@@ -79,9 +106,9 @@ namespace Resonance.Core.StateMachine.States
             }
             
             // Monitor target core state for safety (defensive programming)
-            if (_targetCore == null || !_targetCore.IsInitialized)
+            if (_targetWavable == null)
             {
-                Debug.LogWarning("WaveState: Target core is null or not initialized");
+                Debug.LogWarning("WaveState: Target core is null");
                 return;
             }
             
@@ -109,8 +136,10 @@ namespace Resonance.Core.StateMachine.States
             }
             
             // Clear references
-            _targetCore = null;
+            _targetWavable = null;
             _isInitialized = false;
+
+            OnWaveStateExited?.Invoke();
         }
 
         public bool CanTransitionTo(IState newState)
@@ -120,22 +149,6 @@ namespace Resonance.Core.StateMachine.States
                 return false; // Cannot transition to parent-level states
             }
             return true; // Allow all same-level substates
-        }
-
-        /// <summary>
-        /// Get the target core hitbox for this wave state
-        /// </summary>
-        public EnemyHitbox GetTargetCore()
-        {
-            return _targetCore;
-        }
-        
-        /// <summary>
-        /// Set the target core hitbox for this wave state
-        /// </summary>
-        public void SetTargetCore(EnemyHitbox targetCore)
-        {
-            _targetCore = targetCore;
         }
     }
 }

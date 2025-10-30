@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Resonance.Player.Core;
 using Resonance.Player.Inventory;
+using Resonance.Utilities.Types;
 using System.Collections.Generic;
 using System.Linq;
 
