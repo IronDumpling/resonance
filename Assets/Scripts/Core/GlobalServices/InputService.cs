@@ -46,7 +46,7 @@ namespace Resonance.Core.GlobalServices
         public event Action OnLastPage; // Last page input during Information mode
 
         // Wave Map events
-        public event Action OnQTE; // QTE input (F key during Wave mode)
+        public event Action OnAttackQTE; // QTE input (F key during Wave mode)
         public event Action OnLogicBind1; // Logic bind 1 input during Wave mode
 
         public void Initialize()
@@ -119,7 +119,7 @@ namespace Resonance.Core.GlobalServices
             _informationMap["LastPage"].performed += OnLastPagePerformed;
 
             // Wave input callbacks
-            _waveMap["QTE"].performed += OnQTEPerformed;
+            _waveMap["AttackQTE"].performed += OnAttackQTEPerformed;
             _waveMap["LogicBind1"].performed += OnLogicBind1Performed;
         }
 
@@ -261,9 +261,9 @@ namespace Resonance.Core.GlobalServices
 
         #region Wave Map Input Callbacks
 
-        private void OnQTEPerformed(InputAction.CallbackContext context)
+        private void OnAttackQTEPerformed(InputAction.CallbackContext context)
         {
-            OnQTE?.Invoke();
+            OnAttackQTE?.Invoke();
             Debug.Log("InputService: QTE press performed");
         }
 
@@ -382,7 +382,7 @@ namespace Resonance.Core.GlobalServices
             OnInformationClose = null;
             OnNextPage = null;
             OnLastPage = null;
-            OnQTE = null;
+            OnAttackQTE = null;
             OnLogicBind1 = null;
 
             State = SystemState.Shutdown;

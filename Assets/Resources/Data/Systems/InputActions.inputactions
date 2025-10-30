@@ -459,7 +459,7 @@
             "id": "f1265570-8644-4b39-9ba3-0a11d02856fa",
             "actions": [
                 {
-                    "name": "QTE",
+                    "name": "AttackQTE",
                     "type": "Button",
                     "id": "08914d0f-6890-4e26-9ac2-c36805de34cc",
                     "expectedControlType": "",
@@ -485,7 +485,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "QTE",
+                    "action": "AttackQTE",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

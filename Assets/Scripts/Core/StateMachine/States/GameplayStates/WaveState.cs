@@ -25,7 +25,7 @@ namespace Resonance.Core.StateMachine.States
         
         // Safety timeout mechanism (Risk mitigation: Prevent stuck states)
         private float _stateEnterTime = 0f;
-        private const float MAX_RESONANCE_DURATION = 30f; // 30 seconds timeout
+        private const float MAX_WAVE_STATE_DURATION = 30f; // 30 seconds timeout
 
         public static event System.Action OnWaveStateEntered;
         public static event System.Action OnWaveStateExited;
@@ -98,7 +98,7 @@ namespace Resonance.Core.StateMachine.States
             if (!_isInitialized) return;
             
             // Safety timeout check (Risk mitigation: Prevent stuck states)
-            if (Time.time - _stateEnterTime > MAX_RESONANCE_DURATION)
+            if (Time.time - _stateEnterTime > MAX_WAVE_STATE_DURATION)
             {
                 Debug.LogWarning("WaveState: Timeout reached, forcing exit from Wave state");
                 // This will be handled by the parent GameplayState through normal exit mechanisms

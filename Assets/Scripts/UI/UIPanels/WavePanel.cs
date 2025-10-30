@@ -6,11 +6,12 @@ using System.Collections.Generic;
 using Resonance.Core;
 using Resonance.Interfaces;
 using Resonance.Interfaces.Services;
+using Resonance.Player.Triggers;
+using Resonance.Enemies.Triggers;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
-using Resonance.Utilities.Types;
-using Resonance.Enemies.Triggers;
 
 namespace Resonance.UI
 {
@@ -115,8 +116,9 @@ namespace Resonance.UI
             _inputService = ServiceRegistry.Get<IInputService>();
             if (_inputService != null)
             {
-                _inputService.OnQTE += OnQTEInput;
-                Debug.Log("WavePanel: Subscribed to QTE input events");
+                _inputService.OnAttackQTE += OnAttackQTEInput;
+                _inputService.OnLogicBind1 += OnLogicBind1Input;
+                Debug.Log("WavePanel: Subscribed to Attack QTE and Logic Bind 1 input events");
             }
 
             // Initialize canvas camera
@@ -164,8 +166,9 @@ namespace Resonance.UI
             if (_inputService != null)
             {
                 _inputService.EnablePlayerInput();
-                _inputService.OnQTE -= OnQTEInput;
-                Debug.Log("WavePanel: Player input re-enabled and unsubscribed from QTE input events");
+                _inputService.OnAttackQTE -= OnAttackQTEInput;
+                _inputService.OnLogicBind1 -= OnLogicBind1Input;
+                Debug.Log("WavePanel: Player input re-enabled and unsubscribed from Attack QTE and Logic Bind 1 input events");
             }
             
             // Stop wave display
@@ -184,7 +187,7 @@ namespace Resonance.UI
 
         #endregion
         
-        #region UI Element Validation
+        #region UI Elements Initialization
         
         /// <summary>
         /// Validate and auto-find UI elements if not assigned in Inspector
@@ -234,10 +237,6 @@ namespace Resonance.UI
                 Debug.LogError("WavePanel: Target Wave LineRenderer is not assigned!");
             }
         }
-        
-        #endregion
-
-        #region Canvas Camera Logic
 
         /// <summary>
         /// Initialize the canvas camera
@@ -274,10 +273,10 @@ namespace Resonance.UI
             _canvas.planeDistance = (_renderCamera != null) ? _renderCamera.nearClipPlane + 0.1f : _defaultPlaneDistance;
             Debug.Log($"WavePanel: Set Plane Distance to: {_canvas.planeDistance}");
         }
-
+        
         #endregion
         
-        #region Wave System Logic
+        #region Wave Line Logic
 
         /// <summary>
         /// Initialize LineRenderers with proper configuration
@@ -438,13 +437,23 @@ namespace Resonance.UI
             Debug.Log($"WavePanel: Source wave amplitude: {_sourceWave.Amplitude}, Target wave amplitude: {_targetWave.Amplitude}");
         }
         
+        #endregion
+
+        #region Input Logic
+
         /// <summary>
         /// Handle QTE input from player - calculate wave match and apply damage
         /// </summary>
-        private void OnQTEInput()
+        private void OnAttackQTEInput()
         {
-            Debug.Log($"WavePanel: OnQTEInput called - _isWaveActive: {_isWaveActive}");
-            
+            Debug.Log($"WavePanel: OnAttackQTEInput called - _isWaveActive: {_isWaveActive}");
+
+            if (_sourceWavable is EnemyCrystalCoreHitbox)
+            {
+                Debug.Log("WavePanel: Attack QTE input ignored - Enemy is attacking the player");
+                return;
+            }
+
             if (!_isWaveActive) 
             {
                 Debug.Log("WavePanel: Input ignored - wave not active");
@@ -462,6 +471,24 @@ namespace Resonance.UI
             
             // Stop scrolling temporarily
             StopScrollingTemporarily();
+        }
+
+        private void OnLogicBind1Input()
+        {
+            Debug.Log("WavePanel: OnLogicBind1Input called");
+
+            PlayerCrystalCoreHitbox playerCore = _sourceWavable as PlayerCrystalCoreHitbox;
+            if (playerCore == null)
+            {
+                playerCore = _targetWavable as PlayerCrystalCoreHitbox;
+                if (playerCore == null)
+                {
+                    Debug.LogWarning("WavePanel: OnLogicBind1Input ignored - source and target wavables are not PlayerCrystalCoreHitboxes");
+                    return;
+                }
+            }
+
+            WaveModifier.Modify(playerCore.GetWave().WaveformTable, WaveModifierType.Inverter);
         }
 
         #endregion
