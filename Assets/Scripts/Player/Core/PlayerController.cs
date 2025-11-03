@@ -552,9 +552,22 @@ namespace Resonance.Player.Core
 
         public bool CanShoot()
         {
+            // Check if player has equipped weapon (via state machine)
+            if (!_stateMachine.CanShoot()) return false;
+            
+            // Check if player has enough energy
+            var currentWeapon = _weaponManager?.CurrentWeapon;
+            if (currentWeapon != null)
+            {
+                float requiredEnergy = currentWeapon.energyCostPerShot;
+                if (_stats.crystalCore.CurrentEnergy < requiredEnergy)
+                {
+                    return false; // Not enough energy to shoot
+                }
+            }
+            
             return IsAlive && 
-                   !IsStaggered && // Cannot shoot while staggerned
-                   _stateMachine.CanShoot() && 
+                   !IsStaggered && // Cannot shoot while staggered
                    Time.time >= _lastAttackTime && 
                    !(_actionController?.IsBlocking ?? false); // Actions can block shooting
         }

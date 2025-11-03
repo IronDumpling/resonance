@@ -201,7 +201,7 @@ namespace Resonance.Player.Core
 
         public bool CanShoot()
         {
-            return IsInState("Aiming") && _playerController.HasEquippedWeapon && _playerController.CanShoot();
+            return IsInState("Aiming") && _playerController.HasEquippedWeapon;
         }
 
         public bool CanReload()
