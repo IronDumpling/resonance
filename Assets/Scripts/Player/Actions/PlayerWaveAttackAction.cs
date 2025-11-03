@@ -191,10 +191,10 @@ namespace Resonance.Player.Actions
                 return false;
             }
                 
-            // Valid state for wave: Reviving (physically dead but core alive)
-            // Enemy must be vulnerable (in revival state, not truly dead)
+            // Valid state for wave: Unbalanced (balance depleted to 0) or CoreExposed (already being executed)
+            // Enemy must be vulnerable (in unbalanced state, not truly dead)
             var enemyState = enemyController.CurrentState;
-            bool isValidState = enemyState == EnemyState.Reviving;
+            bool isValidState = enemyState == EnemyState.Unbalanced || enemyState == EnemyState.CoreExposed;
             
             return isValidState;
         }

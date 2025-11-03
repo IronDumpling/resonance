@@ -28,12 +28,12 @@ namespace Resonance.Enemies.Core
         private EnemyStateData _stateData = new EnemyStateData();
         
         // State Tracking (behavior tree manages behavior, controller tracks data)
-        private float _stunEndTime = 0f;
+        private float _staggerEndTime = 0f;  // Stagger end time (balance damage causes stagger)
+        private float _unbalancedTimer = 0f;  // Timer for unbalanced state
         
         // Combat State
         private float _lastNormalAttackTime = 0f;
         private float _lastWaveAttackTime = 0f;
-        private float _revivalTimer = 0f;
         private bool _hitboxEnabled = false;
         private HashSet<IDamageable> _currentAttackHits = new HashSet<IDamageable>();
         private AttackType _currentAttackType = AttackType.Normal;
@@ -65,16 +65,18 @@ namespace Resonance.Enemies.Core
         private Dictionary<DamageType, float> _totalDamageDealt;
         private Dictionary<AttackType, int> _attacksLaunchedCount;
         
-        // Dual Health Events
-        public System.Action<float, float> OnHealthChanged; // current, max
+        // Balance System Events
+        public System.Action<float, float> OnBalanceChanged; // current, max
         public System.Action<float, float> OnCoreEnergyChanged; // current, max
-        public System.Action OnPhysicalDeath; // Physical health reaches 0
-        public System.Action OnTrueDeath; // Core health reaches 0
-        public System.Action OnRevivalStarted; // Revival process started
-        public System.Action OnRevivalCompleted; // Revival completed
+        public System.Action OnUnbalanced; // Balance reaches 0
+        public System.Action OnDeath; // Core health reaches 0
+        public System.Action OnUnbalancedStarted; // Unbalanced state started
+        public System.Action OnUnbalancedCompleted; // Unbalanced state completed
+        public System.Action OnCoreExposureStarted; // Core exposure started (wave execution)
+        public System.Action OnCoreExposureCompleted; // Core exposure completed
         
-        // Health Tier Events
-        public System.Action<HealthTier> OnPhysicalTierChanged;
+        // Balance Tier Events
+        public System.Action<BalanceTier> OnBalanceTierChanged;
         public System.Action<CrystalEnergyTier> OnCoreTierChanged;
         
         // Combat Events
@@ -107,17 +109,17 @@ namespace Resonance.Enemies.Core
         // Patrol Configuration Properties
         public float WaitAtWaypointDuration => _waitAtWaypointDuration;
         
-        // Revival Configuration Properties
-        public float RevivalTimer => _revivalTimer;
+        // Unbalanced State Properties
+        public float UnbalancedTimer => _unbalancedTimer;
         
         public EnemyStateData StateData => _stateData;
 
         // Movement Properties
         public Vector3 CurrentPosition => _movement?.CurrentPosition ?? _patrolCenter;
         
-        // Health Properties
-        public bool IsPhysicallyAlive => _stateData.IsPhysicallyAlive;
-        public bool IsPhysicallyDead => _stateData.IsPhysicallyDead;
+        // Balance Properties
+        public bool IsBalanced => _stateData.IsBalanced;
+        public bool IsUnbalanced => _stateData.IsUnbalanced;
         public bool IsCoreDead => _stateData.IsCoreDead;
         
         // State Properties
@@ -128,23 +130,23 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public bool IsHitboxEnabled => _hitboxEnabled;
         
-        // Health Tier Properties
-        public HealthTier HealthTier => _stats.healthTier;
+        // Balance Tier Properties
+        public BalanceTier BalanceTier => _stats.balanceTier;
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
         
         // Combat Properties
         // Can only normal attack if:
-        // 1. Enemy is alive, has core alive, and has player target
+        // 1. Enemy is balanced (balance > 0), has core alive, and has player target
         // 2. Player is in attack range
         // 3. Not on attack cooldown
-        public bool CanNormalAttack => IsPhysicallyAlive && HasPlayerTarget && 
+        public bool CanNormalAttack => IsBalanced && HasPlayerTarget && 
                                     Time.time >= _lastNormalAttackTime + _stats.normalAttackStats.cooldown;
         
         // Can only wave attack if:
-        // 1. Enemy is alive, has core alive, and has player target
+        // 1. Enemy is balanced (balance > 0), has core alive, and has player target
         // 2. Not on attack cooldown
         // 3. Has at least 1 energy slot to consume
-        public bool CanWaveAttack => IsPhysicallyAlive && HasPlayerTarget && 
+        public bool CanWaveAttack => IsBalanced && HasPlayerTarget && 
                                     Time.time >= _lastWaveAttackTime + _stats.waveAttackStats.cooldown &&
                                     _stats.crystalCore.CanConsumeSlot(); 
         
@@ -204,14 +206,14 @@ namespace Resonance.Enemies.Core
             {
                 { DamageType.PhysicalHealth, 0f },
                 { DamageType.CoreHealth, 0f },
-                { DamageType.Chaos, 0f }
+                { DamageType.Balance, 0f }
             };
 
             _totalDamageDealt = new Dictionary<DamageType, float>()
             {
                 { DamageType.PhysicalHealth, 0f },
                 { DamageType.CoreHealth, 0f },
-                { DamageType.Chaos, 0f }
+                { DamageType.Balance, 0f }
             };
             
             _attacksLaunchedCount = new Dictionary<AttackType, int>()
@@ -227,57 +229,61 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void Update(float deltaTime)
         {
-            bool isStunned = Time.time < _stunEndTime;
-            _stateData.UpdateState(_stats.currentHealth, _stats.crystalCore.CurrentCoreHealth, isStunned);
+            bool isStaggered = Time.time < _staggerEndTime;
+            _stateData.UpdateState(_stats.currentBalance, _stats.crystalCore.CurrentCoreHealth, isStaggered);
             
-            UpdateRevivalTimer(deltaTime);
-            _stats.UpdateChaos(deltaTime);
+            UpdateBalanceRecovery(deltaTime);
             UpdatePlayerDetection();
             _movement?.Update(deltaTime);
         }
 
-        #region Health System
+        #region Balance System
 
         /// <summary>
-        /// Update revival timer and restore health
-        /// Called every frame when revival is in progress (managed by BehaviorTree)
-        /// Uses CurrentState which is managed by EnemyStateData
+        /// Update balance recovery
+        /// Balance recovers naturally over time in Normal, Staggered states
+        /// Recovers at different rate in CoreExposed state
+        /// Does NOT recover in Unbalanced state
         /// </summary>
-        private void UpdateRevivalTimer(float deltaTime)
+        private void UpdateBalanceRecovery(float deltaTime)
         {
-            // CurrentState is now managed by EnemyStateData with _isRevivingInProgress flag
-            // This ensures state remains Reviving throughout the entire revival process
-            if (CurrentState == EnemyState.Reviving)
+            // Only recover if not at max and not in Unbalanced state
+            if (_stats.currentBalance >= _stats.maxBalance) return;
+            if (CurrentState == EnemyState.Unbalanced) return;
+            
+            // Determine recovery rate based on state
+            float recoveryRate = _stats.balanceRecoveryRate;
+            
+            if (CurrentState == EnemyState.CoreExposed)
             {
-                _revivalTimer += deltaTime;
+                // Slower recovery when core is exposed
+                recoveryRate = _stats.balanceRecoveryRateInCoreExposed;
+            }
+            
+            if (recoveryRate > 0f)
+            {
+                var previousTier = _stats.balanceTier;
+                float restored = _stats.RestoreBalance(recoveryRate * deltaTime);
                 
-                // Revival progress - restore physical health
-                if (_stats.revivalRate > 0f && _stats.currentHealth < _stats.maxHealth)
+                OnBalanceChanged?.Invoke(_stats.currentBalance, _stats.maxBalance);
+                
+                // Check for balance tier change
+                if (_stats.balanceTier != previousTier)
                 {
-                    var previousTier = _stats.healthTier;
-                    float restored = _stats.RestoreHealth(_stats.revivalRate * deltaTime);
-                    _stats.UpdateHealthTier();
-                    
-                    OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
-                    
-                    // Check for health tier change during revival
-                    if (_stats.healthTier != previousTier)
-                    {
-                        OnPhysicalTierChanged?.Invoke(_stats.healthTier);
-                    }
-                    
-                    // Log progress for debugging
-                    if (Mathf.FloorToInt(_revivalTimer) != Mathf.FloorToInt(_revivalTimer - deltaTime))
-                    {
-                        Debug.Log($"[EnemyController] Reviving... Restored: {restored:F2}, Health: {_stats.currentHealth:F1}/{_stats.maxHealth:F1}");
-                    }
+                    OnBalanceTierChanged?.Invoke(_stats.balanceTier);
+                }
+                
+                // Check if balance is fully restored in CoreExposed state
+                if (CurrentState == EnemyState.CoreExposed && _stats.currentBalance >= _stats.maxBalance)
+                {
+                    Debug.Log($"[EnemyController] Balance fully restored in CoreExposed state, triggering completion");
                 }
             }
         }
 
         /// <summary>
         /// Take damage from a DamageInfo
-        /// Processes all damage types from the same attack together
+        /// Enemies only have Balance and Core Health, no Physical Health
         /// Note: Enemies don't have invulnerability system currently
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
@@ -286,13 +292,6 @@ namespace Resonance.Enemies.Core
             Damages damages = damageInfo.damages;
             if (damages == null) return;
             
-            // Apply Physical Health damage
-            if (damages.HasDamage(DamageType.PhysicalHealth))
-            {
-                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
-                TakeHealthDamage(damageAmount);
-            }
-            
             // Apply Core Health damage
             if (damages.HasDamage(DamageType.CoreHealth))
             {
@@ -300,44 +299,53 @@ namespace Resonance.Enemies.Core
                 TakeCoreDamage(damageAmount);
             }
             
-            // Apply Chaos damage (processed last)
-            if (damages.HasDamage(DamageType.Chaos))
+            // Apply Balance damage (stance/posture damage)
+            if (damages.HasDamage(DamageType.Balance))
             {
-                float damageAmount = damages.GetDamage(DamageType.Chaos);
-                TakeChaosDamage(damageAmount);
+                float damageAmount = damages.GetDamage(DamageType.Balance);
+                TakeBalanceDamage(damageAmount);
             }
             
             Debug.Log($"EnemyController: Processed DamageInfo - {damageInfo}");
         }
         
         /// <summary>
-        /// Take physical health damage
+        /// Take balance damage (stance/posture damage)
+        /// Reduces balance, causes stagger, and triggers unbalanced state when balance reaches 0
         /// </summary>
-        private void TakeHealthDamage(float damage)
+        private void TakeBalanceDamage(float damage)
         {
-            if (IsPhysicallyDead) return;
+            if (IsCoreDead) return;
+            if (CurrentState == EnemyState.Unbalanced || CurrentState == EnemyState.CoreExposed) return;
             
-            var previousTier = _stats.healthTier;
-            _stats.TakeHealthDamage(damage);
-            _stats.UpdateHealthTier();
+            var previousTier = _stats.balanceTier;
+            float actualDamage = _stats.TakeBalanceDamage(damage);
             
             _timesHit++;
-            _totalDamageTaken[DamageType.PhysicalHealth] += damage;
+            _totalDamageTaken[DamageType.Balance] += actualDamage;
             
-            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+            OnBalanceChanged?.Invoke(_stats.currentBalance, _stats.maxBalance);
             
-            // Check for health tier change
-            if (_stats.healthTier != previousTier)
+            // Check for balance tier change
+            if (_stats.balanceTier != previousTier)
             {
-                OnPhysicalTierChanged?.Invoke(_stats.healthTier);
+                OnBalanceTierChanged?.Invoke(_stats.balanceTier);
             }
 
-            if (_stats.currentHealth <= 0f)
+            // Apply stagger effect based on damage amount
+            if (actualDamage > 0f)
             {
-                HandlePhysicalDeath();
+                float staggerDuration = actualDamage * _stats.staggerDurationPerDamage;
+                StartStagger(staggerDuration);
+            }
+
+            // Check if balance reaches 0
+            if (_stats.currentBalance <= 0f)
+            {
+                HandleUnbalanced();
             }
             
-            Debug.Log($"EnemyController: Took {damage:F1} physical health damage. Current: {_stats.currentHealth:F1}/{_stats.maxHealth}");
+            Debug.Log($"EnemyController: Took {actualDamage:F1} balance damage. Current: {_stats.currentBalance:F1}/{_stats.maxBalance}, Stagger: {actualDamage * _stats.staggerDurationPerDamage:F2}s");
         }
 
         /// <summary>
@@ -364,87 +372,100 @@ namespace Resonance.Enemies.Core
 
             if (_stats.crystalCore.CurrentCoreHealth <= 0f)
             {
-                HandleTrueDeath();
+                HandleDeath();
             }
             
             Debug.Log($"EnemyController: Took {damage:F1} core health damage. Current: {_stats.crystalCore.CurrentCoreHealth:F1}/{_stats.crystalCore.MaxCoreHealth}");
         }
 
         /// <summary>
-        /// Take chaos damage
+        /// Start stagger effect (called when balance damage is taken)
         /// </summary>
-        private void TakeChaosDamage(float damage)
+        public void StartStagger(float duration)
         {
-            if (IsPhysicallyDead) return;
-
-            float addedChaos = _stats.crystalCore.AddChaos(damage);
-            
-            if (addedChaos > 0f)
-            {
-                StartStun(addedChaos * 0.1f);
-                Debug.Log($"EnemyController: Took {damage:F1} chaos damage. Stun duration: {addedChaos * 0.1f:F2}s");
-            }
+            _staggerEndTime = Time.time + duration;
+            Debug.Log($"EnemyController: Stagger started for {duration:F2}s");
         }
 
         /// <summary>
-        /// Start stun effect (called when chaos damage is taken)
+        /// Handle unbalanced state (balance reaches 0)
+        /// Triggers events, actual state management is handled by BehaviorTree
         /// </summary>
-        public void StartStun(float duration)
+        private void HandleUnbalanced()
         {
-            _stunEndTime = Time.time + duration;
-            Debug.Log($"EnemyController: Stun started for {duration:F2}s");
-        }
-
-        /// <summary>
-        /// Handle physical health death (physical health reaches 0)
-        /// Triggers events, actual revival is managed by BehaviorTree
-        /// </summary>
-        private void HandlePhysicalDeath()
-        {
-            Debug.Log("EnemyController: Physical health depleted - triggering death event");
-            OnPhysicalDeath?.Invoke();
+            Debug.Log("EnemyController: Balance depleted - entering unbalanced state");
+            OnUnbalanced?.Invoke();
             
-            // If core is also destroyed, trigger true death
+            // If core is also destroyed, trigger death
             if (IsCoreDead)
             {
-                Debug.Log("EnemyController: Core also destroyed, triggering true death");
-                HandleTrueDeath();
+                Debug.Log("EnemyController: Core also destroyed, triggering death");
+                HandleDeath();
             }
         }
 
         /// <summary>
-        /// Handle true death (core health reaches 0)
+        /// Handle death (core health reaches 0)
         /// </summary>
-        private void HandleTrueDeath()
+        private void HandleDeath()
         {
-            Debug.Log("EnemyController: Core health depleted - enemy truly dead");
-            OnTrueDeath?.Invoke();
+            Debug.Log("EnemyController: Core health depleted - enemy dead");
+            OnDeath?.Invoke();
         }
 
         /// <summary>
-        /// Start revival process (called by BehaviorTree)
+        /// Start unbalanced state (called by BehaviorTree)
         /// </summary>
-        public void StartRevival()
+        public void StartUnbalanced()
         {
-            _revivalTimer = 0f;
-            _stateData.StartRevival();  // Set flag in StateData to keep state as Reviving
-            OnRevivalStarted?.Invoke();
-            Debug.Log("EnemyController: Revival started");
+            _unbalancedTimer = 0f;
+            _stateData.StartUnbalanced();  // Set flag in StateData to keep state as Unbalanced
+            OnUnbalancedStarted?.Invoke();
+            Debug.Log("EnemyController: Unbalanced state started");
         }
 
         /// <summary>
-        /// Complete revival process (called by BehaviorTree)
+        /// Complete unbalanced state (called by BehaviorTree when timer expires)
+        /// Restores balance and returns to Normal state
         /// </summary>
-        public void CompleteRevival()
+        public void CompleteUnbalanced()
         {
-            _revivalTimer = 0f;
-            _stateData.CompleteRevival();  // Clear flag in StateData to allow normal state calculation
+            _unbalancedTimer = 0f;
+            _stateData.CompleteUnbalanced();  // Clear flag in StateData
+            
+            // Restore balance to max when unbalanced timer expires
+            _stats.currentBalance = _stats.maxBalance;
+            OnBalanceChanged?.Invoke(_stats.currentBalance, _stats.maxBalance);
             
             // Clear any existing hit tracking to ensure clean state
             _currentAttackHits.Clear();
             
-            OnRevivalCompleted?.Invoke();
-            Debug.Log("EnemyController: Revival completed, cleared hit tracking for new combat phase");
+            OnUnbalancedCompleted?.Invoke();
+            Debug.Log("EnemyController: Unbalanced state completed, balance restored");
+        }
+
+        /// <summary>
+        /// Start core exposure state (called when player executes wave attack)
+        /// </summary>
+        public void StartCoreExposure()
+        {
+            _stateData.StartCoreExposure();  // Set flag in StateData to keep state as CoreExposed
+            OnCoreExposureStarted?.Invoke();
+            Debug.Log("EnemyController: Core exposure started - being executed by player");
+        }
+
+        /// <summary>
+        /// Complete core exposure state (called when balance is fully restored)
+        /// </summary>
+        public void CompleteCoreExposure()
+        {
+            _stateData.CompleteCoreExposure();  // Clear flag in StateData
+            
+            // Clear any existing hit tracking to ensure clean state
+            _currentAttackHits.Clear();
+            
+            OnCoreExposureCompleted?.Invoke();
+            Debug.Log("EnemyController: Core exposure completed, returning to normal");
         }
 
         #endregion
@@ -613,9 +634,9 @@ namespace Resonance.Enemies.Core
             {
                 _totalDamageDealt[DamageType.CoreHealth] += damageInfo.damages.GetDamage(DamageType.CoreHealth);
             }
-            if(damageInfo.damages.HasDamage(DamageType.Chaos))
+            if(damageInfo.damages.HasDamage(DamageType.Balance))
             {
-                _totalDamageDealt[DamageType.Chaos] += damageInfo.damages.GetDamage(DamageType.Chaos);
+                _totalDamageDealt[DamageType.Balance] += damageInfo.damages.GetDamage(DamageType.Balance);
             }
             
             Debug.Log($"EnemyController: Applied {damageInfo.damages.ToString()} damage to target");
@@ -755,30 +776,6 @@ namespace Resonance.Enemies.Core
             _isPlayerInAttackRange = inRange;
         }
 
-        /// <summary>
-        /// Check if player target is in chaos state (for wave attack condition)
-        /// </summary>
-        public bool IsPlayerInChaosState()
-        {
-            if (!HasPlayerTarget) return false;
-            
-            // Try to get IDamageable from player target
-            var damageable = _playerTarget.GetComponent<IDamageable>();
-            if (damageable == null)
-            {
-                damageable = _playerTarget.GetComponentInParent<IDamageable>();
-            }
-            
-            if (damageable == null)
-            {
-                return false;
-            }
-            
-            bool isInChaos = damageable.ChaosState == WaveChaosState.Chaos;
-            
-            return isInChaos;
-        }
-
         #endregion
 
         #region Patrol System
@@ -888,7 +885,7 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public string GetStats()
         {
-            return $"Physical Health: {_stats.currentHealth:F1}/{_stats.maxHealth}, " +
+            return $"Balance: {_stats.currentBalance:F1}/{_stats.maxBalance}, " +
                    $"Core Energy: {_stats.crystalCore.CurrentEnergy:F1}/{_stats.crystalCore.MaxEnergy}, " +
                    $"Core Health: {_stats.crystalCore.CurrentCoreHealth:F1}/{_stats.crystalCore.MaxCoreHealth}, " +
                    $"Hits Taken: {_timesHit}, Damage Taken: {_totalDamageTaken.ToString()}, " +
@@ -906,14 +903,14 @@ namespace Resonance.Enemies.Core
             {
                 { DamageType.PhysicalHealth, 0f },
                 { DamageType.CoreHealth, 0f },
-                { DamageType.Chaos, 0f }
+                { DamageType.Balance, 0f }
             };
 
             _totalDamageDealt = new Dictionary<DamageType, float>()
             {
                 { DamageType.PhysicalHealth, 0f },
                 { DamageType.CoreHealth, 0f },
-                { DamageType.Chaos, 0f }
+                { DamageType.Balance, 0f }
             };
             
             _attacksLaunchedCount = new Dictionary<AttackType, int>()
@@ -932,17 +929,19 @@ namespace Resonance.Enemies.Core
         /// </summary>
         public void Shutdown()
         {
-            OnHealthChanged = null;
+            OnBalanceChanged = null;
             OnCoreEnergyChanged = null;
-            OnPhysicalDeath = null;
-            OnTrueDeath = null;
-            OnRevivalStarted = null;
-            OnRevivalCompleted = null;
+            OnUnbalanced = null;
+            OnDeath = null;
+            OnUnbalancedStarted = null;
+            OnUnbalancedCompleted = null;
+            OnCoreExposureStarted = null;
+            OnCoreExposureCompleted = null;
             OnAttackLaunched = null;
             OnPlayerDetected = null;
             OnPlayerLost = null;
             OnStateChanged = null;
-            OnPhysicalTierChanged = null;
+            OnBalanceTierChanged = null;
             OnCoreTierChanged = null;
             OnAttackWindowOpened = null;
             OnAttackWindowClosed = null;

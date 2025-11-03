@@ -15,7 +15,7 @@ namespace Resonance.Utilities.Waves
         [Tooltip("Waveform type")]
         public WaveformType waveformType = WaveformType.Sine;
         [Tooltip("Frequency")]
-        public float frequency = 1.0f;
+        public float frequency = 2.0f;
         [Tooltip("Amplitude")]
         public float amplitude = 1.0f;
         [Tooltip("Length")]
@@ -23,47 +23,37 @@ namespace Resonance.Utilities.Waves
         [Tooltip("Waveform Resolution")]
         public int waveformResolution = 1024;
         
-        [Header("Wave Chaos Configuration")]
-        [Tooltip("Wave Chaos Max Value")]
-        public float maxChaos = 20f;
-        [Tooltip("Wave Chaos Threshold Value")]
-        public float chaosThreshold = 16f;
-        
         [Header("Wave Visual Configuration")]
         [Tooltip("Wave Order Color")]
         public Color orderColor = Color.blue;
-        [Tooltip("Wave Chaos Color")]
-        public Color chaosColor = Color.magenta;
+        [Tooltip("Wave Active Color")]
+        public Color activeColor = Color.magenta;
         [Tooltip("Wave Material Path")]
         public string waveMaterialPath = "Art/Materials/Wave";
-        
-        [Header("Wave Audio Configuration")]
-        [Tooltip("Wave Chaos Add Sound")]
-        public AudioClip chaosAddSound;
-        
-        [Tooltip("Wave Enter Chaos State Sound")]
-        public AudioClip enterChaosStateSound;
-        
-        [Tooltip("Wave Enter Order State Sound")]
-        public AudioClip enterOrderStateSound;
         
         /// <summary>
         /// 验证Wave配置
         /// </summary>
         public bool ValidateConfig()
         {
-            if (maxChaos <= 0f)
+            if (frequency <= 0f)
             {
-                Debug.LogError($"WaveConfig: {name} has invalid maxChaos: {maxChaos}");
+                Debug.LogError($"WaveConfig: {name} has invalid frequency: {frequency}");
                 return false;
             }
             
-            if (chaosThreshold < 0f || chaosThreshold >= maxChaos)
+            if (amplitude <= 0f)
             {
-                Debug.LogError($"WaveConfig: {name} has invalid chaosThreshold: {chaosThreshold} (should be 0 <= chaosThreshold < maxChaos)");
+                Debug.LogError($"WaveConfig: {name} has invalid amplitude: {amplitude}");
                 return false;
             }
             
+            if (length <= 0f)
+            {
+                Debug.LogError($"WaveConfig: {name} has invalid length: {length}");
+                return false;
+            }
+
             return true;
         }
         
@@ -71,8 +61,9 @@ namespace Resonance.Utilities.Waves
         
         void OnValidate()
         {
-            maxChaos = Mathf.Max(1f, maxChaos);
-            chaosThreshold = Mathf.Clamp(chaosThreshold, 0f, maxChaos - 1f);
+            frequency = Mathf.Max(0.1f, frequency);
+            amplitude = Mathf.Max(0.1f, amplitude);
+            length = Mathf.Max(0.1f, length);
         }
         
         #endregion

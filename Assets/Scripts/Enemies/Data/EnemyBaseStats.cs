@@ -45,14 +45,11 @@ namespace Resonance.Enemies.Data
         [Tooltip("Hitbox type")]
         public HitboxType hitboxType;
         
-        [Tooltip("Multiplier for physical health damage")]
-        public float physicalHealthMultiplier;
-        
         [Tooltip("Multiplier for core health damage")]
         public float coreHealthMultiplier;
         
-        [Tooltip("Multiplier for chaos damage")]
-        public float chaosMultiplier;
+        [Tooltip("Multiplier for balance damage")]
+        public float balanceMultiplier;
     }
 
     /// <summary>
@@ -77,22 +74,25 @@ namespace Resonance.Enemies.Data
         [TextArea(2, 4)]
         [Tooltip("Enemy description")]
         public string enemyDescription = "A basic enemy";
-        
-        [Header("Survival Attributes")]
-        [Tooltip("Maximum health")]
-        public float maxHealth = 100f;
+
+        [Header("Balance System (Stance/Posture)")]
+        [Tooltip("Maximum balance value (20-50 recommended)")]
+        [Range(20f, 100f)]
+        public float maxBalance = 40f;
+        [Tooltip("Balance natural recovery rate per second")]
+        public float balanceRecoveryRate = 5f;
+        [Tooltip("Balance recovery rate when in CoreExposed state")]
+        public float balanceRecoveryRateInCoreExposed = 3f;
+        [Tooltip("Duration of Unbalanced state before auto-recovery (seconds)")]
+        public float unbalancedDuration = 5f;
+        [Tooltip("Stagger duration per point of balance damage (seconds)")]
+        public float staggerDurationPerDamage = 0.05f;
         
         [Header("Crystal Core Attributes")]
         [Tooltip("Crystal core configuration")]
         public CrystalCoreConfig crystalCoreConfig;
         [Tooltip("Crystal core pattern")]
         public string corePattern = "Enemy_Basic";
-        
-        [Header("Revival System")]
-        [Tooltip("Revival delay")]
-        public float revivalDelay = 2f;
-        [Tooltip("Revival rate")]
-        public float revivalRate = 10f;
         
         [Header("Combat Attributes")]
         [Tooltip("Normal attack damage")]
@@ -120,7 +120,7 @@ namespace Resonance.Enemies.Data
         public LayerMask visionObstacleLayers = ~0; // Default to all layers
         
         [Header("Hitbox Damage Multipliers")]
-        [Tooltip("Damage multipliers for each hitbox type")]
+        [Tooltip("Damage multipliers for each hitbox type (Physical/Core/Balance)")]
         public List<HitboxMultiplierConfig> hitboxMultipliers = new List<HitboxMultiplierConfig>();
         
         [Header("Navigation Configuration")]
@@ -166,8 +166,8 @@ namespace Resonance.Enemies.Data
         public float lootDropChance = 1f;
 
         [Header("Debug Options")]
-        [Tooltip("Show health bar")]
-        public bool showHealthBar = true;
+        [Tooltip("Show balance bar in gizmos")]
+        public bool showBalanceBar = true;
         [Tooltip("Show detection range")]
         public bool showDetectionRange = false;
         [Tooltip("Show attack range")]
@@ -196,9 +196,9 @@ namespace Resonance.Enemies.Data
                 return false;
             }
 
-            if (maxHealth <= 0)
+            if (maxBalance <= 0)
             {
-                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid maxHealth: {maxHealth}");
+                Debug.LogError($"EnemyBaseStats: {enemyName} has invalid maxBalance: {maxBalance}");
                 return false;
             }
 
@@ -264,27 +264,16 @@ namespace Resonance.Enemies.Data
                     return new HitboxMultiplierConfig
                     {
                         hitboxType = HitboxType.Head,
-                        physicalHealthMultiplier = 1.5f,
                         coreHealthMultiplier = 0f,
-                        chaosMultiplier = 1.5f
+                        balanceMultiplier = 1.5f
                     };
                     
                 case HitboxType.Core:
                     return new HitboxMultiplierConfig
                     {
                         hitboxType = HitboxType.Core,
-                        physicalHealthMultiplier = 0f,
                         coreHealthMultiplier = 1f,
-                        chaosMultiplier = 0f
-                    };
-                    
-                case HitboxType.Knee:
-                    return new HitboxMultiplierConfig
-                    {
-                        hitboxType = HitboxType.Knee,
-                        physicalHealthMultiplier = 0.5f,
-                        coreHealthMultiplier = 0f,
-                        chaosMultiplier = 2f
+                        balanceMultiplier = 0f
                     };
                     
                 case HitboxType.Body:
@@ -292,9 +281,8 @@ namespace Resonance.Enemies.Data
                     return new HitboxMultiplierConfig
                     {
                         hitboxType = HitboxType.Body,
-                        physicalHealthMultiplier = 1f,
                         coreHealthMultiplier = 0f,
-                        chaosMultiplier = 0.5f
+                        balanceMultiplier = 0.5f
                     };
             }
         }
@@ -316,7 +304,6 @@ namespace Resonance.Enemies.Data
             // Add default configurations for all hitbox types
             hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Head));
             hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Body));
-            hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Knee));
             hitboxMultipliers.Add(GetDefaultMultiplierConfig(HitboxType.Core));
             
             Debug.Log($"EnemyBaseStats: {enemyName} initialized default hitbox multiplier configurations");
@@ -327,20 +314,23 @@ namespace Resonance.Enemies.Data
         void OnValidate()
         {
             // Ensure values are within reasonable ranges
-            maxHealth = Mathf.Max(1f, maxHealth);
+            maxBalance = Mathf.Max(1f, maxBalance);
             
-            // Validate revival system
-            revivalDelay = Mathf.Max(0f, revivalDelay);
-            revivalRate = Mathf.Max(0.1f, revivalRate);
+            // Validate balance system
+            maxBalance = Mathf.Clamp(maxBalance, 20f, 100f);
+            balanceRecoveryRate = Mathf.Max(0.1f, balanceRecoveryRate);
+            balanceRecoveryRateInCoreExposed = Mathf.Max(0.1f, balanceRecoveryRateInCoreExposed);
+            unbalancedDuration = Mathf.Max(1f, unbalancedDuration);
+            staggerDurationPerDamage = Mathf.Clamp(staggerDurationPerDamage, 0.01f, 0.2f);
             
             // Initialize default hitbox multipliers if not set
             InitializeDefaultHitboxMultipliers();
             
             // Validate combat attributes
             float physicalDamage = Mathf.Max(0.1f, normalAttackStats.damages.GetDamage(DamageType.PhysicalHealth));
-            float chaosDamage = Mathf.Max(0.1f, normalAttackStats.damages.GetDamage(DamageType.Chaos));
+            float balanceDamage = Mathf.Max(0.1f, normalAttackStats.damages.GetDamage(DamageType.Balance));
             normalAttackStats.damages.SetDamage(DamageType.PhysicalHealth, physicalDamage);
-            normalAttackStats.damages.SetDamage(DamageType.Chaos, chaosDamage);
+            normalAttackStats.damages.SetDamage(DamageType.Balance, balanceDamage);
             normalAttackStats.cooldown = Mathf.Max(0.1f, normalAttackStats.cooldown);
             normalAttackStats.range = Mathf.Max(0.1f, normalAttackStats.range);
 

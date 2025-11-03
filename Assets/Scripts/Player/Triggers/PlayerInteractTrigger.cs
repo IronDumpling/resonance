@@ -207,12 +207,6 @@ namespace Resonance.Player.Triggers
                 gunMono.ShowInteractionUI();
             }
 
-            var ammoMono = interactable as AmmoMonoBehaviour;
-            if (ammoMono != null)
-            {
-                ammoMono.ShowInteractionUI();
-            }
-
             var infoMono = interactable as InfoMonoBehaviour;
             if (infoMono != null)
             {
@@ -233,12 +227,6 @@ namespace Resonance.Player.Triggers
             if (gunMono != null)
             {
                 gunMono.HideInteractionUI();
-            }
-
-            var ammoMono = interactable as AmmoMonoBehaviour;
-            if (ammoMono != null)
-            {
-                ammoMono.HideInteractionUI();
             }
             
             var infoMono = interactable as InfoMonoBehaviour;

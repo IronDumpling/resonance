@@ -20,7 +20,7 @@ namespace Resonance.Enemies
     /// Acts as a bridge between Unity's GameObject system and the enemy logic.
     /// Implements IDamageable interface for damage handling.
     /// </summary>
-    public class EnemyMonoBehaviour : MonoBehaviour, IDamageable
+    public class EnemyMonoBehaviour : MonoBehaviour, IDamageable, IHasBalance, IHasCoreHealth
     {
         [Header("Enemy Configuration")]
         [SerializeField] private EnemyBaseStats _baseStats;
@@ -204,12 +204,14 @@ namespace Resonance.Enemies
             _movementSystem = _enemyController.Movement;
 
             // Subscribe to enemy events
-            _enemyController.OnHealthChanged += HandleHealthChanged;
+            _enemyController.OnBalanceChanged += HandleBalanceChanged;
             _enemyController.OnCoreEnergyChanged += HandleCoreHealthChanged;
-            _enemyController.OnPhysicalDeath += HandlePhysicalDeath;
-            _enemyController.OnTrueDeath += HandleTrueDeath;
-            _enemyController.OnRevivalStarted += HandleRevivalStarted;
-            _enemyController.OnRevivalCompleted += HandleRevivalCompleted;
+            _enemyController.OnUnbalanced += HandleUnbalanced;
+            _enemyController.OnDeath += HandleDeath;
+            _enemyController.OnUnbalancedStarted += HandleUnbalancedStarted;
+            _enemyController.OnUnbalancedCompleted += HandleUnbalancedCompleted;
+            _enemyController.OnCoreExposureStarted += HandleCoreExposureStarted;
+            _enemyController.OnCoreExposureCompleted += HandleCoreExposureCompleted;
             _enemyController.OnAttackLaunched += HandleAttackLaunched;
             _enemyController.OnStateChanged += HandleStateChanged;
 
@@ -602,7 +604,7 @@ namespace Resonance.Enemies
 
         /// <summary>
         /// Take damage using the new damage system
-        /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// Supports multiple damage types: Physical Health, Core Health
         /// All damage types from the same attack are processed together
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
@@ -620,15 +622,20 @@ namespace Resonance.Enemies
 
         #endregion
 
-        #region IDamageable Properties
+        #region IDamageable, IHasBalance, IHasCoreHealth Properties
+
+        // IHasBalance implementation
+        /// <summary>
+        /// Current balance value (stance/posture system)
+        /// </summary>
+        public float CurrentBalance => IsInitialized ? _enemyController.Stats.currentBalance : 0f;
 
         /// <summary>
-        /// Physical health state
+        /// Maximum balance value
         /// </summary>
-        public PhysicalHealthState PhysicalState => IsInitialized && _enemyController.IsPhysicallyAlive 
-            ? PhysicalHealthState.Alive 
-            : PhysicalHealthState.Dead;
+        public float MaxBalance => IsInitialized ? _enemyController.Stats.maxBalance : 0f;
 
+        // IHasCoreHealth implementation
         /// <summary>
         /// Core health state
         /// </summary>
@@ -637,92 +644,78 @@ namespace Resonance.Enemies
             : CoreHealthState.Destroyed;
 
         /// <summary>
-        /// Wave chaos state
-        /// </summary>
-        public WaveChaosState ChaosState => IsInitialized && _enemyController.Stats.crystalCore != null 
-            ? _enemyController.Stats.crystalCore.ChaosState 
-            : WaveChaosState.Order;
-
-        /// <summary>
-        /// Current physical health
-        /// </summary>
-        public float CurrentPhysicalHealth => IsInitialized ? _enemyController.Stats.currentHealth : 0f;
-
-        /// <summary>
-        /// Max physical health
-        /// </summary>
-        public float MaxPhysicalHealth => IsInitialized ? _enemyController.Stats.maxHealth : 0f;
-
-        /// <summary>
-        /// Current core health
+        /// Current core health value
         /// </summary>
         public float CurrentCoreHealth => IsInitialized && _enemyController.Stats.crystalCore != null 
             ? _enemyController.Stats.crystalCore.CurrentCoreHealth 
             : 0f;
 
         /// <summary>
-        /// Max core health
+        /// Maximum core health value
         /// </summary>
         public float MaxCoreHealth => IsInitialized && _enemyController.Stats.crystalCore != null 
             ? _enemyController.Stats.crystalCore.MaxCoreHealth 
-            : 0f;
-
-        /// <summary>
-        /// Current chaos value
-        /// </summary>
-        public float CurrentChaos => IsInitialized && _enemyController.Stats.crystalCore != null 
-            ? _enemyController.Stats.crystalCore.CurrentChaos 
-            : 0f;
-
-        /// <summary>
-        /// Max chaos value
-        /// </summary>
-        public float MaxChaos => IsInitialized && _enemyController.Stats.crystalCore != null 
-            ? _enemyController.Stats.crystalCore.MaxChaos 
             : 0f;
 
         #endregion
 
         #region Event Handlers
 
-        private void HandleHealthChanged(float current, float max)
+        private void HandleBalanceChanged(float current, float max)
         {
-            // Health UI updates would go here
+            // Balance UI updates would go here
         }
 
         private void HandleCoreHealthChanged(float current, float max)
         {
-            // Health UI updates would go here
+            // Core health UI updates would go here
         }
 
-        private void HandlePhysicalDeath()
+        private void HandleUnbalanced()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} physical death - visual effects only");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} became unbalanced - visual effects");
             SetMaterial(_damageMaterial);
-            PlayDeathAudio();
         }
 
-        private void HandleTrueDeath()
+        private void HandleDeath()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered true death state - visual effects only");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} entered death state - visual effects only");
             SetMaterial(_damageMaterial);
         }
 
         /// <summary>
-        /// Handle revival started - set material to revival material
+        /// Handle unbalanced state started
         /// </summary>
-        private void HandleRevivalStarted()
+        private void HandleUnbalancedStarted()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started revival");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} started unbalanced state");
+            SetMaterial(_damageMaterial);
+        }
+
+        /// <summary>
+        /// Handle unbalanced state completed
+        /// </summary>
+        private void HandleUnbalancedCompleted()
+        {
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} completed unbalanced state");
+            SetMaterial(_normalMaterial);
+        }
+
+        /// <summary>
+        /// Handle core exposure started - set material to revival material
+        /// </summary>
+        private void HandleCoreExposureStarted()
+        {
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} core exposure started");
             SetMaterial(_revivalMaterial);
         }
 
         /// <summary>
-        /// Handle revival completed - set material to normal material
+        /// Handle core exposure completed - set material to normal material
         /// </summary>
-        private void HandleRevivalCompleted()
+        private void HandleCoreExposureCompleted()
         {
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} completed revival");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} core exposure completed");
             SetMaterial(_normalMaterial);
         }
 
@@ -811,7 +804,7 @@ namespace Resonance.Enemies
         #region Public Utility Methods
 
         /// <summary>
-        /// Reset enemy to full health
+        /// Reset enemy to full balance and health
         /// </summary>
         public void ResetEnemy()
         {
@@ -821,7 +814,7 @@ namespace Resonance.Enemies
             _enemyController.Stats.crystalCore.FullRepairCoreHealth();
             SetMaterial(_normalMaterial);
             
-            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} reset to full health");
+            Debug.Log($"EnemyMonoBehaviour: {gameObject.name} reset to full balance and health");
         }
 
         /// <summary>
@@ -950,7 +943,7 @@ namespace Resonance.Enemies
 
             var stats = _enemyController.Stats;
             
-            Debug.Log($"Enemy {gameObject.name}: Physical: {stats.currentHealth:F1}/{stats.maxHealth}, " +
+            Debug.Log($"Enemy {gameObject.name}: Balance: {stats.currentBalance:F1}/{stats.maxBalance}, " +
                      $"Core Energy: {stats.crystalCore.CurrentEnergy:F1}/{stats.crystalCore.MaxEnergy}, " +
                      $"Core Health: {stats.crystalCore.CurrentCoreHealth:F1}/{stats.crystalCore.MaxCoreHealth}, " +
                      $"State: {_enemyController.CurrentState}");
@@ -958,23 +951,23 @@ namespace Resonance.Enemies
 
         void OnDrawGizmos()
         {
-            if (!IsInitialized || !_baseStats.showHealthBar) return;
+            if (!IsInitialized || !_baseStats.showBalanceBar) return;
 
-            // Draw health bar
+            // Draw balance and health bars
             Vector3 barPosition = transform.position + Vector3.up * 2f;
             float barWidth = 2f;
             float barHeight = 0.2f;
 
-            // physical health (top bar)
-            Vector3 healthBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
-            Gizmos.color = Color.red;
-            Gizmos.DrawCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            // balance bar (top bar) - yellow/orange color
+            Vector3 balanceBarCenter = barPosition + Vector3.up * barHeight * 0.6f;
+            Gizmos.color = new Color(0.8f, 0.4f, 0.1f); // Dark orange background
+            Gizmos.DrawCube(balanceBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float healthPercentage = _enemyController.Stats.HealthPercentage;
-            Gizmos.color = Color.green;
-            Vector3 healthBarSize = new Vector3(barWidth * healthPercentage, barHeight * 0.5f, 0.1f);
-            Vector3 healthBarPosition = healthBarCenter + Vector3.left * (barWidth * (1f - healthPercentage) * 0.5f);
-            Gizmos.DrawCube(healthBarPosition, healthBarSize);
+            float balancePercentage = _enemyController.Stats.BalancePercentage;
+            Gizmos.color = new Color(1f, 0.8f, 0f); // Bright yellow for balance
+            Vector3 balanceBarSize = new Vector3(barWidth * balancePercentage, barHeight * 0.5f, 0.1f);
+            Vector3 balanceBarPosition = balanceBarCenter + Vector3.left * (barWidth * (1f - balancePercentage) * 0.5f);
+            Gizmos.DrawCube(balanceBarPosition, balanceBarSize);
             
             // core health (middle bar)
             Gizmos.color = Color.blue;
@@ -986,22 +979,22 @@ namespace Resonance.Enemies
             Vector3 coreBarPosition = barPosition + Vector3.left * (barWidth * (1f - corePercentage) * 0.5f);
             Gizmos.DrawCube(coreBarPosition, coreBarSize);
             
-            // chaos bar (bottom bar)
-            Vector3 chaosBarPosition = barPosition + Vector3.down * barHeight * 0.6f;
+            // energy bar (bottom bar) - replaces chaos bar
+            Vector3 energyBarPosition = barPosition + Vector3.down * barHeight * 0.6f;
             Gizmos.color = Color.magenta;
-            Gizmos.DrawCube(chaosBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawCube(energyBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
             
-            float chaosPercentage = _enemyController.Stats.crystalCore.ChaosPercentage;
-            Gizmos.color = Color.yellow;
-            Vector3 chaosBarSize = new Vector3(barWidth * chaosPercentage, barHeight * 0.5f, 0.1f);
-            Vector3 chaosBarFillPosition = chaosBarPosition + Vector3.left * (barWidth * (1f - chaosPercentage) * 0.5f);
-            Gizmos.DrawCube(chaosBarFillPosition, chaosBarSize);
+            float energyPercentage = _enemyController.Stats.crystalCore.EnergyPercentage;
+            Gizmos.color = Color.magenta;
+            Vector3 energyBarSize = new Vector3(barWidth * energyPercentage, barHeight * 0.5f, 0.1f);
+            Vector3 energyBarFillPosition = energyBarPosition + Vector3.left * (barWidth * (1f - energyPercentage) * 0.5f);
+            Gizmos.DrawCube(energyBarFillPosition, energyBarSize);
             
             // Border
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(barPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
-            Gizmos.DrawWireCube(healthBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
-            Gizmos.DrawWireCube(chaosBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(balanceBarCenter, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
+            Gizmos.DrawWireCube(energyBarPosition, new Vector3(barWidth, barHeight * 0.5f, 0.1f));
         }
 
         void OnDrawGizmosSelected()

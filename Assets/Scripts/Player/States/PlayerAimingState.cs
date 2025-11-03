@@ -111,9 +111,9 @@ namespace Resonance.Player.States
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition back to Normal or to death/stun states
+            // Can transition back to Normal or to death/stagger states
             return newState.Name == "Normal" || 
-                   newState.Name == "Stun" || 
+                   newState.Name == "Stagger" || 
                    newState.Name == "Death";
         }
         

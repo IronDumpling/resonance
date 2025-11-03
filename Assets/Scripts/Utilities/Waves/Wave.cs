@@ -24,16 +24,6 @@ namespace Resonance.Utilities.Waves
         
         #endregion
         
-        #region Chaos Fields
-        
-        [Header("Wave Chaos")]
-        [SerializeField] private float _currentChaos;
-        [SerializeField] private float _maxChaos;
-        [SerializeField] private float _chaosThreshold = 18f;
-        [SerializeField] private WaveChaosState _chaosState;
-        
-        #endregion
-        
         #region Properties
 
         public WaveformType WaveformType => _waveformType;
@@ -43,35 +33,10 @@ namespace Resonance.Utilities.Waves
         public float[] WaveformTable => _waveformTable;
         public static int WaveformResolution => WAVEFORM_RESOLUTION;
         
-        public float CurrentChaos => _currentChaos;
-        public float MaxChaos => _maxChaos;
-        public float ChaosThreshold => _chaosThreshold;
-        public WaveChaosState ChaosState => _chaosState;
-        public float ChaosPercentage => _maxChaos > 0 ? _currentChaos / _maxChaos : 0f;
-        
-        /// <summary>
-        /// Get the chaos intensity as a value between 0 and 1
-        /// Formula: (currentChaos - chaosThreshold) / (maxChaos - chaosThreshold)
-        /// 0 = no chaos effect, 1 = full chaos effect
-        /// </summary>
-        public float ChaosIntensity
-        {
-            get
-            {
-                if (_currentChaos <= _chaosThreshold)
-                    return 0f;
-                
-                float intensity = (_currentChaos - _chaosThreshold) / (_maxChaos - _chaosThreshold);
-                return Mathf.Clamp01(intensity);
-            }
-        }
-        
         #endregion
         
         #region Events
         
-        public System.Action<float, float> OnChaosChanged; // current, max
-        public System.Action<WaveChaosState> OnChaosStateChanged;
         public System.Action OnWavePropertiesChanged;
         
         #endregion
@@ -85,8 +50,6 @@ namespace Resonance.Utilities.Waves
             
             if (config != null)
             {
-                _maxChaos = config.maxChaos;
-                _chaosThreshold = config.chaosThreshold;
                 _waveformType = config.waveformType;
                 _frequency = config.frequency;
                 _amplitude = config.amplitude;
@@ -94,8 +57,6 @@ namespace Resonance.Utilities.Waves
             }
             else
             {
-                _maxChaos = 100f;
-                _chaosThreshold = 18f;
                 _waveformType = WaveformType.Sine;
                 _frequency = 1.0f;
                 _amplitude = 1.0f;
@@ -103,8 +64,6 @@ namespace Resonance.Utilities.Waves
             }
 
             GenerateBaseWaveformTable(_waveformType);
-            _currentChaos = 0f;
-            _chaosState = WaveChaosState.Order;
         }
 
         #region Wave Methods
@@ -129,13 +88,6 @@ namespace Resonance.Utilities.Waves
             float interpolatedValue = Mathf.LerpUnclamped(value1, value2, fraction);
 
             float resultValue = interpolatedValue * _amplitude;
-
-            // Apply chaos effect based on chaos intensity
-            float chaosIntensity = ChaosIntensity;
-            if (chaosIntensity > 0f)
-            {
-                resultValue = ApplyChaosEffect(resultValue, chaosIntensity, normalizedPosition);
-            }
 
             return resultValue;
         }
@@ -205,123 +157,6 @@ namespace Resonance.Utilities.Waves
         }
 
         #endregion
-
-        #region Chaos Methods
-        
-        /// <summary>
-        /// Apply chaos effect to wave value based on intensity
-        /// At intensity 1: completely random values in [-amplitude, +amplitude] range
-        /// At intensity 0: original wave value
-        /// Smooth transition between the two states
-        /// </summary>
-        /// <param name="originalValue">The original wave value</param>
-        /// <param name="chaosIntensity">Chaos intensity (0-1)</param>
-        /// <param name="normalizedPosition">Normalized position for consistent random seeding</param>
-        /// <returns>Modified wave value with chaos effect applied</returns>
-        private float ApplyChaosEffect(float originalValue, float chaosIntensity, float normalizedPosition)
-        {
-            // Generate a completely random value in the amplitude range
-            // Use normalizedPosition as seed for consistent randomness per position
-            Random.State oldState = Random.state;
-            Random.InitState(Mathf.RoundToInt(normalizedPosition * 10000f) + Mathf.RoundToInt(Time.time * 1000f));
-            
-            float randomValue = Random.Range(-_amplitude, _amplitude);
-            
-            // Restore original random state
-            Random.state = oldState;
-            
-            // Interpolate between original value and random value based on chaos intensity
-            // At intensity 0: return originalValue
-            // At intensity 1: return randomValue
-            float chaoticValue = Mathf.Lerp(originalValue, randomValue, chaosIntensity);
-            
-            // Add additional frequency modulation for extra chaos when intensity is high
-            if (chaosIntensity > 0.5f)
-            {
-                float frequencyModulation = Random.Range(0.8f, 1.2f);
-                chaoticValue *= Mathf.Lerp(1f, frequencyModulation, (chaosIntensity - 0.5f) * 2f);
-            }
-            
-            return chaoticValue;
-        }
-        
-        /// <summary>
-        /// Add chaos value
-        /// </summary>
-        public float AddChaos(float amount)
-        {
-            if (amount <= 0f) return 0f;
-
-            float previousChaos = _currentChaos;
-            _currentChaos = Mathf.Min(_currentChaos + amount, _maxChaos);
-            float actualAdded = _currentChaos - previousChaos;
-
-            if (actualAdded > 0f)
-            {
-                UpdateChaosState();
-                OnChaosChanged?.Invoke(_currentChaos, _maxChaos);
-                Debug.Log($"Wave: Added {actualAdded} chaos. Current: {_currentChaos}/{_maxChaos}");
-            }
-
-            return actualAdded;
-        }
-        
-        /// <summary>
-        /// Update chaos (natural recovery, called every frame)
-        /// </summary>
-        public void UpdateChaos(float chaosRecoveryRate, float deltaTime)
-        {
-            if (chaosRecoveryRate >= 0f || _currentChaos <= 0f) return;
-
-            float previousChaos = _currentChaos;
-            _currentChaos = Mathf.Max(0f, _currentChaos + chaosRecoveryRate * deltaTime);
-            
-            if (_currentChaos != previousChaos)
-            {
-                UpdateChaosState();
-                OnChaosChanged?.Invoke(_currentChaos, _maxChaos);
-            }
-        }
-        
-        /// <summary>
-        /// Update chaos state
-        /// </summary>
-        private void UpdateChaosState()
-        {
-            var previousState = _chaosState;
-            
-            if (_currentChaos >= _maxChaos)
-            {
-                _chaosState = WaveChaosState.Chaos;
-            }
-            else if (_currentChaos < _chaosThreshold)
-            {
-                _chaosState = WaveChaosState.Order;
-            }
-            // Maintain current state if between threshold and max
-
-            if (previousState != _chaosState)
-            {
-                OnChaosStateChanged?.Invoke(_chaosState);
-                Debug.Log($"Wave: Chaos state changed to {_chaosState}");
-            }
-        }
-        
-        /// <summary>
-        /// Reset chaos to 0
-        /// </summary>
-        public void ResetChaos()
-        {
-            if (_currentChaos > 0f)
-            {
-                _currentChaos = 0f;
-                UpdateChaosState();
-                OnChaosChanged?.Invoke(_currentChaos, _maxChaos);
-                Debug.Log("Wave: Chaos reset to 0");
-            }
-        }
-        
-        #endregion
         
         #region Save/Load
         
@@ -332,7 +167,7 @@ namespace Resonance.Utilities.Waves
         {
             return new WaveSaveData
             {
-                currentChaos = _currentChaos
+
             };
         }
         
@@ -347,11 +182,7 @@ namespace Resonance.Utilities.Waves
                 return;
             }
 
-            _currentChaos = Mathf.Clamp(saveData.currentChaos, 0f, _maxChaos);
-            UpdateChaosState();
-            OnChaosChanged?.Invoke(_currentChaos, _maxChaos);
-
-            Debug.Log($"Wave: Loaded from save data. Chaos: {_currentChaos}/{_maxChaos}");
+            Debug.Log($"Wave: Loaded from save data.");
         }
         
         #endregion
@@ -361,22 +192,7 @@ namespace Resonance.Utilities.Waves
         /// </summary>
         public void Cleanup()
         {
-            OnChaosChanged = null;
-            OnChaosStateChanged = null;
-        }
-    }
-
-    /// <summary>
-    /// Wave save data structure
-    /// </summary>
-    [System.Serializable]
-    public class WaveSaveData
-    {
-        public float currentChaos;
-
-        public WaveSaveData()
-        {
-            currentChaos = 0f;
+            OnWavePropertiesChanged = null;
         }
     }
 }

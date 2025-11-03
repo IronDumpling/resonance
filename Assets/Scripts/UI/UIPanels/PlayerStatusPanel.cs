@@ -16,12 +16,11 @@ namespace Resonance.UI
 {
     /// <summary>
     /// PlayerStatusPanel displays the player's comprehensive status information.
-    /// It displays player's health, chaos, core energy with dynamic slots,
+    /// It displays player's health, core energy with dynamic slots,
     /// and the current weapon equipped with its ammo count.
     /// 
     /// UI Structure:
     /// - Health: Shows current health with different sprites based on health tier
-    /// - Chaos: Shows current chaos as a fill bar
     /// - Core: Shows current energy, locked capacity, and dynamic slot dividers
     /// - Weapon: Shows weapon icon and ammo count (current/backup)
     /// </summary>
@@ -30,19 +29,13 @@ namespace Resonance.UI
         [Header("UI References")]
         [SerializeField] private GameObject _weaponPanel;
         [SerializeField] private GameObject _healthPanel;
-        [SerializeField] private GameObject _chaosPanel;
         [SerializeField] private GameObject _corePanel;
         
         [Header("Weapon UI")]
         [SerializeField] private Image _weaponIcon;
-        [SerializeField] private TextMeshProUGUI _ammoCount;
         
-        [Header("Physical Health UI")]
+        [Header("Health UI")]
         [SerializeField] private Image _healthValue;
-        
-        [Header("Chaos UI")]
-        [SerializeField] private Image _chaosBackground;
-        [SerializeField] private Image _chaosValue;
         
         [Header("Core Energy UI")]
         [SerializeField] private Image _coreEnergyBackground;
@@ -103,26 +96,16 @@ namespace Resonance.UI
                 _weaponPanel = FindChildGameObject("Weapon");
             if (_healthPanel == null)
                 _healthPanel = FindChildGameObject("Health");
-            if (_chaosPanel == null)
-                _chaosPanel = FindChildGameObject("Chaos");
             if (_corePanel == null)
                 _corePanel = FindChildGameObject("Core");
             
             // Auto-find weapon UI components
             if (_weaponIcon == null && _weaponPanel != null)
                 _weaponIcon = FindChildComponent<Image>(_weaponPanel, "WeaponIcon");
-            if (_ammoCount == null && _weaponPanel != null)
-                _ammoCount = FindChildComponent<TextMeshProUGUI>(_weaponPanel, "AmmoCount");
             
             // Auto-find health UI components
             if (_healthValue == null && _healthPanel != null)
                 _healthValue = FindChildComponent<Image>(_healthPanel, "Value");
-            
-            // Auto-find chaos UI components
-            if (_chaosBackground == null && _chaosPanel != null)
-                _chaosBackground = FindChildComponent<Image>(_chaosPanel, "Background");
-            if (_chaosValue == null && _chaosPanel != null)
-                _chaosValue = FindChildComponent<Image>(_chaosPanel, "Value");
             
             // Auto-find core energy UI components
             if (_coreEnergyBackground == null && _corePanel != null)
@@ -233,7 +216,6 @@ namespace Resonance.UI
             if (_playerController.Stats?.crystalCore != null)
             {
                 _playerController.Stats.crystalCore.OnEnergyChanged += OnCoreEnergyChanged;
-                _playerController.Stats.crystalCore.OnChaosChanged += OnChaosChanged;
                 _playerController.Stats.crystalCore.OnCoreHealthChanged += OnCoreHealthChanged;
             }
             
@@ -242,13 +224,6 @@ namespace Resonance.UI
             {
                 _weaponManager.OnWeaponEquipped += OnWeaponEquipped;
                 _weaponManager.OnWeaponUnequipped += OnWeaponUnequipped;
-                _weaponManager.OnAmmoChanged += OnAmmoChanged;
-            }
-            
-            // Subscribe to ammo inventory events
-            if (_playerController.Inventory != null)
-            {
-                _playerController.Inventory.OnAmmoChanged += OnBackupAmmoChanged;
             }
         }
 
@@ -262,14 +237,7 @@ namespace Resonance.UI
                 if (_playerController.Stats?.crystalCore != null)
                 {
                     _playerController.Stats.crystalCore.OnEnergyChanged -= OnCoreEnergyChanged;
-                    _playerController.Stats.crystalCore.OnChaosChanged -= OnChaosChanged;
                     _playerController.Stats.crystalCore.OnCoreHealthChanged -= OnCoreHealthChanged;
-                }
-                
-                // Unsubscribe from ammo inventory events
-                if (_playerController.Inventory != null)
-                {
-                    _playerController.Inventory.OnAmmoChanged -= OnBackupAmmoChanged;
                 }
             }
             
@@ -277,7 +245,6 @@ namespace Resonance.UI
             {
                 _weaponManager.OnWeaponEquipped -= OnWeaponEquipped;
                 _weaponManager.OnWeaponUnequipped -= OnWeaponUnequipped;
-                _weaponManager.OnAmmoChanged -= OnAmmoChanged;
             }
             
             // Unsubscribe from player service events
@@ -292,11 +259,6 @@ namespace Resonance.UI
         private void OnHealthChanged(float currentHealth, float maxHealth)
         {
             UpdateHealthUI(currentHealth, maxHealth);
-        }
-
-        private void OnChaosChanged(float currentChaos, float maxChaos)
-        {
-            UpdateChaosUI(currentChaos, maxChaos);
         }
 
         private void OnCoreEnergyChanged(float currentEnergy, float maxEnergy)
@@ -320,21 +282,6 @@ namespace Resonance.UI
             UpdateWeaponUI();
         }
 
-        private void OnAmmoChanged(int currentAmmo)
-        {
-            UpdateAmmoUI();
-        }
-        
-        private void OnBackupAmmoChanged(string ammoType, int oldAmount, int newAmount)
-        {
-            // Only update UI if the changed ammo type matches the current weapon's ammo type
-            if (_weaponManager != null && _weaponManager.HasEquippedWeapon && 
-                string.Equals(ammoType, _weaponManager.AmmoType, System.StringComparison.OrdinalIgnoreCase))
-            {
-                UpdateAmmoUI();
-            }
-        }
-
         #endregion
 
         #region UI Update Methods
@@ -345,7 +292,6 @@ namespace Resonance.UI
             
             UpdateWeaponUI();
             UpdateHealthUI();
-            UpdateChaosUI();
             UpdateCoreUI();
             UpdateCoreSlotsUI();
         }
@@ -370,27 +316,6 @@ namespace Resonance.UI
                     _weaponIcon.sprite = Resources.Load<Sprite>("Art/Sprites/WeaponIcon/empty_icon");
                     _weaponIcon.color = Color.white;
                 }
-            }
-            
-            // Update ammo count
-            UpdateAmmoUI();
-        }
-
-        private void UpdateAmmoUI()
-        {
-            if (_ammoCount == null || _weaponManager == null || _playerController == null) return;
-            
-            bool hasWeapon = _weaponManager.HasEquippedWeapon;
-            
-            if (hasWeapon)
-            {
-                int currentAmmo = _weaponManager.CurrentAmmo;
-                int backupAmmo = _playerController.Inventory?.GetAmmoCount(_weaponManager.AmmoType) ?? 0;
-                _ammoCount.text = $"{currentAmmo}/{backupAmmo}";
-            }
-            else
-            {
-                _ammoCount.text = ""; // Hide text if no weapon
             }
         }
 
@@ -517,42 +442,6 @@ namespace Resonance.UI
                     
                     _dynamicDividers.Add(divider);
                 }
-            }
-        }
-        
-        private void UpdateChaosUI(float currentChaos = -1, float maxChaos = -1)
-        {
-            if (_playerController == null) return;
-            
-            // Get current values if not provided
-            if (currentChaos < 0 || maxChaos < 0)
-            {
-                var stats = _playerController.Stats;
-                currentChaos = stats.crystalCore.CurrentChaos;
-                maxChaos = stats.crystalCore.MaxChaos;
-            }
-            
-            // Update background (always full)
-            if (_chaosBackground != null)
-            {
-                _chaosBackground.fillAmount = 1f;
-            }
-            
-            // Update value (shows current chaos as fill amount)
-            if (_chaosValue != null)
-            {
-                float chaosPercentage = maxChaos > 0 ? currentChaos / maxChaos : 0f;
-                _chaosValue.fillAmount = chaosPercentage;
-            }
-
-            switch (_playerController.Stats.crystalCore.ChaosState)
-            {
-                case WaveChaosState.Chaos:
-                    _chaosValue.sprite = Resources.Load<Sprite>("Art/Sprites/Chaos/stun_chaos");
-                    break;
-                case WaveChaosState.Order:
-                    _chaosValue.sprite = Resources.Load<Sprite>("Art/Sprites/Chaos/normal_chaos");
-                    break;
             }
         }
 

@@ -22,10 +22,11 @@ namespace Resonance.Utilities.Types
         CoreHealth,
         
         /// <summary>
-        /// Chaos/Disorder damage - Affects core wave chaos value (replaces resilience)
-        /// Example: Heavy hit, shockwave, disruptive attacks
+        /// Balance damage - Affects enemy balance value (stance/posture system)
+        /// Similar to Sekiro's posture system
+        /// Example: Heavy hit, shockwave, disruptive attacks causing stagger
         /// </summary>
-        Chaos
+        Balance
     }
 
     [System.Serializable]
@@ -33,13 +34,13 @@ namespace Resonance.Utilities.Types
     {
         [SerializeField] private float physicalDamage = 0f;
         [SerializeField] private float coreDamage = 0f;
-        [SerializeField] private float chaosDamage = 0f;
+        [SerializeField] private float balanceDamage = 0f;
 
         public Damages()
         {
             physicalDamage = 0f;
             coreDamage = 0f;
-            chaosDamage = 0f;
+            balanceDamage = 0f;
         }
 
         public Damages(List<KeyValuePair<DamageType, float>> damages)
@@ -54,8 +55,8 @@ namespace Resonance.Utilities.Types
                     case DamageType.CoreHealth:
                         coreDamage = damage.Value;
                         break;
-                    case DamageType.Chaos:
-                        chaosDamage = damage.Value;
+                    case DamageType.Balance:
+                        balanceDamage = damage.Value;
                         break;
                     default:
                         break;
@@ -71,8 +72,8 @@ namespace Resonance.Utilities.Types
                     return physicalDamage;
                 case DamageType.CoreHealth:
                     return coreDamage;
-                case DamageType.Chaos:
-                    return chaosDamage;
+                case DamageType.Balance:
+                    return balanceDamage;
                 default:
                     return 0f;
             }
@@ -80,7 +81,7 @@ namespace Resonance.Utilities.Types
 
         public int GetCount()
         {
-            return (physicalDamage > 0 ? 1 : 0) + (coreDamage > 0 ? 1 : 0) + (chaosDamage > 0 ? 1 : 0);
+            return (physicalDamage > 0 ? 1 : 0) + (coreDamage > 0 ? 1 : 0) + (balanceDamage > 0 ? 1 : 0);
         }
 
         public bool HasDamage(DamageType type)
@@ -90,12 +91,12 @@ namespace Resonance.Utilities.Types
 
         public float GetTotalDamage()
         {
-            return physicalDamage + coreDamage + chaosDamage;
+            return physicalDamage + coreDamage + balanceDamage;
         }
 
         public override string ToString()
         {
-            return $"Physical: {physicalDamage:F1}, Core: {coreDamage:F1}, Chaos: {chaosDamage:F1}";
+            return $"Physical: {physicalDamage:F1}, Core: {coreDamage:F1}, Balance: {balanceDamage:F1}";
         }
 
         public void SetDamage(DamageType type, float damage)
@@ -108,8 +109,8 @@ namespace Resonance.Utilities.Types
                 case DamageType.CoreHealth:
                     coreDamage = damage;
                     break;
-                case DamageType.Chaos:
-                    chaosDamage = damage;
+                case DamageType.Balance:
+                    balanceDamage = damage;
                     break;
                 default:
                     break;
@@ -125,7 +126,7 @@ namespace Resonance.Utilities.Types
             var copy = new Damages();
             copy.physicalDamage = this.physicalDamage;
             copy.coreDamage = this.coreDamage;
-            copy.chaosDamage = this.chaosDamage;
+            copy.balanceDamage = this.balanceDamage;
             return copy;
         }
     }

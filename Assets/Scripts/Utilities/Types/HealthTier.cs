@@ -20,12 +20,6 @@ namespace Resonance.Utilities.Types
         public const float HEALTHY_THRESHOLD = 0.8f;     // 80%
         public const float INJURED_THRESHOLD = 0.6f;     // 60%
         public const float WOUNDED_THRESHOLD = 0.3f;     // 30%
-        
-        // Chaos recovery rate
-        public const float HEALTHY_CHAOS_RECOVERY = -2f;
-        public const float INJURED_CHAOS_RECOVERY = -1f;
-        public const float WOUNDED_CHAOS_RECOVERY = -0.5f;
-        public const float CRITICAL_CHAOS_RECOVERY = -0.2f;
 
         // Movement speed multiplier
         public const float WOUNDED_SPEED_MULTIPLIER = 0.7f;    // 70% when wounded
@@ -46,28 +40,6 @@ namespace Resonance.Utilities.Types
                 return HealthTier.Wounded;
             else
                 return HealthTier.Critical;
-        }
-
-        /// <summary>
-        /// Get chaos recovery rate for specified health tier
-        /// </summary>
-        /// <param name="tier">Health tier</param>
-        /// <returns>Chaos recovery rate (negative value indicates decrease)</returns>
-        public static float GetChaosRecoveryRate(HealthTier tier)
-        {
-            switch (tier)
-            {
-                case HealthTier.Healthy:
-                    return HEALTHY_CHAOS_RECOVERY;
-                case HealthTier.Injured:
-                    return INJURED_CHAOS_RECOVERY;
-                case HealthTier.Wounded:
-                    return WOUNDED_CHAOS_RECOVERY;
-                case HealthTier.Critical:
-                    return CRITICAL_CHAOS_RECOVERY;
-                default:
-                    return CRITICAL_CHAOS_RECOVERY;
-            }
         }
 
         /// <summary>

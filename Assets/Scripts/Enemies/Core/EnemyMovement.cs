@@ -10,7 +10,7 @@ namespace Resonance.Enemies.Movement
     /// Manages enemy movement with NavMeshAgent and applies configuration from EnemyRuntimeStats
     /// 
     /// Movement speed is determined by:
-    /// - Current enemy state (Normal, Reviving, Dead, Stun)
+    /// - Current enemy state (Normal, Unbalanced, CoreExposed, Dead, Stagger)
     /// - Current action (Chase, Patrol, Attack)
     /// - Health tier modifiers (from EnemyBaseStats)
     /// </summary>
@@ -159,7 +159,7 @@ namespace Resonance.Enemies.Movement
         /// Speed Rules:
         /// 1. State-based speeds (highest priority):
         ///    - Dead state: cannot move (speed = 0)
-        ///    - Stunned state: cannot move (speed = 0)
+        ///    - Staggered state: cannot move (speed = 0)
         ///    - Reviving state: cannot move (speed = 0)
         /// 2. Action-based speeds (when in Normal state):
         ///    - Has target: use chase speed
@@ -182,12 +182,16 @@ namespace Resonance.Enemies.Movement
                     // No movement when dead (core destroyed)
                     return 0f;
                 
-                case EnemyState.Stunned:
-                    // No movement when stunned
+                case EnemyState.Staggered:
+                    // No movement when staggerned
                     return 0f;
                 
-                case EnemyState.Reviving:
-                    // No movement during revival
+                case EnemyState.Unbalanced:
+                    // No movement when unbalanced
+                    return 0f;
+                
+                case EnemyState.CoreExposed:
+                    // No movement during core exposed
                     return 0f;
                 
                 case EnemyState.Normal:

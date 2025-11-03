@@ -8,11 +8,11 @@ namespace Resonance.Enemies.BTNodes.Conditions
     /// Behavior Designer Best Practices:
     /// - Inherits from EnemyConditionalBase for component access
     /// - Returns Success if core is dead, Failure otherwise
-    /// - When true, enemy should enter true death state
+    /// - When true, enemy should enter death state (only death type for enemies)
     /// - Has highest priority in behavior tree
     /// </summary>
     [TaskCategory("Resonance/Enemy")]
-    [TaskDescription("Checks if enemy's core health has been depleted (true death condition)")]
+    [TaskDescription("Checks if enemy's core health has been depleted (death condition)")]
     public class CoreDeathCondition : EnemyConditionalBase
     {
         public override TaskStatus OnUpdate()

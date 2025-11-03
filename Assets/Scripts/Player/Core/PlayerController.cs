@@ -89,7 +89,7 @@ namespace Resonance.Player.Core
 
         // State Properties
         public bool IsAiming => CurrentState == "Aiming";
-        public bool IsStunned => CurrentState == "Stun";
+        public bool IsStaggered => CurrentState == "Stagger";
 
         // Health Tier Properties
         public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
@@ -174,22 +174,21 @@ namespace Resonance.Player.Core
             UpdateInvulnerabilityTimer();
             _stateMachine?.Update();
 
-            UpdateStunTimer();
-            _stats.UpdateChaos(deltaTime);
+            UpdateStaggerTimer();
             _movement.Update(deltaTime);
             _actionController.Update(deltaTime);
         }
 
         #region Health System
 
-        // Stun tracking
-        private float _stunEndTime = 0f;
+        // Stagger tracking
+        private float _staggerEndTime = 0f;
         
         private List<DamageSourceRecord> _recentDamageSources = new List<DamageSourceRecord>();
         private float _invulnerabilityDuration = 0f; // Cache the duration
 
         /// <summary>
-        /// Update chaos (natural recovery) and clean up old damage records
+        /// Update invulnerability timer and clean up old damage records
         /// </summary>
         private void UpdateInvulnerabilityTimer()
         {
@@ -205,11 +204,11 @@ namespace Resonance.Player.Core
         }
 
         
-        private void UpdateStunTimer()
+        private void UpdateStaggerTimer()
         {
-            if (CurrentState == "Stun" && Time.time >= _stunEndTime)
+            if (CurrentState == "Stagger" && Time.time >= _staggerEndTime)
             {
-                ExitStun();
+                ExitStagger();
             }
         }
         
@@ -255,49 +254,30 @@ namespace Resonance.Player.Core
                      $"invulnerable for {_invulnerabilityDuration}s");
         }
 
-        /// <summary>
-        /// Add chaos value (when taking chaos damage)
-        /// </summary>
-        private void AddChaos(float amount)
-        {
-            if (amount <= 0f) return;
-            
-            float actualAdded = _stats.crystalCore.AddChaos(amount);
-            
-            if (actualAdded > 0f)
-            {
-                // Enter stun state proportional to chaos damage
-                // Each point of chaos = 0.1 seconds of stun (adjustable)
-                float stunDuration = actualAdded * 0.1f;
-                EnterStun(stunDuration);
-                
-                Debug.Log($"PlayerController: Added {actualAdded} chaos, entering stun for {stunDuration:F2}s");
-            }
-        }
 
         /// <summary>
-        /// Enter stun state
+        /// Enter stagger state
         /// </summary>
-        private void EnterStun(float duration)
+        private void EnterStagger(float duration)
         {
             if (CurrentState == "Death") return;
             
-            _stunEndTime = Time.time + duration;
-            _stateMachine?.EnterStun();
+            _staggerEndTime = Time.time + duration;
+            _stateMachine?.EnterStagger();
             
-            Debug.Log($"PlayerController: Entered stun state for {duration:F2}s");
+            Debug.Log($"PlayerController: Entered stagger state for {duration:F2}s");
         }
 
         /// <summary>
-        /// Exit stun state
+        /// Exit stagger state
         /// </summary>
-        private void ExitStun()
+        private void ExitStagger()
         {
-            if (CurrentState != "Stun") return;
+            if (CurrentState != "Stagger") return;
             
-            _stateMachine?.ExitStun();
+            _stateMachine?.ExitStagger();
             
-            Debug.Log("PlayerController: Exited stun state");
+            Debug.Log("PlayerController: Exited stagger state");
         }
 
         /// <summary>
@@ -339,13 +319,8 @@ namespace Resonance.Player.Core
                 tookAnyDamage = true;
             }
             
-            // Apply Chaos damage (processed last to avoid stun blocking other damage)
-            if (damages.HasDamage(DamageType.Chaos))
-            {
-                float damageAmount = damages.GetDamage(DamageType.Chaos);
-                TakeChaosDamage(damageAmount);
-                tookAnyDamage = true;
-            }
+            // Players only process PhysicalHealth and CoreHealth damage
+            // Balance damage is for enemies only
             
             // Trigger common effects only once per DamageInfo
             if (tookAnyDamage)
@@ -431,15 +406,6 @@ namespace Resonance.Player.Core
             }
         }
 
-        /// <summary>
-        /// Take chaos damage (causes stun) (internal method, called from TakeDamage)
-        /// </summary>
-        private void TakeChaosDamage(float damage)
-        {
-            if (!IsCoreAlive) return;
-            
-            AddChaos(damage);
-        }
 
         /// <summary>
         /// Heal health health
@@ -586,7 +552,7 @@ namespace Resonance.Player.Core
         public bool CanShoot()
         {
             return IsAlive && 
-                   !IsStunned && // Cannot shoot while stunned
+                   !IsStaggered && // Cannot shoot while staggerned
                    _stateMachine.CanShoot() && 
                    Time.time >= _lastAttackTime && 
                    !(_actionController?.IsBlocking ?? false); // Actions can block shooting
@@ -595,7 +561,7 @@ namespace Resonance.Player.Core
         public bool CanReload()
         {
             return IsAlive && 
-                   !IsStunned && // Cannot reload while stunned
+                   !IsStaggered && // Cannot reload while staggerned
                    _stateMachine.CanReload() &&
                    !IsAiming &&
                    !(_actionController?.IsActive ?? false); // Cannot reload while another action is active
@@ -792,12 +758,11 @@ namespace Resonance.Player.Core
         private void RegisterPlayerActions()
         {
             RegisterAction(new PlayerWaveAttackAction());
-            RegisterAction(new PlayerWaveDefenceAction());
             RegisterAction(new PlayerHealAction());
             RegisterAction(new PlayerInteractAction());
             RegisterAction(new PlayerReloadAction());
 
-            Debug.Log("PlayerController: Registered player actions (WaveAttack, WaveDefence, Heal, Interact, Reload)");
+            Debug.Log("PlayerController: Registered player actions (WaveAttack, Heal, Interact, Reload)");
         }
 
         #endregion

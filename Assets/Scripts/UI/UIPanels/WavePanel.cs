@@ -543,35 +543,15 @@ namespace Resonance.UI
                 matchPercentage = CalculateWaveMatch();
                 WaveInteractionResult result = GetInteractionResult(matchPercentage);
                 
-                // Check chaos states
-                var (sourceState, targetState) = CheckChaosStates();
-                
-                // Override result based on chaos states
                 effectiveResult = result;
-                if (sourceState == WaveChaosState.Chaos || targetState == WaveChaosState.Chaos)
-                {
-                    if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Chaos)
-                    {
-                        // Both chaos - special case
-                        Debug.Log("WavePanel: Both waves in Chaos - special interaction");
-                    }
-                    else
-                    {
-                        // One is chaos - force perfect
-                        effectiveResult = WaveInteractionResult.Perfect;
-                        Debug.Log($"WavePanel: Chaos state detected - forcing Perfect result");
-                    }
-                }
                 
                 Debug.Log($"WavePanel: Calculated match: {matchPercentage:F1}%, Result: {result}, Effective Result: {effectiveResult}");
             }
             
-            // Check chaos states for damage processing
-            var (finalSourceState, finalTargetState) = CheckChaosStates();
-            
             // Process wave interaction (apply damage)
-            bool damageApplied = ProcessWaveInteraction(finalSourceState, finalTargetState, matchPercentage, effectiveResult);
-            
+            float damageMultiplier = GetDamageMultiplier(effectiveResult);
+            Damages finalDamages = CalculateFinalDamages(damageMultiplier);
+            bool damageApplied = _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage");
             if (!damageApplied)
             {
                 Debug.LogWarning("WavePanel: Failed to process wave interaction");
@@ -798,99 +778,26 @@ namespace Resonance.UI
         }
 
         /// <summary>
-        /// Check the chaos states of both source and target waves
-        /// </summary>
-        /// <returns>Tuple of (source chaos state, target chaos state)</returns>
-        private (WaveChaosState sourceState, WaveChaosState targetState) CheckChaosStates()
-        {
-            WaveChaosState sourceState = _sourceWave?.ChaosState ?? WaveChaosState.Order;
-            WaveChaosState targetState = _targetWave?.ChaosState ?? WaveChaosState.Order;
-            
-            Debug.Log($"WavePanel: Chaos states - Source: {sourceState}, Target: {targetState}");
-            
-            return (sourceState, targetState);
-        }
-
-        /// <summary>
-        /// Calculate final damages by applying multiplier to both CoreHealth and Chaos damage
+        /// Calculate final damages by applying multiplier to both CoreHealth damage
         /// </summary>
         private Damages CalculateFinalDamages(float damageMultiplier)
         {
             Damages baseDamages = GetBaseDamages();
             float baseCoreDamage = baseDamages.GetDamage(DamageType.CoreHealth);
-            float baseChaosDamage = baseDamages.GetDamage(DamageType.Chaos);
+            float baseBalanceDamage = baseDamages.GetDamage(DamageType.Balance);
             
             Damages finalDamages = new Damages();
             finalDamages.SetDamage(DamageType.CoreHealth, baseCoreDamage * damageMultiplier);
-            finalDamages.SetDamage(DamageType.Chaos, baseChaosDamage * damageMultiplier);
+            finalDamages.SetDamage(DamageType.Balance, baseBalanceDamage * damageMultiplier);
             
             Debug.Log($"WavePanel: Calculated damages - " +
                       $"CoreHealth: {finalDamages.GetDamage(DamageType.CoreHealth):F1} " +
                       $"(base: {baseCoreDamage:F1}), " +
-                      $"Chaos: {finalDamages.GetDamage(DamageType.Chaos):F1} " +
-                      $"(base: {baseChaosDamage:F1}), " +
+                      $"Balance: {finalDamages.GetDamage(DamageType.Balance):F1} " +
+                      $"(base: {baseBalanceDamage:F1}), " +
                       $"Multiplier: {damageMultiplier}x");
             
             return finalDamages;
-        }
-
-        /// <summary>
-        /// Process wave interaction based on chaos states
-        /// Handles different combinations of Order and Chaos states
-        /// </summary>
-        private bool ProcessWaveInteraction(WaveChaosState sourceState, WaveChaosState targetState, 
-                                           float matchPercentage, WaveInteractionResult result)
-        {
-            // Case 1: Both are in Order state - use normal matching logic
-            if (sourceState == WaveChaosState.Order && targetState == WaveChaosState.Order)
-            {
-                Debug.Log("WavePanel: Both waves in Order state - using normal matching logic");
-                
-                float damageMultiplier = GetDamageMultiplier(result);
-                Damages finalDamages = CalculateFinalDamages(damageMultiplier);
-                
-                return _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage (Order)");
-            }
-            
-            // Case 2: Source is Chaos - always perfect match
-            else if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Order)
-            {
-                Debug.Log("WavePanel: Source in Chaos state - forcing Perfect result");
-                
-                float damageMultiplier = GetDamageMultiplier(WaveInteractionResult.Perfect);
-                Damages finalDamages = CalculateFinalDamages(damageMultiplier);
-                
-                return _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage (Source Chaos)");
-            }
-            
-            // Case 3: Target is Chaos - always perfect match
-            else if (sourceState == WaveChaosState.Order && targetState == WaveChaosState.Chaos)
-            {
-                Debug.Log("WavePanel: Target in Chaos state - forcing Perfect result");
-                
-                float damageMultiplier = GetDamageMultiplier(WaveInteractionResult.Perfect);
-                Damages finalDamages = CalculateFinalDamages(damageMultiplier);
-                
-                return _targetWavable.ApplyWaveDamages(finalDamages, _sourceWavable, "Wave QTE Damage (Target Chaos)");
-            }
-            
-            // Case 4: Both are Chaos - reset both chaos values and exit wave state
-            else if (sourceState == WaveChaosState.Chaos && targetState == WaveChaosState.Chaos)
-            {
-                Debug.Log("WavePanel: Both waves in Chaos state - resetting chaos and exiting wave state");
-                
-                // Reset both chaos values
-                _sourceWave?.ResetChaos();
-                _targetWave?.ResetChaos();
-                
-                // TODO: Exit wave state
-                // Hide();
-                
-                return true;
-            }
-            
-            Debug.LogWarning($"WavePanel: Unexpected chaos state combination - Source: {sourceState}, Target: {targetState}");
-            return false;
         }
 
         /// <summary>

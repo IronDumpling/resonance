@@ -272,10 +272,10 @@ namespace Resonance.Items
                 damagesForThisShot.SetDamage(DamageType.CoreHealth, coreHealthDamage * damageMultiplier);
             }
             
-            if (damagesForThisShot.HasDamage(DamageType.Chaos))
+            if (damagesForThisShot.HasDamage(DamageType.Balance))
             {
-                float chaosDamage = damagesForThisShot.GetDamage(DamageType.Chaos);
-                damagesForThisShot.SetDamage(DamageType.Chaos, chaosDamage * damageMultiplier);
+                float balanceDamage = damagesForThisShot.GetDamage(DamageType.Balance);
+                damagesForThisShot.SetDamage(DamageType.Balance, balanceDamage * damageMultiplier);
             }
             
             return new DamageInfo(
@@ -298,8 +298,8 @@ namespace Resonance.Items
                 damageTypes.Add($"Physical: {damages.GetDamage(DamageType.PhysicalHealth):F0}");
             if (damages.HasDamage(DamageType.CoreHealth))
                 damageTypes.Add($"Core: {damages.GetDamage(DamageType.CoreHealth):F0}");
-            if (damages.HasDamage(DamageType.Chaos))
-                damageTypes.Add($"Chaos: {damages.GetDamage(DamageType.Chaos):F0}");
+            if (damages.HasDamage(DamageType.Balance))
+                damageTypes.Add($"Balance: {damages.GetDamage(DamageType.Balance):F0}");
             
             return damageTypes.Count > 0 ? string.Join(", ", damageTypes) : "No Damage";
         }

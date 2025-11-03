@@ -4,14 +4,14 @@ using BehaviorDesigner.Runtime.Tasks;
 namespace Resonance.Enemies.BTNodes.Actions
 {
     /// <summary>
-    /// True death action - triggers death animation and handles object destruction
+    /// Death action - triggers death animation and handles object destruction
     /// Behavior Designer Best Practices:
     /// - Inherits from EnemyActionBase for component access
-    /// - This is triggered when crystal core is destroyed
+    /// - This is triggered when crystal core health reaches 0
     /// - Returns Running during death animation, Success when ready for destruction
     /// </summary>
     [TaskCategory("Resonance/Enemy")]
-    [TaskDescription("Handles true death sequence when core is destroyed")]
+    [TaskDescription("Handles death sequence when core is destroyed")]
     public class DeathAction : EnemyActionBase
     {
         private bool _deathTriggered = false;
@@ -47,7 +47,7 @@ namespace Resonance.Enemies.BTNodes.Actions
                 // Trigger death animation
                 if (Animator != null && Animator.isActiveAndEnabled)
                 {
-                    Animator.SetTrigger("TrueDeath");
+                    Animator.SetTrigger("Death");
                 }
                 
                 _deathTriggered = true;

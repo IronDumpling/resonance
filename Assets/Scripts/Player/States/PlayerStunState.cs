@@ -5,38 +5,38 @@ using Resonance.Player.Core;
 namespace Resonance.Player.States
 {
     /// <summary>
-    /// Stun state where player is stunned and cannot move.
+    /// Stagger state where player is staggerned and cannot move.
     /// </summary>
-    public class PlayerStunState : IState
+    public class PlayerStaggerState : IState
     {
         private PlayerController _playerController;
 
-        public string Name => "Stun";
+        public string Name => "Stagger";
 
-        public PlayerStunState(PlayerController playerController)
+        public PlayerStaggerState(PlayerController playerController)
         {
             _playerController = playerController;
         }
 
         public void Enter()
         {
-            Debug.Log("PlayerState: Entered Stun state");
+            Debug.Log("PlayerState: Entered Stagger state");
         }
         
         public void Update()
         {
-            // Stun state update logic
+            // Stagger state update logic
             // Could include things like checking for interaction opportunities, etc.
         }
         
         public void Exit()
         {
-            Debug.Log("PlayerState: Exited Stun state");
+            Debug.Log("PlayerState: Exited Stagger state");
         }
 
         public bool CanTransitionTo(IState newState)
         {
-            // Can transition to any state from Stun
+            // Can transition to any state from Stagger
             return newState.Name == "Normal" || 
                    newState.Name == "Death";
         }

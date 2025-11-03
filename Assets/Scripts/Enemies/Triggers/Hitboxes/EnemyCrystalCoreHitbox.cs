@@ -20,9 +20,6 @@ namespace Resonance.Enemies.Triggers
         [Tooltip("Core health damage multiplier")]
         public float coreHealthMultiplier = 1f;
         
-        [Tooltip("Chaos damage multiplier")]
-        public float chaosMultiplier = 1f;
-        
         [Header("Effects")]
         public GameObject hitVFX; 
         public AudioClip hitSFX;
@@ -250,7 +247,7 @@ namespace Resonance.Enemies.Triggers
 
             Debug.Log($"EnemyCrystalCoreHitbox: Applied wave damages to {name} - " +
                       $"CoreHealth: {damages.GetDamage(DamageType.CoreHealth):F1}, " +
-                      $"Chaos: {damages.GetDamage(DamageType.Chaos):F1}");
+                      $"Balance: {damages.GetDamage(DamageType.Balance):F1}");
             
             return true;
         }
@@ -322,14 +319,6 @@ namespace Resonance.Enemies.Triggers
 
             // Create new damage dictionary with modified values
             Damages modifiedDamages = new Damages();
-
-            // Apply physical health multiplier (usually 0 for Core)
-            if (originalDamage.damages.HasDamage(DamageType.PhysicalHealth))
-            {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.PhysicalHealth);
-                float modifiedAmount = originalAmount * physicalHealthMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.PhysicalHealth, modifiedAmount);
-            }
             
             // Apply core health multiplier (usually 1 for Core)
             if (originalDamage.damages.HasDamage(DamageType.CoreHealth))
@@ -337,14 +326,6 @@ namespace Resonance.Enemies.Triggers
                 float originalAmount = originalDamage.damages.GetDamage(DamageType.CoreHealth);
                 float modifiedAmount = originalAmount * coreHealthMultiplier;
                 if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.CoreHealth, modifiedAmount);
-            }
-            
-            // Apply chaos multiplier
-            if (originalDamage.damages.HasDamage(DamageType.Chaos))
-            {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
-                float modifiedAmount = originalAmount * chaosMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Chaos, modifiedAmount);
             }
 
             // Create modified damage info

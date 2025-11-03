@@ -4,14 +4,15 @@ namespace Resonance.Enemies.Data
 {
     /// <summary>
     /// Enemy state enum - unified state management
-    /// Based on physical health, core health and combat state
+    /// Based on balance, core health and combat state
     /// </summary>
     public enum EnemyState
     {
-        Normal,      // Alive and active
-        Stunned,     // Temporarily incapacitated by chaos damage
-        Reviving,    // Physical health depleted, restoring (core alive)
-        Dead         // Core destroyed, permanently dead
+        Normal,        // Alive and active, balance > 0
+        Staggered,       // Temporarily staggered by balance damage (will be renamed to Stagger)
+        Unbalanced,    // Balance depleted to 0, vulnerable to wave execution
+        CoreExposed,   // Being executed by player wave attack, balance recovering
+        Dead           // Core destroyed, permanently dead
     }
 
     /// <summary>
@@ -21,30 +22,34 @@ namespace Resonance.Enemies.Data
     public class EnemyStateData
     {
         // Original data cache (synchronized from EnemyRuntimeStats)
-        private float _currentHealth;
+        private float _currentBalance;
         private float _currentCoreHealth;
-        private bool _isStunned;
+        private bool _isStaggered;  // Will be renamed to _isStaggered later
         
-        // Revival process tracking
-        // When the enemy enters the revival process, set to true until the revival is complete
-        // This ensures that the state remains Reviving throughout the entire revival process (even if the physical health is > 0)
-        private bool _isRevivingInProgress = false;
+        // Unbalanced process tracking
+        // When balance reaches 0, enemy enters Unbalanced state
+        private bool _isUnbalancedInProgress = false;
+        
+        // CoreExposed process tracking
+        // When enemy is being executed by player wave attack
+        // This ensures that the state remains CoreExposed throughout the entire execution process
+        private bool _isCoreExposedInProgress = false;
         
         /// <summary>
-        /// Current logical state (Normal/Stunned/Reviving/Dead)
+        /// Current logical state (Normal/Staggered/Unbalanced/CoreExposed/Dead)
         /// Use enum instead of multiple bools to avoid state confusion
         /// </summary>
         public EnemyState CurrentState { get; private set; }
         
         /// <summary>
-        /// Health-related states - three mutually exclusive bools
+        /// Balance-related states
         /// </summary>
         
-        // Both physical and core health exist
-        public bool IsPhysicallyAlive => _currentHealth > 0f && _currentCoreHealth > 0f;
+        // Balance is above 0 and core health exists
+        public bool IsBalanced => _currentBalance > 0f && _currentCoreHealth > 0f;
         
-        // Physical health depleted, but core health exists (can be revived)
-        public bool IsPhysicallyDead => _currentHealth <= 0f && _currentCoreHealth > 0f;
+        // Balance depleted to 0, but core health exists (can be executed)
+        public bool IsUnbalanced => _currentBalance <= 0f && _currentCoreHealth > 0f;
         
         // Core health depleted (true death)
         public bool IsCoreDead => _currentCoreHealth <= 0f;
@@ -54,40 +59,47 @@ namespace Resonance.Enemies.Data
         /// </summary>
         public EnemyStateData()
         {
-            _currentHealth = 0f;
+            _currentBalance = 0f;
             _currentCoreHealth = 0f;
-            _isStunned = false;
+            _isStaggered = false;
             CurrentState = EnemyState.Dead;
         }
         
         /// <summary>
         /// Update the state data (called by EnemyController every frame)
         /// </summary>
-        /// <param name="health">Current physical health</param>
+        /// <param name="balance">Current balance value</param>
         /// <param name="coreHealth">Current core health</param>
-        /// <param name="isStunned">Whether the enemy is stunned</param>
-        public void UpdateState(float health, float coreHealth, bool isStunned)
+        /// <param name="isStaggered">Whether the enemy is staggerned/staggered</param>
+        public void UpdateState(float balance, float coreHealth, bool isStaggered)
         {
             // Cache the original data
-            _currentHealth = health;
+            _currentBalance = balance;
             _currentCoreHealth = coreHealth;
-            _isStunned = isStunned;
+            _isStaggered = isStaggered;
             
-            // Calculate the current state (priority: Dead > Stunned > Reviving > Normal)
+            // Calculate the current state (priority: Dead > CoreExposed > Staggered > Unbalanced > Normal)
             EnemyState newState;
             
             if (IsCoreDead)
             {
                 newState = EnemyState.Dead;
             }
-            else if (_isStunned)
+            else if (_isCoreExposedInProgress)
             {
-                newState = EnemyState.Stunned;
+                // If in CoreExposed process, keep the state as CoreExposed
+                // (triggered by player wave attack, ends when balance is fully restored)
+                newState = EnemyState.CoreExposed;
             }
-            else if (_isRevivingInProgress || IsPhysicallyDead)
+            else if (_isStaggered)
             {
-                // If the physical health is > 0 but the revival is not complete, keep the state as Reviving
-                newState = EnemyState.Reviving;
+                // Staggered by balance damage
+                newState = EnemyState.Staggered;
+            }
+            else if (_isUnbalancedInProgress || IsUnbalanced)
+            {
+                // If balance = 0 or in unbalanced process, keep the state as Unbalanced
+                newState = EnemyState.Unbalanced;
             }
             else
             {
@@ -98,32 +110,51 @@ namespace Resonance.Enemies.Data
         }
         
         /// <summary>
-        /// Start the revival process (called by BehaviorTree through EnemyController)
-        /// Set the revival flag, ensuring the state remains Reviving throughout the entire revival process
+        /// Start the unbalanced process (called when balance reaches 0)
+        /// Set the unbalanced flag, ensuring the state remains Unbalanced
         /// </summary>
-        public void StartRevival()
+        public void StartUnbalanced()
         {
-            _isRevivingInProgress = true;
+            _isUnbalancedInProgress = true;
         }
         
         /// <summary>
-        /// Complete the revival process (called by BehaviorTree through EnemyController)
-        /// Clear the revival flag, allowing the state to be calculated normally based on health
+        /// Complete the unbalanced process (called when timer expires or enters CoreExposed)
+        /// Clear the unbalanced flag
         /// </summary>
-        public void CompleteRevival()
+        public void CompleteUnbalanced()
         {
-            _isRevivingInProgress = false;
+            _isUnbalancedInProgress = false;
         }
         
         /// <summary>
-        /// Get the current health information (for debugging)
+        /// Start the core exposed process (called by player wave attack)
+        /// Set the core exposed flag, ensuring the state remains CoreExposed throughout execution
         /// </summary>
-        public string GetHealthInfo()
+        public void StartCoreExposure()
         {
-            return $"Health: {_currentHealth:F1}, CoreHealth: {_currentCoreHealth:F1}, " +
-                   $"State: {CurrentState}, IsRevivingInProgress: {_isRevivingInProgress}, " +
-                   $"IsPhysicallyAlive: {IsPhysicallyAlive}, IsPhysicallyDead: {IsPhysicallyDead}, " +
-                   $"IsCoreDead: {IsCoreDead}";
+            _isCoreExposedInProgress = true;
+            _isUnbalancedInProgress = false; // Exit unbalanced state
+        }
+        
+        /// <summary>
+        /// Complete the core exposed process (called when balance is fully restored)
+        /// Clear the core exposed flag, allowing the state to return to Normal
+        /// </summary>
+        public void CompleteCoreExposure()
+        {
+            _isCoreExposedInProgress = false;
+        }
+        
+        /// <summary>
+        /// Get the current state information (for debugging)
+        /// </summary>
+        public string GetStateInfo()
+        {
+            return $"Balance: {_currentBalance:F1}, CoreHealth: {_currentCoreHealth:F1}, " +
+                   $"State: {CurrentState}, IsUnbalancedInProgress: {_isUnbalancedInProgress}, " +
+                   $"IsCoreExposedInProgress: {_isCoreExposedInProgress}, " +
+                   $"IsBalanced: {IsBalanced}, IsUnbalanced: {IsUnbalanced}, IsCoreDead: {IsCoreDead}";
         }
     }
 
@@ -142,10 +173,12 @@ namespace Resonance.Enemies.Data
             {
                 case EnemyState.Normal:
                     return "Normal";
-                case EnemyState.Stunned:
-                    return "Stunned";
-                case EnemyState.Reviving:
-                    return "Reviving";
+                case EnemyState.Staggered:
+                    return "Staggered (Staggered)";
+                case EnemyState.Unbalanced:
+                    return "Unbalanced";
+                case EnemyState.CoreExposed:
+                    return "Core Exposed";
                 case EnemyState.Dead:
                     return "Dead";
                 default:

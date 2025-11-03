@@ -6,7 +6,6 @@ namespace Resonance.Utilities.Types
     { 
         Head,
         Body,
-        Knee,
         Core, 
     }
 

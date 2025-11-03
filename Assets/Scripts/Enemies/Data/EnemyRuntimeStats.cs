@@ -15,18 +15,17 @@ namespace Resonance.Enemies.Data
     [System.Serializable]
     public class EnemyRuntimeStats
     {
-        [Header("Survival Attributes")]
-        public float currentHealth;
-        public float maxHealth;
-        public float chaosRecoveryRate;
+        [Header("Balance System (Stance/Posture)")]
+        public float currentBalance;
+        public float maxBalance;
+        public float balanceRecoveryRate;
+        public float balanceRecoveryRateInCoreExposed;
+        public float unbalancedDuration;
+        public float staggerDurationPerDamage;
         
         [Header("Crystal Core Attributes")]
         public CrystalCore crystalCore;
         public string corePattern;
-        
-        [Header("Revival System")]
-        public float revivalDelay;
-        public float revivalRate;
         
         [Header("Combat Attributes")]
         public AttackStats normalAttackStats;
@@ -72,43 +71,43 @@ namespace Resonance.Enemies.Data
         public float lootDropChance;
         
         [Header("Debug Options")]
-        public bool showHealthBar;
+        public bool showBalanceBar;
         public bool showDetectionRange;
         public bool showAttackRange;
 
         [Header("Status Tiers")]
-        public HealthTier healthTier;
+        public BalanceTier balanceTier;
 
-        // 事件系统
-        public System.Action<float, float> OnHealthChanged; // current, max
-        public System.Action<HealthTier> OnHealthTierChanged;
+        // Event system
+        public System.Action<float, float> OnBalanceChanged; // current, max
+        public System.Action<BalanceTier> OnBalanceTierChanged;
         
-        // 属性访问器
-        public float HealthPercentage => maxHealth > 0 ? currentHealth / maxHealth : 0f;
+        // Attribute accessors
+        public float BalancePercentage => maxBalance > 0 ? currentBalance / maxBalance : 0f;
         public bool IsCoreIntact => crystalCore != null && crystalCore.CoreHealthState == CoreHealthState.Intact;
 
         public EnemyRuntimeStats(EnemyBaseStats baseStats)
         {
-            // 复制生存属性
-            maxHealth = baseStats.maxHealth;
-            currentHealth = maxHealth;
+            // Copy balance system attributes
+            maxBalance = baseStats.maxBalance;
+            currentBalance = maxBalance;
+            balanceRecoveryRate = baseStats.balanceRecoveryRate;
+            balanceRecoveryRateInCoreExposed = baseStats.balanceRecoveryRateInCoreExposed;
+            unbalancedDuration = baseStats.unbalancedDuration;
+            staggerDurationPerDamage = baseStats.staggerDurationPerDamage;
             
-            // 复制晶核属性
+            // Copy crystal core attributes
             crystalCore = new CrystalCore(baseStats.crystalCoreConfig);
-            crystalCore.SetFullEnergy(); // 敌人拥有满能量
+            crystalCore.SetFullEnergy(); // Enemy has full energy
             corePattern = baseStats.corePattern;
             
-            // 复活系统
-            revivalDelay = baseStats.revivalDelay;
-            revivalRate = baseStats.revivalRate;
-            
-            // 战斗属性 - Clone to avoid sharing damages reference with other instances
+            // Combat attributes - Clone to avoid sharing damages reference with other instances
             normalAttackStats = baseStats.normalAttackStats.Clone();
             waveAttackStats = baseStats.waveAttackStats.Clone();
             detectionRange = baseStats.detectionRange;
             normalAttackToEnergyRatio = baseStats.normalAttackToEnergyRatio;
             
-            // 视野系统
+            // Vision system
             visionAngle = baseStats.visionAngle;
             visionDistance = baseStats.visionDistance;
             eyeHeightOffset = baseStats.eyeHeightOffset;
@@ -119,162 +118,149 @@ namespace Resonance.Enemies.Data
             // Hitbox multipliers - Copy the list for independent configuration
             hitboxMultipliers = new List<HitboxMultiplierConfig>(baseStats.hitboxMultipliers ?? new List<HitboxMultiplierConfig>());
             
-            // 移动属性
+            // Movement attributes
             moveSpeed = baseStats.moveSpeed;
             chaseMoveSpeed = baseStats.chaseMoveSpeed;
             patrolRadius = baseStats.patrolRadius;
             arrivalThreshold = baseStats.arrivalThreshold;
             
-            // NavMesh Agent 配置
+            // NavMesh Agent configuration
             baseOffset = baseStats.baseOffset;
             acceleration = baseStats.acceleration;
             angularSpeed = baseStats.angularSpeed;
             stoppingDistance = baseStats.stoppingDistance;
             autoBraking = baseStats.autoBraking;
             
-            // 视觉效果
+            // Visual effects
             normalMaterialPath = baseStats.normalMaterialPath;
             damageMaterialPath = baseStats.damageMaterialPath;
             revivalMaterialPath = baseStats.revivalMaterialPath;
             damageFlashDuration = baseStats.damageFlashDuration;
             
-            // 音频配置
+            // Audio configuration
             enableAudio = baseStats.enableAudio;
             
-            // 掉落系统
+            // Loot system
             deathLootPrefab = baseStats.deathLootPrefab;
             lootCount = baseStats.lootCount;
             lootSpawnRadius = baseStats.lootSpawnRadius;
             lootDropChance = baseStats.lootDropChance;
             
-            // 调试选项
-            showHealthBar = baseStats.showHealthBar;
+            // Debug options
+            showBalanceBar = baseStats.showBalanceBar;
             showDetectionRange = baseStats.showDetectionRange;
             showAttackRange = baseStats.showAttackRange;
 
-            // 初始化状态等级
-            UpdateHealthTier();
+            // Initialize balance tier
+            UpdateBalanceTier();
         }
 
         /// <summary>
-        /// 更新生命等级
+        /// Update balance tier
         /// </summary>
-        public void UpdateHealthTier()
+        public void UpdateBalanceTier()
         {
-            var previousTier = healthTier;
-            healthTier = HealthTierHelper.CalculateHealthTier(HealthPercentage);
-            chaosRecoveryRate = HealthTierHelper.GetChaosRecoveryRate(healthTier);
+            var previousTier = balanceTier;
+            balanceTier = BalanceTierHelper.CalculateBalanceTier(BalancePercentage);
 
-            if (previousTier != healthTier)
+            if (previousTier != balanceTier)
             {
-                OnHealthTierChanged?.Invoke(healthTier);
-                Debug.Log($"EnemyRuntimeStats: Health tier changed to {healthTier}");
+                OnBalanceTierChanged?.Invoke(balanceTier);
+                Debug.Log($"EnemyRuntimeStats: Balance tier changed to {balanceTier}");
             }
         }
 
         /// <summary>
-        /// 受到生命伤害
+        /// Take balance damage
         /// </summary>
-        public float TakeHealthDamage(float damage)
+        public float TakeBalanceDamage(float damage)
         {
-            if (damage <= 0f || currentHealth <= 0f) return 0f;
+            if (damage <= 0f) return 0f;
 
-            float previousHealth = currentHealth;
-            currentHealth = Mathf.Max(0f, currentHealth - damage);
-            float actualDamage = previousHealth - currentHealth;
+            float previousBalance = currentBalance;
+            currentBalance = Mathf.Max(0f, currentBalance - damage);
+            float actualDamage = previousBalance - currentBalance;
 
             if (actualDamage > 0f)
             {
-                UpdateHealthTier();
-                OnHealthChanged?.Invoke(currentHealth, maxHealth);
-                Debug.Log($"EnemyRuntimeStats: Took {actualDamage} health damage. Current: {currentHealth}/{maxHealth}");
+                UpdateBalanceTier();
+                OnBalanceChanged?.Invoke(currentBalance, maxBalance);
+                Debug.Log($"EnemyRuntimeStats: Took {actualDamage} balance damage. Current: {currentBalance}/{maxBalance}");
             }
 
             return actualDamage;
         }
 
         /// <summary>
-        /// Health Restore (used when reviving)
+        /// Restore Balance (used when recovering in CoreExposed state or Unbalanced timeout)
         /// </summary>
-        public float RestoreHealth(float amount)
+        public float RestoreBalance(float amount)
         {
             if (amount <= 0f) return 0f;
 
-            float previousHealth = currentHealth;
-            currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
-            float actualRestore = currentHealth - previousHealth;
+            float previousBalance = currentBalance;
+            currentBalance = Mathf.Min(currentBalance + amount, maxBalance);
+            float actualRestore = currentBalance - previousBalance;
 
             if (actualRestore > 0f)
             {
-                UpdateHealthTier();
-                OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                UpdateBalanceTier();
+                OnBalanceChanged?.Invoke(currentBalance, maxBalance);
             }
 
             return actualRestore;
         }
 
         /// <summary>
-        /// 更新晶核紊乱值(每帧调用)
-        /// </summary>
-        public void UpdateChaos(float deltaTime)
-        {
-            if (crystalCore != null)
-            {
-                crystalCore.UpdateChaos(chaosRecoveryRate, deltaTime);
-            }
-        }
-
-        /// <summary>
-        /// 获取修正后的移动速度
+        /// Get modified move speed
         /// </summary>
         public float GetModifiedMoveSpeed()
         {
-            if (currentHealth <= 0f) return 0f;
+            if (currentBalance <= 0f) return 0f;
             
-            float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
+            float speedMultiplier = BalanceTierHelper.GetSpeedMultiplier(balanceTier);
             return moveSpeed * speedMultiplier;
         }
         
         /// <summary>
-        /// 获取修正后的追击速度
+        /// Get modified chase move speed
         /// </summary>
         public float GetModifiedChaseMoveSpeed()
         {
-            if (currentHealth <= 0f) return 0f;
+            if (currentBalance <= 0f) return 0f;
             
-            float speedMultiplier = HealthTierHelper.GetSpeedMultiplier(healthTier);
+            float speedMultiplier = BalanceTierHelper.GetSpeedMultiplier(balanceTier);
             return chaseMoveSpeed * speedMultiplier;
         }
 
         /// <summary>
-        /// 完全恢复生命和晶核
+        /// Full restore balance and crystal core
         /// </summary>
         public void FullRestore()
         {
-            currentHealth = maxHealth;
+            currentBalance = maxBalance;
             crystalCore?.FullRepairCoreHealth();
-            crystalCore?.ResetChaos();
 
-            UpdateHealthTier();
-            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            UpdateBalanceTier();
+            OnBalanceChanged?.Invoke(currentBalance, maxBalance);
 
             Debug.Log("EnemyRuntimeStats: Full restore completed");
         }
 
         /// <summary>
-        /// 获取保存数据
+        /// Get save data
         /// </summary>
         public EnemyRuntimeStatsSaveData GetSaveData()
         {
             return new EnemyRuntimeStatsSaveData
             {
-                currentHealth = this.currentHealth,
+                currentBalance = this.currentBalance,
                 crystalCoreSaveData = crystalCore?.GetSaveData()
             };
         }
 
         /// <summary>
-        /// 从保存数据加载
+        /// Load from save data
         /// </summary>
         public void LoadFromSaveData(EnemyRuntimeStatsSaveData saveData)
         {
@@ -284,17 +270,17 @@ namespace Resonance.Enemies.Data
                 return;
             }
 
-            currentHealth = Mathf.Clamp(saveData.currentHealth, 0f, maxHealth);
+            currentBalance = Mathf.Clamp(saveData.currentBalance, 0f, maxBalance);
 
             if (saveData.crystalCoreSaveData != null && crystalCore != null)
             {
                 crystalCore.LoadFromSaveData(saveData.crystalCoreSaveData);
             }
 
-            UpdateHealthTier();
-            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            UpdateBalanceTier();
+            OnBalanceChanged?.Invoke(currentBalance, maxBalance);
 
-            Debug.Log($"EnemyRuntimeStats: Loaded from save data. Health: {currentHealth}/{maxHealth}");
+            Debug.Log($"EnemyRuntimeStats: Loaded from save data. Balance: {currentBalance}/{maxBalance}");
         }
 
         /// <summary>
@@ -321,28 +307,28 @@ namespace Resonance.Enemies.Data
         }
 
         /// <summary>
-        /// 清理事件订阅
+        /// Cleanup event subscriptions
         /// </summary>
         public void Cleanup()
         {
-            OnHealthChanged = null;
-            OnHealthTierChanged = null;
+            OnBalanceChanged = null;
+            OnBalanceTierChanged = null;
             crystalCore?.Cleanup();
         }
     }
 
     /// <summary>
-    /// 敌人运行时属性保存数据结构
+    /// Enemy runtime stats save data structure
     /// </summary>
     [System.Serializable]
     public class EnemyRuntimeStatsSaveData
     {
-        public float currentHealth;
+        public float currentBalance;
         public CrystalCoreSaveData crystalCoreSaveData;
 
         public EnemyRuntimeStatsSaveData()
         {
-            currentHealth = 100f;
+            currentBalance = 100f;
             crystalCoreSaveData = null;
         }
     }

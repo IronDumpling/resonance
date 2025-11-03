@@ -66,11 +66,6 @@ namespace Resonance.Utilities.CrystalCore
         public float Length => _wave?.Length ?? 10.0f;
         public float[] WaveformTable => _wave?.WaveformTable ?? new float[0];
         public static int WaveformResolution => Wave.WaveformResolution;
-        public float CurrentChaos => _wave?.CurrentChaos ?? 0f;
-        public float MaxChaos => _wave?.MaxChaos ?? 0f;
-        public float ChaosThreshold => _wave?.ChaosThreshold ?? 0f;
-        public WaveChaosState ChaosState => _wave?.ChaosState ?? WaveChaosState.Order;
-        public float ChaosPercentage => _wave?.ChaosPercentage ?? 0f;
         
         #endregion
         
@@ -82,17 +77,7 @@ namespace Resonance.Utilities.CrystalCore
         public System.Action OnCoreDestroyed;
         
         // Wave events are delegated to Wave object
-        public System.Action<float, float> OnChaosChanged
-        {
-            get => _wave?.OnChaosChanged;
-            set { if (_wave != null) _wave.OnChaosChanged = value; }
-        }
-        
-        public System.Action<WaveChaosState> OnChaosStateChanged
-        {
-            get => _wave?.OnChaosStateChanged;
-            set { if (_wave != null) _wave.OnChaosStateChanged = value; }
-        }
+        public System.Action OnWavePropertiesChanged => _wave?.OnWavePropertiesChanged;
         
         #endregion
         
@@ -352,36 +337,10 @@ namespace Resonance.Utilities.CrystalCore
         public void SetWave(Wave wave)
         {
             if (wave == null) return;
-            float chaos = CurrentChaos;
             _wave = wave;
-            _wave.AddChaos(chaos);
             UpdateCalculatedValues();
             Debug.Log($"CrystalCore: Set wave. Waveform type: {_wave?.WaveformType ?? WaveformType.Sine}, Frequency: {_wave?.Frequency ?? 1.0f},"+
-                      $" Amplitude: {_wave?.Amplitude ?? 1.0f}, Length: {_wave?.Length ?? 10.0f}, Chaos: {chaos}");
-        }
-        
-        /// <summary>
-        /// Add chaos (delegate to Wave)
-        /// </summary>
-        public float AddChaos(float amount)
-        {
-            return _wave?.AddChaos(amount) ?? 0f;
-        }
-        
-        /// <summary>
-        /// Update chaos (natural recovery, called every frame, delegate to Wave)
-        /// </summary>
-        public void UpdateChaos(float chaosRecoveryRate, float deltaTime)
-        {
-            _wave?.UpdateChaos(chaosRecoveryRate, deltaTime);
-        }
-        
-        /// <summary>
-        /// Reset chaos (delegate to Wave)
-        /// </summary>
-        public void ResetChaos()
-        {
-            _wave?.ResetChaos();
+                      $" Amplitude: {_wave?.Amplitude ?? 1.0f}, Length: {_wave?.Length ?? 10.0f}");
         }
         
         #endregion
@@ -431,7 +390,7 @@ namespace Resonance.Utilities.CrystalCore
             OnCoreHealthChanged?.Invoke(_currentCoreHealth, _maxCoreHealth);
             OnEnergyChanged?.Invoke(_currentEnergy, _maxEnergy);
 
-            Debug.Log($"CrystalCore: Loaded from save data. Health: {_currentCoreHealth}/{_maxCoreHealth}, Energy: {_currentEnergy}/{_maxEnergy}, Chaos: {CurrentChaos}/{MaxChaos}");
+            Debug.Log($"CrystalCore: Loaded from save data. Health: {_currentCoreHealth}/{_maxCoreHealth}, Energy: {_currentEnergy}/{_maxEnergy}");
         }
         
         #endregion

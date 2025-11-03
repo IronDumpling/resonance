@@ -8,7 +8,7 @@ using Resonance.Utilities.CrystalCore;
 namespace Resonance.Enemies.Triggers
 {
     /// <summary>
-    /// Physical hitbox component for Head, Body, Knee - acts as a damage modifier
+    /// Physical hitbox component for Head, Body - acts as a damage modifier
     /// Modifies damage when hit by shooting system,
     /// then forwards the modified damage to the enemy's main damage handler
     /// Note: This class should NOT be used for Core hitboxes (use EnemyCrystalCoreHitbox instead)
@@ -16,15 +16,12 @@ namespace Resonance.Enemies.Triggers
     public class EnemyPhysicalHitbox : MonoBehaviour, IHitbox
     {
         [Header("Hitbox Type")]
-        [Tooltip("Type of hitbox (Head, Body, Knee only - NOT Core)")]
+        [Tooltip("Type of hitbox (Head, Body only - NOT Core)")]
         public HitboxType type;
         
         [Header("Damage Multipliers")]
-        [Tooltip("Physical health damage multiplier")]
-        public float physicalHealthMultiplier = 1f;
-        
-        [Tooltip("Chaos damage multiplier")]
-        public float chaosMultiplier = 1f;
+        [Tooltip("Balance damage multiplier")]
+        public float balanceMultiplier = 1f;
         
         [Header("Effects")]
         public GameObject hitVFX; 
@@ -209,7 +206,7 @@ namespace Resonance.Enemies.Triggers
 
         /// <summary>
         /// Modify damage based on hitbox multipliers
-        /// Applies specific multipliers for PhysicalHealth and Chaos damage types
+        /// Applies specific multipliers for Balance damage types
         /// Note: CoreHealth damage is blocked (multiplier = 0) as this is a physical hitbox
         /// </summary>
         /// <param name="originalDamage">Original damage info</param>
@@ -224,21 +221,13 @@ namespace Resonance.Enemies.Triggers
 
             // Create new damage dictionary with modified values
             Damages modifiedDamages = new Damages();
-
-            // Apply physical health multiplier
-            if (originalDamage.damages.HasDamage(DamageType.PhysicalHealth))
-            {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.PhysicalHealth);
-                float modifiedAmount = originalAmount * physicalHealthMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.PhysicalHealth, modifiedAmount);
-            }
             
-            // Apply chaos multiplier
-            if (originalDamage.damages.HasDamage(DamageType.Chaos))
+            // Apply balance multiplier
+            if (originalDamage.damages.HasDamage(DamageType.Balance))
             {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
-                float modifiedAmount = originalAmount * chaosMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Chaos, modifiedAmount);
+                float originalAmount = originalDamage.damages.GetDamage(DamageType.Balance);
+                float modifiedAmount = originalAmount * balanceMultiplier;
+                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Balance, modifiedAmount);
             }
 
             // Create modified damage info
@@ -256,18 +245,18 @@ namespace Resonance.Enemies.Triggers
 
         /// <summary>
         /// Get multiplier for specific damage type
-        /// Physical hitboxes only support PhysicalHealth and Chaos damage
+        /// Physical hitboxes only support Balance damage
         /// </summary>
         private float GetMultiplier(DamageType damageType)
         {
             switch (damageType)
             {
                 case DamageType.PhysicalHealth:
-                    return physicalHealthMultiplier;
+                    return 0f;
                 case DamageType.CoreHealth:
-                    return 0f; // Physical hitboxes do not transmit CoreHealth damage
-                case DamageType.Chaos:
-                    return chaosMultiplier;
+                    return 0f;
+                case DamageType.Balance:
+                    return balanceMultiplier;
                 default:
                     return 1f;
             }

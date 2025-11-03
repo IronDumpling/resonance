@@ -50,7 +50,7 @@ namespace Resonance.Player.Core
             // Add player states
             _stateMachine.AddState(new PlayerNormalState(_playerController));
             _stateMachine.AddState(new PlayerAimingState(_playerController));
-            _stateMachine.AddState(new PlayerStunState(_playerController));
+            _stateMachine.AddState(new PlayerStaggerState(_playerController));
             _stateMachine.AddState(new PlayerDeathState(_playerController));
             // Start with normal state
             _stateMachine.ChangeState("Normal");
@@ -150,20 +150,20 @@ namespace Resonance.Player.Core
             return false;
         }
 
-        public bool EnterStun()
+        public bool EnterStagger()
         {
-            // Can enter stun from any state
+            // Can enter stagger from any state
             if (IsInState("Normal") || IsInState("Aiming"))
             {
-                return ChangeState("Stun");
+                return ChangeState("Stagger");
             }
             return false;
         }
 
-        public bool ExitStun()
+        public bool ExitStagger()
         {
-            // Can exit stun from any state
-            if (IsInState("Stun"))
+            // Can exit stagger from any state
+            if (IsInState("Stagger"))
             {
                 return ChangeState("Normal");
             }
@@ -214,9 +214,9 @@ namespace Resonance.Player.Core
             return IsInState("Death");
         }
 
-        public bool IsStunned()
+        public bool IsStaggered()
         {
-            return IsInState("Stun");
+            return IsInState("Stagger");
         }
 
         public bool IsInActiveState()

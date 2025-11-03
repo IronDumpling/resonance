@@ -129,7 +129,6 @@ namespace Resonance.Player.Triggers
                 
                 // Set multipliers (typically 1.0 for player)
                 newHitbox.physicalHealthMultiplier = 1f;
-                newHitbox.chaosMultiplier = 1f;
                 
                 // Initialize the hitbox with player reference
                 newHitbox.Initialize(_playerMono);
@@ -137,23 +136,20 @@ namespace Resonance.Player.Triggers
                 if (_debugMode)
                 {
                     Debug.Log($"PlayerHitboxManager: Added PlayerPhysicalHitbox with multipliers - " +
-                             $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Chaos: x{newHitbox.chaosMultiplier:F1}");
+                             $"Physical: x{newHitbox.physicalHealthMultiplier:F1}");
                 }
             }
             else
             {
                 // Update existing hitbox
                 existingHitbox.physicalHealthMultiplier = 1f;
-                existingHitbox.chaosMultiplier = 1f;
                 
                 existingHitbox.Initialize(_playerMono);
                 
                 if (_debugMode)
                 {
                     Debug.Log($"PlayerHitboxManager: Updated PlayerPhysicalHitbox with multipliers - " +
-                             $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
+                             $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}");
                 }
             }
         }
@@ -172,7 +168,6 @@ namespace Resonance.Player.Triggers
                 // Set multipliers for core hitbox
                 newHitbox.physicalHealthMultiplier = 0f; // Core doesn't take physical damage
                 newHitbox.coreHealthMultiplier = 1f;
-                newHitbox.chaosMultiplier = 1f;
                 
                 // Initialize the hitbox with player reference
                 newHitbox.Initialize(_playerMono);
@@ -181,8 +176,7 @@ namespace Resonance.Player.Triggers
                 {
                     Debug.Log($"PlayerHitboxManager: Added PlayerCrystalCoreHitbox with multipliers - " +
                              $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Core: x{newHitbox.coreHealthMultiplier:F1}, " +
-                             $"Chaos: x{newHitbox.chaosMultiplier:F1}");
+                             $"Core: x{newHitbox.coreHealthMultiplier:F1}");
                 }
             }
             else
@@ -190,7 +184,6 @@ namespace Resonance.Player.Triggers
                 // Update existing hitbox
                 existingHitbox.physicalHealthMultiplier = 0f;
                 existingHitbox.coreHealthMultiplier = 1f;
-                existingHitbox.chaosMultiplier = 1f;
                 
                 existingHitbox.Initialize(_playerMono);
                 
@@ -198,8 +191,7 @@ namespace Resonance.Player.Triggers
                 {
                     Debug.Log($"PlayerHitboxManager: Updated PlayerCrystalCoreHitbox with multipliers - " +
                              $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Core: x{existingHitbox.coreHealthMultiplier:F1}, " +
-                             $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
+                             $"Core: x{existingHitbox.coreHealthMultiplier:F1}");
                 }
             }
             

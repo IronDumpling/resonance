@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20e9121dbffa7504caa2c2557a54a0c9, type: 3}
   m_Name: PlayerWaveConfig
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.Utilities.Wave.WaveConfig
-  waveformType: 0
+  waveformType: 4
   frequency: 1
-  amplitude: 1
+  amplitude: 0
   length: 10
   waveformResolution: 1024
   maxChaos: 20

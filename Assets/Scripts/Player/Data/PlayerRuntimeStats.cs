@@ -110,7 +110,6 @@ namespace Resonance.Player.Data
         {
             var previousTier = healthTier;
             healthTier = HealthTierHelper.CalculateHealthTier(HealthPercentage);
-            chaosRecoveryRate = HealthTierHelper.GetChaosRecoveryRate(healthTier);
 
             if (previousTier != healthTier)
             {
@@ -179,24 +178,12 @@ namespace Resonance.Player.Data
         }
 
         /// <summary>
-        /// 更新晶核紊乱值(每帧调用)
-        /// </summary>
-        public void UpdateChaos(float deltaTime)
-        {
-            if (crystalCore != null)
-            {
-                crystalCore.UpdateChaos(chaosRecoveryRate, deltaTime);
-            }
-        }
-
-        /// <summary>
         /// 完全恢复生命和晶核(存档点使用)
         /// </summary>
         public void FullRestore()
         {
             currentHealth = maxHealth;
             crystalCore?.FullRepairCoreHealth();
-            crystalCore?.ResetChaos();
 
             UpdateHealthTier();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);

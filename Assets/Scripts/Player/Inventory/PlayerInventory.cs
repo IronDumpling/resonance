@@ -781,25 +781,6 @@ namespace Resonance.Player.Inventory
                     }
                     break;
                 case ItemType.Consumable:
-                    if (gridItem.CustomData.ContainsKey("ammoType"))
-                    {
-                        var ammoData = Resources.Load<AmmoDataAsset>(resourcesPath);
-                        if (ammoData != null)
-                        {
-                            gridItem.ItemPrefab = ammoData.itemPrefab;
-                            gridItem.ItemIcon = ammoData.ammoIcon;
-                            Debug.Log($"PlayerInventory: Loaded ammo visual data - ItemPrefab={(ammoData.itemPrefab != null ? ammoData.itemPrefab.name : "NULL")},"+
-                                    $"ItemIcon={(ammoData.ammoIcon != null ? ammoData.ammoIcon.name : "NULL")}");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"PlayerInventory: Failed to load AmmoDataAsset from Resources path: {resourcesPath}");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"PlayerInventory: No ammo type found for {gridItem.ItemName}");
-                    }
                     break;
                 default:
                     break;

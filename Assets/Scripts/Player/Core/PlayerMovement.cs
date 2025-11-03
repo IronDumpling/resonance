@@ -87,7 +87,7 @@ namespace Resonance.Player.Core
         /// 1. Normal State: can walk or run
         /// 2. Aiming State: can only walk at aimMoveSpeed
         /// 3. Reload Action: can only walk at reloadMoveSpeed
-        /// 4. Interact/Heal Actions, Stun/Death States: cannot move (speed = 0)
+        /// 4. Interact/Heal Actions, Stagger/Death States: cannot move (speed = 0)
         /// 5. All speeds are multiplied by health tier multiplier at the end
         /// </summary>
         private float GetCurrentMoveSpeed()
@@ -110,8 +110,8 @@ namespace Resonance.Player.Core
                 return 0f;
             }
             
-            // Rule 4: Stun state - no movement
-            if (currentState == "Stun")
+            // Rule 4: Stagger state - no movement
+            if (currentState == "Stagger")
             {
                 return 0f;
             }

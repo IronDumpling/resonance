@@ -166,23 +166,29 @@ namespace Resonance.Utilities.CrystalCore
         }
         
         /// <summary>
-        /// Get Color for Chaos State
+        /// Get Color for Active State
         /// </summary>
-        public Color GetColorForChaosState(WaveChaosState state)
+        public Color GetColorForActiveState(WaveActiveState state)
         {
             if (waveConfig == null) return Color.white;
             
             switch (state)
             {
-                case WaveChaosState.Order:
+                case WaveActiveState.Resonance:
+                    return waveConfig.activeColor;
+                case WaveActiveState.High_Functioning_II:
+                    return waveConfig.activeColor;
+                case WaveActiveState.High_Functioning_I:
+                    return waveConfig.activeColor;
+                case WaveActiveState.Normal:
                     return waveConfig.orderColor;
-                case WaveChaosState.Chaos:
-                    return waveConfig.chaosColor;
-                default:
-                    return Color.white;
+                case WaveActiveState.Low_Functioning:
+                    return waveConfig.orderColor;
+                case WaveActiveState.Hibernation:
+                    return waveConfig.orderColor;
             }
+            return Color.white;
         }
-
         #region Unity Editor
 
         void OnValidate()

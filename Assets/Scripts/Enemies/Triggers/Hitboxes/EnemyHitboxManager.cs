@@ -42,10 +42,12 @@ namespace Resonance.Enemies.Triggers
             SetupWeakpointColliders();
             
             // Subscribe to enemy events
-            _enemyController.OnPhysicalDeath    += HandlePhysicalDeath;
-            _enemyController.OnRevivalStarted   += HandleRevivingStart;
-            _enemyController.OnRevivalCompleted += HandleRevivingEnd;
-            _enemyController.OnTrueDeath        += HandleTrueDeath;
+            _enemyController.OnUnbalanced            += HandleUnbalanced;
+            _enemyController.OnUnbalancedStarted     += HandleUnbalancedStart;
+            _enemyController.OnUnbalancedCompleted   += HandleUnbalancedEnd;
+            _enemyController.OnCoreExposureStarted   += HandleCoreExposureStart;
+            _enemyController.OnCoreExposureCompleted += HandleCoreExposureEnd;
+            _enemyController.OnDeath                 += HandleDeath;
             
             // Initial state: enabled health hitboxes, disabled core hitboxes
             SetPhysicalHitboxes(true);
@@ -147,7 +149,7 @@ namespace Resonance.Enemies.Triggers
 
         /// <summary>
         /// Setup EnemyPhysicalHitbox component for a weakpoint GameObject
-        /// Configures damage multipliers based on hitbox type (Head, Body, Knee only)
+        /// Configures damage multipliers based on hitbox type (Head, Body only)
         /// </summary>
         private void SetupEnemyPhysicalHitbox(GameObject weakpointObject, HitboxType type)
         {
@@ -162,8 +164,7 @@ namespace Resonance.Enemies.Triggers
                 newHitbox.type = type;
                 
                 // Apply multipliers from configuration (physical hitboxes don't use coreHealthMultiplier)
-                newHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
-                newHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
+                newHitbox.balanceMultiplier = multiplierConfig.balanceMultiplier;
                 
                 // Initialize the hitbox with enemy reference
                 newHitbox.Initialize(_enemyMono);
@@ -171,24 +172,21 @@ namespace Resonance.Enemies.Triggers
                 if (_debugMode)
                 {
                     Debug.Log($"EnemyHitboxManager: Added EnemyPhysicalHitbox ({type}) with multipliers from configuration - " +
-                             $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Chaos: x{newHitbox.chaosMultiplier:F1}");
+                             $"Balance: x{newHitbox.balanceMultiplier:F1}");
                 }
             }
             else
             {
                 // Update existing hitbox multipliers from configuration
                 existingHitbox.type = type;
-                existingHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
-                existingHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
+                existingHitbox.balanceMultiplier = multiplierConfig.balanceMultiplier;
                 
                 existingHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
                     Debug.Log($"EnemyHitboxManager: Updated EnemyPhysicalHitbox ({type}) with multipliers from configuration - " +
-                             $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
+                             $"Balance: x{existingHitbox.balanceMultiplier:F1}");
                 }
             }
         }
@@ -209,9 +207,7 @@ namespace Resonance.Enemies.Triggers
                 EnemyCrystalCoreHitbox newHitbox = weakpointObject.AddComponent<EnemyCrystalCoreHitbox>();
                 
                 // Apply multipliers from configuration
-                newHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
                 newHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
-                newHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
                 
                 // Initialize the hitbox with enemy reference
                 newHitbox.Initialize(_enemyMono);
@@ -219,26 +215,20 @@ namespace Resonance.Enemies.Triggers
                 if (_debugMode)
                 {
                     Debug.Log($"EnemyHitboxManager: Added EnemyCrystalCoreHitbox with multipliers from configuration - " +
-                             $"Physical: x{newHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Core: x{newHitbox.coreHealthMultiplier:F1}, " +
-                             $"Chaos: x{newHitbox.chaosMultiplier:F1}");
+                             $"Core: x{newHitbox.coreHealthMultiplier:F1}");
                 }
             }
             else
             {
                 // Update existing hitbox multipliers from configuration
-                existingHitbox.physicalHealthMultiplier = multiplierConfig.physicalHealthMultiplier;
                 existingHitbox.coreHealthMultiplier = multiplierConfig.coreHealthMultiplier;
-                existingHitbox.chaosMultiplier = multiplierConfig.chaosMultiplier;
                 
                 existingHitbox.Initialize(_enemyMono);
                 
                 if (_debugMode)
                 {
                     Debug.Log($"EnemyHitboxManager: Updated EnemyCrystalCoreHitbox with multipliers from configuration - " +
-                             $"Physical: x{existingHitbox.physicalHealthMultiplier:F1}, " +
-                             $"Core: x{existingHitbox.coreHealthMultiplier:F1}, " +
-                             $"Chaos: x{existingHitbox.chaosMultiplier:F1}");
+                             $"Core: x{existingHitbox.coreHealthMultiplier:F1}");
                 }
             }
             
@@ -253,16 +243,19 @@ namespace Resonance.Enemies.Triggers
             // Unsubscribe from events
             if (_isInitialized && _enemyController != null)
             {
-                _enemyController.OnPhysicalDeath    -= HandlePhysicalDeath;
-                _enemyController.OnRevivalStarted   -= HandleRevivingStart;
-                _enemyController.OnRevivalCompleted -= HandleRevivingEnd;
-                _enemyController.OnTrueDeath        -= HandleTrueDeath;
+                _enemyController.OnUnbalanced       -= HandleUnbalanced;
+                _enemyController.OnUnbalancedStarted -= HandleUnbalancedStart;
+                _enemyController.OnUnbalancedCompleted -= HandleUnbalancedEnd;
+                _enemyController.OnDeath            -= HandleDeath;
             }
         }
 
         #region Event Handlers
 
-        void HandlePhysicalDeath()  
+        /// <summary>
+        /// Handle unbalanced state - balance reaches 0, core hitbox becomes active
+        /// </summary>
+        void HandleUnbalanced()  
         { 
             SetPhysicalHitboxes(false); 
             SetCoreHitboxes(true);
@@ -272,11 +265,14 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Physical death - disabled health, enabled core weakpoints, showing wave UI");
+                Debug.Log("EnemyHitboxManager: Unbalanced - disabled physical hitboxes, enabled core weakpoints, showing wave UI");
             }
         }
         
-        void HandleRevivingStart()  
+        /// <summary>
+        /// Handle unbalanced state started - entering unbalanced state
+        /// </summary>
+        void HandleUnbalancedStart()  
         { 
             SetPhysicalHitboxes(false); 
             SetCoreHitboxes(true);
@@ -286,11 +282,14 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival started - disabled health, enabled core weakpoints, showing wave UI");
+                Debug.Log("EnemyHitboxManager: Unbalanced started - disabled physical hitboxes, enabled core weakpoints, showing wave UI");
             }
         }
         
-        void HandleRevivingEnd()    
+        /// <summary>
+        /// Handle unbalanced state ended - balance restored, returning to normal
+        /// </summary>
+        void HandleUnbalancedEnd()    
         { 
             SetPhysicalHitboxes(true);  
             SetCoreHitboxes(false);
@@ -303,11 +302,51 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Revival ended - enabled health, disabled core weakpoints, hiding wave UI, refreshed collider states");
+                Debug.Log("EnemyHitboxManager: Unbalanced ended - enabled physical hitboxes, disabled core weakpoints, hiding wave UI, refreshed collider states");
             }
         }
         
-        void HandleTrueDeath()
+        /// <summary>
+        /// Handle core exposure started - being executed by player wave attack
+        /// </summary>
+        void HandleCoreExposureStart()  
+        { 
+            SetPhysicalHitboxes(false); 
+            SetCoreHitboxes(true);
+            
+            // Keep wave UI visible during core exposure
+            _enemyMono?.ShowWaveUI();
+            
+            if (_debugMode)
+            {
+                Debug.Log("EnemyHitboxManager: Core exposure started - disabled physical hitboxes, enabled core weakpoints, showing wave UI");
+            }
+        }
+        
+        /// <summary>
+        /// Handle core exposure ended - balance fully restored, returning to normal
+        /// </summary>
+        void HandleCoreExposureEnd()    
+        { 
+            SetPhysicalHitboxes(true);  
+            SetCoreHitboxes(false);
+            
+            // Hide wave UI when core hitboxes (including Core) are disabled
+            _enemyMono?.HideWaveUI();
+            
+            // Force update collider states to ensure proper synchronization
+            ForceRefreshColliderStates();
+            
+            if (_debugMode)
+            {
+                Debug.Log("EnemyHitboxManager: Core exposure ended - enabled physical hitboxes, disabled core weakpoints, hiding wave UI, refreshed collider states");
+            }
+        }
+        
+        /// <summary>
+        /// Handle death - core health reaches 0, enemy permanently dead
+        /// </summary>
+        void HandleDeath()
         { 
             SetPhysicalHitboxes(false); 
             SetCoreHitboxes(false);
@@ -317,7 +356,7 @@ namespace Resonance.Enemies.Triggers
             
             if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: True death - disabled all weakpoints, hiding wave UI");
+                Debug.Log("EnemyHitboxManager: Death - disabled all weakpoints, hiding wave UI");
             }
         }
 
@@ -433,15 +472,18 @@ namespace Resonance.Enemies.Triggers
         /// <summary>
         /// Disable enemy's crystal core collider after wave attack
         /// Called when enemy ends wave attack action
-        /// Should only disable if enemy is not in Reviving state
+        /// Should only disable if enemy is not in CoreExposed state
         /// </summary>
         public void DisableCoreColliderAfterWaveAttack()
         {
             if (!_isInitialized) return;
             
-            // Only disable if enemy is not in Reviving state
-            // (Reviving state needs core colliders enabled for player wave attacks)
-            if (_enemyController != null && _enemyController.CurrentState != EnemyState.Reviving)
+            // Only disable if enemy is not in Unbalanced, Dead or CoreExposed state
+            // (CoreExposed state needs core colliders enabled for player wave attacks)
+            if (_enemyController != null &&  
+                _enemyController.CurrentState != EnemyState.Unbalanced && 
+                _enemyController.CurrentState != EnemyState.Dead && 
+                _enemyController.CurrentState != EnemyState.CoreExposed)
             {
                 SetCoreHitboxes(false);
                 
@@ -455,7 +497,7 @@ namespace Resonance.Enemies.Triggers
             }
             else if (_debugMode)
             {
-                Debug.Log("EnemyHitboxManager: Keeping core collider enabled (enemy in Reviving state)");
+                Debug.Log("EnemyHitboxManager: Keeping core collider enabled (enemy in CoreExposed state)");
             }
         }
 

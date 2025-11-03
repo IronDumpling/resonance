@@ -23,10 +23,10 @@ namespace Resonance.Enemies.BTNodes.Conditions
                 return TaskStatus.Failure;
             }
 
-            bool isPhysicallyAlive = Controller.IsPhysicallyAlive;
+            bool isBalanced = Controller.IsBalanced;
             bool isNormal = (Controller.CurrentState == EnemyState.Normal);
 
-            return (isPhysicallyAlive && isNormal) ? TaskStatus.Success : TaskStatus.Failure;
+            return (isBalanced && isNormal) ? TaskStatus.Success : TaskStatus.Failure;
         }
     }
 }

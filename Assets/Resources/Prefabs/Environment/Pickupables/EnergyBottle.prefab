@@ -63,9 +63,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2739989995435518676}
-  - component: {fileID: 8528869327124519382}
   m_Layer: 7
-  m_Name: Ammo
+  m_Name: EnergyBottle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -88,29 +87,6 @@ Transform:
   - {fileID: 247737482990977618}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8528869327124519382
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1888247229399058588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b6101b73ebf8614b9ba206e8c9cc9d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _ammoDataAsset: {fileID: 11400000, guid: 04f696155a1765e489e66eb1dd527fa4, type: 2}
-  _interactionText: E
-  _interactionDuration: 0.1
-  _pickupVisual: {fileID: 519393222693085104}
-  _rotateWhenIdle: 1
-  _rotationSpeed: 45
-  _bobUpAndDown: 1
-  _bobSpeed: 3
-  _bobHeight: 0.15
-  _interactUI: {fileID: 4820078341216892580}
-  _interactTextComponent: {fileID: 2875704220669569649}
 --- !u!1 &2918300675373275616
 GameObject:
   m_ObjectHideFlags: 0
@@ -172,6 +148,8 @@ MeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -193,6 +171,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0

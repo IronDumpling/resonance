@@ -3,12 +3,16 @@ using UnityEngine;
 namespace Resonance.Utilities.Types
 {
     /// <summary>
-    /// Wave chaos state enumeration
+    /// Wave active state enumeration
     /// </summary>
-    public enum WaveChaosState
+    public enum WaveActiveState
     {
-        Order,      // Chaos < threshold
-        Chaos       // Chaos >= max
+        Resonance,
+        High_Functioning_II,
+        High_Functioning_I,
+        Normal,
+        Low_Functioning,
+        Hibernation
     }
 
     /// <summary>
@@ -17,6 +21,7 @@ namespace Resonance.Utilities.Types
     public enum WaveformType
     {
         Sine,
+        Pulse,
         Square,
         Triangle,
         Sawtooth,

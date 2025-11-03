@@ -39,7 +39,7 @@ namespace Resonance.Player.States
             // Can transition to any state from Normal
             return newState.Name == "Aiming" || 
                    newState.Name == "Interacting" || 
-                   newState.Name == "Stun" || 
+                   newState.Name == "Stagger" || 
                    newState.Name == "Death";
         }
     }

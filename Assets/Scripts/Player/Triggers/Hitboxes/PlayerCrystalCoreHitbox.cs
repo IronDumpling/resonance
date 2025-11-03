@@ -19,9 +19,6 @@ namespace Resonance.Player.Triggers
         [Tooltip("Core health damage multiplier")]
         public float coreHealthMultiplier = 1f;
         
-        [Tooltip("Chaos damage multiplier")]
-        public float chaosMultiplier = 1f;
-        
         [Header("Effects")]
         public GameObject hitVFX; 
         public AudioClip hitSFX;
@@ -188,8 +185,7 @@ namespace Resonance.Player.Triggers
             _playerMono.TakeDamage(damageInfo);
 
             Debug.Log($"PlayerCrystalCoreHitbox: Applied wave damages to {name} - " +
-                      $"CoreHealth: {damages.GetDamage(DamageType.CoreHealth):F1}, " +
-                      $"Chaos: {damages.GetDamage(DamageType.Chaos):F1}");
+                      $"CoreHealth: {damages.GetDamage(DamageType.CoreHealth):F1}");
             
             return true;
         }
@@ -268,13 +264,7 @@ namespace Resonance.Player.Triggers
                 if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.CoreHealth, modifiedAmount);
             }
             
-            // Apply chaos multiplier
-            if (originalDamage.damages.HasDamage(DamageType.Chaos))
-            {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
-                float modifiedAmount = originalAmount * chaosMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Chaos, modifiedAmount);
-            }
+            // Players do not process Balance damage (Balance is for enemies only)
 
             // Create modified damage info
             string newDescription = string.IsNullOrEmpty(originalDamage.description)

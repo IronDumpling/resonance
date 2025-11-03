@@ -14,9 +14,6 @@ namespace Resonance.Player.Triggers
         [Tooltip("Physical health damage multiplier")]
         public float physicalHealthMultiplier = 1f;
         
-        [Tooltip("Chaos damage multiplier")]
-        public float chaosMultiplier = 1f;
-        
         [Header("Effects")]
         public GameObject hitVFX; 
         public AudioClip hitSFX;
@@ -139,14 +136,6 @@ namespace Resonance.Player.Triggers
             
             // Physical hitboxes do NOT transmit CoreHealth damage
             // CoreHealth damage should only be applied to PlayerCrystalCoreHitbox
-            
-            // Apply chaos multiplier
-            if (originalDamage.damages.HasDamage(DamageType.Chaos))
-            {
-                float originalAmount = originalDamage.damages.GetDamage(DamageType.Chaos);
-                float modifiedAmount = originalAmount * chaosMultiplier;
-                if (modifiedAmount > 0f) modifiedDamages.SetDamage(DamageType.Chaos, modifiedAmount);
-            }
 
             // Create modified damage info
             string newDescription = string.IsNullOrEmpty(originalDamage.description)

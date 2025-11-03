@@ -22,7 +22,7 @@ namespace Resonance.Player
     /// Acts as a bridge between Unity's GameObject system and the player logic.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable
+    public class PlayerMonoBehaviour : MonoBehaviour, IDamageable, IHasPhysicalHealth, IHasCoreHealth
     {
         [Header("Player Configuration")]
         [SerializeField] private PlayerBaseStats _baseStats;
@@ -943,7 +943,7 @@ namespace Resonance.Player
 
         /// <summary>
         /// Take damage using the new damage system
-        /// Supports multiple damage types: Physical Health, Core Health, Chaos
+        /// Supports multiple damage types: Physical Health, Core Health
         /// Invulnerability is handled at the DamageInfo level, not per damage type
         /// </summary>
         public void TakeDamage(DamageInfo damageInfo)
@@ -976,13 +976,6 @@ namespace Resonance.Player
             : CoreHealthState.Destroyed;
 
         /// <summary>
-        /// Wave chaos state
-        /// </summary>
-        public WaveChaosState ChaosState => IsInitialized && _playerController.Stats.crystalCore != null 
-            ? _playerController.Stats.crystalCore.ChaosState 
-            : WaveChaosState.Order;
-
-        /// <summary>
         /// Current physical health
         /// </summary>
         public float CurrentPhysicalHealth => IsInitialized ? _playerController.Stats.currentHealth : 0f;
@@ -1004,20 +997,6 @@ namespace Resonance.Player
         /// </summary>
         public float MaxCoreHealth => IsInitialized && _playerController.Stats.crystalCore != null 
             ? _playerController.Stats.crystalCore.MaxCoreHealth 
-            : 0f;
-
-        /// <summary>
-        /// Current chaos value
-        /// </summary>
-        public float CurrentChaos => IsInitialized && _playerController.Stats.crystalCore != null 
-            ? _playerController.Stats.crystalCore.CurrentChaos 
-            : 0f;
-
-        /// <summary>
-        /// Max chaos value
-        /// </summary>
-        public float MaxChaos => IsInitialized && _playerController.Stats.crystalCore != null 
-            ? _playerController.Stats.crystalCore.MaxChaos 
             : 0f;
 
         #endregion
