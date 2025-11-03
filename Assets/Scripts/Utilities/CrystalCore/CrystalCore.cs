@@ -191,7 +191,7 @@ namespace Resonance.Utilities.CrystalCore
         /// <summary>
         /// Repair core health
         /// </summary>
-        public float RepairCoreHealth(float repairAmount)
+        public float RestoreCoreHealth(float repairAmount)
         {
             if (repairAmount <= 0f) return 0f;
 
@@ -216,9 +216,9 @@ namespace Resonance.Utilities.CrystalCore
         /// <summary>
         /// Fully repair core health
         /// </summary>
-        public void FullRepairCoreHealth()
+        public void FullRestoreCoreHealth()
         {
-            RepairCoreHealth(_maxCoreHealth - _currentCoreHealth);
+            RestoreCoreHealth(_maxCoreHealth - _currentCoreHealth);
         }
         
         /// <summary>

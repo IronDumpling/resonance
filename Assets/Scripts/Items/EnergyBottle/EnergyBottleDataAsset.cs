@@ -6,25 +6,25 @@ using Resonance.Items.Core;
 namespace Resonance.Items
 {
     /// <summary>
-    /// Healant Data Asset
-    /// Consumable item that restores Crystal Core Health
+    /// Energy Bottle Data Asset
+    /// Consumable item that restores Crystal Core Energy
     /// </summary>
-    [CreateAssetMenu(fileName = "New Healant Data", menuName = "Resonance/Items/Healant Data", order = 4)]
-    public class HealantDataAsset : ScriptableObject, IInfoable
+    [CreateAssetMenu(fileName = "New Energy Bottle Data", menuName = "Resonance/Items/Energy Bottle Data", order = 3)]
+    public class EnergyBottleDataAsset : ScriptableObject, IInfoable
     {
         [Header("Basic Info")]
-        public string itemName = "Healant";
+        public string itemName = "Energy Bottle";
         [TextArea(2, 4)]
-        public string itemDescription = "A medical item that repairs crystal core damage";
+        public string itemDescription = "A bottle filled with crystalline energy";
         
         [Header("Visual")]
         public Sprite itemIcon;
         public GameObject itemPrefab;
         
-        [Header("Core Health Restoration")]
-        [Tooltip("Amount of Crystal Core Health restored when consumed")]
+        [Header("Energy Restoration")]
+        [Tooltip("Amount of Crystal Core Energy restored when consumed")]
         [Range(10f, 100f)]
-        public float coreHealthRestoreAmount = 25f;
+        public float energyRestoreAmount = 30f;
         
         [Header("Inventory")]
         public int gridWidth = 1;
@@ -38,7 +38,7 @@ namespace Resonance.Items
         {
             return new InfoData(
                 name: itemName,
-                content: $"{itemDescription}\n\nRestores: {coreHealthRestoreAmount} Core Health",
+                content: $"{itemDescription}\n\nRestores: {energyRestoreAmount} Energy",
                 image: itemIcon
             );
         }
@@ -56,10 +56,11 @@ namespace Resonance.Items
         /// </summary>
         void OnValidate()
         {
-            coreHealthRestoreAmount = Mathf.Max(1f, coreHealthRestoreAmount);
+            energyRestoreAmount = Mathf.Max(1f, energyRestoreAmount);
             gridWidth = Mathf.Clamp(gridWidth, 1, 5);
             gridHeight = Mathf.Clamp(gridHeight, 1, 5);
             maxStackQuantity = Mathf.Max(1, maxStackQuantity);
         }
     }
 }
+

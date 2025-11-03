@@ -298,32 +298,74 @@ namespace Resonance.Core.GlobalServices
                 {
                     bool added = false;
                     
-                    // Special handling for Consumable (Ammo) - use ConsumableManager for stacking
-                    if (gridItem.ItemType == ItemType.Consumable)
+                    var inventory = playerController.Inventory;
+                    Vector2Int emptyPos = new Vector2Int(-1, -1);
+
+                    switch (gridItem.ItemType)
                     {
-                        var consumableManager = playerController.ConsumableManager;
-                        if (consumableManager != null)
-                        {
-                            added = consumableManager.AddAmmo(gridItem.CustomData["ammoType"].ToString(), gridItem);
-                            Debug.Log($"PickupStrategy: Added ammo via ConsumableManager - {gridItem.ItemName} x{gridItem.Quantity}");
-                        }
-                    }
-                    else
-                    {
-                        // For other items (Weapons, Tools, etc.) - add directly to grid
-                        var inventory = playerController.Inventory;
-                        Vector2Int emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
-                        
-                        if (emptyPos.x >= 0 && emptyPos.y >= 0)
-                        {
-                            added = inventory.AddItemToGrid(gridItem, emptyPos);
+                        case ItemType.Consumable:
+                            // Try to find existing consumable of same type that can be stacked
+                            var existingConsumables = inventory.GetItemsByType(ItemType.Consumable)
+                                .Where(item => item.ConsumableType == gridItem.ConsumableType 
+                                        && item.Quantity < item.MaxStackQuantity)
+                                .ToList();
                             
-                            if (added)
+                            if (existingConsumables.Count > 0)
                             {
-                                // Auto-equip weapon
-                                AutoEquipIfWeapon(gridItem, playerController);
+                                // Stack with first available consumable
+                                var targetItem = existingConsumables[0];
+                                int spaceLeft = targetItem.MaxStackQuantity - targetItem.Quantity;
+                                int toAdd = Mathf.Min(spaceLeft, gridItem.Quantity);
+                                
+                                inventory.UpdateItemQuantity(targetItem.ItemID, targetItem.Quantity + toAdd);
+                                added = true;
+                                
+                                Debug.Log($"PickupStrategy: Stacked {toAdd} {gridItem.ItemName} with existing stack");
+                                
+                                // If still have remaining quantity after stacking, add new stack
+                                if (gridItem.Quantity > toAdd)
+                                {
+                                    gridItem.Quantity -= toAdd;
+                                    emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
+                                    if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                                    {
+                                        bool addedRemaining = inventory.AddItemToGrid(gridItem, emptyPos);
+                                        if (addedRemaining)
+                                        {
+                                            Debug.Log($"PickupStrategy: Added remaining {gridItem.Quantity} {gridItem.ItemName} as new stack");
+                                        }
+                                    }
+                                }
                             }
-                        }
+                            else
+                            {
+                                // No existing stack found, add as new item
+                                emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
+                                if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                                {
+                                    added = inventory.AddItemToGrid(gridItem, emptyPos);
+                                    Debug.Log($"PickupStrategy: Added {gridItem.ItemName} as new stack");
+                                }
+                            }
+                            break;
+                        case ItemType.Weapon:
+                            emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
+                            
+                            if (emptyPos.x >= 0 && emptyPos.y >= 0)
+                            {
+                                added = inventory.AddItemToGrid(gridItem, emptyPos);
+                                
+                                if (added)
+                                {
+                                    // Auto-equip weapon
+                                    AutoEquipIfWeapon(gridItem, playerController);
+                                }
+                            }
+                            break;
+                        case ItemType.Tool:
+                            break;
+                        case ItemType.Module:
+                            break;
                     }
                     
                     if (added)

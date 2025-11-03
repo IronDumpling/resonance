@@ -15,6 +15,7 @@ namespace Resonance.Utilities.GridSystem
         public int ItemID { get; set; }
         public string ItemName { get; set; }
         public ItemType ItemType { get; set; }
+        public ConsumableType ConsumableType { get; set; }
         
         // Stack information
         public int Quantity { get; set; }
@@ -32,11 +33,6 @@ namespace Resonance.Utilities.GridSystem
         
         // Equipped status
         public bool IsEquipped { get; set; }
-        
-        // Weapon-specific data
-        public int CurrentAmmo { get; set; }
-        public string AmmoType { get; set; }
-        public int MaxAmmo { get; set; }
         
         // Extra data
         public string AssetPath { get; set; }

@@ -11,13 +11,13 @@ using Resonance.Core.GlobalServices;
 namespace Resonance.Items
 {
     /// <summary>
-    /// Healant MonoBehaviour - Handles the visual and interaction system for healants
+    /// Energy Bottle MonoBehaviour - Handles the visual and interaction system for energy bottles
     /// Responsibilities: pickup, interact, visual animations
     /// </summary>
-    public class HealantMonoBehaviour : MonoBehaviour, IPickupable, IPausable
+    public class EnergyBottleMonoBehaviour : MonoBehaviour, IPickupable, IPausable
     {
-        [Header("Healant Configuration")]
-        [SerializeField] private HealantDataAsset _healantDataAsset;
+        [Header("Energy Bottle Configuration")]
+        [SerializeField] private EnergyBottleDataAsset _energyBottleDataAsset;
         
         [Header("Interaction")]
         [SerializeField] private string _interactionText = "E";
@@ -44,18 +44,18 @@ namespace Resonance.Items
         private IInteractionService _interactionService;
         private IAudioService _audioService;
         private ISelectivePauseService _selectivePauseService;
-        
+
         // Properties
-        public HealantDataAsset HealantData => _healantDataAsset;
+        public EnergyBottleDataAsset EnergyBottleData => _energyBottleDataAsset;
         public bool IsPickedUp => _isPickedUp;
         public string InteractionText => _interactionText;
 
         void Start()
         {
             // Validate data asset
-            if (_healantDataAsset == null)
+            if (_energyBottleDataAsset == null)
             {
-                Debug.LogError($"HealantMonoBehaviour: No HealantDataAsset assigned to {gameObject.name}!");
+                Debug.LogError($"EnergyBottleMonoBehaviour: No EnergyBottleDataAsset assigned to {gameObject.name}!");
                 return;
             }
 
@@ -119,7 +119,7 @@ namespace Resonance.Items
             _audioService = ServiceRegistry.Get<IAudioService>();
             if (_audioService == null)
             {
-                Debug.LogWarning("HealantMonoBehaviour: AudioService not found");
+                Debug.LogWarning("EnergyBottleMonoBehaviour: AudioService not found");
             }
         }
 
@@ -141,7 +141,7 @@ namespace Resonance.Items
             _interactionService = ServiceRegistry.Get<IInteractionService>();
             if (_interactionService == null)
             {
-                Debug.LogWarning("HealantMonoBehaviour: InteractionService not found");
+                Debug.LogWarning("EnergyBottleMonoBehaviour: InteractionService not found");
                 return;
             }
 
@@ -153,7 +153,7 @@ namespace Resonance.Items
             _selectivePauseService = ServiceRegistry.Get<ISelectivePauseService>();
             if (_selectivePauseService == null)
             {
-                Debug.LogWarning("HealantMonoBehaviour: SelectivePauseService not found");
+                Debug.LogWarning("EnergyBottleMonoBehaviour: SelectivePauseService not found");
                 return;
             }
 
@@ -165,7 +165,7 @@ namespace Resonance.Items
         #region IPickupable Implementation
 
         /// <summary>
-        /// Try to add this healant to inventory
+        /// Try to add this energy bottle to inventory
         /// Creates GridItem data and prepares for pickup
         /// </summary>
         public bool TryAddToInventory(out GridItem gridItem, out string failureReason)
@@ -179,30 +179,30 @@ namespace Resonance.Items
                 return false;
             }
 
-            if (_healantDataAsset == null)
+            if (_energyBottleDataAsset == null)
             {
                 failureReason = "Missing data asset";
                 return false;
             }
 
             // Create grid item for inventory
-            int itemID = _healantDataAsset.GetInstanceID();
+            int itemID = _energyBottleDataAsset.GetInstanceID();
             gridItem = new GridItem
             {
                 ItemID = itemID,
                 ItemType = ItemType.Consumable,
-                ConsumableType = ConsumableType.Healant,
-                GridWidth = _healantDataAsset.gridWidth,
-                GridHeight = _healantDataAsset.gridHeight,
+                ConsumableType = ConsumableType.EnergyBottle,
+                GridWidth = _energyBottleDataAsset.gridWidth,
+                GridHeight = _energyBottleDataAsset.gridHeight,
                 Quantity = 1,
-                MaxStackQuantity = _healantDataAsset.maxStackQuantity,
-                ItemIcon = _healantDataAsset.itemIcon,
-                ItemPrefab = _healantDataAsset.itemPrefab,
-                AssetPath = GetAssetPath(_healantDataAsset),
+                MaxStackQuantity = _energyBottleDataAsset.maxStackQuantity,
+                ItemIcon = _energyBottleDataAsset.itemIcon,
+                ItemPrefab = _energyBottleDataAsset.itemPrefab,
+                AssetPath = GetAssetPath(_energyBottleDataAsset),
                 Durability = 1f
             };
-            gridItem.CustomData["originalAsset"] = _healantDataAsset;
-            gridItem.CustomData["itemName"] = _healantDataAsset.itemName;
+            gridItem.CustomData["originalAsset"] = _energyBottleDataAsset;
+            gridItem.CustomData["itemName"] = _energyBottleDataAsset.itemName;
 
             return true;
         }
@@ -213,7 +213,7 @@ namespace Resonance.Items
         /// </summary>
         public void OnInventoryFull()
         {
-            Debug.LogWarning($"HealantMonoBehaviour: Inventory full, cannot pick up {_healantDataAsset?.itemName}");
+            Debug.LogWarning($"EnergyBottleMonoBehaviour: Inventory full, cannot pick up {_energyBottleDataAsset?.itemName}");
             // Reset pickup state but keep item in world
             _isPickedUp = false;
             // Could show special VFX or UI hint here
@@ -252,7 +252,7 @@ namespace Resonance.Items
                 gameObject.SetActive(false);
             }
 
-            Debug.Log($"HealantMonoBehaviour: Picked up {_healantDataAsset.itemName}");
+            Debug.Log($"EnergyBottleMonoBehaviour: Picked up {_energyBottleDataAsset.itemName}");
         }
 
         #endregion
@@ -262,7 +262,7 @@ namespace Resonance.Items
         // IInteractable base methods
         public bool CanInteract()
         {
-            return !_isPickedUp && _healantDataAsset != null;
+            return !_isPickedUp && _energyBottleDataAsset != null;
         }
 
         public float GetInteractionDuration()
@@ -277,7 +277,7 @@ namespace Resonance.Items
 
         public string GetInteractableName()
         {
-            return _healantDataAsset?.itemName ?? "Unknown Healant";
+            return _energyBottleDataAsset?.itemName ?? "Unknown Energy Bottle";
         }
 
         #endregion
@@ -324,3 +324,4 @@ namespace Resonance.Items
         #endregion
     }
 }
+

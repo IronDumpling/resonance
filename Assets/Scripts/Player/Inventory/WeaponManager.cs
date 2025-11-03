@@ -26,14 +26,10 @@ namespace Resonance.Player.Inventory
         // Events
         public System.Action<WeaponDataAsset> OnWeaponEquipped;
         public System.Action OnWeaponUnequipped;
-        public System.Action<int> OnAmmoChanged;
 
         // Properties
         public bool HasEquippedWeapon => _equippedWeaponID != -1 && _cachedWeaponAsset != null;
         public WeaponDataAsset CurrentWeapon => _cachedWeaponAsset;
-        public int CurrentAmmo => _cachedWeaponAsset?.CurrentAmmo ?? 0;
-        public int MaxAmmo => _cachedWeaponAsset?.maxAmmo ?? 0;
-        public string AmmoType => _cachedWeaponAsset?.ammoType ?? "None";
         public int EquippedWeaponID => _equippedWeaponID;
         
         public WeaponManager(PlayerInventory inventory)
@@ -86,7 +82,6 @@ namespace Resonance.Player.Inventory
             
             // Trigger events
             OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
-            OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
             
             Debug.Log($"WeaponManager: Equipped weapon {_cachedWeaponAsset.weaponName} (ID: {weaponItemID})");
             return true;
@@ -109,36 +104,6 @@ namespace Resonance.Player.Inventory
             
             // Trigger events
             OnWeaponUnequipped?.Invoke();
-            OnAmmoChanged?.Invoke(0);
-        }
-        
-        #endregion
-        
-        #region Combat Actions
-        
-        /// <summary>
-        /// Check if can shoot
-        /// </summary>
-        public bool CanShoot()
-        {
-            return HasEquippedWeapon && _cachedWeaponAsset.HasAmmo();
-        }
-        
-        /// <summary>
-        /// Consume one bullet
-        /// </summary>
-        public bool ConsumeAmmo()
-        {
-            if (!HasEquippedWeapon) return false;
-            
-            bool consumed = _cachedWeaponAsset.ConsumeAmmo();
-            if (consumed)
-            {
-                OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
-                Debug.Log($"WeaponManager: Ammo consumed. Remaining: {_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo}");
-            }
-            
-            return consumed;
         }
         
         #endregion
@@ -152,7 +117,7 @@ namespace Resonance.Player.Inventory
         {
             if (!HasEquippedWeapon) return "No Weapon";
             
-            return $"{_cachedWeaponAsset.weaponName} ({_cachedWeaponAsset.CurrentAmmo}/{_cachedWeaponAsset.maxAmmo} {_cachedWeaponAsset.ammoType})";
+            return $"{_cachedWeaponAsset.weaponName} (Energy Cost: {_cachedWeaponAsset.energyCostPerShot})";
         }
         
         #endregion
@@ -320,15 +285,6 @@ namespace Resonance.Player.Inventory
             
             AudioClipType audioClipType = AudioClipType.PistoArming;
             
-            if (gunData.ammoType == "Pisto")
-            {
-                audioClipType = AudioClipType.PistoArming;
-            }
-            else if (gunData.ammoType == "Rifle")
-            {
-                audioClipType = AudioClipType.RifleArming;
-            }
-            
             audioService.PlaySFX2D(audioClipType, 0.8f, 1f);
             Debug.Log($"WeaponManager: Played equip audio for {gunData.weaponName}");
         }
@@ -346,9 +302,6 @@ namespace Resonance.Player.Inventory
             {
                 equippedWeaponID = _equippedWeaponID,
                 weaponName = _cachedWeaponAsset?.weaponName ?? "",
-                currentAmmo = _cachedWeaponAsset?.CurrentAmmo ?? 0,
-                maxAmmo = _cachedWeaponAsset?.maxAmmo ?? 0,
-                ammoType = _cachedWeaponAsset?.ammoType ?? "",
                 assetPath = _cachedWeaponAsset != null ? GetAssetPath(_cachedWeaponAsset) : ""
             };
         }
@@ -379,16 +332,12 @@ namespace Resonance.Player.Inventory
                 {
                     _equippedWeaponID = saveData.equippedWeaponID;
                     
-                    // Restore ammo state
-                    _cachedWeaponAsset.SetCurrentAmmo(saveData.currentAmmo);
-                    
                     // Set equipped status in inventory (this will set IsEquipped flag)
                     _inventory.EquipWeapon(_equippedWeaponID);
                     
                     OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
-                    OnAmmoChanged?.Invoke(_cachedWeaponAsset.CurrentAmmo);
                     
-                    Debug.Log($"WeaponManager: Loaded and equipped weapon {_cachedWeaponAsset.weaponName} with {_cachedWeaponAsset.CurrentAmmo} ammo");
+                    Debug.Log($"WeaponManager: Loaded and equipped weapon {_cachedWeaponAsset.weaponName}");
                 }
             }
             else
@@ -429,7 +378,6 @@ namespace Resonance.Player.Inventory
             
             OnWeaponEquipped = null;
             OnWeaponUnequipped = null;
-            OnAmmoChanged = null;
             _cachedWeaponAsset = null;
             _inventory = null;
         }
@@ -445,18 +393,12 @@ namespace Resonance.Player.Inventory
     {
         public int equippedWeaponID;
         public string weaponName;
-        public int currentAmmo;
-        public int maxAmmo;
-        public string ammoType;
         public string assetPath;
         
         public WeaponManagerSaveData()
         {
             equippedWeaponID = -1;
             weaponName = "";
-            currentAmmo = 0;
-            maxAmmo = 0;
-            ammoType = "";
             assetPath = "";
         }
     }

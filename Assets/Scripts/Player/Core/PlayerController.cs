@@ -147,8 +147,9 @@ namespace Resonance.Player.Core
             _weaponManager = new WeaponManager(_inventory);
             _gridOperationManager = new InventoryOperationManager(_inventory, _weaponManager, _consumableManager);
             
-            // Set PlayerController reference for PlayerMovement (for state-based speed calculation)
+            // Set PlayerController reference for subsystems
             _movement.SetPlayerController(this);
+            _consumableManager.SetPlayerController(this);
 
             // Initialize state machine
             _stateMachine = new PlayerStateMachine(this);
@@ -487,7 +488,7 @@ namespace Resonance.Player.Core
         public void RestoreToFullHealth()
         {
             _stats.FullRestore();
-            _stats.crystalCore.FullRepairCoreHealth();
+            _stats.crystalCore.FullRestoreCoreHealth();
             OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
             OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             Debug.Log("PlayerController: All health restored to full");
@@ -508,7 +509,7 @@ namespace Resonance.Player.Core
         /// </summary>
         public void RestoreCoreHealth()
         {
-            _stats.crystalCore.FullRepairCoreHealth();
+            _stats.crystalCore.FullRestoreCoreHealth();
             OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
             Debug.Log("PlayerController: Core health restored to full");
         }
@@ -579,16 +580,33 @@ namespace Resonance.Player.Core
                 return new ShootingResult { success = false };
             }
 
-            // Consume ammo
-            if (!_weaponManager.ConsumeAmmo())
+            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
+            if (currentWeapon == null)
             {
-                Debug.LogWarning("PlayerController: Failed to consume ammo");
+                Debug.LogWarning("PlayerController: No weapon equipped");
                 return new ShootingResult { success = false };
             }
 
-            _lastAttackTime = Time.time;
+            // Check if player has enough energy to shoot
+            float requiredEnergy = currentWeapon.energyCostPerShot;
+            float currentEnergy = _stats.crystalCore.CurrentEnergy;
             
-            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
+            if (currentEnergy < requiredEnergy)
+            {
+                Debug.LogWarning($"PlayerController: Not enough energy to shoot. Required: {requiredEnergy}, Current: {currentEnergy}");
+                // Play out of energy sound feedback
+                if (_audioService != null)
+                {
+                    _audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.3f, 0.5f); // Placeholder feedback sound
+                }
+                return new ShootingResult { success = false };
+            }
+            
+            // Consume energy
+            _stats.crystalCore.ConsumeEnergy(requiredEnergy);
+            Debug.Log($"PlayerController: Consumed {requiredEnergy} energy. Remaining: {_stats.crystalCore.CurrentEnergy}");
+
+            _lastAttackTime = Time.time;
             
             // Perform shoot
             ShootingResult result = new ShootingResult { success = false };
@@ -597,18 +615,6 @@ namespace Resonance.Player.Core
                 // Pass aiming state to ShootingSystem
                 bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
                 result = _shootingSystem.PerformShoot(shootOrigin, currentWeapon, isAiming);
-                
-                // Core energy gain: ONLY from actual physical health damage
-                if (result.success && result.hasHit)
-                {
-                    float actualPhysicalDamage = result.GetActualDamage(DamageType.PhysicalHealth);
-                    if (actualPhysicalDamage > 0)
-                    {
-                        float coreGain = actualPhysicalDamage * _stats.physicalDamageToCoreEnergyRatio;
-                        GainCoreEnergy(coreGain);
-                        Debug.Log($"PlayerController: Gained {coreGain:F1} core energy from dealing {actualPhysicalDamage:F1} actual physical health damage");
-                    }
-                }
             }
             
             // Trigger shooting event
@@ -617,7 +623,7 @@ namespace Resonance.Player.Core
             Debug.Log($"PlayerController: Mouse-based shot fired with {currentWeapon.weaponName}. " +
                      $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
                      $"Total Base: {result.GetTotalBaseDamage():F1}, Total Actual: {result.GetTotalActualDamage():F1}, " +
-                     $"Remaining ammo: {currentWeapon.CurrentAmmo}");
+                     $"Energy Cost: {requiredEnergy}, Remaining Energy: {_stats.crystalCore.CurrentEnergy}");
             
             return result;
         }

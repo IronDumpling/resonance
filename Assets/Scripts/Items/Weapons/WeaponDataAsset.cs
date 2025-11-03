@@ -106,19 +106,18 @@ namespace Resonance.Items
         [TextArea(2, 4)]
         public string weaponDescription = "A basic firearm";
         
-        [Header("Ammo")]
-        public int maxAmmo = 8;
-        public string ammoType = "Pisto";
-        
-        // Runtime state - not serialized, reset each time
-        [System.NonSerialized] private int _currentAmmo = -1; // -1 means not initialized
+        [Header("Energy Cost")]
+        [Tooltip("Crystal Core Energy consumed per shot")]
+        [Range(1f, 50f)]
+        public float energyCostPerShot = 5f;
         
         [Header("Combat Stats")]
         public float range = 30f;
         public float fireRate = 1f; // shots per second
         
         [Header("Damage Configuration")]
-        public Damages damages;
+        [Tooltip("Base Balance damage (enemies only) - affected by accuracy multiplier")]
+        public float baseBalanceDamage = 10f;
         
         [Header("Accuracy Settings")]
         [Tooltip("Weapon accuracy configuration (required)")]
@@ -136,17 +135,6 @@ namespace Resonance.Items
         public int gridWidth = 3;
         public int gridHeight = 2;
 
-        // Runtime Properties
-        public int CurrentAmmo 
-        { 
-            get 
-            { 
-                if (_currentAmmo == -1) _currentAmmo = maxAmmo; // Initialize on first access
-                return _currentAmmo; 
-            } 
-            set { _currentAmmo = value; } 
-        }
-
         /// <summary>
         /// Validate Weapon data
         /// </summary>
@@ -159,15 +147,15 @@ namespace Resonance.Items
                 return false;
             }
 
-            if (maxAmmo <= 0)
+            if (energyCostPerShot <= 0)
             {
-                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid max ammo: {maxAmmo}");
+                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid energy cost: {energyCostPerShot}");
                 return false;
             }
 
-            if (damages.GetCount() == 0)
+            if (baseBalanceDamage <= 0)
             {
-                Debug.LogError($"WeaponDataAsset: {weaponName} has no valid damage (all damage types are 0)");
+                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid balance damage: {baseBalanceDamage}");
                 return false;
             }
 
@@ -188,129 +176,48 @@ namespace Resonance.Items
 
         #region Runtime Methods
 
-        /// <summary>
-        /// Check if there is ammo
-        /// </summary>
-        /// <returns>是否有弹药</returns>
-        public bool HasAmmo()
-        {
-            return CurrentAmmo > 0;
-        }
+        // Note: Ammo system removed - weapons now consume Crystal Core Energy instead
 
         /// <summary>
-        /// Check if there is full ammo
+        /// Create damage info with Balance damage only (for enemies)
+        /// Damage is affected by accuracy multiplier
         /// </summary>
-        /// <returns>Is full ammo</returns>
-        public bool IsFullAmmo()
-        {
-            return CurrentAmmo >= maxAmmo;
-        }
-
-        /// <summary>
-        /// Get ammo percentage
-        /// </summary>
-        /// <returns>Ammo percentage (0-1)</returns>
-        public float GetAmmoPercentage()
-        {
-            if (maxAmmo <= 0) return 0f;
-            return (float)CurrentAmmo / maxAmmo;
-        }
-
-        /// <summary>
-        /// Reset ammo to full ammo state
-        /// </summary>
-        public void ResetAmmo()
-        {
-            CurrentAmmo = maxAmmo;
-        }
-
-        /// <summary>
-        /// Consume one ammo
-        /// </summary>
-        /// <returns>Is success consume</returns>
-        public bool ConsumeAmmo()
-        {
-            if (CurrentAmmo > 0)
-            {
-                CurrentAmmo--;
-                return true;
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Set current ammo count
-        /// </summary>
-        /// <param name="ammoCount">Ammo count</param>
-        public void SetCurrentAmmo(int ammoCount)
-        {
-            CurrentAmmo = Mathf.Clamp(ammoCount, 0, maxAmmo);
-        }
-
-        /// <summary>
-        /// Create damage info structure with all configured damage types
-        /// </summary>
+        /// <param name="accuracyMultiplier">Damage multiplier from accuracy system (1.0 - 2.0)</param>
         /// <param name="sourcePosition">Damage source position</param>
         /// <param name="sourceObject">Damage source object</param>
-        /// <param name="damageMultiplier">Optional damage multiplier (from accuracy system)</param>
-        /// <returns>Damage info</returns>
-        public DamageInfo CreateDamageInfo(Vector3 sourcePosition, GameObject sourceObject = null, float damageMultiplier = 1f)
+        /// <returns>Damage info with Balance damage</returns>
+        public DamageInfo CreateDamageInfo(float accuracyMultiplier, Vector3 sourcePosition, GameObject sourceObject = null)
         {            
-            // Clone damages to avoid modifying the original
-            Damages damagesForThisShot = damages.Clone();
+            // Calculate final balance damage with accuracy multiplier
+            float finalBalanceDamage = baseBalanceDamage * accuracyMultiplier;
             
-            // Apply multiplier to the cloned damages
-            if (damagesForThisShot.HasDamage(DamageType.PhysicalHealth))
-            {
-                float physicalHealthDamage = damagesForThisShot.GetDamage(DamageType.PhysicalHealth);
-                damagesForThisShot.SetDamage(DamageType.PhysicalHealth, physicalHealthDamage * damageMultiplier);
-            }
-            
-            if (damagesForThisShot.HasDamage(DamageType.CoreHealth))
-            {
-                float coreHealthDamage = damagesForThisShot.GetDamage(DamageType.CoreHealth);
-                damagesForThisShot.SetDamage(DamageType.CoreHealth, coreHealthDamage * damageMultiplier);
-            }
-            
-            if (damagesForThisShot.HasDamage(DamageType.Balance))
-            {
-                float balanceDamage = damagesForThisShot.GetDamage(DamageType.Balance);
-                damagesForThisShot.SetDamage(DamageType.Balance, balanceDamage * damageMultiplier);
-            }
+            Damages damages = new Damages();
+            damages.SetDamage(DamageType.Balance, finalBalanceDamage);
             
             return new DamageInfo(
-                damages: damagesForThisShot,
+                damages: damages,
                 sourcePosition: sourcePosition,
                 sourceObject: sourceObject,
-                description: $"{weaponName} shot"
+                description: $"{weaponName} shot (Accuracy: {accuracyMultiplier:F2}x)"
             );
         }
         
         /// <summary>
-        /// Get damage type description text (lists all active damage types)
+        /// Get damage description text
         /// </summary>
-        /// <returns>Damage type description</returns>
+        /// <returns>Damage description</returns>
         public string GetDamageTypeDescription()
         {
-            List<string> damageTypes = new List<string>();
-            
-            if (damages.HasDamage(DamageType.PhysicalHealth))
-                damageTypes.Add($"Physical: {damages.GetDamage(DamageType.PhysicalHealth):F0}");
-            if (damages.HasDamage(DamageType.CoreHealth))
-                damageTypes.Add($"Core: {damages.GetDamage(DamageType.CoreHealth):F0}");
-            if (damages.HasDamage(DamageType.Balance))
-                damageTypes.Add($"Balance: {damages.GetDamage(DamageType.Balance):F0}");
-            
-            return damageTypes.Count > 0 ? string.Join(", ", damageTypes) : "No Damage";
+            return $"Balance: {baseBalanceDamage:F1}";
         }
         
         /// <summary>
-        /// Get total damage (sum of all damage types)
+        /// Get base damage value
         /// </summary>
-        /// <returns>Total damage</returns>
+        /// <returns>Base balance damage</returns>
         public float GetTotalDamage()
         {
-            return damages.GetTotalDamage();
+            return baseBalanceDamage;
         }
 
         /// <summary>
@@ -325,20 +232,16 @@ namespace Resonance.Items
             // Copy all properties
             copy.weaponName = this.weaponName;
             copy.weaponDescription = this.weaponDescription;
-            copy.maxAmmo = this.maxAmmo;
-            copy.ammoType = this.ammoType;
+            copy.energyCostPerShot = this.energyCostPerShot;
             copy.range = this.range;
             copy.fireRate = this.fireRate;
-            copy.damages = this.damages.Clone(); // Deep copy damages
+            copy.baseBalanceDamage = this.baseBalanceDamage;
             copy.accuracyConfig = this.accuracyConfig;
             copy.recoilConfig = this.recoilConfig;
             copy.weaponIcon = this.weaponIcon;
             copy.itemPrefab = this.itemPrefab;
             copy.gridWidth = this.gridWidth;
             copy.gridHeight = this.gridHeight;
-            
-            // Initialize runtime state
-            copy._currentAmmo = this.maxAmmo; // Start with full ammo
             
             return copy;
         }
@@ -375,7 +278,8 @@ namespace Resonance.Items
         void OnValidate()
         {
             // Ensure values are within reasonable range
-            maxAmmo = Mathf.Max(1, maxAmmo);
+            energyCostPerShot = Mathf.Max(1f, energyCostPerShot);
+            baseBalanceDamage = Mathf.Max(0.1f, baseBalanceDamage);
             range = Mathf.Max(1f, range);
             fireRate = Mathf.Max(0.1f, fireRate);
             gridWidth = Mathf.Clamp(gridWidth, 1, 10);

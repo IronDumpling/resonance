@@ -5,21 +5,22 @@ using Resonance.Items;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
+using Resonance.Player.Core;
 
 namespace Resonance.Player.Inventory
 {
     /// <summary>
-    /// ConsumableManager - Manage consumable items (ammo, etc.)
-    /// Responsibilities: add/consume ammo, stack same type ammo, manage consumable usage
+    /// ConsumableManager - Manage consumable items (EnergyBottle, Healant, etc.)
+    /// Responsibilities: manage consumable usage, stack same type consumables
     /// </summary>
     public class ConsumableManager
     {
         private PlayerInventory _inventory;
+        private PlayerController _playerController;
         
         // Events
-        public System.Action<string, int> OnAmmoAdded; // ammoType, amount
-        public System.Action<string, int> OnAmmoConsumed; // ammoType, amount
-        public System.Action<string, int, int> OnAmmoCountChanged; // ammoType, oldCount, newCount
+        public System.Action<ConsumableType> OnConsumableUsed; // consumableType
+        public System.Action<ConsumableType, int> OnConsumableCountChanged; // consumableType, newCount
         
         public ConsumableManager(PlayerInventory inventory)
         {
@@ -27,164 +28,185 @@ namespace Resonance.Player.Inventory
             Debug.Log("ConsumableManager: Initialized");
         }
         
-        #region Ammo Management
+        /// <summary>
+        /// Set PlayerController reference (needed for restoration effects)
+        /// </summary>
+        public void SetPlayerController(PlayerController playerController)
+        {
+            _playerController = playerController;
+        }
+        
+        #region Consumable Usage
         
         /// <summary>
-        /// Add ammo (smart stacking)
+        /// Use Energy Bottle - Restores Crystal Core Energy
+        /// Automatically finds and uses the first available EnergyBottle
         /// </summary>
-        public bool AddAmmo(string ammoType, GridItem gridItem)
+        public bool UseEnergyBottle()
         {
-            if (string.IsNullOrEmpty(ammoType) || gridItem.Quantity <= 0)
+            if (_playerController == null)
             {
-                Debug.LogWarning($"ConsumableManager: Invalid ammo parameters - type: {ammoType}, amount: {gridItem.Quantity}");
+                Debug.LogWarning("ConsumableManager: PlayerController not set");
                 return false;
             }
             
-            Debug.Log($"ConsumableManager: Adding {gridItem.Quantity} {ammoType} ammo (Icon={gridItem.ItemIcon != null}, Prefab={gridItem.ItemPrefab != null}, AssetPath={gridItem.AssetPath})");
-            
-            // Find existing ammo of the same type
-            var existingAmmo = _inventory.GetItemsByType(ItemType.Consumable)
-                .Where(item => item.CustomData.ContainsKey("ammoType") && 
-                              item.CustomData["ammoType"].ToString() == ammoType)
-                .ToList();
-            
-            int remainingAmount = gridItem.Quantity;
-            
-            // Try to stack onto existing ammo
-            foreach (var ammo in existingAmmo)
+            // Find first energy bottle in inventory
+            var energyBottle = GetConsumableByType(ConsumableType.EnergyBottle);
+            if (energyBottle == null)
             {
-                if (ammo.Quantity < ammo.MaxStackQuantity)
-                {
-                    int canAdd = Mathf.Min(remainingAmount, ammo.MaxStackQuantity - ammo.Quantity);
-                    int newQuantity = ammo.Quantity + canAdd;
-                    
-                    _inventory.UpdateItemQuantity(ammo.ItemID, newQuantity);
-                    remainingAmount -= canAdd;
-                    
-                    Debug.Log($"ConsumableManager: Stacked {canAdd} to existing ammo. New quantity: {newQuantity}");
-                    
-                    if (remainingAmount <= 0) break;
-                }
+                Debug.LogWarning("ConsumableManager: No Energy Bottle in inventory");
+                return false;
             }
             
-            // If there's remaining, create a new stack
-            while (remainingAmount > 0)
-            {
-                int newStackAmount = Mathf.Min(remainingAmount, gridItem.MaxStackQuantity);
-                
-                if (!CreateNewAmmoStack(ammoType, gridItem))
-                {
-                    Debug.LogWarning($"ConsumableManager: Failed to create new ammo stack. Remaining: {remainingAmount}");
-                    break;
-                }
-                
-                remainingAmount -= newStackAmount;
-                Debug.Log($"ConsumableManager: Created new ammo stack with {newStackAmount}. Remaining: {remainingAmount}");
-            }
-            
-            int totalAdded = gridItem.Quantity - remainingAmount;
-            if (totalAdded > 0)
-            {
-                OnAmmoAdded?.Invoke(ammoType, totalAdded);
-                int newTotal = GetTotalAmmoCount(ammoType);
-                OnAmmoCountChanged?.Invoke(ammoType, newTotal - totalAdded, newTotal);
-                Debug.Log($"ConsumableManager: Successfully added {totalAdded} {ammoType} ammo. Total: {newTotal}");
-                return true;
-            }
-            
-            return false;
+            return UseEnergyBottle(energyBottle);
         }
         
         /// <summary>
-        /// Consume ammo
+        /// Use specific Energy Bottle - Restores Crystal Core Energy
+        /// Consumes one full bottle and restores energy by configured amount
+        /// Overflow energy is ignored (capped at MaxEnergy)
         /// </summary>
-        public bool ConsumeAmmo(string ammoType, int amount)
+        public bool UseEnergyBottle(GridItem energyBottle)
         {
-            if (string.IsNullOrEmpty(ammoType) || amount <= 0)
-                return false;
-            
-            int totalAvailable = GetTotalAmmoCount(ammoType);
-            if (totalAvailable < amount)
+            if (_playerController == null)
             {
-                Debug.LogWarning($"ConsumableManager: Not enough {ammoType} ammo - need {amount}, have {totalAvailable}");
+                Debug.LogWarning("ConsumableManager: PlayerController not set");
                 return false;
             }
             
-            Debug.Log($"ConsumableManager: Consuming {amount} {ammoType} ammo");
-            
-            // Get all ammo of the same type, sorted by quantity
-            var ammoStacks = _inventory.GetItemsByType(ItemType.Consumable)
-                .Where(item => item.CustomData.ContainsKey("ammoType") && 
-                              item.CustomData["ammoType"].ToString() == ammoType)
-                .OrderBy(item => item.Quantity)
-                .ToList();
-            
-            int remainingToConsume = amount;
-            
-            foreach (var ammo in ammoStacks)
+            if (energyBottle == null || energyBottle.ConsumableType != ConsumableType.EnergyBottle)
             {
-                int consumeFromThis = Mathf.Min(remainingToConsume, ammo.Quantity);
-                int newQuantity = ammo.Quantity - consumeFromThis;
-                
-                _inventory.UpdateItemQuantity(ammo.ItemID, newQuantity); // If it reaches zero, it will be automatically removed
-                remainingToConsume -= consumeFromThis;
-                
-                Debug.Log($"ConsumableManager: Consumed {consumeFromThis} from stack. New quantity: {newQuantity}");
-                
-                if (remainingToConsume <= 0) break;
+                Debug.LogWarning("ConsumableManager: Invalid EnergyBottle item");
+                return false;
             }
             
-            OnAmmoConsumed?.Invoke(ammoType, amount);
-            int newTotal = GetTotalAmmoCount(ammoType);
-            OnAmmoCountChanged?.Invoke(ammoType, totalAvailable, newTotal);
+            // Load the data asset to get restoration amount
+            var dataAsset = LoadEnergyBottleAsset(energyBottle.AssetPath);
+            if (dataAsset == null)
+            {
+                Debug.LogError($"ConsumableManager: Failed to load EnergyBottleDataAsset from {energyBottle.AssetPath}");
+                return false;
+            }
             
-            Debug.Log($"ConsumableManager: Consumed {amount} {ammoType} ammo. Remaining: {newTotal}");
+            var crystalCore = _playerController.Stats.crystalCore;
+            float energyBefore = crystalCore.CurrentEnergy;
+            
+            // Restore full configured amount (RestoreEnergy will handle capping at MaxEnergy)
+            crystalCore.AddEnergy(dataAsset.energyRestoreAmount);
+            
+            float energyAfter = crystalCore.CurrentEnergy;
+            float actualRestored = energyAfter - energyBefore;
+            
+            // Consume one unit
+            ConsumeOne(energyBottle.ItemID);
+            
+            OnConsumableUsed?.Invoke(ConsumableType.EnergyBottle);
+            int remaining = GetConsumableCount(ConsumableType.EnergyBottle);
+            OnConsumableCountChanged?.Invoke(ConsumableType.EnergyBottle, remaining);
+            
+            Debug.Log($"ConsumableManager: Used Energy Bottle. Configured: {dataAsset.energyRestoreAmount:F1}, Actual: {actualRestored:F1} energy. Energy: {energyAfter:F1}/{crystalCore.MaxEnergy:F1}, Remaining bottles: {remaining}");
             return true;
         }
         
         /// <summary>
-        /// Get total ammo count
+        /// Use Healant - Restores Crystal Core Health
+        /// Automatically finds and uses the first available Healant
         /// </summary>
-        public int GetTotalAmmoCount(string ammoType)
+        public bool UseHealant()
         {
-            if (string.IsNullOrEmpty(ammoType))
-                return 0;
+            if (_playerController == null)
+            {
+                Debug.LogWarning("ConsumableManager: PlayerController not set");
+                return false;
+            }
             
+            // Find first healant in inventory
+            var healant = GetConsumableByType(ConsumableType.Healant);
+            if (healant == null)
+            {
+                Debug.LogWarning("ConsumableManager: No Healant in inventory");
+                return false;
+            }
+            
+            return UseHealant(healant);
+        }
+        
+        /// <summary>
+        /// Use specific Healant - Restores Crystal Core Health
+        /// Consumes one full healant and restores core health by configured amount
+        /// Overflow health is ignored (capped at MaxCoreHealth)
+        /// </summary>
+        public bool UseHealant(GridItem healant)
+        {
+            if (_playerController == null)
+            {
+                Debug.LogWarning("ConsumableManager: PlayerController not set");
+                return false;
+            }
+            
+            if (healant == null || healant.ConsumableType != ConsumableType.Healant)
+            {
+                Debug.LogWarning("ConsumableManager: Invalid Healant item");
+                return false;
+            }
+            
+            // Load the data asset to get restoration amount
+            var dataAsset = LoadHealantAsset(healant.AssetPath);
+            if (dataAsset == null)
+            {
+                Debug.LogError($"ConsumableManager: Failed to load HealantDataAsset from {healant.AssetPath}");
+                return false;
+            }
+            
+            var crystalCore = _playerController.Stats.crystalCore;
+            float healthBefore = crystalCore.CurrentCoreHealth;
+            
+            // Restore full configured amount (RestoreCoreHealth will handle capping at MaxCoreHealth)
+            crystalCore.RestoreCoreHealth(dataAsset.coreHealthRestoreAmount);
+            
+            float healthAfter = crystalCore.CurrentCoreHealth;
+            float actualRestored = healthAfter - healthBefore;
+            
+            // Consume one unit
+            ConsumeOne(healant.ItemID);
+            
+            OnConsumableUsed?.Invoke(ConsumableType.Healant);
+            int remaining = GetConsumableCount(ConsumableType.Healant);
+            OnConsumableCountChanged?.Invoke(ConsumableType.Healant, remaining);
+            
+            Debug.Log($"ConsumableManager: Used Healant. Configured: {dataAsset.coreHealthRestoreAmount:F1}, Actual: {actualRestored:F1} core health. Health: {healthAfter:F1}/{crystalCore.MaxCoreHealth:F1}, Remaining healants: {remaining}");
+            return true;
+        }
+        
+        #endregion
+        
+        #region Query Methods
+        
+        /// <summary>
+        /// Get first consumable of specified type
+        /// </summary>
+        private GridItem GetConsumableByType(ConsumableType consumableType)
+        {
             return _inventory.GetItemsByType(ItemType.Consumable)
-                .Where(item => item.CustomData.ContainsKey("ammoType") && 
-                              item.CustomData["ammoType"].ToString() == ammoType)
+                .FirstOrDefault(item => item.ConsumableType == consumableType);
+        }
+        
+        /// <summary>
+        /// Get total count of specific consumable type
+        /// </summary>
+        public int GetConsumableCount(ConsumableType consumableType)
+        {
+            return _inventory.GetItemsByType(ItemType.Consumable)
+                .Where(item => item.ConsumableType == consumableType)
                 .Sum(item => item.Quantity);
         }
         
         /// <summary>
-        /// Check if there's enough ammo
+        /// Check if player has specific consumable
         /// </summary>
-        public bool HasAmmo(string ammoType, int amount = 1)
+        public bool HasConsumable(ConsumableType consumableType, int amount = 1)
         {
-            return GetTotalAmmoCount(ammoType) >= amount;
-        }
-        
-        /// <summary>
-        /// Get all ammo types and quantities
-        /// </summary>
-        public Dictionary<string, int> GetAllAmmo()
-        {
-            var ammoDict = new Dictionary<string, int>();
-            
-            var allAmmo = _inventory.GetItemsByType(ItemType.Consumable)
-                .Where(item => item.CustomData.ContainsKey("ammoType"));
-            
-            foreach (var ammo in allAmmo)
-            {
-                string ammoType = ammo.CustomData["ammoType"].ToString();
-                if (!ammoDict.ContainsKey(ammoType))
-                {
-                    ammoDict[ammoType] = 0;
-                }
-                ammoDict[ammoType] += ammo.Quantity;
-            }
-            
-            return ammoDict;
+            return GetConsumableCount(consumableType) >= amount;
         }
         
         #endregion
@@ -253,14 +275,8 @@ namespace Resonance.Player.Inventory
             if (sourceItem.ItemType != ItemType.Consumable)
                 return false;
             
-            // Must be the same type of ammo
-            if (sourceItem.CustomData.ContainsKey("ammoType") && targetItem.CustomData.ContainsKey("ammoType"))
-            {
-                return sourceItem.CustomData["ammoType"].ToString() == targetItem.CustomData["ammoType"].ToString();
-            }
-            
-            // Other consumables check ItemName
-            return sourceItem.ItemName == targetItem.ItemName;
+            // Must be the same consumable type
+            return sourceItem.ConsumableType == targetItem.ConsumableType;
         }
         
         #endregion
@@ -268,48 +284,47 @@ namespace Resonance.Player.Inventory
         #region Internal Helper Methods
         
         /// <summary>
-        /// Create a new ammo stack
+        /// Consume one unit of a consumable
         /// </summary>
-        private bool CreateNewAmmoStack(string ammoType, GridItem gridItem)
+        private void ConsumeOne(int itemID)
         {
-            // Find empty space
-            Vector2Int emptyPos = _inventory.FindEmptySpace(1, 1); // Ammo takes 1x1 grid
-            if (emptyPos.x < 0 || emptyPos.y < 0)
-            {
-                Debug.LogWarning("ConsumableManager: No empty space for new ammo stack");
-                return false;
-            }
+            var item = _inventory.GetItemByID(itemID);
+            if (item == null) return;
             
-            // Create new ammo data
-            var ammoData = new GridItem
-            {
-                ItemID = GenerateUniqueItemID(),
-                ItemName = gridItem.ItemName,
-                ItemType = ItemType.Consumable,
-                Quantity = gridItem.Quantity,
-                MaxStackQuantity = gridItem.MaxStackQuantity,
-                GridWidth = gridItem.GridWidth,
-                GridHeight = gridItem.GridHeight,
-                GridPosition = emptyPos,
-                Rotation = 0,
-                ItemIcon = gridItem.ItemIcon,      
-                ItemPrefab = gridItem.ItemPrefab,
-                AssetPath = gridItem.AssetPath 
-            };
+            int newQuantity = item.Quantity - 1;
+            _inventory.UpdateItemQuantity(itemID, newQuantity);
             
-            ammoData.CustomData["ammoType"] = ammoType;
-            
-            // Add to inventory
-            return _inventory.AddItemToGrid(ammoData, emptyPos);
+            Debug.Log($"ConsumableManager: Consumed one {item.ItemName}. Remaining: {newQuantity}");
         }
         
         /// <summary>
-        /// Generate unique item ID
+        /// Load EnergyBottleDataAsset from asset path
         /// </summary>
-        private int GenerateUniqueItemID()
+        private EnergyBottleDataAsset LoadEnergyBottleAsset(string assetPath)
         {
-            // Use timestamp + random number to generate unique ID
-            return (int)(System.DateTime.Now.Ticks & 0x7FFFFFFF) + Random.Range(0, 10000);
+            if (string.IsNullOrEmpty(assetPath))
+                return null;
+                
+            #if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<EnergyBottleDataAsset>(assetPath);
+            #else
+            return Resources.Load<EnergyBottleDataAsset>(assetPath);
+            #endif
+        }
+        
+        /// <summary>
+        /// Load HealantDataAsset from asset path
+        /// </summary>
+        private HealantDataAsset LoadHealantAsset(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath))
+                return null;
+                
+            #if UNITY_EDITOR
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<HealantDataAsset>(assetPath);
+            #else
+            return Resources.Load<HealantDataAsset>(assetPath);
+            #endif
         }
         
         #endregion
@@ -318,12 +333,11 @@ namespace Resonance.Player.Inventory
         
         public void Cleanup()
         {
-            OnAmmoAdded = null;
-            OnAmmoConsumed = null;
-            OnAmmoCountChanged = null;
+            OnConsumableUsed = null;
+            OnConsumableCountChanged = null;
+            _playerController = null;
         }
         
         #endregion
     }
 }
-

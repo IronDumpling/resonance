@@ -183,7 +183,7 @@ namespace Resonance.Player.Data
         public void FullRestore()
         {
             currentHealth = maxHealth;
-            crystalCore?.FullRepairCoreHealth();
+            crystalCore?.FullRestoreCoreHealth();
 
             UpdateHealthTier();
             OnHealthChanged?.Invoke(currentHealth, maxHealth);

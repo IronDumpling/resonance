@@ -63,6 +63,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2739989995435518676}
+  - component: {fileID: 5113301283053037911}
   m_Layer: 7
   m_Name: EnergyBottle
   m_TagString: Untagged
@@ -87,6 +88,29 @@ Transform:
   - {fileID: 247737482990977618}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5113301283053037911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1888247229399058588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c695d671a0363e42a12609824b68f90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Resonance.Items.EnergyBottleMonoBehaviour
+  _energyBottleDataAsset: {fileID: 11400000, guid: 6317454c2037d04488b912bed37495c3, type: 2}
+  _interactionText: E
+  _interactionDuration: 0.2
+  _pickupVisual: {fileID: 0}
+  _rotateWhenIdle: 1
+  _rotationSpeed: 30
+  _bobUpAndDown: 1
+  _bobSpeed: 2
+  _bobHeight: 0.2
+  _interactUI: {fileID: 0}
+  _interactTextComponent: {fileID: 0}
 --- !u!1 &2918300675373275616
 GameObject:
   m_ObjectHideFlags: 0

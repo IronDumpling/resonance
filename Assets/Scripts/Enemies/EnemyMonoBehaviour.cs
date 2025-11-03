@@ -811,7 +811,7 @@ namespace Resonance.Enemies
             if (!IsInitialized) return;
 
             _enemyController.Stats.FullRestore();
-            _enemyController.Stats.crystalCore.FullRepairCoreHealth();
+            _enemyController.Stats.crystalCore.FullRestoreCoreHealth();
             SetMaterial(_normalMaterial);
             
             Debug.Log($"EnemyMonoBehaviour: {gameObject.name} reset to full balance and health");

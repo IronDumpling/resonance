@@ -1,14 +1,16 @@
 using UnityEngine;
+using System.Linq;
 using Resonance.Player.Core;
 using Resonance.Interfaces.Operations;
 using Resonance.Core;
 using Resonance.Interfaces.Services;
 using Resonance.Utilities;
+using Resonance.Utilities.Types;
 
 namespace Resonance.Player.Actions
 {
     /// <summary>
-    /// Player reload action that handles weapon reloading from player's ammo inventory
+    /// Player reload action that restores Crystal Core energy by consuming EnergyBottle from inventory
     /// </summary>
     public class PlayerReloadAction : IPlayerAction
     {
@@ -23,9 +25,6 @@ namespace Resonance.Player.Actions
         // Runtime state
         private float _actionTimer;
         private bool _isActive;
-        private string _ammoType;
-        private int _ammoNeeded;
-        private int _playerAmmoAvailable;
 
         // Services
         private IAudioService _audioService;
@@ -35,13 +34,7 @@ namespace Resonance.Player.Actions
             // Check basic conditions
             if (!playerController.IsAlive)
             {
-                Debug.Log("PlayerReloadAction: Cannot reload - player not healthly alive");
-                return false;
-            }
-
-            if (!playerController.HasEquippedWeapon)
-            {
-                Debug.Log("PlayerReloadAction: Cannot reload - no weapon equipped");
+                Debug.Log("PlayerReloadAction: Cannot reload - player not alive");
                 return false;
             }
 
@@ -62,33 +55,26 @@ namespace Resonance.Player.Actions
                 }
             }
 
-            var weaponManager = playerController.WeaponManager;
-            if (weaponManager?.CurrentWeapon == null)
+            // Check if player energy is already full
+            var crystalCore = playerController.Stats.crystalCore;
+            if (crystalCore.CurrentEnergy >= crystalCore.MaxEnergy)
             {
-                Debug.Log("PlayerReloadAction: Cannot reload - no current gun");
+                Debug.Log("PlayerReloadAction: Cannot reload - Crystal Core energy already full");
                 return false;
             }
 
-            var currentWeapon = weaponManager.CurrentWeapon;
+            // Check if player has EnergyBottle in inventory
+            var energyBottles = playerController.Inventory?.GetItemsByType(ItemType.Consumable)
+                .Where(item => item.ConsumableType == ConsumableType.EnergyBottle)
+                .ToList();
             
-            // Check if weapon is already full
-            if (currentWeapon.CurrentAmmo >= currentWeapon.maxAmmo)
+            if (energyBottles == null || energyBottles.Count == 0)
             {
-                Debug.Log("PlayerReloadAction: Cannot reload - weapon already full");
+                Debug.Log("PlayerReloadAction: Cannot reload - no EnergyBottle in inventory");
                 return false;
             }
 
-            // Check if player has compatible ammo in inventory
-            string weaponAmmoType = currentWeapon.ammoType;
-            int playerAmmoCount = playerController.Inventory?.GetAmmoCount(weaponAmmoType) ?? 0;
-            
-            if (playerAmmoCount <= 0)
-            {
-                Debug.Log($"PlayerReloadAction: Cannot reload - no {weaponAmmoType} ammo in inventory");
-                return false;
-            }
-
-            Debug.Log($"PlayerReloadAction: Can start reload - weapon needs {currentWeapon.maxAmmo - currentWeapon.CurrentAmmo} ammo, player has {playerAmmoCount}");
+            Debug.Log($"PlayerReloadAction: Can start reload - Current energy: {crystalCore.CurrentEnergy}/{crystalCore.MaxEnergy}, EnergyBottles: {energyBottles.Count}");
             return true;
         }
 
@@ -101,12 +87,8 @@ namespace Resonance.Player.Actions
             // Get audio service
             _audioService = ServiceRegistry.Get<IAudioService>();
 
-            var currentWeapon = playerController.WeaponManager.CurrentWeapon;
-            _ammoType = currentWeapon.ammoType;
-            _ammoNeeded = currentWeapon.maxAmmo - currentWeapon.CurrentAmmo;
-            _playerAmmoAvailable = playerController.Inventory?.GetAmmoCount(_ammoType) ?? 0;
-
-            Debug.Log($"PlayerReloadAction: Started reload - need {_ammoNeeded} {_ammoType} ammo, player has {_playerAmmoAvailable}");
+            var crystalCore = playerController.Stats.crystalCore;
+            Debug.Log($"PlayerReloadAction: Started energy reload - Current: {crystalCore.CurrentEnergy}/{crystalCore.MaxEnergy}");
 
             // Play reload start audio
             PlayReloadStartAudio(playerController);
@@ -149,8 +131,8 @@ namespace Resonance.Player.Actions
         {
             if (!_isActive) return;
 
-            var currentWeapon = playerController.WeaponManager.CurrentWeapon;
             var inventory = playerController.Inventory;
+            var consumableManager = playerController.ConsumableManager;
 
             if (inventory == null)
             {
@@ -159,29 +141,47 @@ namespace Resonance.Player.Actions
                 return;
             }
 
-            // Calculate actual ammo transfer
-            int ammoToTransfer;
-            if (_playerAmmoAvailable >= _ammoNeeded)
+            if (consumableManager == null)
             {
-                // Player has enough ammo to fill weapon completely
-                ammoToTransfer = _ammoNeeded;
-                currentWeapon.SetCurrentAmmo(currentWeapon.maxAmmo);
-                inventory.ConsumeAmmo(_ammoType, _ammoNeeded);
+                Debug.LogError("PlayerReloadAction: ConsumableManager is null, cannot complete reload");
+                Cancel(playerController);
+                return;
+            }
+
+            // Find first EnergyBottle in inventory
+            var energyBottles = inventory.GetItemsByType(ItemType.Consumable)
+                .Where(item => item.ConsumableType == ConsumableType.EnergyBottle)
+                .OrderBy(item => item.ItemID)
+                .ToList();
+            
+            if (energyBottles.Count == 0)
+            {
+                Debug.LogWarning("PlayerReloadAction: No EnergyBottle found during reload completion");
+                Cancel(playerController);
+                return;
+            }
+
+            var energyBottle = energyBottles[0];
+            var crystalCore = playerController.Stats.crystalCore;
+            float energyBefore = crystalCore.CurrentEnergy;
+
+            // Use the EnergyBottle through ConsumableManager
+            bool success = consumableManager.UseEnergyBottle(energyBottle);
+            
+            if (success)
+            {
+                float energyAfter = crystalCore.CurrentEnergy;
+                float energyRestored = energyAfter - energyBefore;
+                Debug.Log($"PlayerReloadAction: Successfully consumed EnergyBottle, restored {energyRestored} energy");
+                Debug.Log($"PlayerReloadAction: Crystal Core Energy: {energyAfter}/{crystalCore.MaxEnergy}");
+                
+                // Play reload complete audio
+                PlayReloadCompleteAudio(playerController);
             }
             else
             {
-                // Player doesn't have enough ammo, transfer all available
-                ammoToTransfer = _playerAmmoAvailable;
-                currentWeapon.SetCurrentAmmo(currentWeapon.CurrentAmmo + _playerAmmoAvailable);
-                inventory.ConsumeAmmo(_ammoType, _playerAmmoAvailable);
+                Debug.LogWarning("PlayerReloadAction: Failed to consume EnergyBottle");
             }
-
-            Debug.Log($"PlayerReloadAction: Reload completed - transferred {ammoToTransfer} {_ammoType} ammo");
-            Debug.Log($"PlayerReloadAction: Weapon ammo: {currentWeapon.CurrentAmmo}/{currentWeapon.maxAmmo}");
-            Debug.Log($"PlayerReloadAction: Player {_ammoType} ammo remaining: {inventory.GetAmmoCount(_ammoType)}");
-
-            // Play reload complete audio
-            PlayReloadCompleteAudio(playerController);
 
             _isActive = false;
             IsFinished = true;
@@ -191,32 +191,24 @@ namespace Resonance.Player.Actions
         {
             if (_audioService == null) return;
 
-            // Play reload start sound - using existing WeaponReload type
-            string weaponAmmoType = playerController.WeaponManager.CurrentWeapon.ammoType;
-            if (weaponAmmoType == "Pisto")
-            {
-                _audioService.PlaySFX2D(AudioClipType.WeaponReloadPistol, 0.8f, 1f);
-            }
-            else if (weaponAmmoType == "Rifle")
-            {
-                _audioService.PlaySFX2D(AudioClipType.WeaponReloadRifle, 0.8f, 1f);
-            }
+            // Play energy reload start sound - using item pickup sound
+            _audioService.PlaySFX2D(AudioClipType.ItemPickup, 0.7f, 0.9f);
         }
 
         private void PlayReloadCompleteAudio(PlayerController playerController)
         {
             if (_audioService == null) return;
 
-            // Play reload complete sound - using WeaponCock for completion sound
-            _audioService.PlaySFX2D(AudioClipType.WeaponCock, 0.8f, 1f);
+            // Play energy reload complete sound - using crystal core charge sound
+            _audioService.PlaySFX2D(AudioClipType.WeaponReloadPistol, 0.8f, 1f);
         }
 
         private void PlayReloadCancelAudio(PlayerController playerController)
         {
             if (_audioService == null) return;
 
-            // Play reload cancel sound - using lower volume WeaponEmpty for cancel
-            _audioService.PlaySFX2D(AudioClipType.WeaponEmpty, 0.4f, 1f);
+            // Play reload cancel sound - using lower volume
+            _audioService.PlaySFX2D(AudioClipType.UIButtonClick, 0.4f, 1f);
         }
     }
 }

@@ -15,7 +15,8 @@ namespace Resonance.Utilities.Types
 
     public enum ConsumableType
     {
-        Ammo,
-        CoreHealth
+        EnergyBottle,
+        Healant,
+        None
     }
 }

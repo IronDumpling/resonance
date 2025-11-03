@@ -239,7 +239,7 @@ namespace Resonance.Enemies.Data
         public void FullRestore()
         {
             currentBalance = maxBalance;
-            crystalCore?.FullRepairCoreHealth();
+            crystalCore?.FullRestoreCoreHealth();
 
             UpdateBalanceTier();
             OnBalanceChanged?.Invoke(currentBalance, maxBalance);

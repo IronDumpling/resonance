@@ -642,6 +642,7 @@ namespace Resonance.Player.Inventory
                     itemID = item.ItemID,
                     ItemName = item.ItemName,
                     itemType = item.ItemType.ToString(),
+                    consumableType = item.ConsumableType.ToString(),
                     quantity = item.Quantity,
                     maxStackQuantity = item.MaxStackQuantity,
                     gridWidth = item.GridWidth,
@@ -649,9 +650,6 @@ namespace Resonance.Player.Inventory
                     rotation = item.Rotation,
                     gridPosition = item.GridPosition,
                     isEquipped = item.IsEquipped,
-                    currentAmmo = item.CurrentAmmo,
-                    ammoType = item.AmmoType,
-                    maxAmmo = item.MaxAmmo,
                     assetPath = item.AssetPath,
                     durability = item.Durability,
                     customData = SerializableDictionary.FromDictionary(item.CustomData)
@@ -701,12 +699,19 @@ namespace Resonance.Player.Inventory
                         continue;
                     }
                     
+                    if (!System.Enum.TryParse<ConsumableType>(cellSaveData.consumableType, out var consumableType))
+                    {
+                        Debug.LogWarning($"PlayerInventory: Invalid consumable type '{cellSaveData.consumableType}' for item {cellSaveData.itemID}");
+                        continue;
+                    }
+                    
                     // Create GridItem
                     var gridItem = new GridItem
                     {
                         ItemID = cellSaveData.itemID,
                         ItemName = cellSaveData.ItemName,
                         ItemType = itemType,
+                        ConsumableType = consumableType,
                         Quantity = cellSaveData.quantity,
                         MaxStackQuantity = cellSaveData.maxStackQuantity,
                         GridWidth = cellSaveData.gridWidth,
@@ -714,9 +719,6 @@ namespace Resonance.Player.Inventory
                         Rotation = cellSaveData.rotation,
                         GridPosition = cellSaveData.gridPosition,
                         IsEquipped = cellSaveData.isEquipped,
-                        CurrentAmmo = cellSaveData.currentAmmo,
-                        AmmoType = cellSaveData.ammoType,
-                        MaxAmmo = cellSaveData.maxAmmo,
                         AssetPath = cellSaveData.assetPath,
                         Durability = cellSaveData.durability,
                         CustomData = cellSaveData.customData.ToDictionary()
@@ -781,6 +783,13 @@ namespace Resonance.Player.Inventory
                     }
                     break;
                 case ItemType.Consumable:
+                    switch (gridItem.ConsumableType)
+                    {
+                        case ConsumableType.EnergyBottle:
+                            break;
+                        case ConsumableType.Healant:
+                            break;
+                    }
                     break;
                 default:
                     break;

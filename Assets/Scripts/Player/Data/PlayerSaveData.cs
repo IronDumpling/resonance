@@ -82,6 +82,7 @@ namespace Resonance.Player.Data
         public int itemID;
         public string ItemName;
         public string itemType; // Store as string for serialization
+        public string consumableType; // Store as string for serialization
         
         // Stack info
         public int quantity;
@@ -95,11 +96,6 @@ namespace Resonance.Player.Data
         
         // Equip status
         public bool isEquipped;
-        
-        // Weapon-specific data
-        public int currentAmmo;
-        public string ammoType;
-        public int maxAmmo;
         
         // Additional data
         public string assetPath;
