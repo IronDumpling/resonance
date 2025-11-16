@@ -11,6 +11,7 @@ using Resonance.Enemies.Triggers;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
+using Resonance.Utilities.Waves.WavePhenomenons;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.UI
@@ -572,39 +573,19 @@ namespace Resonance.UI
         
         /// <summary>
         /// Calculate wave match percentage (0-100%)
-        /// Compares source and target wave values at all sample points
+        /// Uses WaveSuperposition to calculate match between source and target waves
         /// </summary>
         private float CalculateWaveMatch()
         {
-            float totalDifference = 0f;
-            int sampleCount = Wave.WaveformResolution;
-            
-            // Sample both waves at the same points
-            for (int i = 0; i < sampleCount; i++)
+            if (_sourceWave == null || _targetWave == null)
             {
-                float t = (float)i / (sampleCount - 1); // 0 to 1
-                
-                // Source wave with current scroll offset
-                float sourceNormalizedPos = (t + _scrollOffset) % 1f;
-                float sourceValue = _sourceWave.GetWaveValue(sourceNormalizedPos);
-                
-                // Target wave (stationary)
-                float targetValue = _targetWave.GetWaveValue(t);
-                
-                // Calculate absolute difference (normalized to 0-2 range since values are -1 to 1)
-                float difference = Mathf.Abs(sourceValue - targetValue);
-                totalDifference += difference;
+                Debug.LogWarning("WavePanel: Cannot calculate wave match - waves are null");
+                return 0f;
             }
             
-            // Calculate average difference
-            float avgDifference = totalDifference / sampleCount;
-            
-            // Convert to match percentage
-            // avgDifference ranges from 0 (perfect match) to 2 (complete mismatch)
-            // Convert to 0-100% where 0 difference = 100% match
-            float matchPercentage = Mathf.Clamp01(1f - (avgDifference / 2f)) * 100f;
-            
-            return matchPercentage;
+            // Use WaveSuperposition to calculate match percentage
+            // _scrollOffset is used as phase offset between the two waves
+            return WaveSuperposition.CalculateMatchPercentage(_sourceWave, _targetWave, _scrollOffset);
         }
         
         /// <summary>
