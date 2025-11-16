@@ -6,7 +6,7 @@ using Resonance.Shared.Types;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Resonance.Utilities.GridSystem
+namespace Resonance.Systems.GridSystem
 {
     /// <summary>
     /// Reusable grid system implementation

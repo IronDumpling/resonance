@@ -4,7 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Shared.Types;
-using Resonance.Utilities.CrystalCore;
+using Resonance.Systems.CrystalCore;
 
 namespace Resonance.Gameplay.Enemies.Data
 {

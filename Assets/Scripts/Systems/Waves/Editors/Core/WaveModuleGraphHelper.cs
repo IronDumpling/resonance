@@ -1,4 +1,4 @@
-using Resonance.Utilities.GridSystem;
+using Resonance.Systems.GridSystem;
 using Resonance.Shared.Types;
 using System;
 using System.Collections.Generic;

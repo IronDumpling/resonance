@@ -1,5 +1,5 @@
 using UnityEngine;
-using Resonance.Utilities.GridSystem;
+using Resonance.Systems.GridSystem;
 
 namespace Resonance.Shared.Interfaces.Objects
 {

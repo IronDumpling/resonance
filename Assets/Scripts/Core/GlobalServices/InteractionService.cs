@@ -6,7 +6,7 @@ using Resonance.Shared.Interfaces.Objects;
 using Resonance.Gameplay.Items;
 using Resonance.Utilities;
 using Resonance.Shared.Types;
-using Resonance.Utilities.GridSystem;
+using Resonance.Systems.GridSystem;
 using Resonance.Gameplay.Player.Core;
 using Resonance.Core.StateMachine.States;
 

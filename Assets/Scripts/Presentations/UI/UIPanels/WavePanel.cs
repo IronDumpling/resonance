@@ -12,7 +12,7 @@ using Resonance.Utilities;
 using Resonance.Shared.Types;
 using Resonance.Systems.Waves;
 using Resonance.Systems.Waves.WavePhenomenons;
-using Resonance.Utilities.CrystalCore;
+using Resonance.Systems.CrystalCore;
 
 namespace Resonance.Presentations.UI
 {

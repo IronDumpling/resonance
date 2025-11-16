@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-namespace Resonance.Utilities.GridSystem
+namespace Resonance.Systems.GridSystem
 {
     /// <summary>
     /// Manages the visual representation of a GridItem in the inventory

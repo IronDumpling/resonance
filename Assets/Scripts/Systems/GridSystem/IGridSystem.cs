@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Resonance.Utilities.GridSystem
+namespace Resonance.Systems.GridSystem
 {
     /// <summary>
     /// Grid system interface - defines reusable grid system functionality

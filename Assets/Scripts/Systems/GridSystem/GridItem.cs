@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Shared.Types;
 using System.Collections.Generic;
 
-namespace Resonance.Utilities.GridSystem
+namespace Resonance.Systems.GridSystem
 {
     /// <summary>
     /// Grid cell data - stores complete information about an item in a single cell

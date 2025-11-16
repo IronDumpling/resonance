@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Resonance.Utilities.GridSystem
+namespace Resonance.Systems.GridSystem
 {
     /// <summary>
     /// 单个网格槽位

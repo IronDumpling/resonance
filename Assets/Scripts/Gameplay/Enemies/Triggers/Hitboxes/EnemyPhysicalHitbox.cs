@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Resonance.Shared.Interfaces;
 using Resonance.Shared.Types;
 using Resonance.Systems.Waves;
-using Resonance.Utilities.CrystalCore;
+using Resonance.Systems.CrystalCore;
 
 namespace Resonance.Gameplay.Enemies.Triggers
 {

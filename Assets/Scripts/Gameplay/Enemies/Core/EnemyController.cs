@@ -7,7 +7,7 @@ using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Shared.Types;
-using Resonance.Utilities.CrystalCore;
+using Resonance.Systems.CrystalCore;
 using Resonance.Shared.Interfaces;
 using Resonance.Shared.Interfaces.Services;
 

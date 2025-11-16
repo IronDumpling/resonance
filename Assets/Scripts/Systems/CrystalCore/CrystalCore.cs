@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Shared.Types;
 using Resonance.Systems.Waves;
 
-namespace Resonance.Utilities.CrystalCore
+namespace Resonance.Systems.CrystalCore
 {
     /// <summary>
     /// Crystal core system - shared crystal core management system for player and enemy
