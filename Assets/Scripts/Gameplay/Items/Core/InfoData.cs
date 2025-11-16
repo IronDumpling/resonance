@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Items.Core
+namespace Resonance.Gameplay.Items.Core
 {
     /// <summary>
     /// 标准化的信息数据结构

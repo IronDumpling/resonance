@@ -1,17 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Enemies;
-using Resonance.Enemies.Data;
-using Resonance.Enemies.Movement;
-using Resonance.Enemies.Triggers;
+using Resonance.Gameplay.Enemies;
+using Resonance.Gameplay.Enemies.Data;
+using Resonance.Gameplay.Enemies.Movement;
+using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.Enemies.Core
+namespace Resonance.Gameplay.Enemies.Core
 {
     /// <summary>
     /// Enemy Controller, manages enemy state and behavior

@@ -1,16 +1,16 @@
 using UnityEngine;
 using Resonance.Core;
-using Resonance.Player.Core;
-using Resonance.Player.Data;
-using Resonance.Player.Triggers;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Operations;
-using Resonance.Interfaces.Services;
-using Resonance.Enemies.Data;
-using Resonance.Enemies.Triggers;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.Triggers;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Operations;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Enemies.Data;
+using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Utilities;
 
-namespace Resonance.Player.Actions
+namespace Resonance.Gameplay.Player.Actions
 {
     /// <summary>
     /// Player Core Attack Action - triggered by short press F when IWavable targets are in wave attack range

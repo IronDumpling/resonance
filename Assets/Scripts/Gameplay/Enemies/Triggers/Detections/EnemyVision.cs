@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Enemies.Data;
+using Resonance.Gameplay.Enemies.Data;
 
-namespace Resonance.Enemies.Triggers
+namespace Resonance.Gameplay.Enemies.Triggers
 {
     /// <summary>
     /// EnemyVision:

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Interfaces.Objects
+namespace Resonance.Shared.Interfaces.Objects
 {
     /// <summary>
     /// Interface for items that can be read to display information

@@ -1,11 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Objects;
-using Resonance.Items.Core;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Gameplay.Items.Core;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Items
+namespace Resonance.Gameplay.Items
 {
     /// <summary>
     /// Weapon Accuracy Configuration

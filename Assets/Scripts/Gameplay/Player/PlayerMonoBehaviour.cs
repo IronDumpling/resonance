@@ -2,20 +2,20 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
-using Resonance.Player.Core;
-using Resonance.Player.Data;
-using Resonance.Player.Triggers;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.Triggers;
 using Resonance.Core;
-using Resonance.Enemies.Triggers;
-using Resonance.Items;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Gameplay.Items;
 using Resonance.Cameras;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.Player
+namespace Resonance.Gameplay.Player
 {
     /// <summary>
     /// MonoBehaviour component that handles Unity-specific player functionality.

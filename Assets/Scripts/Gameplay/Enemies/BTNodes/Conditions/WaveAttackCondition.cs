@@ -1,11 +1,11 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
 using Resonance.Core;
-using Resonance.Player.Triggers;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Player.Triggers;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.Enemies.BTNodes.Conditions
+namespace Resonance.Gameplay.Enemies.BTNodes.Conditions
 {
     /// <summary>
     /// Condition node that checks if enemy can perform wave attack

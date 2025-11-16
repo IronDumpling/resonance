@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 
-namespace Resonance.Player.Shooting
+namespace Resonance.Gameplay.Player.Shooting
 {
     /// <summary>
     /// Weapon Accuracy System - Manages crosshair size and shooting accuracy

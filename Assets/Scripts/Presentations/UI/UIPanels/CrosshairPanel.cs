@@ -1,13 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Resonance.Core;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities;
-using Resonance.Player;
-using Resonance.Player.Core;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Player;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     /// <summary>
     /// Crosshair Panel - Displays dynamic crosshair UI for aiming

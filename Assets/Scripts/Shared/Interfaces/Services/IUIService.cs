@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Resonance.Interfaces.Services
+namespace Resonance.Shared.Interfaces.Services
 {
     public enum UILayer
     {

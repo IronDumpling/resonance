@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
-using Resonance.Player.Core;
+using Resonance.Gameplay.Player.Core;
 
-namespace Resonance.Player.States
+namespace Resonance.Gameplay.Player.States
 {
     /// <summary>
     /// Death state where player is completely dead (core health = 0).

@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Utilities.GridSystem;
 
-namespace Resonance.Interfaces.Objects
+namespace Resonance.Shared.Interfaces.Objects
 {
     /// <summary>
     /// Interface for items that can be picked up and added to inventory

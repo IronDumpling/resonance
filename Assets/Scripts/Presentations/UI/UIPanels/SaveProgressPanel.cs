@@ -1,9 +1,9 @@
-using Resonance.UI;
+using Resonance.Presentations.UI;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Utilities;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     public class SaveProgressPanel : UIPanel
     {

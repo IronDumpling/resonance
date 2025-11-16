@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
-using Resonance.Player;
+using Resonance.Gameplay.Player;
 using Resonance.Utilities;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
 namespace Resonance.Environments
 {

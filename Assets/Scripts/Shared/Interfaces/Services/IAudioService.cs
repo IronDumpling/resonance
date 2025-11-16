@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Audio;
 
-namespace Resonance.Interfaces.Services
+namespace Resonance.Shared.Interfaces.Services
 {
     /// <summary>
     /// 音频服务接口

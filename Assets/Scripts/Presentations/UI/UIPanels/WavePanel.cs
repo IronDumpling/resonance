@@ -4,17 +4,17 @@ using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 using Resonance.Core;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
-using Resonance.Player.Triggers;
-using Resonance.Enemies.Triggers;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Player.Triggers;
+using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.Waves.WavePhenomenons;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     public class WavePanel : UIPanel
     {

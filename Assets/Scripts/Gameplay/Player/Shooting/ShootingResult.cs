@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Shooting
+namespace Resonance.Gameplay.Player.Shooting
 {
     /// <summary>
     /// Shooting result data structure

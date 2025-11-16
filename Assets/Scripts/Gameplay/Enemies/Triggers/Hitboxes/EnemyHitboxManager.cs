@@ -1,10 +1,10 @@
 using UnityEngine;
-using Resonance.Interfaces;
-using Resonance.Enemies.Core;
-using Resonance.Enemies.Data;
+using Resonance.Shared.Interfaces;
+using Resonance.Gameplay.Enemies.Core;
+using Resonance.Gameplay.Enemies.Data;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Enemies.Triggers
+namespace Resonance.Gameplay.Enemies.Triggers
 {
     /// <summary>
     /// Weakpoint activator component - manages weakpoint colliders based on enemy state

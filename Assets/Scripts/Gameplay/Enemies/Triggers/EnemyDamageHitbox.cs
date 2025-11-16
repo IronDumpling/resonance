@@ -1,13 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Enemies.Core;
-using Resonance.Enemies.Data;
-using Resonance.Interfaces;
+using Resonance.Gameplay.Enemies.Core;
+using Resonance.Gameplay.Enemies.Data;
+using Resonance.Shared.Interfaces;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 
-namespace Resonance.Enemies.Triggers
+namespace Resonance.Gameplay.Enemies.Triggers
 {
     /// <summary>
     /// Enemy damage hitbox component - handles collision detection and damage dealing

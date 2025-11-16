@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     /// <summary>
     /// UIPanel acts as a container for multiple Canvas UI components.

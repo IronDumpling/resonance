@@ -4,7 +4,7 @@ using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.Player.Data
+namespace Resonance.Gameplay.Player.Data
 {
     /// <summary>
     /// 玩家运行时属性

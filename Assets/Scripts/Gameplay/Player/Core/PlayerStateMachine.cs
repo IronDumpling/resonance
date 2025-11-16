@@ -1,9 +1,9 @@
 using UnityEngine;
 using Resonance.Utilities;
 using Resonance.Core;
-using Resonance.Player.States;
+using Resonance.Gameplay.Player.States;
 
-namespace Resonance.Player.Core
+namespace Resonance.Gameplay.Player.Core
 {
     /// <summary>
     /// Player-specific state machine that manages player states like Normal, Aiming, Interacting, and Dead.

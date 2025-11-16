@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.AI;
-using Resonance.Enemies.Data;
-using Resonance.Enemies.Core;
+using Resonance.Gameplay.Enemies.Data;
+using Resonance.Gameplay.Enemies.Core;
 
-namespace Resonance.Enemies.Movement
+namespace Resonance.Gameplay.Enemies.Movement
 {
     /// <summary>
     /// Enemy movement system using Unity NavMeshAgent

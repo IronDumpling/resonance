@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 
-namespace Resonance.Player.Shooting
+namespace Resonance.Gameplay.Player.Shooting
 {
     /// <summary>
     /// Weapon Recoil System - Manages recoil offset and recovery

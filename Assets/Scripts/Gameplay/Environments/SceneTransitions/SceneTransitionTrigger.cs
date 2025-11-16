@@ -1,5 +1,5 @@
 using UnityEngine;
-using Resonance.Player;
+using Resonance.Gameplay.Player;
 
 namespace Resonance.Environments
 {

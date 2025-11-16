@@ -1,20 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Player.Data;
-using Resonance.Player.States;
-using Resonance.Player.Actions;
-using Resonance.Player.Shooting;
-using Resonance.Player.Inventory;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.States;
+using Resonance.Gameplay.Player.Actions;
+using Resonance.Gameplay.Player.Shooting;
+using Resonance.Gameplay.Player.Inventory;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
-using Resonance.Items;
-using Resonance.Interfaces.Objects;
-using Resonance.Interfaces.Services;
-using Resonance.Interfaces.Operations;
+using Resonance.Gameplay.Items;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Operations;
 
-namespace Resonance.Player.Core
+namespace Resonance.Gameplay.Player.Core
 {
     /// <summary>
     /// Invulnerability tracking - DamageInfo-based system

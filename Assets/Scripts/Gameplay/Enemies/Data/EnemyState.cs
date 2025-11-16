@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Enemies.Data
+namespace Resonance.Gameplay.Enemies.Data
 {
     /// <summary>
     /// Enemy state enum - unified state management

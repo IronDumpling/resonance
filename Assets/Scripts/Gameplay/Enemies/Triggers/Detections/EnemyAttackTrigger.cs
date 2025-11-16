@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Enemies.Triggers
+namespace Resonance.Gameplay.Enemies.Triggers
 {
     /// <summary>
     /// EnemyAttackTrigger:

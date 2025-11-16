@@ -1,12 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using Resonance.Enemies;
-using Resonance.Enemies.Triggers;
+using Resonance.Gameplay.Enemies;
+using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.Enemies.Data
+namespace Resonance.Gameplay.Enemies.Data
 {
     /// <summary>
     /// Enemy runtime stats

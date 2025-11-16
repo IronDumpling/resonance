@@ -2,9 +2,9 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
 using System.Collections.Generic;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     /// <summary>
     /// CanvasUIManager acts as a scene-local coordinator that automatically discovers 

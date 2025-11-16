@@ -1,15 +1,15 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
 using Resonance.Core;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
-using Resonance.Player.Actions;
-using Resonance.Player.Triggers;
-using Resonance.Enemies.Triggers;
-using Resonance.UI;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Player.Actions;
+using Resonance.Gameplay.Player.Triggers;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Presentations.UI;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Enemies.BTNodes.Actions
+namespace Resonance.Gameplay.Enemies.BTNodes.Actions
 {
     /// <summary>
     /// Wave attack action node - attacks player's core health via WavePanel QTE

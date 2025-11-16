@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Interfaces
+namespace Resonance.Shared.Interfaces
 {
     /// <summary>
     /// 可破坏物体的接口

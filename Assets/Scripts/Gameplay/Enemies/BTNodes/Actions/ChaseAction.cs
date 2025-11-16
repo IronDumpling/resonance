@@ -1,7 +1,7 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
 
-namespace Resonance.Enemies.BTNodes.Actions
+namespace Resonance.Gameplay.Enemies.BTNodes.Actions
 {
     /// <summary>
     /// Chase action node - moves towards the player using NavMeshAgent

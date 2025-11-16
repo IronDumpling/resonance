@@ -1,6 +1,6 @@
-using Resonance.Items.Core;
+using Resonance.Gameplay.Items.Core;
 
-namespace Resonance.Interfaces.Objects
+namespace Resonance.Shared.Interfaces.Objects
 {
     /// <summary>
     /// 可显示信息的对象接口

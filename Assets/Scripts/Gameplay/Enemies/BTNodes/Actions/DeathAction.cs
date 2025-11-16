@@ -1,7 +1,7 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
 
-namespace Resonance.Enemies.BTNodes.Actions
+namespace Resonance.Gameplay.Enemies.BTNodes.Actions
 {
     /// <summary>
     /// Death action - triggers death animation and handles object destruction

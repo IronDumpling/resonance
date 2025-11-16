@@ -1,11 +1,11 @@
 using UnityEngine;
-using Resonance.Interfaces.Objects;
-using Resonance.Interfaces.Services;
-using Resonance.Items;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Items;
 using Resonance.Core;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Triggers
+namespace Resonance.Gameplay.Player.Triggers
 {
     /// <summary>
     /// Player Interact Trigger - triggered by E key for interactable objects in range

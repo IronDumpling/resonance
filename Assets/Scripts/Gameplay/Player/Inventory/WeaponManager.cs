@@ -1,12 +1,12 @@
 using UnityEngine;
-using Resonance.Items;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Items;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Core;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 
-namespace Resonance.Player.Inventory
+namespace Resonance.Gameplay.Player.Inventory
 {
     /// <summary>
     /// WeaponManager - Pure business logic layer for weapon management

@@ -2,11 +2,11 @@ using UnityEngine;
 using DG.Tweening;
 using System.Linq;
 using System.Collections.Generic;
-using Resonance.Enemies.Triggers;
+using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.Enemies.Data
+namespace Resonance.Gameplay.Enemies.Data
 {
     /// <summary>
     /// Attack stats configuration

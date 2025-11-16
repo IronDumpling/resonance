@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Audio;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
 namespace Resonance.Core
 {

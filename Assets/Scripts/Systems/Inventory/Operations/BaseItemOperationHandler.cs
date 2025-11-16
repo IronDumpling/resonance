@@ -1,10 +1,10 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Interfaces.Operations;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Operations;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.Player.Inventory.Operations
+namespace Resonance.Gameplay.Player.Inventory.Operations
 {
     /// <summary>
     /// Base class for all item operation handlers

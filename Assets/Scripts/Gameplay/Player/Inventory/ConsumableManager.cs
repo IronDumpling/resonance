@@ -1,13 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
-using Resonance.Player.Core;
+using Resonance.Gameplay.Player.Core;
 
-namespace Resonance.Player.Inventory
+namespace Resonance.Gameplay.Player.Inventory
 {
     /// <summary>
     /// ConsumableManager - Manage consumable items (EnergyBottle, Healant, etc.)

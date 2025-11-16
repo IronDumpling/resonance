@@ -1,6 +1,6 @@
-using Resonance.Player.Core;
+using Resonance.Gameplay.Player.Core;
 
-namespace Resonance.Interfaces.Operations
+namespace Resonance.Shared.Interfaces.Operations
 {
     /// <summary>
     /// Interface for player actions that can be executed by the PlayerActionController.

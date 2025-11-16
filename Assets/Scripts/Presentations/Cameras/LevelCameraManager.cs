@@ -2,10 +2,10 @@ using UnityEngine;
 using Unity.Cinemachine;
 using Resonance.Core;
 using Resonance.Core.StateMachine.States;
-using Resonance.Player.Actions;
-using Resonance.Enemies.Triggers;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Player.Actions;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
 
 namespace Resonance.Cameras
 {

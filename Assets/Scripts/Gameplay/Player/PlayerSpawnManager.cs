@@ -1,10 +1,10 @@
 using UnityEngine;
 using Resonance.Core;
-using Resonance.Player;
+using Resonance.Gameplay.Player;
 using Resonance.Utilities;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.Player
+namespace Resonance.Gameplay.Player
 {
     /// <summary>
     /// Handles player spawning in scenes. Automatically spawns player when scene loads.

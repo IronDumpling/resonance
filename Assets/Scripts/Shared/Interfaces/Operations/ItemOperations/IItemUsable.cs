@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Utilities.GridSystem;
 
-namespace Resonance.Interfaces.Operations
+namespace Resonance.Shared.Interfaces.Operations
 {
     /// <summary>
     /// Interface for items that can be used

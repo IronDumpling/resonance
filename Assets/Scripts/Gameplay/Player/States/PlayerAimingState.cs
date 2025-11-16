@@ -1,10 +1,10 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Player.Core;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.Player.States
+namespace Resonance.Gameplay.Player.States
 {
     /// <summary>
     /// Aiming state where player can move slowly, look around, and shoot.

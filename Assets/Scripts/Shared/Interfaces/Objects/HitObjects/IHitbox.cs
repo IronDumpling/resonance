@@ -1,6 +1,6 @@
 using Resonance.Utilities.Types;
 
-namespace Resonance.Interfaces
+namespace Resonance.Shared.Interfaces
 {
     public interface IHitbox
     {

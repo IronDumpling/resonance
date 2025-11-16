@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Interfaces.Objects
+namespace Resonance.Shared.Interfaces.Objects
 {
     /// <summary>
     /// Base interface for objects that can be interacted with by the player

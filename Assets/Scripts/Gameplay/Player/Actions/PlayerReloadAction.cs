@@ -1,13 +1,13 @@
 using UnityEngine;
 using System.Linq;
-using Resonance.Player.Core;
-using Resonance.Interfaces.Operations;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Shared.Interfaces.Operations;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Actions
+namespace Resonance.Gameplay.Player.Actions
 {
     /// <summary>
     /// Player reload action that restores Crystal Core energy by consuming EnergyBottle from inventory

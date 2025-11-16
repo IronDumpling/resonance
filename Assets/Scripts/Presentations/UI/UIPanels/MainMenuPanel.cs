@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     /// <summary>
     /// MainMenuPanel handles the main menu UI interactions and navigation.

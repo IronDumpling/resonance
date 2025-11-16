@@ -2,12 +2,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using Resonance.Core;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Core.StateMachine.States;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     public class InfoPanel : UIPanel
     {

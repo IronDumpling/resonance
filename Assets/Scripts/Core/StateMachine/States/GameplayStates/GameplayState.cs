@@ -1,13 +1,13 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
-using Resonance.Player.Actions;
-using Resonance.Enemies;
-using Resonance.Enemies.Triggers;
-using Resonance.Enemies.BTNodes.Actions;
-using Resonance.Items;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Player.Actions;
+using Resonance.Gameplay.Enemies;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Gameplay.Enemies.BTNodes.Actions;
+using Resonance.Gameplay.Items;
 
 namespace Resonance.Core.StateMachine.States
 {
@@ -203,7 +203,7 @@ namespace Resonance.Core.StateMachine.States
         /// </summary>
         /// <param name="sourceWavable">The attacker (player or enemy)</param>
         /// <param name="targetWavable">The target being attacked</param>
-        private void OnWaveStarted(Interfaces.IWavable sourceWavable, Interfaces.IWavable targetWavable)
+        private void OnWaveStarted(IWavable sourceWavable, IWavable targetWavable)
         {
             // Risk mitigation: Defensive programming
             if (sourceWavable == null || targetWavable == null)

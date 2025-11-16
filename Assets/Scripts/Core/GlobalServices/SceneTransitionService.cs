@@ -7,7 +7,7 @@ using Resonance.Core;
 using Resonance.Core.StateMachine;
 using Resonance.Core.StateMachine.States;
 using Resonance.Utilities;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Environments;
 
 namespace Resonance.Core.GlobalServices

@@ -2,15 +2,15 @@ using UnityEngine;
 using Unity.Cinemachine;
 using System.Collections.Generic;
 using Resonance.Core;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 using Resonance.Cameras;
-using Resonance.Enemies.Triggers;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Shooting
+namespace Resonance.Gameplay.Player.Shooting
 {
     /// <summary>
     /// HitScan shooting system

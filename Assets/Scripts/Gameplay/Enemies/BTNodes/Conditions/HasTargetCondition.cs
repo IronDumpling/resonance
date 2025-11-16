@@ -1,7 +1,7 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
 
-namespace Resonance.Enemies.BTNodes.Conditions
+namespace Resonance.Gameplay.Enemies.BTNodes.Conditions
 {
     /// <summary>
     /// Condition node that checks if enemy has a player target

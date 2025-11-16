@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
-using Resonance.Player.Data;
-using Resonance.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.Core;
 
-namespace Resonance.Player.Inventory
+namespace Resonance.Gameplay.Player.Inventory
 {
     /// <summary>
     /// Unified player inventory system - pure data layer

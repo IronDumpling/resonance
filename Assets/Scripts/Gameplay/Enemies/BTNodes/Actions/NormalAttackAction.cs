@@ -1,7 +1,7 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
 
-namespace Resonance.Enemies.BTNodes.Actions
+namespace Resonance.Gameplay.Enemies.BTNodes.Actions
 {
     /// <summary>
     /// Normal attack action node - triggers attack animation and manages attack flow

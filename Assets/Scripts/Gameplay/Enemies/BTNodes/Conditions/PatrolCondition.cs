@@ -1,9 +1,9 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime;
 using BehaviorDesigner.Runtime.Tasks;
-using Resonance.Enemies.Data;
+using Resonance.Gameplay.Enemies.Data;
 
-namespace Resonance.Enemies.BTNodes.Conditions
+namespace Resonance.Gameplay.Enemies.BTNodes.Conditions
 {
     /// <summary>
     /// Condition node that checks if enemy needs to patrol

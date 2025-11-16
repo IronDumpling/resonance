@@ -3,17 +3,17 @@ using TMPro;
 using BehaviorDesigner.Runtime;
 using System.Collections;
 using Resonance.Core;
-using Resonance.Enemies.Core;
-using Resonance.Enemies.Data;
-using Resonance.Enemies.Movement;
-using Resonance.Enemies.Triggers;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Services;
+using Resonance.Gameplay.Enemies.Core;
+using Resonance.Gameplay.Enemies.Data;
+using Resonance.Gameplay.Enemies.Movement;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Services;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 
-namespace Resonance.Enemies
+namespace Resonance.Gameplay.Enemies
 {
     /// <summary>
     /// MonoBehaviour component that handles Unity-specific enemy functionality.

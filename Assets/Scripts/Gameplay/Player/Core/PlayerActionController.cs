@@ -3,11 +3,11 @@ using System.Linq;
 using System.Collections.Generic;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Player.Core;
-using Resonance.Interfaces.Services;
-using Resonance.Interfaces.Operations;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Operations;
 
-namespace Resonance.Player.Core
+namespace Resonance.Gameplay.Player.Core
 {
     /// <summary>
     /// Controls player actions and manages their execution.

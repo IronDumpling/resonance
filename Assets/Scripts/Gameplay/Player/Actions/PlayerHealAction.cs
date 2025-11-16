@@ -1,12 +1,12 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Player.Core;
-using Resonance.Player.Data;
-using Resonance.Interfaces.Services;
-using Resonance.Interfaces.Operations;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Operations;
 
-namespace Resonance.Player.Actions
+namespace Resonance.Gameplay.Player.Actions
 {
     /// <summary>
     /// Player Heal Action - triggered by holding F key when no Core hitboxes are in wave attack range

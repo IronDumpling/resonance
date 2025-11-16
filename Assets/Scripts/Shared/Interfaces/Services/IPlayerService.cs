@@ -1,7 +1,7 @@
-using Resonance.Player;
-using Resonance.Player.Data;
+using Resonance.Gameplay.Player;
+using Resonance.Gameplay.Player.Data;
 
-namespace Resonance.Interfaces.Services
+namespace Resonance.Shared.Interfaces.Services
 {
     /// <summary>
     /// Global service interface for managing the player across scenes.

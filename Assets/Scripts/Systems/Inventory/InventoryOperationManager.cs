@@ -1,12 +1,12 @@
 using UnityEngine;
-using Resonance.Player.Inventory;
-using Resonance.Player.Inventory.Operations;
-using Resonance.Interfaces.Operations;
+using Resonance.Gameplay.Player.Inventory;
+using Resonance.Gameplay.Player.Inventory.Operations;
+using Resonance.Shared.Interfaces.Operations;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
 using System.Collections.Generic;
 
-namespace Resonance.Player.Inventory
+namespace Resonance.Gameplay.Player.Inventory
 {
     /// <summary>
     /// InventoryOperationManager - Unified manager for both grid and item operations

@@ -1,11 +1,11 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Interfaces;
+using Resonance.Shared.Interfaces;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.Enemies.Triggers
+namespace Resonance.Gameplay.Enemies.Triggers
 {
     /// <summary>
     /// Physical hitbox component for Head, Body - acts as a damage modifier

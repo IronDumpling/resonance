@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Interfaces.Operations
+namespace Resonance.Shared.Interfaces.Operations
 {
     public interface IItemOperation
     {

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Resonance.Player.Data;
+using Resonance.Gameplay.Player.Data;
 
-namespace Resonance.Interfaces.Services
+namespace Resonance.Shared.Interfaces.Services
 {
     /// <summary>
     /// Interface for the save/load system.

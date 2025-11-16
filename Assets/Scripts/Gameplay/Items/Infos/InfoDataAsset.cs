@@ -1,9 +1,9 @@
 using UnityEngine;
-using Resonance.Interfaces;
-using Resonance.Interfaces.Objects;
-using Resonance.Items.Core;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Gameplay.Items.Core;
 
-namespace Resonance.Items
+namespace Resonance.Gameplay.Items
 {
     [CreateAssetMenu(fileName = "New Info Data", menuName = "Resonance/Items/Info Data", order = 3)]
     public class InfoDataAsset : ScriptableObject, IInfoable

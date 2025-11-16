@@ -1,9 +1,9 @@
 using UnityEngine;
 using BehaviorDesigner.Runtime.Tasks;
-using Resonance.Enemies.Core;
-using Resonance.Enemies.Movement;
+using Resonance.Gameplay.Enemies.Core;
+using Resonance.Gameplay.Enemies.Movement;
 
-namespace Resonance.Enemies.BTNodes
+namespace Resonance.Gameplay.Enemies.BTNodes
 {
     /// <summary>
     /// Base class for all enemy behavior tree CONDITIONAL tasks

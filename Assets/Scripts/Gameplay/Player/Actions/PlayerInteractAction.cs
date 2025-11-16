@@ -1,13 +1,13 @@
 using UnityEngine;
-using Resonance.Player.Core;
-using Resonance.Player.Data;
-using Resonance.Interfaces.Services;
-using Resonance.Interfaces.Objects;
-using Resonance.Interfaces.Operations;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Shared.Interfaces.Operations;
 using Resonance.Core;
 using Resonance.Utilities;
 
-namespace Resonance.Player.Actions
+namespace Resonance.Gameplay.Player.Actions
 {
     /// <summary>
     /// Player Interact Action - triggered by E key for environcore interactions

@@ -1,9 +1,9 @@
 using UnityEngine;
-using Resonance.Interfaces;
-using Resonance.Player.Core;
+using Resonance.Shared.Interfaces;
+using Resonance.Gameplay.Player.Core;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Triggers
+namespace Resonance.Gameplay.Player.Triggers
 {
     /// <summary>
     /// Hitbox manager component - manages player hitbox colliders

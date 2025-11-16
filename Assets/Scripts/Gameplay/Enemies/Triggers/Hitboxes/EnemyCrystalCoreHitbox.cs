@@ -1,10 +1,10 @@
 using UnityEngine;
-using Resonance.Interfaces;
+using Resonance.Shared.Interfaces;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.CrystalCore;
 
-namespace Resonance.Enemies.Triggers
+namespace Resonance.Gameplay.Enemies.Triggers
 {
     /// <summary>
     /// Crystal Core hitbox component - handles both shooting damage and wave attacks

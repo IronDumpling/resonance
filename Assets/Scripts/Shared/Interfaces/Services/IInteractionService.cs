@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Interfaces.Services
+namespace Resonance.Shared.Interfaces.Services
 {
     /// <summary>
     /// Interaction service interface

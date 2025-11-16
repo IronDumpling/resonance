@@ -2,7 +2,7 @@ using System;
 using UnityEngine.SceneManagement;
 using Resonance.Environments;
 
-namespace Resonance.Interfaces.Services
+namespace Resonance.Shared.Interfaces.Services
 {
     public interface ISceneTransitionService : IGameService
     {

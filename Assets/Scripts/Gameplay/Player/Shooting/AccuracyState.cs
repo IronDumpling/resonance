@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Player.Shooting
+namespace Resonance.Gameplay.Player.Shooting
 {
     /// <summary>
     /// Accuracy state - Runtime data for weapon accuracy system

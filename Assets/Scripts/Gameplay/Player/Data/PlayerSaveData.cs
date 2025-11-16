@@ -1,9 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Player.Core;
-using Resonance.Player.Inventory;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Inventory;
 
-namespace Resonance.Player.Data
+namespace Resonance.Gameplay.Player.Data
 {
     /// <summary>
     /// Serializable data structure for saving player state.

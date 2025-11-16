@@ -1,9 +1,9 @@
 using UnityEngine;
-using Resonance.Interfaces;
+using Resonance.Shared.Interfaces;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.Waves;
 
-namespace Resonance.Player.Triggers
+namespace Resonance.Gameplay.Player.Triggers
 {
     /// <summary>
     /// Crystal Core hitbox component for Player - handles both physical damage and wave attacks

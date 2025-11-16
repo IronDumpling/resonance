@@ -2,9 +2,9 @@ using UnityEngine;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
-using Resonance.Interfaces.Operations;
+using Resonance.Shared.Interfaces.Operations;
 
-namespace Resonance.Player.Inventory.Operations
+namespace Resonance.Gameplay.Player.Inventory.Operations
 {
     /// <summary>
     /// Operation handler for Ammo items (Consumable type)

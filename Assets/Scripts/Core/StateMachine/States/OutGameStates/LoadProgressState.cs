@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Interfaces.Services;
-using Resonance.UI;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Presentations.UI;
 
 namespace Resonance.Core.StateMachine.States
 {

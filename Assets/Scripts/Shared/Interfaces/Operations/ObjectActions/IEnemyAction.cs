@@ -1,6 +1,6 @@
-using Resonance.Enemies.Core;
+using Resonance.Gameplay.Enemies.Core;
 
-namespace Resonance.Interfaces.Operations
+namespace Resonance.Shared.Interfaces.Operations
 {
     /// <summary>
     /// Interface for enemy actions that can be executed by the EnemyActionController.

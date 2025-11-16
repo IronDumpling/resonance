@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Utilities.Types;
-using Resonance.Player.Data;
+using Resonance.Gameplay.Player.Data;
 
-namespace Resonance.Player.Core
+namespace Resonance.Gameplay.Player.Core
 {
     /// <summary>
     /// Player movement system that handles 2D platform movement.

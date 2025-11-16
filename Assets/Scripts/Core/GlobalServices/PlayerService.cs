@@ -1,9 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Player;
-using Resonance.Player.Data;
+using Resonance.Gameplay.Player;
+using Resonance.Gameplay.Player.Data;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
+using Resonance.Shared.Interfaces.Services;
 
 namespace Resonance.Core.GlobalServices
 {

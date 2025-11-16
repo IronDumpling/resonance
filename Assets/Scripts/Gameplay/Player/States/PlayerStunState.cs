@@ -1,8 +1,8 @@
 using UnityEngine;
 using Resonance.Core;
-using Resonance.Player.Core;
+using Resonance.Gameplay.Player.Core;
 
-namespace Resonance.Player.States
+namespace Resonance.Gameplay.Player.States
 {
     /// <summary>
     /// Stagger state where player is staggerned and cannot move.

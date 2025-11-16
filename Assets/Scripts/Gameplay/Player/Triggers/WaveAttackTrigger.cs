@@ -1,13 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using Resonance.Player.Core;
-using Resonance.Enemies;
-using Resonance.Enemies.Triggers;
-using Resonance.Interfaces;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Enemies;
+using Resonance.Gameplay.Enemies.Triggers;
+using Resonance.Shared.Interfaces;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Triggers
+namespace Resonance.Gameplay.Player.Triggers
 {
     /// <summary>
     /// Trigger component that detects IWavable targets (EnemyCrystalCoreHitbox) with enabled colliders within wave attack range.

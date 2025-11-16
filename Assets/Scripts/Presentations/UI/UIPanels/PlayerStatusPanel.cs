@@ -3,16 +3,16 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using Resonance.Core;
-using Resonance.Interfaces.Services;
-using Resonance.Player;
-using Resonance.Player.Core;
-using Resonance.Player.Data;
-using Resonance.Player.Inventory;
-using Resonance.Items;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Player;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.Inventory;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     /// <summary>
     /// PlayerStatusPanel displays the player's comprehensive status information.

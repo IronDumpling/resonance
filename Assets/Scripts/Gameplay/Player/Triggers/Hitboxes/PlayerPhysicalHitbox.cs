@@ -1,8 +1,8 @@
 using UnityEngine;
-using Resonance.Interfaces;
+using Resonance.Shared.Interfaces;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Player.Triggers
+namespace Resonance.Gameplay.Player.Triggers
 {
     /// <summary>
     /// Physical hitbox component for Player Body - acts as a damage receiver

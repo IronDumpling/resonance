@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Utilities.Waves;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Interfaces
+namespace Resonance.Shared.Interfaces
 {
     /// <summary>
     /// Interface for objects that have a Wave system (Player, Enemy)

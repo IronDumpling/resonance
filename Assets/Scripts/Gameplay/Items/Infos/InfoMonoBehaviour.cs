@@ -1,14 +1,14 @@
 using UnityEngine;
 using TMPro;
-using Resonance.Interfaces.Services;
-using Resonance.Interfaces.Objects;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Objects;
 using Resonance.Utilities;
 using Resonance.Core;
 using Resonance.Core.StateMachine;
 using Resonance.Core.StateMachine.States;
 
 
-namespace Resonance.Items
+namespace Resonance.Gameplay.Items
 {
     public class InfoMonoBehaviour : MonoBehaviour, IReadable, IPausable
     {

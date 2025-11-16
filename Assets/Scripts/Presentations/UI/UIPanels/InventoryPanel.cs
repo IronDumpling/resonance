@@ -1,22 +1,22 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Resonance.UI;
+using Resonance.Presentations.UI;
 using Resonance.Core;
-using Resonance.Items;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
-using Resonance.Interfaces.Services;
-using Resonance.Player;
-using Resonance.Player.Core;
-using Resonance.Player.Data;
-using Resonance.Player.Inventory;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Player;
+using Resonance.Gameplay.Player.Core;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.Inventory;
 using Resonance.Core.StateMachine.States;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace Resonance.UI
+namespace Resonance.Presentations.UI
 {
     /// <summary>
     /// InventoryPanel - Player Inventory Panel

@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Utilities.Types;
 
-namespace Resonance.Interfaces
+namespace Resonance.Shared.Interfaces
 {
     /// <summary>
     /// Core interface for objects that can take damage

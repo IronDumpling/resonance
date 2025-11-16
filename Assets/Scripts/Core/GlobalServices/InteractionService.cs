@@ -1,13 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using Resonance.Interfaces.Services;
-using Resonance.Interfaces.Objects;
-using Resonance.Items;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Gameplay.Items;
 using Resonance.Utilities;
 using Resonance.Utilities.Types;
 using Resonance.Utilities.GridSystem;
-using Resonance.Player.Core;
+using Resonance.Gameplay.Player.Core;
 using Resonance.Core.StateMachine.States;
 
 namespace Resonance.Core.GlobalServices
