@@ -50,26 +50,27 @@ namespace Resonance.Systems.Waves.Editors
             // Clamp pulse width to valid range
             _pulseWidth = Mathf.Clamp01(_pulseWidth);
             
-            // Generate pulse wave
-            WaveConfig config = ScriptableObject.CreateInstance<WaveConfig>();
-            config.waveformType = WaveformType.Pulse;
-            config.frequency = 1.0f;
-            config.amplitude = 1.0f;
-            config.unit = 1.0f;
-            config.waveformResolution = WaveConstants.DEFAULT_WAVEFORM_RESOLUTION;
+            // Sources initialize Wave data
+            Wave wave = Wave.CreateDefault();
             
-            Wave pulseWave = new Wave(config);
+            // Generate pulse/square waveform table with custom duty cycle
+            float[] waveformTable = WaveformTableGenerator.GenerateSquareParameterized(
+                WaveConstants.DEFAULT_WAVEFORM_RESOLUTION,
+                _pulseWidth
+            );
             
-            // Note: Pulse width is stored in the waveform table generation
-            // For now, we use the default Pulse waveform
-            // In a full implementation, you might want to modify the waveform table
-            // based on pulse width parameter
-            
-            Object.Destroy(config);
+            // Update wave properties with generated data
+            wave.UpdateWaveProperties(
+                WaveformType.Pulse,
+                1.0f, // Default frequency
+                1.0f, // Default amplitude
+                1.0f, // Default unit
+                waveformTable
+            );
             
             Dictionary<string, Wave> outputs = new Dictionary<string, Wave>
             {
-                ["output"] = pulseWave
+                ["output"] = wave
             };
             
             return outputs;

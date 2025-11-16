@@ -13,6 +13,7 @@ using Resonance.Shared.Types;
 using Resonance.Systems.Waves;
 using Resonance.Systems.Waves.WavePhenomenons;
 using Resonance.Systems.CrystalCore;
+using Resonance.Presentations.Waves;
 
 namespace Resonance.Presentations.UI
 {
@@ -396,44 +397,16 @@ namespace Resonance.Presentations.UI
         
         /// <summary>
         /// Update wave line rendering based on current waves and scroll offset
+        /// Uses WaveRenderer for rendering logic
         /// </summary>
         private void UpdateWaveLines()
         {
             if (_sourceWave == null || _targetWave == null) return;
             if (_sourceWaveLine == null || _targetWaveLine == null) return;
 
-            _waveScopeArea.GetWorldCorners(_scopeAreaCorners);
-            float worldWidth = Vector3.Distance(_scopeAreaCorners[0], _scopeAreaCorners[3]);
-            float worldHeight = Vector3.Distance(_scopeAreaCorners[0], _scopeAreaCorners[1]);
-
-            Vector3 bottomLeftOrigin = _scopeAreaCorners[0];
-            float worldZ = bottomLeftOrigin.z;
-
-            int waveformCount = Wave.WaveformResolution;
-
-            // Sample points from both waves
-            for (int i = 0; i < waveformCount; i++)
-            {
-                float t = (float)i / (waveformCount - 1); // 0 to 1
-                float x = bottomLeftOrigin.x + t * worldWidth;
-                
-                // Source wave Y Position: Scroll
-                float sourceScrollPos = (t + _scrollOffset) % 1f;
-                float sourceValueRaw = _sourceWave.GetWaveValue(sourceScrollPos);
-                float sourceNormalizedY = (_sourceWave.Amplitude > 0) ? (sourceValueRaw / _sourceWave.Amplitude + 1f) * 0.5f : 0.5f;
-                float sourceY = bottomLeftOrigin.y + sourceNormalizedY * worldHeight;
-                Vector3 sourcePosition = new (x, sourceY, worldZ);
-                _sourceWaveLine.SetPosition(i, sourcePosition);
-                
-                // Target wave Y Position: Stationary
-                float targetValueRaw = _targetWave.GetWaveValue(t);
-                float targetNormalizedY = (_targetWave.Amplitude > 0) ? (targetValueRaw / _targetWave.Amplitude + 1f) * 0.5f : 0.5f;
-                float targetY = bottomLeftOrigin.y + targetNormalizedY * worldHeight;
-                Vector3 targetPosition = new (x, targetY, worldZ);
-                _targetWaveLine.SetPosition(i, targetPosition);
-            }
-
-            Debug.Log($"WavePanel: Source wave amplitude: {_sourceWave.Amplitude}, Target wave amplitude: {_targetWave.Amplitude}");
+            // Use WaveRenderer for rendering
+            WaveRenderer.RenderScrolling(_sourceWave, _sourceWaveLine, _waveScopeArea, _scrollOffset);
+            WaveRenderer.RenderStatic(_targetWave, _targetWaveLine, _waveScopeArea);
         }
         
         #endregion

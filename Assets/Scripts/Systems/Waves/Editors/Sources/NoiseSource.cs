@@ -44,28 +44,27 @@ namespace Resonance.Systems.Waves.Editors
         
         public Dictionary<string, Wave> Process(Dictionary<string, Wave> inputWaves)
         {
-            // Generate noise wave
-            // For noise, we'll use a custom waveform type
-            // In practice, noise would be generated differently, but we'll use
-            // a Constant waveform as a placeholder (or you could implement custom noise generation)
+            // Sources initialize Wave data
+            Wave wave = Wave.CreateDefault();
             
-            WaveConfig config = ScriptableObject.CreateInstance<WaveConfig>();
-            config.waveformType = WaveformType.Constant; // Placeholder - noise would need custom implementation
-            config.frequency = 1.0f;
-            config.amplitude = 1.0f;
-            config.unit = 1.0f;
-            config.waveformResolution = WaveConstants.DEFAULT_WAVEFORM_RESOLUTION;
+            // Generate noise waveform table
+            float[] waveformTable = WaveformTableGenerator.GenerateNoise(
+                WaveConstants.DEFAULT_WAVEFORM_RESOLUTION
+            );
             
-            Wave noiseWave = new Wave(config);
-            
-            // Note: True noise generation would require generating random samples
-            // in the waveform table. This is a simplified implementation.
-            
-            Object.Destroy(config);
+            // Update wave properties with generated data
+            // Note: Noise uses Custom waveform type since it's not a standard waveform
+            wave.UpdateWaveProperties(
+                WaveformType.Custom, // Noise is a custom waveform
+                1.0f, // Default frequency
+                1.0f, // Default amplitude
+                1.0f, // Default unit
+                waveformTable
+            );
             
             Dictionary<string, Wave> outputs = new Dictionary<string, Wave>
             {
-                ["output"] = noiseWave
+                ["output"] = wave
             };
             
             return outputs;

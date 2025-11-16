@@ -72,33 +72,32 @@ namespace Resonance.Systems.Waves.Editors
             _cutoff = Mathf.Clamp(_cutoff, WaveConstants.MIN_FREQUENCY, WaveConstants.MAX_FREQUENCY_NORMALIZATION * 2f);
             _resonance = Mathf.Clamp01(_resonance);
             
+            // Processors modify existing Wave - clone input to avoid modifying original
+            Wave filteredWave = inputWave.Clone();
+            
             // Apply filter: modify frequency based on cutoff
             // Higher cutoff = less filtering (more frequencies pass through)
             // Lower cutoff = more filtering (fewer frequencies pass through)
             // Resonance affects the sharpness of the filter
             
-            // Create new wave config with filtered properties
-            WaveConfig config = ScriptableObject.CreateInstance<WaveConfig>();
-            config.waveformType = inputWave.WaveformType;
-            
             // Apply cutoff to frequency (simplified filter model)
-            // Cutoff acts as a multiplier/divider on the frequency
-            float filteredFrequency = inputWave.Frequency * _cutoff;
+            float filteredFrequency = filteredWave.Frequency * _cutoff;
             filteredFrequency = Mathf.Clamp(filteredFrequency, WaveConstants.MIN_FREQUENCY, float.MaxValue);
-            config.frequency = filteredFrequency;
             
             // Resonance affects amplitude (higher resonance = more emphasis at cutoff)
             // Simplified: resonance reduces amplitude slightly
             float amplitudeMultiplier = 1.0f - (_resonance * 0.2f); // Max 20% reduction
-            config.amplitude = inputWave.Amplitude * amplitudeMultiplier;
-            config.amplitude = Mathf.Max(WaveConstants.MIN_AMPLITUDE, config.amplitude);
+            float filteredAmplitude = filteredWave.Amplitude * amplitudeMultiplier;
+            filteredAmplitude = Mathf.Max(WaveConstants.MIN_AMPLITUDE, filteredAmplitude);
             
-            config.unit = inputWave.Unit;
-            config.waveformResolution = inputWave.Resolution;
-            
-            Wave filteredWave = new Wave(config);
-            
-            Object.Destroy(config);
+            // Update wave properties (keep waveform table, only modify frequency and amplitude)
+            filteredWave.UpdateWaveProperties(
+                filteredWave.WaveformType,
+                filteredFrequency,
+                filteredAmplitude,
+                filteredWave.Unit,
+                filteredWave.WaveformTable // Keep original waveform table
+            );
             
             Dictionary<string, Wave> outputs = new Dictionary<string, Wave>
             {

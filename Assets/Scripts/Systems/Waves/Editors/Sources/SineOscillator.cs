@@ -44,23 +44,27 @@ namespace Resonance.Systems.Waves.Editors
         
         public Dictionary<string, Wave> Process(Dictionary<string, Wave> inputWaves)
         {
-            // Generate sine wave
-            // Create a WaveConfig for sine wave
-            WaveConfig config = ScriptableObject.CreateInstance<WaveConfig>();
-            config.waveformType = WaveformType.Sine;
-            config.frequency = 1.0f; // Default frequency
-            config.amplitude = 1.0f; // Default amplitude
-            config.unit = 1.0f;
-            config.waveformResolution = WaveConstants.DEFAULT_WAVEFORM_RESOLUTION;
+            // Sources initialize Wave data - get or create default Wave
+            Wave wave = Wave.CreateDefault();
             
-            Wave sineWave = new Wave(config);
+            // Generate sine waveform table
+            float[] waveformTable = WaveformTableGenerator.Generate(
+                WaveformType.Sine, 
+                WaveConstants.DEFAULT_WAVEFORM_RESOLUTION
+            );
             
-            // Cleanup temporary config
-            Object.Destroy(config);
+            // Update wave properties with generated data
+            wave.UpdateWaveProperties(
+                WaveformType.Sine,
+                1.0f, // Default frequency
+                1.0f, // Default amplitude
+                1.0f, // Default unit
+                waveformTable
+            );
             
             Dictionary<string, Wave> outputs = new Dictionary<string, Wave>
             {
-                ["output"] = sineWave
+                ["output"] = wave
             };
             
             return outputs;

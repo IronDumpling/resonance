@@ -1,5 +1,6 @@
 using UnityEngine;
 using Resonance.Shared.Types;
+using Resonance.Systems.Waves.Editors;
 
 namespace Resonance.Systems.Waves
 {
@@ -134,6 +135,7 @@ namespace Resonance.Systems.Waves
         
         /// <summary>
         /// Constructor with WaveConfig
+        /// Note: Waveform table must be set externally via UpdateWaveProperties
         /// </summary>
         public Wave(WaveConfig config)
         {
@@ -157,8 +159,25 @@ namespace Resonance.Systems.Waves
                 _unit = 1.0f;
             }
 
-            GenerateBaseWaveformTable(_waveformType);
+            // Waveform table must be set externally
+            // Initialize with empty table (will be set by modules)
+            for (int i = 0; i < _waveformTable.Length; i++)
+            {
+                _waveformTable[i] = 0f;
+            }
+            
             UpdateSecondaryProperties();
+        }
+        
+        /// <summary>
+        /// Create a default empty Wave (for module system)
+        /// </summary>
+        public static Wave CreateDefault()
+        {
+            WaveConfig config = ScriptableObject.CreateInstance<WaveConfig>();
+            Wave wave = new Wave(config);
+            Object.Destroy(config);
+            return wave;
         }
         
         #endregion
@@ -187,14 +206,29 @@ namespace Resonance.Systems.Waves
             return interpolatedValue * _amplitude;
         }
 
-        public void UpdateWaveProperties(WaveformType waveformType, float frequency, float amplitude, float unit, float[] waveformTable = null)
+        /// <summary>
+        /// Update wave properties
+        /// waveformTable is required - must be generated externally using WaveformTableGenerator
+        /// </summary>
+        public void UpdateWaveProperties(WaveformType waveformType, float frequency, float amplitude, float unit, float[] waveformTable)
         {
+            if (waveformTable == null)
+            {
+                Debug.LogWarning("Wave: UpdateWaveProperties called with null waveformTable. Waveform table must be provided.");
+                return;
+            }
+            
+            if (waveformTable.Length != _resolution)
+            {
+                Debug.LogWarning($"Wave: Waveform table length mismatch. Expected {_resolution}, got {waveformTable.Length}. Resizing resolution.");
+                _resolution = waveformTable.Length;
+            }
+            
             bool changed = false;
 
             if (waveformType != _waveformType)
             {
                 _waveformType = waveformType;
-                GenerateBaseWaveformTable(waveformType);
                 changed = true;
             }
             
@@ -216,17 +250,12 @@ namespace Resonance.Systems.Waves
                 changed = true;
             }
             
-            if (waveformTable != null && waveformTable.Length == _waveformTable.Length)
+            // Always update waveform table if provided
+            if (!AreTablesEqual(waveformTable, _waveformTable))
             {
-                if (_waveformTable == null || !AreTablesEqual(waveformTable, _waveformTable))
-                {
-                    _waveformTable = waveformTable;
-                    changed = true;
-                }
-            }
-            else if (waveformTable != null)
-            {
-                Debug.LogWarning("Wave: Waveform table length mismatch. Cannot update waveform table.");
+                _waveformTable = new float[waveformTable.Length];
+                System.Array.Copy(waveformTable, _waveformTable, waveformTable.Length);
+                changed = true;
             }
 
             if (changed)
@@ -235,6 +264,55 @@ namespace Resonance.Systems.Waves
                 OnWavePropertiesChanged?.Invoke();
                 Debug.Log($"Wave: Properties changed - Type: {_waveformType}, F: {_frequency:F2}, A: {_amplitude:F2}, U: {_unit:F2}");
             }
+        }
+        
+        /// <summary>
+        /// Update only waveform table (for processors that modify existing waves)
+        /// </summary>
+        public void UpdateWaveformTable(float[] waveformTable)
+        {
+            if (waveformTable == null)
+            {
+                Debug.LogWarning("Wave: UpdateWaveformTable called with null waveformTable.");
+                return;
+            }
+            
+            if (waveformTable.Length != _resolution)
+            {
+                Debug.LogWarning($"Wave: Waveform table length mismatch. Expected {_resolution}, got {waveformTable.Length}.");
+                return;
+            }
+            
+            if (!AreTablesEqual(waveformTable, _waveformTable))
+            {
+                System.Array.Copy(waveformTable, _waveformTable, waveformTable.Length);
+                _secondaryPropertiesDirty = true;
+                OnWavePropertiesChanged?.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// Create a copy of this Wave
+        /// </summary>
+        public Wave Clone()
+        {
+            Wave copy = new Wave(null);
+            copy._waveformType = _waveformType;
+            copy._frequency = _frequency;
+            copy._amplitude = _amplitude;
+            copy._resolution = _resolution;
+            copy._unit = _unit;
+            
+            if (_waveformTable != null)
+            {
+                copy._waveformTable = new float[_waveformTable.Length];
+                System.Array.Copy(_waveformTable, copy._waveformTable, _waveformTable.Length);
+            }
+            
+            copy._secondaryPropertiesDirty = true;
+            copy.UpdateSecondaryProperties();
+            
+            return copy;
         }
         
         /// <summary>
@@ -261,14 +339,6 @@ namespace Resonance.Systems.Waves
             return true;
         }
 
-        private void GenerateBaseWaveformTable(WaveformType waveformType)
-        {
-            _waveformType = waveformType;
-            _waveformTable = WaveformTableGenerator.Generate(waveformType, _resolution);
-            _secondaryPropertiesDirty = true;
-            OnWavePropertiesChanged?.Invoke();
-            Debug.Log($"Wave: Base waveform table generated. Type: {_waveformType}");
-        }
 
         #endregion
         
@@ -725,7 +795,8 @@ namespace Resonance.Systems.Waves
             }
             else
             {
-                GenerateBaseWaveformTable(_waveformType);
+                // Generate waveform table using external generator
+                _waveformTable = WaveformTableGenerator.Generate(_waveformType, _resolution);
             }
             
             UpdateSecondaryProperties();

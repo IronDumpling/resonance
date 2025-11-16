@@ -91,11 +91,70 @@ namespace Resonance.Systems.Waves
 
         #region Parameterized Generate Waveform Methods
 
-        // You can add more generators (e.g., falling sawtooth) or parameterized ones
+        /// <summary>
+        /// Generate square/pulse wave with custom duty cycle
+        /// </summary>
         public static float[] GenerateSquareParameterized(int resolution, float dutyCycle)
         {
             float[] table = new float[resolution];
             GenerateSquare(table, resolution, dutyCycle);
+            return table;
+        }
+        
+        /// <summary>
+        /// Generate triangle wave with custom rise and fall amplitudes
+        /// </summary>
+        public static float[] GenerateTriangleParameterized(int resolution, float riseAmplitude, float fallAmplitude)
+        {
+            float[] table = new float[resolution];
+            
+            // If amplitudes are equal, generate symmetric triangle
+            if (Mathf.Approximately(riseAmplitude, fallAmplitude))
+            {
+                GenerateTriangle(table, resolution);
+                // Scale by amplitude
+                for (int i = 0; i < resolution; i++)
+                {
+                    table[i] *= riseAmplitude;
+                }
+            }
+            else
+            {
+                // Asymmetric triangle (sawtooth-like)
+                float totalAmplitude = riseAmplitude + fallAmplitude;
+                float risePhase = riseAmplitude / totalAmplitude;
+                
+                for (int i = 0; i < resolution; i++)
+                {
+                    float phase = (float)i / resolution;
+                    if (phase < risePhase)
+                    {
+                        // Rising phase
+                        table[i] = -fallAmplitude + (riseAmplitude + fallAmplitude) * (phase / risePhase);
+                    }
+                    else
+                    {
+                        // Falling phase
+                        float fallPhase = (phase - risePhase) / (1.0f - risePhase);
+                        table[i] = riseAmplitude - (riseAmplitude + fallAmplitude) * fallPhase;
+                    }
+                }
+            }
+            
+            return table;
+        }
+        
+        /// <summary>
+        /// Generate noise waveform
+        /// </summary>
+        public static float[] GenerateNoise(int resolution)
+        {
+            float[] table = new float[resolution];
+            System.Random random = new System.Random();
+            for (int i = 0; i < resolution; i++)
+            {
+                table[i] = (float)(random.NextDouble() * 2.0 - 1.0); // Range: [-1, 1]
+            }
             return table;
         }
 

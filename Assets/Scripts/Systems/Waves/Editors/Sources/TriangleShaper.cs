@@ -52,6 +52,9 @@ namespace Resonance.Systems.Waves.Editors
             _riseAmplitude = Mathf.Max(WaveConstants.MIN_AMPLITUDE, _riseAmplitude);
             _fallAmplitude = Mathf.Max(WaveConstants.MIN_AMPLITUDE, _fallAmplitude);
             
+            // Sources initialize Wave data
+            Wave wave = Wave.CreateDefault();
+            
             // Determine waveform type based on amplitudes
             WaveformType waveformType;
             if (Mathf.Approximately(_riseAmplitude, _fallAmplitude))
@@ -63,21 +66,21 @@ namespace Resonance.Systems.Waves.Editors
                 waveformType = WaveformType.Sawtooth; // Asymmetric sawtooth
             }
             
-            // Generate wave
-            WaveConfig config = ScriptableObject.CreateInstance<WaveConfig>();
-            config.waveformType = waveformType;
-            config.frequency = 1.0f;
-            config.amplitude = Mathf.Max(_riseAmplitude, _fallAmplitude); // Use max amplitude
-            config.unit = 1.0f;
-            config.waveformResolution = WaveConstants.DEFAULT_WAVEFORM_RESOLUTION;
+            // Generate triangle waveform table with custom rise/fall amplitudes
+            float[] waveformTable = WaveformTableGenerator.GenerateTriangleParameterized(
+                WaveConstants.DEFAULT_WAVEFORM_RESOLUTION,
+                _riseAmplitude,
+                _fallAmplitude
+            );
             
-            Wave wave = new Wave(config);
-            
-            // Note: Rise/Fall amplitude differences would affect the waveform table
-            // In a full implementation, you might want to generate a custom waveform
-            // based on these parameters
-            
-            Object.Destroy(config);
+            // Update wave properties with generated data
+            wave.UpdateWaveProperties(
+                waveformType,
+                1.0f, // Default frequency
+                Mathf.Max(_riseAmplitude, _fallAmplitude), // Use max amplitude
+                1.0f, // Default unit
+                waveformTable
+            );
             
             Dictionary<string, Wave> outputs = new Dictionary<string, Wave>
             {
