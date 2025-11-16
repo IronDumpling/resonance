@@ -118,8 +118,7 @@ namespace Resonance.Presentations.UI
             if (_inputService != null)
             {
                 _inputService.OnAttackQTE += OnAttackQTEInput;
-                _inputService.OnLogicBind1 += OnLogicBind1Input;
-                Debug.Log("WavePanel: Subscribed to Attack QTE and Logic Bind 1 input events");
+                Debug.Log("WavePanel: Subscribed to Attack QTE input events");
             }
 
             // Initialize canvas camera
@@ -168,8 +167,7 @@ namespace Resonance.Presentations.UI
             {
                 _inputService.EnablePlayerInput();
                 _inputService.OnAttackQTE -= OnAttackQTEInput;
-                _inputService.OnLogicBind1 -= OnLogicBind1Input;
-                Debug.Log("WavePanel: Player input re-enabled and unsubscribed from Attack QTE and Logic Bind 1 input events");
+                Debug.Log("WavePanel: Player input re-enabled and unsubscribed from Attack QTE input events");
             }
             
             // Stop wave display
@@ -469,24 +467,6 @@ namespace Resonance.Presentations.UI
             
             // Trigger Attack QTE
             ProcessWaveTrigger(null);
-        }
-
-        private void OnLogicBind1Input()
-        {
-            Debug.Log("WavePanel: OnLogicBind1Input called");
-
-            PlayerCrystalCoreHitbox playerCore = _sourceWavable as PlayerCrystalCoreHitbox;
-            if (playerCore == null)
-            {
-                playerCore = _targetWavable as PlayerCrystalCoreHitbox;
-                if (playerCore == null)
-                {
-                    Debug.LogWarning("WavePanel: OnLogicBind1Input ignored - source and target wavables are not PlayerCrystalCoreHitboxes");
-                    return;
-                }
-            }
-
-            WaveModifier.Modify(playerCore.GetWave().WaveformTable, WaveModifierType.Inverter);
         }
 
         #endregion

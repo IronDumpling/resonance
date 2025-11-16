@@ -26,7 +26,6 @@ namespace Resonance.Shared.Interfaces.Services
         event Action OnLastPage; // Last page input during Information mode
 
         event Action OnAttackQTE; // QTE input during Wave mode
-        event Action OnLogicBind1; // Logic bind 1 input during Wave mode
 
         void EnableInventoryInput();
         void DisableInventoryInput();

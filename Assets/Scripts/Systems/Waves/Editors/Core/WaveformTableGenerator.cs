@@ -3,7 +3,7 @@ using Resonance.Shared.Types;
 
 namespace Resonance.Systems.Waves
 {
-    public static class WaveformGenerator
+    public static class WaveformTableGenerator
     {
         public static float[] Generate(WaveformType type, int resolution)
         {
@@ -26,7 +26,7 @@ namespace Resonance.Systems.Waves
                     GenerateConstant(table, resolution);
                     break;
                 case WaveformType.Custom: // Custom means it's a result of operations
-                    Debug.LogWarning("WaveformGenerator: Custom waveform type not implemented.");
+                    Debug.LogWarning("WaveformTableGenerator: Custom waveform type not implemented.");
                     break;
                 default:
                     // Maybe return silence or a sine wave as default

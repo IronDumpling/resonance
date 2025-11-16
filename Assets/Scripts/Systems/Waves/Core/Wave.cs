@@ -264,7 +264,7 @@ namespace Resonance.Systems.Waves
         private void GenerateBaseWaveformTable(WaveformType waveformType)
         {
             _waveformType = waveformType;
-            _waveformTable = WaveformGenerator.Generate(waveformType, _resolution);
+            _waveformTable = WaveformTableGenerator.Generate(waveformType, _resolution);
             _secondaryPropertiesDirty = true;
             OnWavePropertiesChanged?.Invoke();
             Debug.Log($"Wave: Base waveform table generated. Type: {_waveformType}");

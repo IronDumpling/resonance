@@ -47,7 +47,6 @@ namespace Resonance.Core.GlobalServices
 
         // Wave Map events
         public event Action OnAttackQTE; // QTE input (F key during Wave mode)
-        public event Action OnLogicBind1; // Logic bind 1 input during Wave mode
 
         public void Initialize()
         {
@@ -120,7 +119,6 @@ namespace Resonance.Core.GlobalServices
 
             // Wave input callbacks
             _waveMap["AttackQTE"].performed += OnAttackQTEPerformed;
-            _waveMap["LogicBind1"].performed += OnLogicBind1Performed;
         }
 
         #region Player Map Input Callbacks
@@ -267,12 +265,6 @@ namespace Resonance.Core.GlobalServices
             Debug.Log("InputService: QTE press performed");
         }
 
-        private void OnLogicBind1Performed(InputAction.CallbackContext context)
-        {
-            OnLogicBind1?.Invoke();
-            Debug.Log("InputService: Logic bind 1 press performed");
-        }
-
         #endregion
 
         #region Input Enabling/Disabling
@@ -383,7 +375,6 @@ namespace Resonance.Core.GlobalServices
             OnNextPage = null;
             OnLastPage = null;
             OnAttackQTE = null;
-            OnLogicBind1 = null;
 
             State = SystemState.Shutdown;
         }
