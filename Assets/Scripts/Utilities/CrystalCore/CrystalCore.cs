@@ -63,7 +63,7 @@ namespace Resonance.Utilities.CrystalCore
         public WaveformType WaveformType => _wave?.WaveformType ?? WaveformType.Sine;
         public float Frequency => _wave?.Frequency ?? 1.0f;
         public float Amplitude => _wave?.Amplitude ?? 1.0f;
-        public float Length => _wave?.Length ?? 10.0f;
+        public float Unit => _wave?.Unit ?? 1.0f;
         public float[] WaveformTable => _wave?.WaveformTable ?? new float[0];
         public static int WaveformResolution => Wave.WaveformResolution;
         
@@ -340,7 +340,7 @@ namespace Resonance.Utilities.CrystalCore
             _wave = wave;
             UpdateCalculatedValues();
             Debug.Log($"CrystalCore: Set wave. Waveform type: {_wave?.WaveformType ?? WaveformType.Sine}, Frequency: {_wave?.Frequency ?? 1.0f},"+
-                      $" Amplitude: {_wave?.Amplitude ?? 1.0f}, Length: {_wave?.Length ?? 10.0f}");
+                      $" Amplitude: {_wave?.Amplitude ?? 1.0f}, Unit: {_wave?.Unit ?? 1.0f}");
         }
         
         #endregion
