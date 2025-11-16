@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Shared.Interfaces;
 using Resonance.Shared.Interfaces.Services;
 using Resonance.Gameplay.Enemies.Triggers;

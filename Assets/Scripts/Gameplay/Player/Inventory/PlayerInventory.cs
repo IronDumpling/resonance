@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Resonance.Gameplay.Items;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.GridSystem;
 using Resonance.Gameplay.Player.Data;
 using Resonance.Gameplay.Player.Core;

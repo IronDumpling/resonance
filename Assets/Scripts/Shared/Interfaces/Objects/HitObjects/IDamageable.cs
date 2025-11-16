@@ -1,5 +1,5 @@
 using UnityEngine;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Shared.Interfaces
 {

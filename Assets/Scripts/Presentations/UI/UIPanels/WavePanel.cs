@@ -9,9 +9,9 @@ using Resonance.Shared.Interfaces.Services;
 using Resonance.Gameplay.Player.Triggers;
 using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
-using Resonance.Utilities.Waves;
-using Resonance.Utilities.Waves.WavePhenomenons;
+using Resonance.Shared.Types;
+using Resonance.Systems.Waves;
+using Resonance.Systems.Waves.WavePhenomenons;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Presentations.UI

@@ -1,6 +1,6 @@
 using UnityEngine;
-using Resonance.Utilities.Types;
-using Resonance.Utilities.Waves;
+using Resonance.Shared.Types;
+using Resonance.Systems.Waves;
 
 namespace Resonance.Utilities.CrystalCore
 {

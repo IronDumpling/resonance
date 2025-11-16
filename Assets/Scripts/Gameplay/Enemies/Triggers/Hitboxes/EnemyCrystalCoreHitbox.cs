@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Shared.Interfaces;
-using Resonance.Utilities.Types;
-using Resonance.Utilities.Waves;
+using Resonance.Shared.Types;
+using Resonance.Systems.Waves;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Gameplay.Enemies.Triggers

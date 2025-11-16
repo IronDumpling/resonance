@@ -1,6 +1,6 @@
 using UnityEngine;
-using Resonance.Utilities.Waves;
-using Resonance.Utilities.Types;
+using Resonance.Systems.Waves;
+using Resonance.Shared.Types;
 
 namespace Resonance.Shared.Interfaces
 {

@@ -3,7 +3,7 @@ using DG.Tweening;
 using System.Linq;
 using System.Collections.Generic;
 using Resonance.Gameplay.Enemies.Triggers;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Gameplay.Enemies.Data

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Utilities.Waves.WavePhenomenons
+namespace Resonance.Systems.Waves.WavePhenomenons
 {
     /// <summary>
     /// Wave material properties - defines how waves interact with environment

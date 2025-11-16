@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Player.Shooting
 {

@@ -4,8 +4,8 @@ using Resonance.Gameplay.Enemies.Core;
 using Resonance.Gameplay.Enemies.Data;
 using Resonance.Shared.Interfaces;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
-using Resonance.Utilities.Waves;
+using Resonance.Shared.Types;
+using Resonance.Systems.Waves;
 
 namespace Resonance.Gameplay.Enemies.Triggers
 {

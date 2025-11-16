@@ -5,7 +5,7 @@ using Resonance.Presentations.UI;
 using Resonance.Core;
 using Resonance.Gameplay.Items;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.GridSystem;
 using Resonance.Shared.Interfaces.Services;
 using Resonance.Gameplay.Player;

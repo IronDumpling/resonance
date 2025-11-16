@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.CrystalCore;
 
 namespace Resonance.Gameplay.Player.Data

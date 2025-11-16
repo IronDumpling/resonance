@@ -1,8 +1,8 @@
 using UnityEngine;
 using DG.Tweening;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
-namespace Resonance.Utilities.Waves
+namespace Resonance.Systems.Waves
 {
     /// <summary>
     /// Wave configuration data structure

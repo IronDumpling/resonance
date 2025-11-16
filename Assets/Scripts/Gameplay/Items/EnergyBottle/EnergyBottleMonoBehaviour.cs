@@ -3,7 +3,7 @@ using TMPro;
 using Resonance.Shared.Interfaces.Services;
 using Resonance.Shared.Interfaces.Objects;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.GridSystem;
 using Resonance.Core;
 using Resonance.Core.GlobalServices;

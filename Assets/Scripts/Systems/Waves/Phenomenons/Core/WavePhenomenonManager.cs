@@ -1,8 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Resonance.Utilities.Waves;
+using Resonance.Systems.Waves;
 
-namespace Resonance.Utilities.Waves.WavePhenomenons
+namespace Resonance.Systems.Waves.WavePhenomenons
 {
     /// <summary>
     /// Wave Phenomenon Manager - unified interface for all wave phenomena calculations

@@ -10,8 +10,8 @@ using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Gameplay.Items;
 using Resonance.Cameras;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
-using Resonance.Utilities.Waves;
+using Resonance.Shared.Types;
+using Resonance.Systems.Waves;
 using Resonance.Shared.Interfaces;
 using Resonance.Shared.Interfaces.Services;
 

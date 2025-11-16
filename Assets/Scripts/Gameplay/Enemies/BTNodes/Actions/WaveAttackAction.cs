@@ -7,7 +7,7 @@ using Resonance.Gameplay.Player.Actions;
 using Resonance.Gameplay.Player.Triggers;
 using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Presentations.UI;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Enemies.BTNodes.Actions
 {

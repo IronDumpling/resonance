@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Utilities.Types
+namespace Resonance.Shared.Types
 {
     /// <summary>
     /// Balance tier enum - represents enemy's balance state (stance/posture)

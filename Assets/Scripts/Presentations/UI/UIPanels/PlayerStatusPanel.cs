@@ -10,7 +10,7 @@ using Resonance.Gameplay.Player.Data;
 using Resonance.Gameplay.Player.Inventory;
 using Resonance.Gameplay.Items;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Presentations.UI
 {

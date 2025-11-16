@@ -3,7 +3,7 @@ using Resonance.Gameplay.Items;
 using Resonance.Shared.Interfaces.Services;
 using Resonance.Core;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.GridSystem;
 
 namespace Resonance.Gameplay.Player.Inventory

@@ -1,8 +1,8 @@
 using UnityEngine;
-using Resonance.Utilities.Waves;
-using Resonance.Utilities.Types;
+using Resonance.Systems.Waves;
+using Resonance.Shared.Types;
 
-namespace Resonance.Utilities.Waves.WavePhenomenons
+namespace Resonance.Systems.Waves.WavePhenomenons
 {
     /// <summary>
     /// Wave propagation modes

@@ -1,6 +1,6 @@
-using Resonance.Utilities.Waves;
+using Resonance.Systems.Waves;
 
-namespace Resonance.Utilities.Waves.WavePhenomenons
+namespace Resonance.Systems.Waves.WavePhenomenons
 {
     /// <summary>
     /// Interface for wave phenomena calculations

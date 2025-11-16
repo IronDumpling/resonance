@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
-namespace Resonance.Utilities.Waves
+namespace Resonance.Systems.Waves
 {
     public static class WaveModifier
     {

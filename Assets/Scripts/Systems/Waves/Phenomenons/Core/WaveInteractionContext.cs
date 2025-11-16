@@ -1,7 +1,7 @@
 using UnityEngine;
-using Resonance.Utilities.Waves;
+using Resonance.Systems.Waves;
 
-namespace Resonance.Utilities.Waves.WavePhenomenons
+namespace Resonance.Systems.Waves.WavePhenomenons
 {
     /// <summary>
     /// Wave interaction context - contains all information needed for wave phenomenon calculations

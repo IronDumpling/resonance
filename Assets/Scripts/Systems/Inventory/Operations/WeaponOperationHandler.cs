@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Shared.Interfaces.Operations;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 using Resonance.Utilities.GridSystem;
 
 namespace Resonance.Gameplay.Player.Inventory.Operations

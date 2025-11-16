@@ -8,7 +8,7 @@ using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Shared.Interfaces;
 using Resonance.Shared.Interfaces.Services;
 using Resonance.Utilities;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Player.Shooting
 {

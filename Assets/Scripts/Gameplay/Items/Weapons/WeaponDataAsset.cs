@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Resonance.Shared.Interfaces;
 using Resonance.Shared.Interfaces.Objects;
 using Resonance.Gameplay.Items.Core;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Items
 {

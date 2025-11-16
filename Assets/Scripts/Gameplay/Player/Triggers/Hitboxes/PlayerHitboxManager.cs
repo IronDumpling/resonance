@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Shared.Interfaces;
 using Resonance.Gameplay.Player.Core;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Player.Triggers
 {

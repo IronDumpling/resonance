@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Resonance.Utilities.Types
+namespace Resonance.Shared.Types
 {
     /// <summary>
     /// Physical health state enumeration

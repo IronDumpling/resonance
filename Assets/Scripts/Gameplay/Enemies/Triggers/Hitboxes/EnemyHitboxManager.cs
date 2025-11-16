@@ -2,7 +2,7 @@ using UnityEngine;
 using Resonance.Shared.Interfaces;
 using Resonance.Gameplay.Enemies.Core;
 using Resonance.Gameplay.Enemies.Data;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Enemies.Triggers
 {

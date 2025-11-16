@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Resonance.Utilities.Types
+namespace Resonance.Shared.Types
 {
     [System.Serializable]
     public static class LayerDict

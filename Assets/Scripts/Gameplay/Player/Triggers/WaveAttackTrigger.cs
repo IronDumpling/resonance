@@ -5,7 +5,7 @@ using Resonance.Gameplay.Player.Core;
 using Resonance.Gameplay.Enemies;
 using Resonance.Gameplay.Enemies.Triggers;
 using Resonance.Shared.Interfaces;
-using Resonance.Utilities.Types;
+using Resonance.Shared.Types;
 
 namespace Resonance.Gameplay.Player.Triggers
 {
