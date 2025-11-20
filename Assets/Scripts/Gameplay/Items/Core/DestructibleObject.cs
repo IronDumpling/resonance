@@ -1,7 +1,7 @@
 using UnityEngine;
 using Resonance.Shared.Interfaces;
 
-namespace Resonance.Gameplay.Items
+namespace Resonance.Gameplay.Items.Core
 {
     /// <summary>
     /// 可破坏的环境物体, 如箱子、桶、墙壁等
