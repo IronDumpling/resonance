@@ -161,7 +161,7 @@ namespace Resonance.Core.GlobalServices
             
             // Trigger UI refresh for gameplay scenes after a short delay
             // This ensures all UI panels are registered before we try to show them
-            if (scene.name.Contains("Level") || scene.name.Contains("Room") || scene.name.Contains("Test"))
+            if (scene.name.Contains("room") || scene.name.Contains("Room") || scene.name.Contains("Test"))
             {
                 Debug.Log($"SceneTransitionService: Scheduling UI refresh for gameplay scene {scene.name}");
                 _coroutineRunner.StartCoroutine(DelayedUIRefresh());

@@ -6,19 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Main.unity
+    path: Assets/Scenes/main.unity
     guid: 0721dc03fb9d3924396a2f69c1287cfa
   - enabled: 1
-    path: Assets/Scenes/MainMenu.unity
+    path: Assets/Scenes/main_menu.unity
     guid: 8fb78a7b28b14134cabfff9510e0ec08
   - enabled: 1
-    path: Assets/Scenes/Level_01/Level_01.unity
+    path: Assets/Scenes/room_01/room_01.unity
     guid: c78325c83731bc340a95e10c20247e88
   - enabled: 1
-    path: Assets/Scenes/Level_Pisto_Room.unity
+    path: Assets/Scenes/room_03.unity
     guid: e699ca6ad8ad96042a09f959f07b0839
   - enabled: 1
-    path: Assets/Scenes/Level_02/Level_02.unity
+    path: Assets/Scenes/room_02/room_02.unity
     guid: c216659959db0284a8c7068167afd717
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

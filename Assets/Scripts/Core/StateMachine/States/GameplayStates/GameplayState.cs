@@ -80,7 +80,7 @@ namespace Resonance.Core.StateMachine.States
         private void OnSceneUIPanelsReady(string sceneName)
         {
             // Exclude MainMenu and other non-gameplay scenes
-            bool isGameplayScene = sceneName.Contains("Level") || sceneName.Contains("Room") || sceneName.Contains("Test");
+            bool isGameplayScene = sceneName.Contains("room") || sceneName.Contains("Room") || sceneName.Contains("Test");
             
             if (isGameplayScene)
             {

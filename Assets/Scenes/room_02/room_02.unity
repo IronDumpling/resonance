@@ -831,11 +831,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2284656374574143094, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: _targetSceneName
-      value: Level_01
+      value: room_01
       objectReference: {fileID: 0}
     - target: {fileID: 2284656374574143094, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: _targetSpawnPointID
-      value: level_02_door
+      value: room_02_door
       objectReference: {fileID: 0}
     - target: {fileID: 3140920244421437782, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1618,19 +1618,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 7
+      value: 18
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -20
+      value: -8
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.97629607
+      value: 0.8191521
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.2164396
+      value: 0.5735764
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2468,7 +2468,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.16666667
+  m_VoxelSize: 0.33333334
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: 5a5181d8aa5f4284186241c3c8726dd9, type: 2}
   m_BuildHeightMesh: 0

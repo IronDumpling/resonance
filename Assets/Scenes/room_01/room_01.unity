@@ -645,11 +645,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 442382469308402775, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: field of view
-      value: 30
+      value: 55
       objectReference: {fileID: 0}
     - target: {fileID: 442382469308402775, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: orthographic size
-      value: 5
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2544163692143342212, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -697,19 +697,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4
+      value: 18
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -15
+      value: -8
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9659258
+      value: 0.8191521
       objectReference: {fileID: 0}
     - target: {fileID: 3156717606250974303, guid: d912f24270960324ab530a7e6141c53e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.2588191
+      value: 0.5735764
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -936,7 +936,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2284656374574143094, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: _targetSceneName
-      value: Level_02
+      value: room_02
       objectReference: {fileID: 0}
     - target: {fileID: 3140920244421437782, guid: 09391279ce7cb2d4d8c9a0733df35bff, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1984,11 +1984,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7706772026751132907, guid: 0142e88b3b9a19840b3b392172894d6f, type: 3}
       propertyPath: _namedSpawnPoints.Array.data[1].spawnID
-      value: pisto_room_door
+      value: room_03_door
       objectReference: {fileID: 0}
     - target: {fileID: 7706772026751132907, guid: 0142e88b3b9a19840b3b392172894d6f, type: 3}
       propertyPath: _namedSpawnPoints.Array.data[2].spawnID
-      value: level_02_door
+      value: room_02_door
       objectReference: {fileID: 0}
     - target: {fileID: 7706772026751132907, guid: 0142e88b3b9a19840b3b392172894d6f, type: 3}
       propertyPath: _namedSpawnPoints.Array.data[0].spawnPoint
@@ -2244,6 +2244,10 @@ PrefabInstance:
     - target: {fileID: 9075742421886643580, guid: 4ebec9861f1ec564bb94dcfafeb3a754, type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9075742421886643580, guid: 4ebec9861f1ec564bb94dcfafeb3a754, type: 3}
+      propertyPath: _targetSceneName
+      value: room_03
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

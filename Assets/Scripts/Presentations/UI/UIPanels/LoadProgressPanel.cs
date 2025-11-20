@@ -106,7 +106,7 @@ namespace Resonance.Presentations.UI
                     // Then load the gameplay scene
                     if (_sceneService != null)
                     {
-                        _sceneService.LoadScene("Level_01");
+                        _sceneService.LoadScene("room_01");
                     }
                     else
                     {

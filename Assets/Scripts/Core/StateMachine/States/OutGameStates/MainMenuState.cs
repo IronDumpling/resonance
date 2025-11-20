@@ -24,11 +24,11 @@ namespace Resonance.Core.StateMachine.States
             
             // Load MainMenu scene
             var loadSceneService = ServiceRegistry.Get<ISceneTransitionService>();
-            if (loadSceneService != null && loadSceneService.CurrentSceneName != "MainMenu")
+            if (loadSceneService != null && loadSceneService.CurrentSceneName != "main_menu")
             {
                 // Subscribe to scene load completion to show UI
                 loadSceneService.OnSceneLoadCompleted += OnMainMenuSceneLoaded;
-                loadSceneService.LoadSceneAsync("MainMenu");
+                loadSceneService.LoadSceneAsync("main_menu");
             }
             else
             {
@@ -40,7 +40,7 @@ namespace Resonance.Core.StateMachine.States
 
         private void OnMainMenuSceneLoaded(string sceneName)
         {
-            if (sceneName == "MainMenu")
+            if (sceneName == "main_menu")
             {
                 var loadSceneService = ServiceRegistry.Get<ISceneTransitionService>();
                 loadSceneService.OnSceneLoadCompleted -= OnMainMenuSceneLoaded;
@@ -52,7 +52,7 @@ namespace Resonance.Core.StateMachine.States
         private void OnSceneUIPanelsReady(string sceneName)
         {
             // Only handle MainMenu scene UI ready event
-            if (sceneName == "MainMenu" && !_hasShownUI)
+            if (sceneName == "main_menu" && !_hasShownUI)
             {
                 Debug.Log($"MainMenuState: Scene {sceneName} UI panels are ready, showing main menu UI");
                 
