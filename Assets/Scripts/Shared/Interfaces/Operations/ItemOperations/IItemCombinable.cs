@@ -5,7 +5,7 @@ namespace Resonance.Shared.Interfaces.Operations
 {
     /// <summary>
     /// Interface for items that can be combined with other items
-    /// Example: Ammo (stack), Weapon parts, Crafting materials
+    /// Example: Ammo (stack), WaveOutput parts, Crafting materials
     /// </summary>
     public interface IItemCombinable : IItemOperation
     {

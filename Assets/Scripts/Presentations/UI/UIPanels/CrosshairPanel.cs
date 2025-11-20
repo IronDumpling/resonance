@@ -250,7 +250,7 @@ namespace Resonance.Presentations.UI
         {
             // Try to get actual shooting end point preview
             if (_playerController?.ShootingSystem != null && 
-                _playerController?.WeaponManager?.CurrentWeapon != null &&
+                _playerController?.WaveOutputManager?.CurrentWeapon != null &&
                 _playerController?.PlayerGameObject != null)
             {
                 // Get shoot origin from player transform (same position used in actual shooting)
@@ -259,7 +259,7 @@ namespace Resonance.Presentations.UI
                 // Preview the actual end point using the same logic as PerformShoot
                 Vector3 endPoint = _playerController.ShootingSystem.PreviewShootingEndPoint(
                     shootOrigin, 
-                    _playerController.WeaponManager.CurrentWeapon
+                    _playerController.WaveOutputManager.CurrentWeapon
                 );
                 
                 _lastAimPoint = endPoint;
@@ -328,14 +328,14 @@ namespace Resonance.Presentations.UI
         /// </summary>
         private void UpdateCrosshairSize()
         {
-            if (_playerController?.ShootingSystem == null || _playerController?.WeaponManager?.CurrentWeapon == null)
+            if (_playerController?.ShootingSystem == null || _playerController?.WaveOutputManager?.CurrentWeapon == null)
             {
                 _targetSize = _baseCrosshairSize;
                 return;
             }
             
             // Get current weapon's accuracy configuration
-            var weapon = _playerController.WeaponManager.CurrentWeapon;
+            var weapon = _playerController.WaveOutputManager.CurrentWeapon;
             var accuracyConfig = weapon.accuracyConfig;
             
             if (accuracyConfig == null)
@@ -417,7 +417,7 @@ namespace Resonance.Presentations.UI
         {
             return _playerController != null && 
                    _playerController.IsAiming && 
-                   _playerController.HasEquippedWeapon;
+                   _playerController.HasEquippedOutput;
         }
 
         #endregion
@@ -437,12 +437,12 @@ namespace Resonance.Presentations.UI
         /// </summary>
         public (float min, float max) GetCrosshairSizeRange()
         {
-            if (_playerController?.WeaponManager?.CurrentWeapon?.accuracyConfig == null)
+            if (_playerController?.WaveOutputManager?.CurrentWeapon?.accuracyConfig == null)
             {
                 return (_baseCrosshairSize * 0.2f, _baseCrosshairSize * 3f);
             }
             
-            var config = _playerController.WeaponManager.CurrentWeapon.accuracyConfig;
+            var config = _playerController.WaveOutputManager.CurrentWeapon.accuracyConfig;
             float minSize = _baseCrosshairSize * (config.minRadius / config.baseRadius);
             float maxSize = _baseCrosshairSize * (config.maxRadius / config.baseRadius);
             

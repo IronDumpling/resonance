@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Resonance.Gameplay.Items;
+using Resonance.Gameplay.Items.Core;
 using Resonance.Shared.Types;
 using Resonance.Systems.GridSystem;
 using Resonance.Gameplay.Player.Data;
@@ -30,8 +31,8 @@ namespace Resonance.Gameplay.Player.Inventory
         // Occupancy mapping (each cell position → item ID occupying it)
         private Dictionary<Vector2Int, int> _cellOccupancy;
 
-        // Equipped weapon tracking
-        private int _equippedWeaponID;
+        // Equipped wave output tracking
+        private int _equippedWaveOutputID;
         
         #endregion
         
@@ -46,9 +47,9 @@ namespace Resonance.Gameplay.Player.Inventory
         public System.Action<GridItem, int> OnItemRotatedInGrid; // item, newRotation
         public System.Action<GridItem, int> OnItemQuantityChanged; // item, newQuantity
         
-        // Weapon-specific events (for WeaponManager)
-        public System.Action<int> OnWeaponEquipped; // weaponID
-        public System.Action OnWeaponUnequipped;
+        // WaveOutput-specific events (for WaveOutputManager)
+        public System.Action<int> OnOutputEquipped; // outputID
+        public System.Action OnOutputUnequipped;
         
         #endregion
         
@@ -74,8 +75,8 @@ namespace Resonance.Gameplay.Player.Inventory
             _itemsById = new Dictionary<int, GridItem>();
             _cellOccupancy = new Dictionary<Vector2Int, int>();
             
-            // Initialize equipped weapon tracking
-            _equippedWeaponID = -1;
+            // Initialize equipped wave output tracking
+            _equippedWaveOutputID = -1;
             
             Debug.Log($"PlayerInventory: Initialized with {_gridWidth}x{_gridHeight} grid");
         }
@@ -471,75 +472,73 @@ namespace Resonance.Gameplay.Player.Inventory
         
         #endregion
 
-        #region Weapon Equipment Status
+        #region WaveOutput Equipment Status
         
         /// <summary>
-        /// Equip weapon (sync with WeaponManager)
+        /// Equip wave output (sync with WaveOutputManager)
         /// </summary>
-        public bool EquipWeapon(int weaponID)
+        public bool EquipWaveOutput(int outputID)
         {
-            Debug.Log($"PlayerInventory: EquipWeapon called for weaponID: {weaponID}");
+            Debug.Log($"PlayerInventory: EquipWaveOutput called for outputID: {outputID}");
             
-            if (!_itemsById.TryGetValue(weaponID, out var weaponData))
+            if (!_itemsById.TryGetValue(outputID, out var outputData))
             {
-                Debug.LogWarning($"PlayerInventory: Cannot equip weapon {weaponID} - not in inventory");
+                Debug.LogWarning($"PlayerInventory: Cannot equip wave output {outputID} - not in inventory");
                 return false;
             }
             
-            if (weaponData.ItemType != ItemType.Weapon)
+            if (outputData.ItemType != ItemType.WaveOutput)
             {
-                Debug.LogWarning($"PlayerInventory: Item {weaponID} is not a weapon");
+                Debug.LogWarning($"PlayerInventory: Item {outputID} is not a wave output");
                 return false;
             }
             
-            // Unequip current weapon
-            if (_equippedWeaponID != -1 && _equippedWeaponID != weaponID)
+            // Unequip current wave output
+            if (_equippedWaveOutputID != -1 && _equippedWaveOutputID != outputID)
             {
-                Debug.Log($"PlayerInventory: Unequipping current weapon: {_equippedWeaponID}");
-                UnequipCurrentWeapon();
+                Debug.Log($"PlayerInventory: Unequipping current wave output: {_equippedWaveOutputID}");
+                UnequipCurrentWaveOutput();
             }
             
-            _equippedWeaponID = weaponID;
-            weaponData.IsEquipped = true;
+            _equippedWaveOutputID = outputID;
+            outputData.IsEquipped = true;
             
-            OnWeaponEquipped?.Invoke(weaponID);
-            Debug.Log($"PlayerInventory: Equipped weapon {weaponID}");
+            OnOutputEquipped?.Invoke(outputID);
+            Debug.Log($"PlayerInventory: Equipped wave output {outputID}");
             return true;
         }
         
         /// <summary>
-        /// Unequip current weapon
+        /// Unequip current wave output
         /// </summary>
-        public void UnequipCurrentWeapon()
+        public void UnequipCurrentWaveOutput()
         {
-            if (_equippedWeaponID == -1) return;
+            if (_equippedWaveOutputID == -1) return;
             
-            int oldWeaponID = _equippedWeaponID;
+            int oldOutputID = _equippedWaveOutputID;
             
             // Clear IsEquipped flag in grid system
-            if (_itemsById.TryGetValue(oldWeaponID, out var weaponData))
+            if (_itemsById.TryGetValue(oldOutputID, out var outputData))
             {
-                weaponData.IsEquipped = false;
-                Debug.Log($"PlayerInventory: Cleared IsEquipped flag for weapon {oldWeaponID}");
+                outputData.IsEquipped = false;
+                Debug.Log($"PlayerInventory: Cleared IsEquipped flag for wave output {oldOutputID}");
             }
             
-            _equippedWeaponID = -1;
+            _equippedWaveOutputID = -1;
             
-            OnWeaponUnequipped?.Invoke();
-            Debug.Log("PlayerInventory: Unequipped current weapon");
+            OnOutputUnequipped?.Invoke();
+            Debug.Log("PlayerInventory: Unequipped current wave output");
         }
-        
-        public int GetEquippedWeaponID() => _equippedWeaponID;
         
         #endregion
 
-        #region 弹药管理 - Ammo Management
+        #region Energy Management
         
         // Ammo events
         public System.Action<string, int, int> OnAmmoChanged; // ammoType, oldAmount, newAmount
         
         /// <summary>
-        /// 消耗弹药
+        /// Consume energy
         /// </summary>
         /// <param name="ammoType">弹药类型</param>
         /// <param name="amount">消耗数量</param>
@@ -767,19 +766,19 @@ namespace Resonance.Gameplay.Player.Inventory
 
             switch (gridItem.ItemType)
             {
-                case ItemType.Weapon:
-                    // Load WaveGunDataAsset
-                    var gunData = Resources.Load<WaveGunDataAsset>(resourcesPath);
-                    if (gunData != null)
+                case ItemType.WaveOutput:
+                    // Load WaveOutputDataAsset (or WaveGunDataAsset)
+                    var outputData = Resources.Load<WaveOutputDataAsset>(resourcesPath);
+                    if (outputData != null)
                     {
-                        gridItem.ItemPrefab = gunData.itemPrefab;
-                        gridItem.ItemIcon = gunData.outputIcon;
-                        Debug.Log($"PlayerInventory: Loaded weapon visual data - ItemPrefab={(gunData.itemPrefab != null ? gunData.itemPrefab.name : "NULL")},"+
-                                $"ItemIcon={(gunData.outputIcon != null ? gunData.outputIcon.name : "NULL")}");
+                        gridItem.ItemPrefab = outputData.itemPrefab;
+                        gridItem.ItemIcon = outputData.outputIcon;
+                        Debug.Log($"PlayerInventory: Loaded wave output visual data - ItemPrefab={(outputData.itemPrefab != null ? outputData.itemPrefab.name : "NULL")},"+
+                                $"ItemIcon={(outputData.outputIcon != null ? outputData.outputIcon.name : "NULL")}");
                     }
                     else
                     {
-                        Debug.LogWarning($"PlayerInventory: Failed to load WaveGunDataAsset from Resources path: {resourcesPath}");
+                        Debug.LogWarning($"PlayerInventory: Failed to load WaveOutputDataAsset from Resources path: {resourcesPath}");
                     }
                     break;
                 case ItemType.Consumable:
@@ -790,6 +789,10 @@ namespace Resonance.Gameplay.Player.Inventory
                         case ConsumableType.Healant:
                             break;
                     }
+                    break;
+                case ItemType.Module:
+                    break;
+                case ItemType.Tool:
                     break;
                 default:
                     break;

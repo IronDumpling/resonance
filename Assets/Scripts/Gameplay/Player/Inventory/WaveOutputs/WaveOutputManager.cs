@@ -6,13 +6,14 @@ using Resonance.Systems.Waves;
 using Resonance.Systems.Waves.Editors;
 using Resonance.Shared.Types;
 using Resonance.Gameplay.Items.Core;
+using Resonance.Gameplay.Items;
 
 
 namespace Resonance.Gameplay.Player.Inventory
 {
     /// <summary>
     /// WaveOutputManager - Manages all wave output devices (WaveGun, CrystalCore, WaveDiffuser)
-    /// Replaces WeaponManager with wave-centric functionality
+    /// Replaces WaveOutputManager with wave-centric functionality
     /// Responsibilities:
     /// - Equip/unequip wave output devices
     /// - Set output waves from WaveModuleGraph
@@ -43,14 +44,17 @@ namespace Resonance.Gameplay.Player.Inventory
         public int EquippedOutputID => _equippedOutputID;
         public Wave CurrentWave => _currentWave;
         
+        // Convenience property for accessing as WaveGun (for backward compatibility)
+        public WaveGunDataAsset CurrentWeapon => _cachedOutputAsset as WaveGunDataAsset;
+        
         public WaveOutputManager(PlayerInventory inventory, WaveModuleManager moduleManager)
         {
             _inventory = inventory;
             _moduleManager = moduleManager;
             
             // Listen to inventory events
-            _inventory.OnWeaponEquipped += OnInventoryOutputEquipped;
-            _inventory.OnWeaponUnequipped += OnInventoryOutputUnequipped;
+            _inventory.OnOutputEquipped += OnInventoryOutputEquipped;
+            _inventory.OnOutputUnequipped += OnInventoryOutputUnequipped;
             
             // Listen to module manager events
             if (_moduleManager != null)
@@ -69,9 +73,9 @@ namespace Resonance.Gameplay.Player.Inventory
         public bool EquipOutput(int outputItemID)
         {
             var outputData = _inventory.GetItemByID(outputItemID);
-            if (outputData == null || outputData.ItemType != ItemType.Weapon)
+            if (outputData == null || outputData.ItemType != ItemType.WaveOutput)
             {
-                Debug.LogWarning($"WaveOutputManager: Output {outputItemID} not found or not a weapon type");
+                Debug.LogWarning($"WaveOutputManager: Output {outputItemID} not found or not a wave output type");
                 return false;
             }
             
@@ -93,7 +97,7 @@ namespace Resonance.Gameplay.Player.Inventory
             _currentOutputType = _cachedOutputAsset.outputType;
             
             // Update inventory
-            _inventory.EquipWeapon(_equippedOutputID);
+            _inventory.EquipWaveOutput(_equippedOutputID);
             
             // If we have a module graph, execute it to get initial wave
             if (_moduleManager != null && _moduleManager.HasActiveGraph)
@@ -114,7 +118,7 @@ namespace Resonance.Gameplay.Player.Inventory
         {
             if (_equippedOutputID == -1) return;
             
-            _inventory.UnequipCurrentWeapon();
+            _inventory.UnequipCurrentWaveOutput();
             
             _equippedOutputID = -1;
             _cachedOutputAsset = null;
@@ -337,7 +341,7 @@ namespace Resonance.Gameplay.Player.Inventory
                 {
                     _equippedOutputID = saveData.equippedOutputID;
                     _currentOutputType = saveData.outputType;
-                    _inventory.EquipWeapon(_equippedOutputID);
+                    _inventory.EquipWaveOutput(_equippedOutputID);
                     
                     // Restore wave
                     if (saveData.currentWaveSaveData != null)
@@ -368,8 +372,8 @@ namespace Resonance.Gameplay.Player.Inventory
         {
             if (_inventory != null)
             {
-                _inventory.OnWeaponEquipped -= OnInventoryOutputEquipped;
-                _inventory.OnWeaponUnequipped -= OnInventoryOutputUnequipped;
+                _inventory.OnOutputEquipped -= OnInventoryOutputEquipped;
+                _inventory.OnOutputUnequipped -= OnInventoryOutputUnequipped;
             }
             
             if (_moduleManager != null)

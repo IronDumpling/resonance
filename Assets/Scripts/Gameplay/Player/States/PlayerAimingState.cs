@@ -31,7 +31,7 @@ namespace Resonance.Gameplay.Player.States
             Debug.Log("PlayerState: Entered Aiming state");
             
             // Safety check: Ensure player has a weapon
-            if (!_playerController.HasEquippedWeapon)
+            if (!_playerController.HasEquippedOutput)
             {
                 Debug.LogWarning("PlayerAimingState: Player entered aiming state without weapon! This should not happen.");
                 return;
@@ -40,7 +40,7 @@ namespace Resonance.Gameplay.Player.States
             // Initialize weapon systems in ShootingSystem
             if (_playerController.ShootingSystem != null)
             {
-                _playerController.ShootingSystem.InitializeWeapon(_playerController.WeaponManager.CurrentWeapon);
+                _playerController.ShootingSystem.InitializeWeapon(_playerController.WaveOutputManager.CurrentWeapon);
                 Debug.Log("PlayerAimingState: Weapon systems initialized");
             }
             
@@ -56,7 +56,7 @@ namespace Resonance.Gameplay.Player.States
         public void Update()
         {
             // Safety check: If weapon is removed while aiming, exit aiming state
-            if (!_playerController.HasEquippedWeapon)
+            if (!_playerController.HasEquippedOutput)
             {
                 Debug.Log("PlayerAimingState: Weapon removed while aiming, exiting aiming state");
                 _playerController.StateMachine.StopAiming();

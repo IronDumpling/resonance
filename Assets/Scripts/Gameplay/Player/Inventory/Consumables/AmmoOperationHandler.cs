@@ -16,9 +16,9 @@ namespace Resonance.Gameplay.Player.Inventory.Operations
     {
         public AmmoOperationHandler(
             PlayerInventory inventory,
-            WeaponManager weaponManager,
+            WaveOutputManager waveOutputManager,
             ConsumableManager consumableManager)
-            : base(inventory, weaponManager, consumableManager)
+            : base(inventory, waveOutputManager, consumableManager)
         {
         }
         

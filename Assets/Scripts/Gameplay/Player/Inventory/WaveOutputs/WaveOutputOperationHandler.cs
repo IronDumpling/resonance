@@ -7,18 +7,18 @@ using Resonance.Systems.GridSystem;
 namespace Resonance.Gameplay.Player.Inventory.Operations
 {
     /// <summary>
-    /// Operation handler for Weapon items
+    /// Operation handler for WaveOutput items
     /// - Use: Equip/Unequip weapon
     /// - Drop: NOT ALLOWED (weapons cannot be dropped)
     /// - Combine: Future feature (weapon modding/upgrading)
     /// </summary>
-    public class WeaponOperationHandler : BaseItemOperationHandler, IItemUsable
+    public class WaveOutputOperationHandler : BaseItemOperationHandler, IItemUsable
     {
-        public WeaponOperationHandler(
+        public WaveOutputOperationHandler(
             PlayerInventory inventory,
-            WeaponManager weaponManager,
+            WaveOutputManager waveOutputManager,
             ConsumableManager consumableManager)
-            : base(inventory, weaponManager, consumableManager)
+            : base(inventory, waveOutputManager, consumableManager)
         {
         }
         
@@ -26,8 +26,8 @@ namespace Resonance.Gameplay.Player.Inventory.Operations
         
         public bool CanUse(GridItem item)
         {
-            // Weapons can always be used (equipped/unequipped)
-            if (item == null || item.ItemType != ItemType.Weapon)
+            // WaveOutputs can always be used (equipped/unequipped)
+            if (item == null || item.ItemType != ItemType.WaveOutput)
             {
                 return false;
             }
@@ -48,28 +48,28 @@ namespace Resonance.Gameplay.Player.Inventory.Operations
             
             if (isEquipped)
             {
-                // Unequip weapon
-                WeaponManager.UnequipWeapon();
-                Log($"Unequipped weapon: {item.ItemName}");
+                // Unequip output
+                WaveOutputManager.UnequipOutput();
+                Log($"Unequipped output: {item.ItemName}");
             }
             else
             {
-                // Equip weapon
-                bool success = WeaponManager.EquipWeapon(item.ItemID);
+                // Equip output
+                bool success = WaveOutputManager.EquipOutput(item.ItemID);
                 if (success)
                 {
-                    Log($"Equipped weapon: {item.ItemName}");
+                    Log($"Equipped output: {item.ItemName}");
                 }
                 else
                 {
-                    LogError($"Failed to equip weapon: {item.ItemName}");
+                    LogError($"Failed to equip output: {item.ItemName}");
                 }
             }
         }
         
         public string GetUseButtonText(GridItem item)
         {
-            if (item == null || item.ItemType != ItemType.Weapon)
+            if (item == null || item.ItemType != ItemType.WaveOutput)
             {
                 return "Use";
             }

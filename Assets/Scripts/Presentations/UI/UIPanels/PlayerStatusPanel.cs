@@ -9,6 +9,7 @@ using Resonance.Gameplay.Player.Core;
 using Resonance.Gameplay.Player.Data;
 using Resonance.Gameplay.Player.Inventory;
 using Resonance.Gameplay.Items;
+using Resonance.Gameplay.Items.Core;
 using Resonance.Utilities;
 using Resonance.Shared.Types;
 
@@ -55,7 +56,7 @@ namespace Resonance.Presentations.UI
         // Services and Controllers
         private IPlayerService _playerService;
         private PlayerController _playerController;
-        private WeaponManager _weaponManager;
+        private WaveOutputManager _waveOutputManager;
         
         // State tracking
         private bool _isInitialized = false;
@@ -161,7 +162,7 @@ namespace Resonance.Presentations.UI
                 _playerController = _playerService.CurrentPlayer.Controller;
                 if (_playerController != null)
                 {
-                    _weaponManager = _playerController.WeaponManager;
+                    _waveOutputManager = _playerController.WaveOutputManager;
                     SubscribeToPlayerEvents();
                     _isInitialized = true;
                     
@@ -220,10 +221,10 @@ namespace Resonance.Presentations.UI
             }
             
             // Subscribe to weapon events
-            if (_weaponManager != null)
+            if (_waveOutputManager != null)
             {
-                _weaponManager.OnWeaponEquipped += OnWeaponEquipped;
-                _weaponManager.OnWeaponUnequipped += OnWeaponUnequipped;
+                _waveOutputManager.OnOutputEquipped += OnOutputEquipped;
+                _waveOutputManager.OnOutputUnequipped += OnOutputUnequipped;
             }
         }
 
@@ -241,10 +242,10 @@ namespace Resonance.Presentations.UI
                 }
             }
             
-            if (_weaponManager != null)
+            if (_waveOutputManager != null)
             {
-                _weaponManager.OnWeaponEquipped -= OnWeaponEquipped;
-                _weaponManager.OnWeaponUnequipped -= OnWeaponUnequipped;
+                _waveOutputManager.OnOutputEquipped -= OnOutputEquipped;
+                _waveOutputManager.OnOutputUnequipped -= OnOutputUnequipped;
             }
             
             // Unsubscribe from player service events
@@ -272,12 +273,12 @@ namespace Resonance.Presentations.UI
             UpdateCoreSlotsUI();
         }
 
-        private void OnWeaponEquipped(WaveGunDataAsset gunData)
+        private void OnOutputEquipped(WaveOutputDataAsset outputData, WaveOutputType outputType)
         {
             UpdateWeaponUI();
         }
 
-        private void OnWeaponUnequipped()
+        private void OnOutputUnequipped()
         {
             UpdateWeaponUI();
         }
@@ -298,10 +299,10 @@ namespace Resonance.Presentations.UI
 
         private void UpdateWeaponUI()
         {
-            if (_weaponManager == null) return;
+            if (_waveOutputManager == null) return;
             
-            bool hasWeapon = _weaponManager.HasEquippedWeapon;
-            WaveGunDataAsset currentWeapon = _weaponManager.CurrentWeapon;
+            bool hasWeapon = _waveOutputManager.HasEquippedOutput;
+            WaveGunDataAsset currentWeapon = _waveOutputManager.CurrentWeapon;
             
             // Update weapon icon
             if (_outputIcon != null)

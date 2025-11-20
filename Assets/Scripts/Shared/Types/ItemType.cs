@@ -7,24 +7,29 @@ namespace Resonance.Shared.Types
     /// </summary>
     public enum ItemType
     {
-        Consumable,    // Ammo, etc.
+        Consumable,    // EnergyBottle, Healant, etc.
         Tool,          // Key, etc.
-        Module,        // Wave Module
-        Weapon,        // Pistol, etc.
-        WaveOutput     // WaveGun, CrystalCore, WaveDiffuser
+        Module,        // Wave Module (WaveModuleGraph items)
+        WaveOutput,    // WaveGun, CrystalCore, WaveDiffuser, etc.
     }
 
+    /// <summary>
+    /// Consumable type enum
+    /// </summary>
     public enum ConsumableType
     {
-        EnergyBottle,
-        Healant,
-        None
+        EnergyBottle,  // Restores Crystal Core Energy
+        Healant,       // Restores Crystal Core Health
+        None           // Default/unspecified
     }
 
+    /// <summary>
+    /// Wave output device type enum
+    /// </summary>
     public enum WaveOutputType
     {
-        WaveGun,
-        CrystalCore,
-        WaveDiffuser,
+        WaveGun,        // Fires wave projectiles
+        CrystalCore,    // Crystal resonator - amplifies/modifies waves
+        WaveDiffuser    // Wave diffuser - creates area effects
     }
 }

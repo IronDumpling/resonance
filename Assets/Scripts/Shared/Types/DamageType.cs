@@ -11,7 +11,7 @@ namespace Resonance.Shared.Types
     {
         /// <summary>
         /// Physical Health damage - Directly affects physical health value
-        /// Example: Weaponshot, explosion, physical impact
+        /// Example: WaveOutputshot, explosion, physical impact
         /// </summary>
         PhysicalHealth,
         

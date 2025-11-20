@@ -14,7 +14,7 @@ namespace Resonance.Gameplay.Player.Inventory.Operations
     {
         // Dependencies - injected via constructor
         protected PlayerInventory Inventory { get; private set; }
-        protected WeaponManager WeaponManager { get; private set; }
+        protected WaveOutputManager WaveOutputManager { get; private set; }
         protected ConsumableManager ConsumableManager { get; private set; }
         
         // Services - fetched from ServiceRegistry
@@ -25,11 +25,11 @@ namespace Resonance.Gameplay.Player.Inventory.Operations
         /// </summary>
         public BaseItemOperationHandler(
             PlayerInventory inventory,
-            WeaponManager weaponManager,
+            WaveOutputManager waveOutputManager,
             ConsumableManager consumableManager)
         {
             Inventory = inventory;
-            WeaponManager = weaponManager;
+            WaveOutputManager = waveOutputManager;
             ConsumableManager = consumableManager;
             
             // Get services

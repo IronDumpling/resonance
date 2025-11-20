@@ -361,7 +361,7 @@ namespace Resonance.Gameplay.Items
             {
                 ItemID = weaponID,
                 ItemName = gunCopy.outputName,
-                ItemType = ItemType.Weapon,
+                ItemType = ItemType.WaveOutput,
                 GridWidth = gunCopy.gridWidth,
                 GridHeight = gunCopy.gridHeight,
                 AssetPath = GetAssetPath(_gunDataAsset),
@@ -372,6 +372,7 @@ namespace Resonance.Gameplay.Items
                 Durability = 1f
             };
             gridItem.CustomData["originalAsset"] = gunCopy;
+            gridItem.CustomData["waveOutputType"] = WaveOutputType.WaveGun;
             gridItem.CustomData["outputName"] = gunCopy.outputName;
             
             return true;

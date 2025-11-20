@@ -18,7 +18,7 @@ namespace Resonance.Gameplay.Player.Inventory
     {
         private PlayerInventory _inventory;
         private ConsumableManager _consumableManager;
-        private WeaponManager _weaponManager;
+        private WaveOutputManager _waveOutputManager;
         
         // Operation Handlers (Strategy Pattern)
         private Dictionary<ItemType, BaseItemOperationHandler> _operationHandlers;
@@ -35,11 +35,11 @@ namespace Resonance.Gameplay.Player.Inventory
         
         public InventoryOperationManager(
             PlayerInventory inventory, 
-            WeaponManager weaponManager,
+            WaveOutputManager waveOutputManager,
             ConsumableManager consumableManager)
         {
             _inventory = inventory;
-            _weaponManager = weaponManager;
+            _waveOutputManager = waveOutputManager;
             _consumableManager = consumableManager;
             
             InitializeOperationHandlers();
@@ -55,11 +55,11 @@ namespace Resonance.Gameplay.Player.Inventory
             _operationHandlers = new Dictionary<ItemType, BaseItemOperationHandler>();
             
             // Register handlers for each item type
-            _operationHandlers[ItemType.Weapon] = new WeaponOperationHandler(
-                _inventory, _weaponManager, _consumableManager);
+            _operationHandlers[ItemType.WaveOutput] = new WaveOutputOperationHandler(
+                _inventory, _waveOutputManager, _consumableManager);
             
             _operationHandlers[ItemType.Consumable] = new AmmoOperationHandler(
-                _inventory, _weaponManager, _consumableManager);
+                _inventory, _waveOutputManager, _consumableManager);
             
             // TODO Future handlers can be added here:
             // _operationHandlers[ItemType.Tool] = new ToolOperationHandler(...);

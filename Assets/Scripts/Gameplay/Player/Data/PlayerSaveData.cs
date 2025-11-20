@@ -23,8 +23,9 @@ namespace Resonance.Gameplay.Player.Data
         public PlayerRuntimeStats stats;
 
         [Header("Inventory System - Grid Based")]
-        public GridInventorySaveData gridInventory; // 新的Grid背包数据
-        public WeaponManagerSaveData weaponManager; // 武器管理器数据
+        public GridInventorySaveData gridInventory; // Grid背包数据
+        public WaveOutputManagerSaveData waveOutputManager; // 波输出管理器数据
+        public WaveModuleManagerSaveData waveModuleManager; // 波模块管理器数据
 
         [Header("Scene-specific Data")]
         public Dictionary<string, bool> collectedItems; // Items collected in each scene
@@ -33,7 +34,8 @@ namespace Resonance.Gameplay.Player.Data
         public PlayerSaveData()
         {
             gridInventory = new GridInventorySaveData();
-            weaponManager = new WeaponManagerSaveData();
+            waveOutputManager = new WaveOutputManagerSaveData();
+            waveModuleManager = new WaveModuleManagerSaveData();
             collectedItems = new Dictionary<string, bool>();
             completedEvents = new Dictionary<string, bool>();
             saveTimestamp = Time.time;
@@ -51,7 +53,8 @@ namespace Resonance.Gameplay.Player.Data
                 sceneName = sceneName,
                 saveTimestamp = Time.time,
                 gridInventory = new GridInventorySaveData(),
-                weaponManager = new WeaponManagerSaveData()
+                waveOutputManager = new WaveOutputManagerSaveData(),
+                waveModuleManager = new WaveModuleManagerSaveData()
             };
         }
     }

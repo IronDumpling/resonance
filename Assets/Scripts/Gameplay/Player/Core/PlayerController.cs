@@ -45,7 +45,8 @@ namespace Resonance.Gameplay.Player.Core
         private PlayerMovement _movement;
         private ShootingSystem _shootingSystem;
 
-        private WeaponManager _weaponManager;
+        private WaveModuleManager _moduleManager;
+        private WaveOutputManager _waveOutputManager;
         private ConsumableManager _consumableManager;
         private InventoryOperationManager _gridOperationManager;
 
@@ -77,7 +78,9 @@ namespace Resonance.Gameplay.Player.Core
         public PlayerRuntimeStats Stats => _stats;
         public PlayerInventory Inventory => _inventory;
         public PlayerMovement Movement => _movement;
-        public WeaponManager WeaponManager => _weaponManager;
+        public WaveModuleManager ModuleManager => _moduleManager;
+        public WaveOutputManager WaveOutputManager => _waveOutputManager;
+        public WaveOutputManager OutputManager => _waveOutputManager; // Alias for convenience
         public ShootingSystem ShootingSystem => _shootingSystem;
         public ConsumableManager ConsumableManager => _consumableManager;
         public InventoryOperationManager InventoryOperationManager => _gridOperationManager;
@@ -100,7 +103,7 @@ namespace Resonance.Gameplay.Player.Core
         public bool CanConsumeSlot => _stats.crystalCore.CanConsumeSlot();
         
         public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
-        public bool HasEquippedWeapon => _weaponManager?.HasEquippedWeapon ?? false;
+        public bool HasEquippedOutput => _waveOutputManager?.HasEquippedOutput ?? false;
         public PlayerStateMachine StateMachine => _stateMachine;
         public PlayerActionController PlayerActionController => _actionController;
 
@@ -145,8 +148,9 @@ namespace Resonance.Gameplay.Player.Core
             
             // Initialize inventory managers
             _consumableManager = new ConsumableManager(_inventory);
-            _weaponManager = new WeaponManager(_inventory);
-            _gridOperationManager = new InventoryOperationManager(_inventory, _weaponManager, _consumableManager);
+            _moduleManager = new WaveModuleManager(_inventory);
+            _waveOutputManager = new WaveOutputManager(_inventory, _moduleManager);
+            _gridOperationManager = new InventoryOperationManager(_inventory, _waveOutputManager, _consumableManager);
             
             // Set PlayerController reference for subsystems
             _movement.SetPlayerController(this);
@@ -557,10 +561,10 @@ namespace Resonance.Gameplay.Player.Core
             if (!_stateMachine.CanShoot()) return false;
             
             // Check if player has enough energy
-            var currentWeapon = _weaponManager?.CurrentWeapon;
-            if (currentWeapon != null)
+            var currentOutput = _waveOutputManager?.CurrentOutput;
+            if (currentOutput != null)
             {
-                float requiredEnergy = currentWeapon.energyCostPerShot;
+                float requiredEnergy = currentOutput.energyCostPerUse;
                 if (_stats.crystalCore.CurrentEnergy < requiredEnergy)
                 {
                     return false; // Not enough energy to shoot
@@ -594,15 +598,15 @@ namespace Resonance.Gameplay.Player.Core
                 return new ShootingResult { success = false };
             }
 
-            WaveGunDataAsset currentWeapon = _weaponManager.CurrentWeapon;
-            if (currentWeapon == null)
+            WaveGunDataAsset currentWaveGun = _waveOutputManager.CurrentWeapon;
+            if (currentWaveGun == null)
             {
-                Debug.LogWarning("PlayerController: No weapon equipped");
+                Debug.LogWarning("PlayerController: No wave gun equipped");
                 return new ShootingResult { success = false };
             }
 
             // Check if player has enough energy to shoot
-            float requiredEnergy = currentWeapon.energyCostPerShot;
+            float requiredEnergy = currentWaveGun.energyCostPerShot;
             float currentEnergy = _stats.crystalCore.CurrentEnergy;
             
             if (currentEnergy < requiredEnergy)
@@ -628,13 +632,13 @@ namespace Resonance.Gameplay.Player.Core
             {
                 // Pass aiming state to ShootingSystem
                 bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
-                result = _shootingSystem.PerformShoot(shootOrigin, currentWeapon, isAiming);
+                result = _shootingSystem.PerformShoot(shootOrigin, currentWaveGun, isAiming);
             }
             
             // Trigger shooting event
             OnShoot?.Invoke();
             
-            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWeapon.outputName}. " +
+            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWaveGun.outputName}. " +
                      $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
                      $"Total Base: {result.GetTotalBaseDamage():F1}, Total Actual: {result.GetTotalActualDamage():F1}, " +
                      $"Energy Cost: {requiredEnergy}, Remaining Energy: {_stats.crystalCore.CurrentEnergy}");
@@ -672,15 +676,22 @@ namespace Resonance.Gameplay.Player.Core
                 Debug.LogWarning("PlayerController: No grid inventory data found in save data");
             }
 
-            // Load weapon manager state
-            if (saveData.weaponManager != null)
+            // Load wave output manager state
+            if (saveData.waveOutputManager != null)
             {
-                Debug.Log($"PlayerController: Loading weapon manager data: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.outputName}");
-                _weaponManager.LoadFromSaveData(saveData.weaponManager);
+                Debug.Log($"PlayerController: Loading output manager data: equipped output ID {saveData.waveOutputManager.equippedOutputID}, output name: {saveData.waveOutputManager.outputName}");
+                _waveOutputManager.LoadFromSaveData(saveData.waveOutputManager);
             }
             else
             {
-                Debug.LogWarning("PlayerController: No weapon manager data found in save data");
+                Debug.LogWarning("PlayerController: No output manager data found in save data");
+            }
+            
+            // Load wave module manager state
+            if (saveData.waveModuleManager != null)
+            {
+                Debug.Log($"PlayerController: Loading module manager data");
+                _moduleManager.LoadFromSaveData(saveData.waveModuleManager);
             }
 
             Debug.Log($"PlayerController: Loaded save data from {saveData.saveID}");
@@ -707,9 +718,14 @@ namespace Resonance.Gameplay.Player.Core
             saveData.gridInventory = _inventory.GetSaveData();
             Debug.Log($"PlayerController: Grid inventory saved: {saveData.gridInventory.items.Count} items");
             
-            // Save weapon manager state
-            saveData.weaponManager = _weaponManager.GetSaveData();
-            Debug.Log($"PlayerController: Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.outputName}");
+            // Save wave output manager state
+            saveData.waveOutputManager = _waveOutputManager.GetSaveData();
+            Debug.Log($"PlayerController: Output manager saved: equipped output ID {saveData.waveOutputManager.equippedOutputID}, output name: {saveData.waveOutputManager.outputName}");
+            
+            // Save wave module manager state
+            saveData.waveModuleManager = _moduleManager.GetSaveData();
+            Debug.Log($"PlayerController: Module manager saved");
+            
             return saveData;
         }
 
@@ -874,7 +890,7 @@ namespace Resonance.Gameplay.Player.Core
             // Cleanup inventory managers
             _consumableManager?.Cleanup();
             _gridOperationManager?.Cleanup();
-            _weaponManager?.Cleanup();
+            _waveOutputManager?.Cleanup();
 
             // Clear events
             OnHealthChanged = null;

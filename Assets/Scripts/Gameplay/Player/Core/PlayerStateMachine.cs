@@ -196,17 +196,17 @@ namespace Resonance.Gameplay.Player.Core
 
         public bool CanAim()
         {
-            return IsInState("Normal") && _playerController.HasEquippedWeapon;
+            return IsInState("Normal") && _playerController.HasEquippedOutput;
         }
 
         public bool CanShoot()
         {
-            return IsInState("Aiming") && _playerController.HasEquippedWeapon;
+            return IsInState("Aiming") && _playerController.HasEquippedOutput;
         }
 
         public bool CanReload()
         {
-            return IsInState("Normal") && _playerController.HasEquippedWeapon;
+            return IsInState("Normal") && _playerController.HasEquippedOutput;
         }
 
         public bool IsDead()

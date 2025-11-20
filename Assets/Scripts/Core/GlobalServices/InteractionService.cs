@@ -348,7 +348,7 @@ namespace Resonance.Core.GlobalServices
                                 }
                             }
                             break;
-                        case ItemType.Weapon:
+                        case ItemType.WaveOutput:
                             emptyPos = inventory.FindEmptySpace(gridItem.GridWidth, gridItem.GridHeight);
                             
                             if (emptyPos.x >= 0 && emptyPos.y >= 0)
@@ -357,8 +357,8 @@ namespace Resonance.Core.GlobalServices
                                 
                                 if (added)
                                 {
-                                    // Auto-equip weapon
-                                    AutoEquipIfWeapon(gridItem, playerController);
+                                    // Auto-equip wave output
+                                    AutoEquipIfWaveOutput(gridItem, playerController);
                                 }
                             }
                             break;
@@ -391,12 +391,12 @@ namespace Resonance.Core.GlobalServices
                 OnInventoryFullPickupAttempt?.Invoke();
             }
             
-            private void AutoEquipIfWeapon(GridItem item, PlayerController controller)
+            private void AutoEquipIfWaveOutput(GridItem item, PlayerController controller)
             {
-                if (item.ItemType == ItemType.Weapon)
+                if (item.ItemType == ItemType.WaveOutput || item.ItemType == ItemType.WaveOutput)
                 {
-                    controller.WeaponManager?.EquipWeapon(item.ItemID);
-                    Debug.Log($"PickupStrategy: Auto-equipped weapon {item.ItemName}");
+                    controller.OutputManager?.EquipOutput(item.ItemID);
+                    Debug.Log($"PickupStrategy: Auto-equipped wave output {item.ItemName}");
                 }
             }
         }

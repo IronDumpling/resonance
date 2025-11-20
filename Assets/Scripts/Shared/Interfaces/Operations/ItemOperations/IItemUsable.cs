@@ -5,7 +5,7 @@ namespace Resonance.Shared.Interfaces.Operations
 {
     /// <summary>
     /// Interface for items that can be used
-    /// Example: Weapon (Equip), Tool (Activate), Module (Activate)
+    /// Example: WaveOutput (Equip), Tool (Activate), Module (Activate)
     /// </summary>
     public interface IItemUsable : IItemOperation
     {
