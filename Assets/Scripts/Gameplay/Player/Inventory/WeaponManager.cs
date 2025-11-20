@@ -21,15 +21,15 @@ namespace Resonance.Gameplay.Player.Inventory
         private int _equippedWeaponID = -1;
         
         // Cached weapon data (loaded from inventory)
-        private WeaponDataAsset _cachedWeaponAsset;
+        private WaveGunDataAsset _cachedWeaponAsset;
         
         // Events
-        public System.Action<WeaponDataAsset> OnWeaponEquipped;
+        public System.Action<WaveGunDataAsset> OnWeaponEquipped;
         public System.Action OnWeaponUnequipped;
 
         // Properties
         public bool HasEquippedWeapon => _equippedWeaponID != -1 && _cachedWeaponAsset != null;
-        public WeaponDataAsset CurrentWeapon => _cachedWeaponAsset;
+        public WaveGunDataAsset CurrentWeapon => _cachedWeaponAsset;
         public int EquippedWeaponID => _equippedWeaponID;
         
         public WeaponManager(PlayerInventory inventory)
@@ -83,7 +83,7 @@ namespace Resonance.Gameplay.Player.Inventory
             // Trigger events
             OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
             
-            Debug.Log($"WeaponManager: Equipped weapon {_cachedWeaponAsset.weaponName} (ID: {weaponItemID})");
+            Debug.Log($"WeaponManager: Equipped weapon {_cachedWeaponAsset.outputName} (ID: {weaponItemID})");
             return true;
         }
         
@@ -117,7 +117,7 @@ namespace Resonance.Gameplay.Player.Inventory
         {
             if (!HasEquippedWeapon) return "No Weapon";
             
-            return $"{_cachedWeaponAsset.weaponName} (Energy Cost: {_cachedWeaponAsset.energyCostPerShot})";
+            return $"{_cachedWeaponAsset.outputName} (Energy Cost: {_cachedWeaponAsset.energyCostPerShot})";
         }
         
         #endregion
@@ -144,7 +144,7 @@ namespace Resonance.Gameplay.Player.Inventory
         /// <summary>
         /// Load weapon asset from GridItem
         /// </summary>
-        private WeaponDataAsset LoadWeaponAssetFromData(GridItem weaponData)
+        private WaveGunDataAsset LoadWeaponAssetFromData(GridItem weaponData)
         {
             Debug.Log($"WeaponManager: LoadWeaponAssetFromData called for '{weaponData.ItemName}'");
             Debug.Log($"WeaponManager: - AssetPath: '{weaponData.AssetPath}'");
@@ -155,9 +155,9 @@ namespace Resonance.Gameplay.Player.Inventory
             {
                 Debug.Log($"WeaponManager: Found 'originalAsset' in CustomData, type: {weaponData.CustomData["originalAsset"]?.GetType().Name ?? "null"}");
                 
-                if (weaponData.CustomData["originalAsset"] is WeaponDataAsset originalAsset)
+                if (weaponData.CustomData["originalAsset"] is WaveGunDataAsset originalAsset)
                 {
-                    Debug.Log($"WeaponManager: Successfully retrieved WeaponDataAsset from CustomData: {originalAsset.weaponName}");
+                    Debug.Log($"WeaponManager: Successfully retrieved WaveGunDataAsset from CustomData: {originalAsset.outputName}");
                     return originalAsset;
                 }
             }
@@ -166,10 +166,10 @@ namespace Resonance.Gameplay.Player.Inventory
             if (!string.IsNullOrEmpty(weaponData.AssetPath))
             {
                 Debug.Log($"WeaponManager: Attempting to load from AssetPath: '{weaponData.AssetPath}'");
-                var asset = LoadAssetFromPath<WeaponDataAsset>(weaponData.AssetPath);
+                var asset = LoadAssetFromPath<WaveGunDataAsset>(weaponData.AssetPath);
                 if (asset != null)
                 {
-                    Debug.Log($"WeaponManager: Successfully loaded weapon: {asset.weaponName}");
+                    Debug.Log($"WeaponManager: Successfully loaded weapon: {asset.outputName}");
                     return asset;
                 }
                 else
@@ -278,7 +278,7 @@ namespace Resonance.Gameplay.Player.Inventory
         /// <summary>
         /// Play weapon equip audio based on weapon type
         /// </summary>
-        private void PlayWeaponEquipAudio(WeaponDataAsset gunData)
+        private void PlayWeaponEquipAudio(WaveGunDataAsset gunData)
         {
             var audioService = ServiceRegistry.Get<IAudioService>();
             if (audioService == null) return;
@@ -286,7 +286,7 @@ namespace Resonance.Gameplay.Player.Inventory
             AudioClipType audioClipType = AudioClipType.PistoArming;
             
             audioService.PlaySFX2D(audioClipType, 0.8f, 1f);
-            Debug.Log($"WeaponManager: Played equip audio for {gunData.weaponName}");
+            Debug.Log($"WeaponManager: Played equip audio for {gunData.outputName}");
         }
         
         #endregion
@@ -301,7 +301,7 @@ namespace Resonance.Gameplay.Player.Inventory
             return new WeaponManagerSaveData
             {
                 equippedWeaponID = _equippedWeaponID,
-                weaponName = _cachedWeaponAsset?.weaponName ?? "",
+                outputName = _cachedWeaponAsset?.outputName ?? "",
                 assetPath = _cachedWeaponAsset != null ? GetAssetPath(_cachedWeaponAsset) : ""
             };
         }
@@ -337,7 +337,7 @@ namespace Resonance.Gameplay.Player.Inventory
                     
                     OnWeaponEquipped?.Invoke(_cachedWeaponAsset);
                     
-                    Debug.Log($"WeaponManager: Loaded and equipped weapon {_cachedWeaponAsset.weaponName}");
+                    Debug.Log($"WeaponManager: Loaded and equipped weapon {_cachedWeaponAsset.outputName}");
                 }
             }
             else
@@ -392,13 +392,13 @@ namespace Resonance.Gameplay.Player.Inventory
     public class WeaponManagerSaveData
     {
         public int equippedWeaponID;
-        public string weaponName;
+        public string outputName;
         public string assetPath;
         
         public WeaponManagerSaveData()
         {
             equippedWeaponID = -1;
-            weaponName = "";
+            outputName = "";
             assetPath = "";
         }
     }

@@ -201,7 +201,7 @@ namespace Resonance.Gameplay.Player.Triggers
             if (interactable == null) return;
 
             // 如果可交互对象有UI显示方法, 调用它
-            var gunMono = interactable as WeaponMonoBehaviour;
+            var gunMono = interactable as WaveGunMonoBehaviour;
             if (gunMono != null)
             {
                 gunMono.ShowInteractionUI();
@@ -223,7 +223,7 @@ namespace Resonance.Gameplay.Player.Triggers
             if (interactable == null) return;
 
             // 如果可交互对象有UI隐藏方法, 调用它
-            var gunMono = interactable as WeaponMonoBehaviour;
+            var gunMono = interactable as WaveGunMonoBehaviour;
             if (gunMono != null)
             {
                 gunMono.HideInteractionUI();

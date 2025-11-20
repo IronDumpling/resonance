@@ -10,7 +10,8 @@ namespace Resonance.Shared.Types
         Consumable,    // Ammo, etc.
         Tool,          // Key, etc.
         Module,        // Wave Module
-        Weapon         // Pistol, etc.
+        Weapon,        // Pistol, etc.
+        WaveOutput     // WaveGun, CrystalCore, WaveDiffuser
     }
 
     public enum ConsumableType
@@ -18,5 +19,12 @@ namespace Resonance.Shared.Types
         EnergyBottle,
         Healant,
         None
+    }
+
+    public enum WaveOutputType
+    {
+        WaveGun,
+        CrystalCore,
+        WaveDiffuser,
     }
 }

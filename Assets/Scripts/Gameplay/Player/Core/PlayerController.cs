@@ -594,7 +594,7 @@ namespace Resonance.Gameplay.Player.Core
                 return new ShootingResult { success = false };
             }
 
-            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
+            WaveGunDataAsset currentWeapon = _weaponManager.CurrentWeapon;
             if (currentWeapon == null)
             {
                 Debug.LogWarning("PlayerController: No weapon equipped");
@@ -634,7 +634,7 @@ namespace Resonance.Gameplay.Player.Core
             // Trigger shooting event
             OnShoot?.Invoke();
             
-            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWeapon.weaponName}. " +
+            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWeapon.outputName}. " +
                      $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
                      $"Total Base: {result.GetTotalBaseDamage():F1}, Total Actual: {result.GetTotalActualDamage():F1}, " +
                      $"Energy Cost: {requiredEnergy}, Remaining Energy: {_stats.crystalCore.CurrentEnergy}");
@@ -675,7 +675,7 @@ namespace Resonance.Gameplay.Player.Core
             // Load weapon manager state
             if (saveData.weaponManager != null)
             {
-                Debug.Log($"PlayerController: Loading weapon manager data: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
+                Debug.Log($"PlayerController: Loading weapon manager data: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.outputName}");
                 _weaponManager.LoadFromSaveData(saveData.weaponManager);
             }
             else
@@ -709,7 +709,7 @@ namespace Resonance.Gameplay.Player.Core
             
             // Save weapon manager state
             saveData.weaponManager = _weaponManager.GetSaveData();
-            Debug.Log($"PlayerController: Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.weaponName}");
+            Debug.Log($"PlayerController: Weapon manager saved: equipped weapon ID {saveData.weaponManager.equippedWeaponID}, weapon name: {saveData.weaponManager.outputName}");
             return saveData;
         }
 

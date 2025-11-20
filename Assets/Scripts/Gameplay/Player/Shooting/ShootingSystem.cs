@@ -39,7 +39,7 @@ namespace Resonance.Gameplay.Player.Shooting
         // Weapon systems
         private WeaponAccuracySystem _accuracySystem;
         private WeaponRecoilSystem _recoilSystem;
-        private WeaponDataAsset _currentWeapon;
+        private WaveGunDataAsset _currentWeapon;
         
         // Shooting line visual effect
         private LineRenderer _shootingLineRenderer;  // Flashing line during shooting
@@ -134,7 +134,7 @@ namespace Resonance.Gameplay.Player.Shooting
         /// Initialize weapon systems with gun data
         /// Called when equipping a weapon or entering aiming state
         /// </summary>
-        public void InitializeWeapon(WeaponDataAsset weaponData)
+        public void InitializeWeapon(WaveGunDataAsset weaponData)
         {
             if (weaponData == null)
             {
@@ -149,11 +149,11 @@ namespace Resonance.Gameplay.Player.Shooting
             {
                 _accuracySystem = new WeaponAccuracySystem();
                 _accuracySystem.Initialize(weaponData.accuracyConfig);
-                Debug.Log($"ShootingSystem: Initialized accuracy system for {weaponData.weaponName}");
+                Debug.Log($"ShootingSystem: Initialized accuracy system for {weaponData.outputName}");
             }
             else
             {
-                Debug.LogError($"ShootingSystem: Weapon {weaponData.weaponName} missing accuracyConfig!");
+                Debug.LogError($"ShootingSystem: Weapon {weaponData.outputName} missing accuracyConfig!");
             }
             
             // Initialize recoil system
@@ -161,11 +161,11 @@ namespace Resonance.Gameplay.Player.Shooting
             {
                 _recoilSystem = new WeaponRecoilSystem();
                 _recoilSystem.Initialize(weaponData.recoilConfig);
-                Debug.Log($"ShootingSystem: Initialized recoil system for {weaponData.weaponName}");
+                Debug.Log($"ShootingSystem: Initialized recoil system for {weaponData.outputName}");
             }
             else
             {
-                Debug.LogError($"ShootingSystem: Weapon {weaponData.weaponName} missing recoilConfig!");
+                Debug.LogError($"ShootingSystem: Weapon {weaponData.outputName} missing recoilConfig!");
             }
         }
         
@@ -230,7 +230,7 @@ namespace Resonance.Gameplay.Player.Shooting
         /// <param name="gunData">Weapon data</param>
         /// <param name="isAiming">Is aiming</param>
         /// <returns>Shooting result</returns>
-        public ShootingResult PerformShoot(Vector3 shootOrigin, WeaponDataAsset gunData, bool isAiming = true)
+        public ShootingResult PerformShoot(Vector3 shootOrigin, WaveGunDataAsset gunData, bool isAiming = true)
         {
             if (gunData == null)
             {
@@ -425,7 +425,7 @@ namespace Resonance.Gameplay.Player.Shooting
         /// <param name="shootOrigin">Shoot origin position</param>
         /// <param name="gunData">Weapon data for range</param>
         /// <returns>The actual end point (hit point or base target point)</returns>
-        public Vector3 PreviewShootingEndPoint(Vector3 shootOrigin, WeaponDataAsset gunData)
+        public Vector3 PreviewShootingEndPoint(Vector3 shootOrigin, WaveGunDataAsset gunData)
         {
             if (gunData == null)
             {
@@ -674,7 +674,7 @@ namespace Resonance.Gameplay.Player.Shooting
         /// <param name="gunData">Weapon data asset (required)</param>
         /// <param name="damageMultiplier">Damage multiplier from accuracy</param>
         /// <returns>Dictionary of actual damage dealt by type</returns>
-        private Damages ProcessHit(RaycastHit hitInfo, Vector3 damageSource, WeaponDataAsset gunData, float damageMultiplier = 1f)
+        private Damages ProcessHit(RaycastHit hitInfo, Vector3 damageSource, WaveGunDataAsset gunData, float damageMultiplier = 1f)
         {
             GameObject hitObject = hitInfo.collider.gameObject;
             Damages actualDamages = new Damages();
@@ -804,7 +804,7 @@ namespace Resonance.Gameplay.Player.Shooting
         /// </summary>
         /// <param name="shootOrigin">Shoot origin</param>
         /// <param name="gunData">Weapon data</param>
-        private void PlayShootingAudio(Vector3 shootOrigin, WeaponDataAsset gunData)
+        private void PlayShootingAudio(Vector3 shootOrigin, WaveGunDataAsset gunData)
         {
             if (_audioService == null) return;
             
@@ -822,13 +822,13 @@ namespace Resonance.Gameplay.Player.Shooting
         /// </summary>
         /// <param name="gunData">Weapon data</param>
         /// <returns>Audio type</returns>
-        private AudioClipType GetShootingAudioClipType(WeaponDataAsset gunData)
+        private AudioClipType GetShootingAudioClipType(WaveGunDataAsset gunData)
         {
             // According to the weapon name or type to select audio
             // Here can be extended according to the actual weapon system
-            string weaponName = gunData.weaponName.ToLower();
+            string outputName = gunData.outputName.ToLower();
             
-            if (weaponName.Contains("rifle"))
+            if (outputName.Contains("rifle"))
             {
                 return AudioClipType.WeaponFireRifle;
             }
@@ -889,7 +889,7 @@ namespace Resonance.Gameplay.Player.Shooting
         /// </summary>
         /// <param name="weaponData">Weapon data containing recoil configuration</param>
         /// <param name="totalDamage">Total damage dealt (for scaling)</param>
-        private void TriggerCameraImpulse(WeaponDataAsset weaponData, float totalDamage)
+        private void TriggerCameraImpulse(WaveGunDataAsset weaponData, float totalDamage)
         {
             // Initialize impulse source if not already done
             InitializeCameraImpulse();

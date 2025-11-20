@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 555266432305815107}
   - component: {fileID: 8638275994281199296}
   m_Layer: 5
-  m_Name: PistoVisual
+  m_Name: WaveGunVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -527,7 +527,7 @@ namespace Resonance.Gameplay.Enemies
             }
             else
             {
-                Debug.Log($"WeaponMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
+                Debug.Log($"WaveGunMonoBehaviour: Found TextMeshProUGUI component for interaction UI");
                 _waveUIText.text = "F";
             }
 

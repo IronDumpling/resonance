@@ -103,7 +103,7 @@ MonoBehaviour:
   _energyBottleDataAsset: {fileID: 11400000, guid: 6317454c2037d04488b912bed37495c3, type: 2}
   _interactionText: E
   _interactionDuration: 0.2
-  _pickupVisual: {fileID: 0}
+  _pickupVisual: {fileID: 519393222693085104}
   _rotateWhenIdle: 1
   _rotationSpeed: 30
   _bobUpAndDown: 1

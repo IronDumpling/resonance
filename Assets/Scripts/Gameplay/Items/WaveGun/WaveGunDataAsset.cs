@@ -98,14 +98,9 @@ namespace Resonance.Gameplay.Items
     /// Weapon data ScriptableObject asset
     /// Used to create and edit Weapon configurations in Unity Editor
     /// </summary>
-    [CreateAssetMenu(fileName = "New Weapon Data", menuName = "Resonance/Items/Weapon Data", order = 1)]
-    public class WeaponDataAsset : ScriptableObject, IInfoable
+    [CreateAssetMenu(fileName = "New Wave Gun Data", menuName = "Resonance/Items/Wave Gun Data", order = 1)]
+    public class WaveGunDataAsset : WaveOutputDataAsset
     {
-        [Header("Basic Info")]
-        public string weaponName = "Basic Weapon";
-        [TextArea(2, 4)]
-        public string weaponDescription = "A basic firearm";
-        
         [Header("Energy Cost")]
         [Tooltip("Crystal Core Energy consumed per shot")]
         [Range(1f, 50f)]
@@ -126,14 +121,6 @@ namespace Resonance.Gameplay.Items
         [Header("Recoil Settings")]
         [Tooltip("Weapon recoil configuration (required)")]
         public WeaponRecoilConfig recoilConfig = new WeaponRecoilConfig();
-        
-        [Header("Visual")]
-        public Sprite weaponIcon;
-        public GameObject itemPrefab;
-        
-        [Header("Inventory")]
-        public int gridWidth = 3;
-        public int gridHeight = 2;
 
         /// <summary>
         /// Validate Weapon data
@@ -141,33 +128,33 @@ namespace Resonance.Gameplay.Items
         /// <returns>Validation result</returns>
         public bool ValidateData()
         {
-            if (string.IsNullOrEmpty(weaponName))
+            if (string.IsNullOrEmpty(outputName))
             {
-                Debug.LogError($"WeaponDataAsset: {name} has empty weapon name");
+                Debug.LogError($"WaveGunDataAsset: {outputName} has empty output name");
                 return false;
             }
 
             if (energyCostPerShot <= 0)
             {
-                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid energy cost: {energyCostPerShot}");
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid energy cost: {energyCostPerShot}");
                 return false;
             }
 
             if (baseBalanceDamage <= 0)
             {
-                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid balance damage: {baseBalanceDamage}");
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid balance damage: {baseBalanceDamage}");
                 return false;
             }
 
             if (range <= 0)
             {
-                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid range: {range}");
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid range: {range}");
                 return false;
             }
 
             if (fireRate <= 0)
             {
-                Debug.LogError($"WeaponDataAsset: {weaponName} has invalid fire rate: {fireRate}");
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid fire rate: {fireRate}");
                 return false;
             }
 
@@ -198,7 +185,7 @@ namespace Resonance.Gameplay.Items
                 damages: damages,
                 sourcePosition: sourcePosition,
                 sourceObject: sourceObject,
-                description: $"{weaponName} shot (Accuracy: {accuracyMultiplier:F2}x)"
+                description: $"{outputName} shot (Accuracy: {accuracyMultiplier:F2}x)"
             );
         }
         
@@ -225,50 +212,25 @@ namespace Resonance.Gameplay.Items
         /// Note: This will create a new ScriptableObject instance, for runtime independent weapon state
         /// </summary>
         /// <returns>Weapon copy</returns>
-        public WeaponDataAsset CreateRuntimeCopy()
+        public override WaveOutputDataAsset CreateRuntimeCopy()
         {
-            var copy = ScriptableObject.CreateInstance<WeaponDataAsset>();
+            var copy = ScriptableObject.CreateInstance<WaveGunDataAsset>();
             
             // Copy all properties
-            copy.weaponName = this.weaponName;
-            copy.weaponDescription = this.weaponDescription;
+            copy.outputName = this.outputName;
+            copy.description = this.description;
             copy.energyCostPerShot = this.energyCostPerShot;
             copy.range = this.range;
             copy.fireRate = this.fireRate;
             copy.baseBalanceDamage = this.baseBalanceDamage;
             copy.accuracyConfig = this.accuracyConfig;
             copy.recoilConfig = this.recoilConfig;
-            copy.weaponIcon = this.weaponIcon;
+            copy.outputIcon = this.outputIcon;
             copy.itemPrefab = this.itemPrefab;
             copy.gridWidth = this.gridWidth;
             copy.gridHeight = this.gridHeight;
             
             return copy;
-        }
-
-        #endregion
-
-        #region IInfoable Implementation
-
-        /// <summary>
-        /// Get information data to display in InfoPanel
-        /// </summary>
-        public InfoData GetInfoData()
-        {
-            return new InfoData(
-                name: weaponName,
-                content: weaponDescription,
-                image: weaponIcon
-            );
-        }
-
-        /// <summary>
-        /// Check if there is valid information to display
-        /// </summary>
-        public bool HasValidInfo()
-        {
-            var info = GetInfoData();
-            return info.IsValid();
         }
 
         #endregion

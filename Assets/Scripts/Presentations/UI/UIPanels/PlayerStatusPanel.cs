@@ -32,7 +32,7 @@ namespace Resonance.Presentations.UI
         [SerializeField] private GameObject _corePanel;
         
         [Header("Weapon UI")]
-        [SerializeField] private Image _weaponIcon;
+        [SerializeField] private Image _outputIcon;
         
         [Header("Health UI")]
         [SerializeField] private Image _healthValue;
@@ -100,8 +100,8 @@ namespace Resonance.Presentations.UI
                 _corePanel = FindChildGameObject("Core");
             
             // Auto-find weapon UI components
-            if (_weaponIcon == null && _weaponPanel != null)
-                _weaponIcon = FindChildComponent<Image>(_weaponPanel, "WeaponIcon");
+            if (_outputIcon == null && _weaponPanel != null)
+                _outputIcon = FindChildComponent<Image>(_weaponPanel, "WeaponIcon");
             
             // Auto-find health UI components
             if (_healthValue == null && _healthPanel != null)
@@ -272,7 +272,7 @@ namespace Resonance.Presentations.UI
             UpdateCoreSlotsUI();
         }
 
-        private void OnWeaponEquipped(WeaponDataAsset gunData)
+        private void OnWeaponEquipped(WaveGunDataAsset gunData)
         {
             UpdateWeaponUI();
         }
@@ -301,20 +301,20 @@ namespace Resonance.Presentations.UI
             if (_weaponManager == null) return;
             
             bool hasWeapon = _weaponManager.HasEquippedWeapon;
-            WeaponDataAsset currentWeapon = _weaponManager.CurrentWeapon;
+            WaveGunDataAsset currentWeapon = _weaponManager.CurrentWeapon;
             
             // Update weapon icon
-            if (_weaponIcon != null)
+            if (_outputIcon != null)
             {
-                if (hasWeapon && currentWeapon != null && currentWeapon.weaponIcon != null)
+                if (hasWeapon && currentWeapon != null && currentWeapon.outputIcon != null)
                 {
-                    _weaponIcon.sprite = currentWeapon.weaponIcon;
-                    _weaponIcon.color = Color.white;
+                    _outputIcon.sprite = currentWeapon.outputIcon;
+                    _outputIcon.color = Color.white;
                 }
                 else
                 {
-                    _weaponIcon.sprite = Resources.Load<Sprite>("Art/Sprites/WeaponIcon/empty_icon");
-                    _weaponIcon.color = Color.white;
+                    _outputIcon.sprite = Resources.Load<Sprite>("Art/Sprites/WeaponIcon/empty_icon");
+                    _outputIcon.color = Color.white;
                 }
             }
         }

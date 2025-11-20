@@ -655,7 +655,7 @@ namespace Resonance.Gameplay.Player.Inventory
                     customData = SerializableDictionary.FromDictionary(item.CustomData)
                 };
                 
-                // Note: originalAsset (WeaponDataAsset) cannot be serialized in customData
+                // Note: originalAsset (WaveGunDataAsset) cannot be serialized in customData
                 // It will need to be reloaded from Resources using AssetPath or name
                 
                 saveData.items.Add(cellSaveData);
@@ -768,18 +768,18 @@ namespace Resonance.Gameplay.Player.Inventory
             switch (gridItem.ItemType)
             {
                 case ItemType.Weapon:
-                    // Load WeaponDataAsset
-                    var gunData = Resources.Load<WeaponDataAsset>(resourcesPath);
+                    // Load WaveGunDataAsset
+                    var gunData = Resources.Load<WaveGunDataAsset>(resourcesPath);
                     if (gunData != null)
                     {
                         gridItem.ItemPrefab = gunData.itemPrefab;
-                        gridItem.ItemIcon = gunData.weaponIcon;
+                        gridItem.ItemIcon = gunData.outputIcon;
                         Debug.Log($"PlayerInventory: Loaded weapon visual data - ItemPrefab={(gunData.itemPrefab != null ? gunData.itemPrefab.name : "NULL")},"+
-                                $"ItemIcon={(gunData.weaponIcon != null ? gunData.weaponIcon.name : "NULL")}");
+                                $"ItemIcon={(gunData.outputIcon != null ? gunData.outputIcon.name : "NULL")}");
                     }
                     else
                     {
-                        Debug.LogWarning($"PlayerInventory: Failed to load WeaponDataAsset from Resources path: {resourcesPath}");
+                        Debug.LogWarning($"PlayerInventory: Failed to load WaveGunDataAsset from Resources path: {resourcesPath}");
                     }
                     break;
                 case ItemType.Consumable:
