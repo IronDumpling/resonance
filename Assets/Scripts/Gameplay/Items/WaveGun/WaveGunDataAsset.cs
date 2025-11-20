@@ -1,0 +1,253 @@
+using UnityEngine;
+using System.Collections.Generic;
+using Resonance.Shared.Interfaces;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Gameplay.Items.Core;
+using Resonance.Shared.Types;
+
+namespace Resonance.Gameplay.Items
+{
+    /// <summary>
+    /// Weapon Accuracy Configuration
+    /// Controls crosshair size, shrinking/expanding behavior, and damage bonuses
+    /// </summary>
+    [System.Serializable]
+    public class WeaponAccuracyConfig
+    {
+        [Header("Crosshair Size (World Space Units)")]
+        [Tooltip("Base crosshair radius when starting to aim")]
+        public float baseRadius = 50f;
+        
+        [Tooltip("Minimum crosshair radius (perfect aim)")]
+        public float minRadius = 20f;
+        
+        [Tooltip("Maximum crosshair radius")]
+        public float maxRadius = 80f;
+        
+        [Header("Crosshair Shrinking")]
+
+        [Tooltip("Lerp speed for shrinking crosshair")]
+        public float shrinkLerpSpeed = 0.5f;
+        
+        [Header("Crosshair Expansion Penalties")]
+        [Tooltip("Lerp speed for expanding crosshair")]
+        public float expandLerpSpeed = 3.0f;
+
+        [Tooltip("Radius increase when moving")]
+        public float movementRadiusPenalty = 1.0f;
+        
+        [Tooltip("Radius increase when rotating aim point rapidly")]
+        public float rotationRadiusPenalty = 0.5f;
+        
+        [Tooltip("Radius increase after each shot")]
+        public float shootRadiusIncrease = 1.5f;
+        
+        [Tooltip("Delay before crosshair starts shrinking after shooting (seconds)")]
+        public float shootRecoveryDelay = 0.3f;
+
+        [Header("Rotation Detection")]
+        [Tooltip("Mouse movement distance threshold to trigger rotation penalty (screen pixels per second)")]
+        public float rotationThreshold = 100.0f;
+        
+        [Header("Accuracy Damage Bonus")]
+        [Tooltip("Damage multiplier at perfect aim (min radius)")]
+        public float perfectAimDamageMultiplier = 2.0f;
+        
+        [Tooltip("Damage multiplier at base aim")]
+        public float baseAimDamageMultiplier = 1.0f;
+        
+        [Tooltip("Damage multiplier curve (X: 0=worst aim, 1=perfect aim; Y: damage multiplier)")]
+        public AnimationCurve damageMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 1, 2.0f);
+    }
+    
+    /// <summary>
+    /// Weapon Recoil Configuration
+    /// Controls recoil offset and recovery behavior
+    /// </summary>
+    [System.Serializable]
+    public class WeaponRecoilConfig
+    {
+        [Header("Recoil Offset (World Space)")]
+        [Tooltip("Base recoil offset per shot - affected by consecutive shots and aiming (X: horizontal, Y: vertical, Z: backward)")]
+        public Vector3 recoilOffset = new Vector3(0f, 1f, 0f);
+        [Tooltip("Random variance range for recoil - affected by accuracy (perfect aim = 0.1x, worst aim = 1.0x)")]
+        public Vector3 recoilVariance = new Vector3(0.5f, 0.5f, 0.5f);
+        
+        [Header("Consecutive Shot Recoil")]
+        [Tooltip("Recoil multiplier based on consecutive shots (X: shot number, Y: multiplier)")]
+        public AnimationCurve recoilMultiplierCurve = AnimationCurve.Linear(0, 1.0f, 5, 2.0f);
+        
+        [Header("Recoil Recovery")]
+        [Tooltip("Delay before recoil starts recovering (seconds)")]
+        public float recoveryDelay = 0.3f;
+        [Tooltip("Recoil recovery speed (units per second)")]
+        public float recoverySpeed = 3.0f;
+        
+        [Header("Camera Impulse")]
+        [Tooltip("Enable camera impulse shake on shooting")]
+        public bool enableCameraImpulse = true;
+        [Tooltip("Base impulse force for camera shake")]
+        public float impulseForce = 1.0f;
+        [Tooltip("Impulse force multiplier based on damage dealt (higher damage = stronger shake)")]
+        public bool scaleToDamage = false;
+        [Tooltip("Impulse force scale factor when scaling to damage (force = impulseForce * (damage * damageScaleFactor))")]
+        public float damageScaleFactor = 0.05f;
+    }
+
+    /// <summary>
+    /// Weapon data ScriptableObject asset
+    /// Used to create and edit Weapon configurations in Unity Editor
+    /// </summary>
+    [CreateAssetMenu(fileName = "New Wave Gun Data", menuName = "Resonance/Items/Wave Gun Data", order = 1)]
+    public class WaveGunDataAsset : WaveOutputDataAsset
+    {
+        [Header("Energy Cost")]
+        [Tooltip("Crystal Core Energy consumed per shot")]
+        [Range(1f, 50f)]
+        public float energyCostPerShot = 5f;
+        
+        [Header("Combat Stats")]
+        public float range = 30f;
+        public float fireRate = 1f; // shots per second
+        
+        [Header("Damage Configuration")]
+        [Tooltip("Base Balance damage (enemies only) - affected by accuracy multiplier")]
+        public float baseBalanceDamage = 10f;
+        
+        [Header("Accuracy Settings")]
+        [Tooltip("Weapon accuracy configuration (required)")]
+        public WeaponAccuracyConfig accuracyConfig = new WeaponAccuracyConfig();
+        
+        [Header("Recoil Settings")]
+        [Tooltip("Weapon recoil configuration (required)")]
+        public WeaponRecoilConfig recoilConfig = new WeaponRecoilConfig();
+
+        /// <summary>
+        /// Validate Weapon data
+        /// </summary>
+        /// <returns>Validation result</returns>
+        public bool ValidateData()
+        {
+            if (string.IsNullOrEmpty(outputName))
+            {
+                Debug.LogError($"WaveGunDataAsset: {outputName} has empty output name");
+                return false;
+            }
+
+            if (energyCostPerShot <= 0)
+            {
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid energy cost: {energyCostPerShot}");
+                return false;
+            }
+
+            if (baseBalanceDamage <= 0)
+            {
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid balance damage: {baseBalanceDamage}");
+                return false;
+            }
+
+            if (range <= 0)
+            {
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid range: {range}");
+                return false;
+            }
+
+            if (fireRate <= 0)
+            {
+                Debug.LogError($"WaveGunDataAsset: {outputName} has invalid fire rate: {fireRate}");
+                return false;
+            }
+
+            return true;
+        }
+
+        #region Runtime Methods
+
+        // Note: Ammo system removed - weapons now consume Crystal Core Energy instead
+
+        /// <summary>
+        /// Create damage info with Balance damage only (for enemies)
+        /// Damage is affected by accuracy multiplier
+        /// </summary>
+        /// <param name="accuracyMultiplier">Damage multiplier from accuracy system (1.0 - 2.0)</param>
+        /// <param name="sourcePosition">Damage source position</param>
+        /// <param name="sourceObject">Damage source object</param>
+        /// <returns>Damage info with Balance damage</returns>
+        public DamageInfo CreateDamageInfo(float accuracyMultiplier, Vector3 sourcePosition, GameObject sourceObject = null)
+        {            
+            // Calculate final balance damage with accuracy multiplier
+            float finalBalanceDamage = baseBalanceDamage * accuracyMultiplier;
+            
+            Damages damages = new Damages();
+            damages.SetDamage(DamageType.Balance, finalBalanceDamage);
+            
+            return new DamageInfo(
+                damages: damages,
+                sourcePosition: sourcePosition,
+                sourceObject: sourceObject,
+                description: $"{outputName} shot (Accuracy: {accuracyMultiplier:F2}x)"
+            );
+        }
+        
+        /// <summary>
+        /// Get damage description text
+        /// </summary>
+        /// <returns>Damage description</returns>
+        public string GetDamageTypeDescription()
+        {
+            return $"Balance: {baseBalanceDamage:F1}";
+        }
+        
+        /// <summary>
+        /// Get base damage value
+        /// </summary>
+        /// <returns>Base balance damage</returns>
+        public float GetTotalDamage()
+        {
+            return baseBalanceDamage;
+        }
+
+        /// <summary>
+        /// Create a runtime copy of this weapon (for pickup)
+        /// Note: This will create a new ScriptableObject instance, for runtime independent weapon state
+        /// </summary>
+        /// <returns>Weapon copy</returns>
+        public override WaveOutputDataAsset CreateRuntimeCopy()
+        {
+            var copy = ScriptableObject.CreateInstance<WaveGunDataAsset>();
+            
+            // Copy all properties
+            copy.outputName = this.outputName;
+            copy.description = this.description;
+            copy.energyCostPerShot = this.energyCostPerShot;
+            copy.range = this.range;
+            copy.fireRate = this.fireRate;
+            copy.baseBalanceDamage = this.baseBalanceDamage;
+            copy.accuracyConfig = this.accuracyConfig;
+            copy.recoilConfig = this.recoilConfig;
+            copy.outputIcon = this.outputIcon;
+            copy.itemPrefab = this.itemPrefab;
+            copy.gridWidth = this.gridWidth;
+            copy.gridHeight = this.gridHeight;
+            
+            return copy;
+        }
+
+        #endregion
+
+        #region Unity Editor
+
+        void OnValidate()
+        {
+            // Ensure values are within reasonable range
+            energyCostPerShot = Mathf.Max(1f, energyCostPerShot);
+            baseBalanceDamage = Mathf.Max(0.1f, baseBalanceDamage);
+            range = Mathf.Max(1f, range);
+            fireRate = Mathf.Max(0.1f, fireRate);
+            gridWidth = Mathf.Clamp(gridWidth, 1, 10);
+            gridHeight = Mathf.Clamp(gridHeight, 1, 10);
+        }
+
+        #endregion
+    }
+}

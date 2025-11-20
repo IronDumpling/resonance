@@ -466,15 +466,6 @@
                     "processors": "",
                     "interactions": "Tap",
                     "initialStateCheck": false
-                },
-                {
-                    "name": "LogicBind1",
-                    "type": "Button",
-                    "id": "4d139aae-748c-4c3a-8aff-b9a931b6be34",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -486,17 +477,6 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "AttackQTE",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "9384d977-e300-4fa7-b468-5f6b15d04928",
-                    "path": "<Keyboard>/c",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "LogicBind1",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

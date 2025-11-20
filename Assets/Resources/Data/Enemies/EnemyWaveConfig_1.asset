@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: EnemyWaveConfig_1
   m_EditorClassIdentifier: Assembly-CSharp::Resonance.Utilities.Wave.WaveConfig
   waveformType: 0
-  frequency: 1
+  frequency: 2
   amplitude: 1
   length: 10
   waveformResolution: 1024

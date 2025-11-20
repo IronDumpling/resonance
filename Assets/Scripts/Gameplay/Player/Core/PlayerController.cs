@@ -1,0 +1,917 @@
+using UnityEngine;
+using System.Collections.Generic;
+using Resonance.Gameplay.Player.Data;
+using Resonance.Gameplay.Player.States;
+using Resonance.Gameplay.Player.Actions;
+using Resonance.Gameplay.Player.Shooting;
+using Resonance.Gameplay.Player.Inventory;
+using Resonance.Core;
+using Resonance.Utilities;
+using Resonance.Shared.Types;
+using Resonance.Systems.CrystalCore;
+using Resonance.Systems.GridSystem;
+using Resonance.Gameplay.Items;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Shared.Interfaces.Operations;
+
+namespace Resonance.Gameplay.Player.Core
+{
+    /// <summary>
+    /// Invulnerability tracking - DamageInfo-based system
+    /// Tracks recent damage sources to prevent duplicate damage from the same attack
+    /// </summary>
+    public class DamageSourceRecord
+    {
+        public GameObject sourceObject;
+        public float timestamp;
+        
+        public DamageSourceRecord(GameObject source, float time)
+        {
+            sourceObject = source;
+            timestamp = time;
+        }
+    }
+    
+    /// <summary>
+    /// Core player controller that manages player state and behavior.
+    /// This is a Non-MonoBehaviour class that handles the player logic.
+    /// </summary>
+    public class PlayerController : IPausable
+    {
+        // Core Data
+        private PlayerRuntimeStats _stats;
+        private PlayerInventory _inventory;
+        private PlayerMovement _movement;
+        private ShootingSystem _shootingSystem;
+
+        private WaveModuleManager _moduleManager;
+        private WaveOutputManager _waveOutputManager;
+        private ConsumableManager _consumableManager;
+        private InventoryOperationManager _gridOperationManager;
+
+        // Player State Management
+        private PlayerStateMachine _stateMachine;
+        private PlayerActionController _actionController;
+
+        // Services
+        private IAudioService _audioService;
+        private GameObject _playerGameObject; // For 3D audio positioning
+
+        // Combat State
+        private float _lastAttackTime = 0f;
+
+        // Dual Health Events
+        public System.Action<float, float> OnHealthChanged; // current, max
+        public System.Action<float, float> OnCoreEnergyChanged; // current, max
+        public System.Action OnDeath; // Health reaches 0
+        
+        // Health Tier Events
+        public System.Action<CrystalEnergyTier> OnCoreTierChanged;
+        public System.Action<HealthTier> OnHealthTierChanged;
+        
+        // Other Events
+        public System.Action<string> OnStateChanged; // Changed to string for state name
+        public System.Action OnShoot;
+
+        // Properties
+        public PlayerRuntimeStats Stats => _stats;
+        public PlayerInventory Inventory => _inventory;
+        public PlayerMovement Movement => _movement;
+        public WaveModuleManager ModuleManager => _moduleManager;
+        public WaveOutputManager WaveOutputManager => _waveOutputManager;
+        public WaveOutputManager OutputManager => _waveOutputManager; // Alias for convenience
+        public ShootingSystem ShootingSystem => _shootingSystem;
+        public ConsumableManager ConsumableManager => _consumableManager;
+        public InventoryOperationManager InventoryOperationManager => _gridOperationManager;
+        public GameObject PlayerGameObject => _playerGameObject;
+        
+        // Health Properties
+        public bool IsAlive => _stats.IsAlive;
+        public bool IsCoreAlive => _stats.crystalCore != null && _stats.crystalCore.CoreHealthState == CoreHealthState.Intact;
+        public bool IsCoreDestroyed => _stats.IsCoreDestroyed;
+
+        // State Properties
+        public bool IsAiming => CurrentState == "Aiming";
+        public bool IsStaggered => CurrentState == "Stagger";
+
+        // Health Tier Properties
+        public CrystalEnergyTier CoreTier => _stats.crystalCore.EnergyTier;
+        public HealthTier HealthTier => _stats.healthTier;
+        public float SlotValue => _stats.crystalCore.EnergyPerSlot;
+        public float CoreHealthInSlots => _stats.crystalCore.GetEnergyInSlots();
+        public bool CanConsumeSlot => _stats.crystalCore.CanConsumeSlot();
+        
+        public string CurrentState => _stateMachine?.CurrentStateName ?? "None";
+        public bool HasEquippedOutput => _waveOutputManager?.HasEquippedOutput ?? false;
+        public PlayerStateMachine StateMachine => _stateMachine;
+        public PlayerActionController PlayerActionController => _actionController;
+
+        public PlayerController(PlayerBaseStats baseStats)
+        {
+            Initialize(baseStats, null);
+        }
+
+        /// <summary>
+        /// Initialize the PlayerController
+        /// </summary>
+        /// <param name="baseStats">Base stats</param>
+        /// <param name="playerGameObject">Player GameObject (for shooting system and audio positioning)</param>
+        public void Initialize(PlayerBaseStats baseStats, GameObject playerGameObject)
+        {
+            Initialize(baseStats);
+            
+            // Get the audio service
+            _audioService = ServiceRegistry.Get<IAudioService>();
+            if (_audioService == null)
+            {
+                Debug.LogWarning("PlayerController: AudioService not found. Audio effects will be disabled.");
+            }
+            
+            // If there is a GameObject reference, initialize the shooting system
+            if (playerGameObject != null)
+            {
+                _shootingSystem = new ShootingSystem(playerGameObject);
+                Debug.Log("PlayerController: ShootingSystem initialized");
+                _playerGameObject = playerGameObject;
+            }
+        }
+
+        private void Initialize(PlayerBaseStats baseStats)
+        {
+            _stats = baseStats.CreateRuntimeStats();
+            _inventory = new PlayerInventory(_stats.inventoryGridWidth, _stats.inventoryGridHeight);
+            _movement = new PlayerMovement(_stats);
+            
+            // Initialize invulnerability duration
+            _invulnerabilityDuration = _stats.invulnerabilityTime;
+            
+            // Initialize inventory managers
+            _consumableManager = new ConsumableManager(_inventory);
+            _moduleManager = new WaveModuleManager(_inventory);
+            _waveOutputManager = new WaveOutputManager(_inventory, _moduleManager);
+            _gridOperationManager = new InventoryOperationManager(_inventory, _waveOutputManager, _consumableManager);
+            
+            // Set PlayerController reference for subsystems
+            _movement.SetPlayerController(this);
+            _consumableManager.SetPlayerController(this);
+
+            // Initialize state machine
+            _stateMachine = new PlayerStateMachine(this);
+            _stateMachine.OnStateChanged += (stateName) => OnStateChanged?.Invoke(stateName);
+            _stateMachine.Initialize();
+
+            // Initialize action controller
+            _actionController = new PlayerActionController(this);
+            _actionController.Initialize();
+            
+            // Register available actions
+            RegisterPlayerActions();
+
+            // Register with SelectivePauseService
+            RegisterWithPauseService();
+        }
+
+        /// <summary>
+        /// Update player controller (called from MonoBehaviour)
+        /// </summary>
+        public void Update(float deltaTime)
+        {
+            UpdateInvulnerabilityTimer();
+            _stateMachine?.Update();
+
+            UpdateStaggerTimer();
+            _movement.Update(deltaTime);
+            _actionController.Update(deltaTime);
+        }
+
+        #region Health System
+
+        // Stagger tracking
+        private float _staggerEndTime = 0f;
+        
+        private List<DamageSourceRecord> _recentDamageSources = new List<DamageSourceRecord>();
+        private float _invulnerabilityDuration = 0f; // Cache the duration
+
+        /// <summary>
+        /// Update invulnerability timer and clean up old damage records
+        /// </summary>
+        private void UpdateInvulnerabilityTimer()
+        {
+            // Clean up old damage source records
+            // remove entries older than invulnerability duration
+            if (_recentDamageSources.Count > 0 && _invulnerabilityDuration > 0f)
+            {
+                float currentTime = Time.time;
+                _recentDamageSources.RemoveAll(record => 
+                    currentTime - record.timestamp > _invulnerabilityDuration
+                );
+            }
+        }
+
+        
+        private void UpdateStaggerTimer()
+        {
+            if (CurrentState == "Stagger" && Time.time >= _staggerEndTime)
+            {
+                ExitStagger();
+            }
+        }
+        
+        /// <summary>
+        /// Check if a DamageInfo should be blocked by invulnerability
+        /// Returns true if this damage source was already processed recently
+        /// </summary>
+        private bool ShouldBlockDamageInfo(DamageInfo damageInfo)
+        {
+            if (_invulnerabilityDuration <= 0f) return false; // No invulnerability system
+            if (damageInfo.sourceObject == null) return false; // No source to track
+            
+            float currentTime = Time.time;
+            
+            // Check if this source has hit recently
+            foreach (var record in _recentDamageSources)
+            {
+                if (record.sourceObject == damageInfo.sourceObject && 
+                    currentTime - record.timestamp < _invulnerabilityDuration)
+                {
+                    return true; // Block: this source already dealt damage recently
+                }
+            }
+            
+            return false; // Allow: new damage source
+        }
+        
+        /// <summary>
+        /// Register a damage source to prevent duplicate hits
+        /// Should be called once per DamageInfo, not per damage type
+        /// </summary>
+        private void RegisterDamageSource(DamageInfo damageInfo)
+        {
+            if (_invulnerabilityDuration <= 0f) return;
+            if (damageInfo.sourceObject == null) return;
+            
+            _recentDamageSources.Add(new DamageSourceRecord(
+                damageInfo.sourceObject, 
+                Time.time
+            ));
+            
+            Debug.Log($"PlayerController: Registered damage source '{damageInfo.sourceObject.name}', " +
+                     $"invulnerable for {_invulnerabilityDuration}s");
+        }
+
+
+        /// <summary>
+        /// Enter stagger state
+        /// </summary>
+        private void EnterStagger(float duration)
+        {
+            if (CurrentState == "Death") return;
+            
+            _staggerEndTime = Time.time + duration;
+            _stateMachine?.EnterStagger();
+            
+            Debug.Log($"PlayerController: Entered stagger state for {duration:F2}s");
+        }
+
+        /// <summary>
+        /// Exit stagger state
+        /// </summary>
+        private void ExitStagger()
+        {
+            if (CurrentState != "Stagger") return;
+            
+            _stateMachine?.ExitStagger();
+            
+            Debug.Log("PlayerController: Exited stagger state");
+        }
+
+        /// <summary>
+        /// Take damage from a DamageInfo (unified entry point)
+        /// Handles invulnerability check at the DamageInfo level, not per damage type
+        /// This ensures all damage types from the same attack are processed together
+        /// </summary>
+        public void TakeDamage(DamageInfo damageInfo)
+        {
+            // Check if this damage source should be blocked by invulnerability
+            if (ShouldBlockDamageInfo(damageInfo))
+            {
+                Debug.Log($"PlayerController: Damage from '{damageInfo.sourceObject?.name}' blocked by invulnerability");
+                return;
+            }
+            
+            // Register this damage source for invulnerability tracking
+            RegisterDamageSource(damageInfo);
+            
+            // Process all damage types in the DamageInfo
+            Damages damages = damageInfo.damages;
+            if (damages == null) return;
+            
+            bool tookAnyDamage = false;
+            
+            // Apply Physical Health damage
+            if (damages.HasDamage(DamageType.PhysicalHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.PhysicalHealth);
+                TakeHealthDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Apply Core Health damage
+            if (damages.HasDamage(DamageType.CoreHealth))
+            {
+                float damageAmount = damages.GetDamage(DamageType.CoreHealth);
+                TakeCoreDamage(damageAmount);
+                tookAnyDamage = true;
+            }
+            
+            // Players only process PhysicalHealth and CoreHealth damage
+            // Balance damage is for enemies only
+            
+            // Trigger common effects only once per DamageInfo
+            if (tookAnyDamage)
+            {
+                // Notify PlayerActionController of damage taken (for interruption logic)
+                _actionController?.OnPlayerDamageTaken();
+                
+                // Interrupt aiming when taking damage
+                if (_stateMachine != null && _stateMachine.IsInState("Aiming"))
+                {
+                    _stateMachine.StopAiming();
+                    Debug.Log("PlayerController: Aiming interrupted by damage");
+                }
+
+                // Play hit audio effect (once per DamageInfo)
+                PlayHitAudio();
+            }
+            
+            Debug.Log($"PlayerController: Processed DamageInfo - {damageInfo}");
+        }
+        
+        /// <summary>
+        /// Take physical health damage (internal method, called from TakeDamage)
+        /// </summary>
+        private void TakeHealthDamage(float damage)
+        {
+            if (!IsAlive) return;
+
+            // Store old tier for comparison
+            var oldHealthTier = _stats.healthTier;
+
+            _stats.TakeHealthDamage(damage);
+            _stats.UpdateHealthTier();
+            
+            // Fire tier change event if tier changed
+            if (oldHealthTier != _stats.healthTier)
+            {
+                OnHealthTierChanged?.Invoke(_stats.healthTier);
+                Debug.Log($"PlayerController: Health tier changed from {oldHealthTier} to {_stats.healthTier}");
+            }
+
+            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+
+            if (_stats.currentHealth <= 0f)
+            {
+                HandleDeath();
+            }
+            else
+            {
+                Debug.Log($"PlayerController: Took {damage} health damage. Current: {_stats.currentHealth}/{_stats.maxHealth}");
+            }
+        }
+
+        /// <summary>
+        /// Take core health damage (internal method, called from TakeDamage)
+        /// </summary>
+        private void TakeCoreDamage(float damage)
+        {
+            if (!IsCoreAlive) return;
+
+            // Store old tier for comparison
+            var oldCoreTier = _stats.crystalCore.EnergyTier;
+
+            _stats.crystalCore.TakeCoreHealthDamage(damage);
+            _stats.crystalCore.UpdateCalculatedValues();
+            
+            // Fire tier change event if tier changed
+            if (oldCoreTier != _stats.crystalCore.EnergyTier)
+            {
+                OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
+                Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier}");
+            }
+
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
+
+            if (_stats.crystalCore.CurrentCoreHealth <= 0f)
+            {
+                HandleCoreDeath();
+            }
+            else
+            {
+                Debug.Log($"PlayerController: Took {damage} core health damage. Current: {_stats.crystalCore.CurrentCoreHealth}/{_stats.crystalCore.MaxCoreHealth}");
+            }
+        }
+
+
+        /// <summary>
+        /// Heal health health
+        /// </summary>
+        public void HealHealth(float amount)
+        {
+            if (!IsCoreAlive) return;
+
+            // Store old tier for comparison
+            var oldHealthTier = _stats.healthTier;
+
+            _stats.RestoreHealth(amount);
+            _stats.UpdateHealthTier();
+            
+            // Fire tier change event if tier changed
+            if (oldHealthTier != _stats.healthTier)
+            {
+                OnHealthTierChanged?.Invoke(_stats.healthTier);
+                Debug.Log($"PlayerController: Health tier changed from {oldHealthTier} to {_stats.healthTier}");
+            }
+
+            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+            Debug.Log($"PlayerController: Healed {amount} health health, current: {_stats.currentHealth}");
+        }
+
+        /// <summary>
+        /// Gain core energy
+        /// </summary>
+        public void GainCoreEnergy(float amount)
+        {
+            if (!IsCoreAlive) return;
+
+            // Store old tier for comparison
+            var oldCoreTier = _stats.crystalCore.EnergyTier;
+
+            _stats.crystalCore.AddEnergy(amount);
+            _stats.crystalCore.UpdateCalculatedValues();
+            
+            // Fire tier change event if tier changed
+            if (oldCoreTier != _stats.crystalCore.EnergyTier)
+            {
+                OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
+                Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier}");
+            }
+
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
+            Debug.Log($"PlayerController: Gained {amount} core energy, current: {_stats.crystalCore.CurrentEnergy}");
+        }
+
+        /// <summary>
+        /// Handle physical health death
+        /// </summary>
+        private void HandleDeath()
+        {
+            // Prevent multiple calls - only trigger if not already in death states
+            if (_stateMachine?.IsDead() == true)
+            {
+                return;
+            }
+            
+            Debug.Log("PlayerController: Physical health depleted - Player death");
+            OnDeath?.Invoke();
+            _stateMachine?.EnterDeath();
+        }
+
+        /// <summary>
+        /// Handle core health death (core destroyed)
+        /// </summary>
+        private void HandleCoreDeath()
+        {
+            Debug.Log("PlayerController: Core health depleted - Core destroyed (player can continue)");
+            // Core destroyed but player doesn't die
+            // This could trigger special effects or UI updates
+        }
+
+        /// <summary>
+        /// Restore all health to full
+        /// </summary>
+        public void RestoreToFullHealth()
+        {
+            _stats.FullRestore();
+            _stats.crystalCore.FullRestoreCoreHealth();
+            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
+            Debug.Log("PlayerController: All health restored to full");
+        }
+
+        /// <summary>
+        /// Restore only health health
+        /// </summary>
+        public void RestoreHealth()
+        {
+            _stats.FullRestore();
+            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+            Debug.Log("PlayerController: Physical health restored to full");
+        }
+
+        /// <summary>
+        /// Restore only core health
+        /// </summary>
+        public void RestoreCoreHealth()
+        {
+            _stats.crystalCore.FullRestoreCoreHealth();
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
+            Debug.Log("PlayerController: Core health restored to full");
+        }
+
+        /// <summary>
+        /// Play hit audio effect when player takes damage
+        /// </summary>
+        private void PlayHitAudio()
+        {
+            if (_audioService == null) return;
+
+            // Use 3D audio if we have player GameObject, otherwise use 2D
+            if (_playerGameObject != null)
+            {
+                _audioService.PlaySFX3D(AudioClipType.PlayerHit, _playerGameObject.transform.position, 0.8f, 1f);
+            }
+            else
+            {
+                _audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.8f, 1f);
+            }
+        }
+
+        #endregion
+
+        #region State Management
+
+        public void StartAiming()
+        {
+            _stateMachine?.StartAiming();
+        }
+
+        public void StopAiming()
+        {
+            _stateMachine?.StopAiming();
+        }
+
+        #endregion
+
+        #region Combat System
+
+        public bool CanShoot()
+        {
+            // Check if player has equipped weapon (via state machine)
+            if (!_stateMachine.CanShoot()) return false;
+            
+            // Check if player has enough energy
+            var currentOutput = _waveOutputManager?.CurrentOutput;
+            if (currentOutput != null)
+            {
+                float requiredEnergy = currentOutput.energyCostPerUse;
+                if (_stats.crystalCore.CurrentEnergy < requiredEnergy)
+                {
+                    return false; // Not enough energy to shoot
+                }
+            }
+            
+            return IsAlive && 
+                   !IsStaggered && // Cannot shoot while staggered
+                   Time.time >= _lastAttackTime && 
+                   !(_actionController?.IsBlocking ?? false); // Actions can block shooting
+        }
+
+        public bool CanReload()
+        {
+            return IsAlive && 
+                   !IsStaggered && // Cannot reload while staggerned
+                   _stateMachine.CanReload() &&
+                   !IsAiming &&
+                   !(_actionController?.IsActive ?? false); // Cannot reload while another action is active
+        }
+
+        /// <summary>
+        /// Perform shoot
+        /// </summary>
+        /// <param name="shootOrigin">Shoot origin</param>
+        /// <returns>Shooting result</returns>
+        public ShootingResult PerformShoot(Vector3 shootOrigin)
+        {
+            if (!CanShoot())
+            {
+                return new ShootingResult { success = false };
+            }
+
+            WaveGunDataAsset currentWaveGun = _waveOutputManager.CurrentWeapon;
+            if (currentWaveGun == null)
+            {
+                Debug.LogWarning("PlayerController: No wave gun equipped");
+                return new ShootingResult { success = false };
+            }
+
+            // Check if player has enough energy to shoot
+            float requiredEnergy = currentWaveGun.energyCostPerShot;
+            float currentEnergy = _stats.crystalCore.CurrentEnergy;
+            
+            if (currentEnergy < requiredEnergy)
+            {
+                Debug.LogWarning($"PlayerController: Not enough energy to shoot. Required: {requiredEnergy}, Current: {currentEnergy}");
+                // Play out of energy sound feedback
+                if (_audioService != null)
+                {
+                    _audioService.PlaySFX2D(AudioClipType.PlayerHit, 0.3f, 0.5f); // Placeholder feedback sound
+                }
+                return new ShootingResult { success = false };
+            }
+            
+            // Consume energy
+            _stats.crystalCore.ConsumeEnergy(requiredEnergy);
+            Debug.Log($"PlayerController: Consumed {requiredEnergy} energy. Remaining: {_stats.crystalCore.CurrentEnergy}");
+
+            _lastAttackTime = Time.time;
+            
+            // Perform shoot
+            ShootingResult result = new ShootingResult { success = false };
+            if (_shootingSystem != null)
+            {
+                // Pass aiming state to ShootingSystem
+                bool isAiming = _stateMachine?.IsInState("Aiming") ?? false;
+                result = _shootingSystem.PerformShoot(shootOrigin, currentWaveGun, isAiming);
+            }
+            
+            // Trigger shooting event
+            OnShoot?.Invoke();
+            
+            Debug.Log($"PlayerController: Mouse-based shot fired with {currentWaveGun.outputName}. " +
+                     $"Target: {result.mouseTargetPoint}, Hit: {result.hasHit}, " +
+                     $"Total Base: {result.GetTotalBaseDamage():F1}, Total Actual: {result.GetTotalActualDamage():F1}, " +
+                     $"Energy Cost: {requiredEnergy}, Remaining Energy: {_stats.crystalCore.CurrentEnergy}");
+            
+            return result;
+        }
+
+        #endregion
+
+        #region Save/Load System
+
+        public void LoadFromSaveData(PlayerSaveData saveData)
+        {
+            if (saveData == null)
+            {
+                Debug.LogError("PlayerController: Cannot load from null save data");
+                return;
+            }
+
+            Debug.Log($"PlayerController: Loading save data from {saveData.saveID}");
+
+            // Load stats
+            _stats = saveData.stats;
+            Debug.Log($"PlayerController: Loaded stats: Health {_stats.currentHealth}/{_stats.maxHealth}");
+
+            // Load grid inventory system
+            if (saveData.gridInventory != null)
+            {
+                Debug.Log($"PlayerController: Loading grid inventory data: {saveData.gridInventory.items.Count} items");
+                _inventory.LoadFromSaveData(saveData.gridInventory);
+                Debug.Log($"PlayerController: Grid inventory loaded successfully. Current inventory has {_inventory.UsedSlots} items");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: No grid inventory data found in save data");
+            }
+
+            // Load wave output manager state
+            if (saveData.waveOutputManager != null)
+            {
+                Debug.Log($"PlayerController: Loading output manager data: equipped output ID {saveData.waveOutputManager.equippedOutputID}, output name: {saveData.waveOutputManager.outputName}");
+                _waveOutputManager.LoadFromSaveData(saveData.waveOutputManager);
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: No output manager data found in save data");
+            }
+            
+            // Load wave module manager state
+            if (saveData.waveModuleManager != null)
+            {
+                Debug.Log($"PlayerController: Loading module manager data");
+                _moduleManager.LoadFromSaveData(saveData.waveModuleManager);
+            }
+
+            Debug.Log($"PlayerController: Loaded save data from {saveData.saveID}");
+
+            // Notify UI of dual health changes
+            OnHealthChanged?.Invoke(_stats.currentHealth, _stats.maxHealth);
+            OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
+        }
+
+        public PlayerSaveData CreateSaveData(string savePointID, Vector3 position, Vector3 rotation)
+        {
+            Debug.Log($"PlayerController: Creating save data for {savePointID} at position {position}");
+            
+            var saveData = new PlayerSaveData
+            {
+                saveID = savePointID,
+                sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+                savePosition = position,
+                saveRotation = rotation,
+                stats = _stats
+            };
+
+            // Save grid inventory system
+            saveData.gridInventory = _inventory.GetSaveData();
+            Debug.Log($"PlayerController: Grid inventory saved: {saveData.gridInventory.items.Count} items");
+            
+            // Save wave output manager state
+            saveData.waveOutputManager = _waveOutputManager.GetSaveData();
+            Debug.Log($"PlayerController: Output manager saved: equipped output ID {saveData.waveOutputManager.equippedOutputID}, output name: {saveData.waveOutputManager.outputName}");
+            
+            // Save wave module manager state
+            saveData.waveModuleManager = _moduleManager.GetSaveData();
+            Debug.Log($"PlayerController: Module manager saved");
+            
+            return saveData;
+        }
+
+        #endregion
+
+        #region Action Management
+        
+        /// <summary>
+        /// Register a new action with the PlayerActionController
+        /// </summary>
+        /// <param name="action">The action to register</param>
+        public void RegisterAction(IPlayerAction action)
+        {
+            _actionController?.RegisterAction(action);
+        }
+
+        /// <summary>
+        /// Try to start an action by name
+        /// </summary>
+        /// <param name="actionName">Name of the action to start</param>
+        /// <returns>True if action was started successfully</returns>
+        public bool TryStartAction(string actionName)
+        {
+            return _actionController?.TryStartAction(actionName) ?? false;
+        }
+
+        /// <summary>
+        /// Cancel the currently running action
+        /// </summary>
+        public void CancelCurrentAction()
+        {
+            _actionController?.CancelCurrentAction();
+        }
+
+        /// <summary>
+        /// Check if a specific action can start
+        /// </summary>
+        /// <param name="actionName">Name of the action to check</param>
+        /// <returns>True if action can start</returns>
+        public bool CanStartAction(string actionName)
+        {
+            return _actionController?.CanStartAction(actionName) ?? false;
+        }
+
+        /// <summary>
+        /// Get the name of the currently running action
+        /// </summary>
+        /// <returns>Name of current action or "None"</returns>
+        public string GetCurrentActionName()
+        {
+            return _actionController?.CurrentActionName ?? "None";
+        }
+
+        /// <summary>
+        /// Check if an action is currently running
+        /// </summary>
+        /// <returns>True if an action is active</returns>
+        public bool IsActionActive()
+        {
+            return _actionController?.IsActive ?? false;
+        }
+
+        /// <summary>
+        /// Register all available player actions with the PlayerActionController
+        /// </summary>
+        private void RegisterPlayerActions()
+        {
+            RegisterAction(new PlayerWaveAttackAction());
+            RegisterAction(new PlayerHealAction());
+            RegisterAction(new PlayerInteractAction());
+            RegisterAction(new PlayerReloadAction());
+
+            Debug.Log("PlayerController: Registered player actions (WaveAttack, Heal, Interact, Reload)");
+        }
+
+        #endregion
+
+        #region Core Energy Slot Management
+        
+        /// <summary>
+        /// Consume one core energy slot for actions
+        /// </summary>
+        /// <returns>True if successful, false if insufficient core energy</returns>
+        public bool ConsumeSlot()
+        {
+            var oldCoreTier = _stats.crystalCore.EnergyTier;
+            bool success = _stats.crystalCore.ConsumeEnergySlot();
+            
+            if (success)
+            {
+                // Fire events
+                OnCoreEnergyChanged?.Invoke(_stats.crystalCore.CurrentEnergy, _stats.crystalCore.CurrentCoreHealth);
+                
+                if (oldCoreTier != _stats.crystalCore.EnergyTier)
+                {
+                    OnCoreTierChanged?.Invoke(_stats.crystalCore.EnergyTier);
+                    Debug.Log($"PlayerController: Core tier changed from {oldCoreTier} to {_stats.crystalCore.EnergyTier} after slot consumption");
+                }
+                
+                Debug.Log($"PlayerController: Consumed 1 slot ({_stats.crystalCore.EnergyPerSlot} core energy)." +
+                $"Remaining: {_stats.crystalCore.CurrentEnergy}/{_stats.crystalCore.CurrentCoreHealth} ({_stats.crystalCore.GetEnergyInSlots():F1} slots)");
+            }
+            
+            return success;
+        }
+
+        #endregion
+
+        #region IPausable Implementation
+
+        private bool _isPaused = false;
+
+        public bool IsPaused => _isPaused;
+
+        private void RegisterWithPauseService()
+        {
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.RegisterPausable(this);
+                Debug.Log("PlayerController: Registered with SelectivePauseService");
+            }
+            else
+            {
+                Debug.LogWarning("PlayerController: SelectivePauseService not found, pause functionality will not work");
+            }
+
+            Debug.Log("PlayerController: Initialized with base stats, weapon manager, state machine, and action controller");
+        }
+
+        public void Pause()
+        {
+            if (_isPaused) return;
+            
+            _isPaused = true;
+            Debug.Log("PlayerController: Paused");
+        }
+
+        public void Resume()
+        {
+            if (!_isPaused) return;
+            
+            _isPaused = false;
+            Debug.Log("PlayerController: Resumed");
+        }
+
+        #endregion
+
+        #region Cleanup
+
+        /// <summary>
+        /// Cleanup the player controller when it's being destroyed
+        /// </summary>
+        public void Cleanup()
+        {
+            // Cleanup action controller
+            _actionController?.Cleanup();
+
+            // Cleanup state machine
+            _stateMachine?.Shutdown();
+            
+            // Cleanup inventory managers
+            _consumableManager?.Cleanup();
+            _gridOperationManager?.Cleanup();
+            _waveOutputManager?.Cleanup();
+
+            // Clear events
+            OnHealthChanged = null;
+            OnCoreEnergyChanged = null;
+            OnDeath = null;
+            OnCoreTierChanged = null;
+            OnHealthTierChanged = null;
+            OnStateChanged = null;
+            OnShoot = null;
+
+            // Unregister from SelectivePauseService
+            var pauseService = ServiceRegistry.Get<ISelectivePauseService>();
+            if (pauseService != null)
+            {
+                pauseService.UnregisterPausable(this);
+                Debug.Log("PlayerController: Unregistered from SelectivePauseService");
+            }
+
+            Debug.Log("PlayerController: Cleaned up");
+        }
+
+        #endregion
+    }
+}

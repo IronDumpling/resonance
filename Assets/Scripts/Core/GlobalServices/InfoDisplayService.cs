@@ -2,10 +2,10 @@ using UnityEngine;
 using Resonance.Core;
 using Resonance.Core.StateMachine;
 using Resonance.Core.StateMachine.States;
-using Resonance.Interfaces.Objects;
-using Resonance.Interfaces.Services;
-using Resonance.Items;
-using Resonance.Items.Core;
+using Resonance.Shared.Interfaces.Objects;
+using Resonance.Shared.Interfaces.Services;
+using Resonance.Gameplay.Items;
+using Resonance.Gameplay.Items.Core;
 
 namespace Resonance.Core.GlobalServices
 {

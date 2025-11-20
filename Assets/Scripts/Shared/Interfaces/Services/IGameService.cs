@@ -1,0 +1,18 @@
+namespace Resonance.Shared.Interfaces.Services
+{
+    public enum SystemState
+    {
+        Uninitialized,
+        Initializing,
+        Running,
+        Shutdown
+    }
+
+    public interface IGameService
+    {
+        int Priority { get; }
+        SystemState State { get; }
+        void Initialize();
+        void Shutdown();
+    }
+}
