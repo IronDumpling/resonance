@@ -910,6 +910,15 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
                 
                 // 更新敌人UI信息（玩家聚焦波纹时）
                 if (w.source === 'player' && isFocused) {
+                    // 添加分析回声
+                    state.entities.echoes.push({
+                        x: enemy.x, y: enemy.y, r: enemy.r, 
+                        type: 'analyze',
+                        life: 1.0, 
+                        enemyId: enemy.id,
+                        isResonance: isNormalResonance,
+                        isPerfect: isPerfectResonance
+                    });
                     enemy.lastPingTime = Date.now();
                     enemy.pingType = 'analyze';
                 }
@@ -1000,98 +1009,6 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
     return 'none';
 }
 
-// 检查波纹与敌人的交互（不分割波纹，只处理共振/警报）
-function checkWaveEnemyInteractions(w) {
-    state.entities.enemies.forEach(e => {
-        if(w.ownerId === e.id) return;
-
-        const d = dist(e.x, e.y, w.x, w.y);
-        if(Math.abs(d - w.r) < CFG.waveSpeed) {
-            const angleToE = Math.atan2(e.y - w.y, e.x - w.x);
-            let angleDiff = Math.abs(angleToE - w.angle);
-            while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
-            
-            if(w.spread > Math.PI || angleDiff < w.spread/2) {
-                const freqDelta = Math.abs(w.freq - e.freq);
-                const isFocused = w.spread < CFG.analyzeThreshold;
-                
-                // 判断共振类型
-                const isPerfectResonance = freqDelta <= CFG.perfectResTol;
-                const isNormalResonance = freqDelta <= CFG.normalResTol;
-                
-                // 添加回声（只在聚焦分析时显示）
-                if (w.source === 'player' && isFocused) {
-                    state.entities.echoes.push({
-                        x: e.x, y: e.y, r: e.r, 
-                        type: 'analyze',
-                        life: 1.0, 
-                        enemyId: e.id,
-                        isResonance: isNormalResonance, // 标记是否共振
-                        isPerfect: isPerfectResonance   // 标记是否完美共振
-                    });
-                    e.lastPingTime = Date.now(); 
-                    e.pingType = 'analyze';
-                }
-                
-                // 计算能量
-                const enemyDiameter = 2 * e.r;
-                const maxArcLength = w.r * w.spread;
-                const coveredArcLength = Math.min(enemyDiameter, maxArcLength);
-                const totalEnergy = w.energyPerPoint * coveredArcLength;
-                
-                const minCircumference = CFG.initialRadius * CFG.minSpread;
-                const minEnergyPerPoint = CFG.baseWaveEnergy / minCircumference;
-                const standardEnemyR = 16;
-                const standardEnemyAngleSpan = 2 * Math.asin(Math.min(1.0, standardEnemyR / CFG.initialRadius));
-                const standardCoveredArcLength = CFG.initialRadius * Math.min(standardEnemyAngleSpan, CFG.minSpread);
-                const minTotalEnergy = minEnergyPerPoint * standardCoveredArcLength;
-                const energyThreshold = minTotalEnergy * 0.1;
-
-                // 警报逻辑（只有玩家的非共振波纹会触发警报）
-                if (w.source === 'player' && isFocused && !isNormalResonance) {
-                    if (e.state !== 'stunned') {
-                        e.state = 'alert';
-                        e.targetX = state.p.x; e.targetY = state.p.y;
-                        logMsg("HOSTILE ALERTED (HIGH ENERGY BEAM)");
-                    }
-                }
-
-                // 共振逻辑（系统性机制：所有波纹都能触发共振）
-                if (isNormalResonance && e.resCool <= 0) {
-                    // 共振反应：被击中的敌人发射环形波纹
-                    emitWave(e.x, e.y, 0, Math.PI*2, e.freq, 'enemy', e.id);
-                    e.resCool = CFG.resCooldown;
-                    
-                    // 完美共振时粒子效果更强
-                    if (isPerfectResonance) {
-                        spawnParticles(e.x, e.y, '#00ff00', 30); // 绿色，更多粒子
-                    } else {
-                        spawnParticles(e.x, e.y, '#ffffff', 20); // 白色
-                    }
-
-                    // 敌人会警觉并追踪波纹来源位置
-                    if (e.state === 'idle' || e.state === 'alert') {
-                        e.state = 'alert';
-                        e.targetX = w.x; e.targetY = w.y;
-                    }
-                    
-                    // 过载效果：只有玩家的聚焦高能波纹才能造成
-                    if (w.source === 'player' && isFocused && totalEnergy >= energyThreshold) {
-                        e.state = 'stunned';
-                        // 完美共振：延长过载时间2倍
-                        e.timer = isPerfectResonance ? (CFG.stunTime * 2) : CFG.stunTime;
-                        
-                        if (isPerfectResonance) {
-                            logMsg("PERFECT RESONANCE - EXTENDED OVERLOAD");
-                        } else {
-                            logMsg("TARGET STABILIZED");
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
 
 // 检查受迫共振
 function checkForcedResonance(w) {
@@ -1154,9 +1071,8 @@ function updateWave(w, i) {
         return;
     }
     
-    // 检查与物品和敌人的交互（不分割波纹）
+    // 检查与物品的交互（不分割波纹）
     checkWaveItemCollisions(w);
-    checkWaveEnemyInteractions(w);
     checkForcedResonance(w);
 }
 
