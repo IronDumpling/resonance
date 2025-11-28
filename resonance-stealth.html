@@ -445,14 +445,6 @@ function screenToWorld(sx, sy) {
     return { x: worldX, y: worldY };
 }
 
-function getFreqColor(playerFreq, targetFreq) {
-    const diff = targetFreq - playerFreq;
-    const intensity = Math.min(Math.abs(diff) / 100, 1); 
-    if (Math.abs(diff) <= CFG.resTol) return '#00ff00';
-    else if (diff > 0) return `rgba(255, ${255 * (1-intensity)}, ${255 * (1-intensity)}, 1)`;
-    else return `rgba(${255 * (1-intensity)}, ${255 * (1-intensity)}, 255, 1)`;
-}
-
 function flashScreen(color, duration) {
     screenFlash.style.backgroundColor = color;
     screenFlash.style.opacity = 0.6;
@@ -570,12 +562,7 @@ function handleWaveBounce(w, wall, energyOnBounce, waveIndex) {
             }
         }
         
-        // 先移除原波纹，避免重叠
-        if (waveIndex !== undefined && waveIndex >= 0) {
-            state.entities.waves.splice(waveIndex, 1);
-        }
-        
-        // 添加新的波纹片段
+        // 添加新的波纹片段（原波纹会在updateWave中标记删除）
         for (const newWave of newWaves) {
             const isFullCircle = newWave.spread > Math.PI * 1.9;
             const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
@@ -670,12 +657,7 @@ function handleWavePenetration(w, wall, waveIndex) {
             }
         }
         
-        // 先移除原波纹，避免重叠
-        if (waveIndex !== undefined && waveIndex >= 0) {
-            state.entities.waves.splice(waveIndex, 1);
-        }
-        
-        // 添加新的波纹片段
+        // 添加新的波纹片段（原波纹会在updateWave中标记删除）
         for (const newWave of newWaves) {
             const isFullCircle = newWave.spread > Math.PI * 1.9;
             const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
@@ -686,6 +668,187 @@ function handleWavePenetration(w, wall, waveIndex) {
         return true; // 表示波纹已被分割
     }
     return false; // 没有检测到被阻挡的角度
+}
+
+// 处理波纹与敌人的反弹（分割波纹）
+function handleWaveEnemyBounce(w, enemy, energyOnBounce, waveIndex) {
+    // 记录敌人轮廓（仅玩家波纹）
+    if (w.source === 'player') {
+        state.entities.echoes.push({
+            x: enemy.x, y: enemy.y, r: enemy.r,
+            type: 'enemy_bounce', // 新类型：敌人反弹回声
+            life: 1.0,
+            energy: energyOnBounce
+        });
+    }
+    
+    // 计算被阻挡的角度范围
+    const blockedRanges = getWaveBlockedAnglesByCircle(w, enemy);
+    
+    if (blockedRanges && blockedRanges.length > 0) {
+        blockedRanges.sort((a, b) => a.start - b.start);
+        
+        const waveStartAngle = w.angle - w.spread / 2;
+        const newWaves = [];
+        let currentAngle = 0;
+        
+        for (const blockedRange of blockedRanges) {
+            const rangeStart = Math.max(0, Math.min(blockedRange.start, w.spread));
+            const rangeEnd = Math.max(0, Math.min(blockedRange.end, w.spread));
+            
+            if (rangeStart > currentAngle) {
+                const remainingSpread = rangeStart - currentAngle;
+                if (remainingSpread > 0.01) {
+                    const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                    let normalizedAngle = newAngle;
+                    while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                    while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                    
+                    newWaves.push({
+                        x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                        angle: normalizedAngle,
+                        spread: remainingSpread,
+                        freq: w.freq,
+                        baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                        source: w.source,
+                        ownerId: w.ownerId
+                    });
+                }
+            }
+            currentAngle = rangeEnd;
+        }
+        
+        if (currentAngle < w.spread) {
+            const remainingSpread = w.spread - currentAngle;
+            if (remainingSpread > 0.01) {
+                const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: remainingSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+        }
+        
+        if (waveIndex !== undefined && waveIndex >= 0) {
+            state.entities.waves.splice(waveIndex, 1);
+        }
+        
+        for (const newWave of newWaves) {
+            const isFullCircle = newWave.spread > Math.PI * 1.9;
+            const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
+            newWave.energyPerPoint = newWave.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+            state.entities.waves.push(newWave);
+        }
+        
+        return true;
+    }
+    return false;
+}
+
+// 处理波纹与敌人的穿透（分割波纹）
+function handleWaveEnemyPenetration(w, enemy, waveIndex) {
+    const penetrationLoss = 0.3; // 穿透损失30%能量
+    
+    // 计算被阻挡的角度范围（穿透的部分）
+    const blockedRanges = getWaveBlockedAnglesByCircle(w, enemy);
+    
+    if (blockedRanges && blockedRanges.length > 0) {
+        blockedRanges.sort((a, b) => a.start - b.start);
+        
+        const waveStartAngle = w.angle - w.spread / 2;
+        const newWaves = [];
+        let currentAngle = 0;
+        
+        for (const blockedRange of blockedRanges) {
+            const rangeStart = Math.max(0, Math.min(blockedRange.start, w.spread));
+            const rangeEnd = Math.max(0, Math.min(blockedRange.end, w.spread));
+            
+            // 未穿透部分：不损失能量
+            if (rangeStart > currentAngle) {
+                const remainingSpread = rangeStart - currentAngle;
+                if (remainingSpread > 0.01) {
+                    const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                    let normalizedAngle = newAngle;
+                    while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                    while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                    
+                    newWaves.push({
+                        x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                        angle: normalizedAngle,
+                        spread: remainingSpread,
+                        freq: w.freq,
+                        baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                        source: w.source,
+                        ownerId: w.ownerId
+                    });
+                }
+            }
+            
+            // 穿透部分：损失30%能量
+            const penetratedSpread = rangeEnd - rangeStart;
+            if (penetratedSpread > 0.01) {
+                const newAngle = waveStartAngle + rangeStart + penetratedSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: penetratedSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (penetratedSpread / w.spread) * (1 - penetrationLoss),
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+            
+            currentAngle = rangeEnd;
+        }
+        
+        if (currentAngle < w.spread) {
+            const remainingSpread = w.spread - currentAngle;
+            if (remainingSpread > 0.01) {
+                const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: remainingSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+        }
+        
+        if (waveIndex !== undefined && waveIndex >= 0) {
+            state.entities.waves.splice(waveIndex, 1);
+        }
+        
+        for (const newWave of newWaves) {
+            const isFullCircle = newWave.spread > Math.PI * 1.9;
+            const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
+            newWave.energyPerPoint = newWave.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+            state.entities.waves.push(newWave);
+        }
+        
+        return true;
+    }
+    return false;
 }
 
 // 处理波纹与墙壁的碰撞
@@ -726,8 +889,39 @@ function checkWaveItemCollisions(w) {
     });
 }
 
-// 检查波纹与敌人的碰撞
-function checkWaveEnemyCollisions(w) {
+// 处理波纹与敌人碰撞（分割波纹）
+function handleWaveEnemyCollision(w, oldR, waveIndex) {
+    for (let enemy of state.entities.enemies) {
+        if(w.ownerId === enemy.id) continue;
+        
+        const d = dist(enemy.x, enemy.y, w.x, w.y);
+        if(Math.abs(d - w.r) < CFG.waveSpeed) {
+            const angleToE = Math.atan2(enemy.y - w.y, enemy.x - w.x);
+            let angleDiff = Math.abs(angleToE - w.angle);
+            while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
+            
+            if(w.spread > Math.PI || angleDiff < w.spread/2) {
+                // 判断穿透或反弹（使用敌人的freq作为blockFreq）
+                if (w.freq > enemy.freq) {
+                    // 反弹：显示敌人轮廓
+                    const energyOnBounce = w.energyPerPoint;
+                    const wasHandled = handleWaveEnemyBounce(w, enemy, energyOnBounce, waveIndex);
+                    return wasHandled ? 'bounced' : 'none';
+                } else {
+                    // 穿透：不显示轮廓，损失能量
+                    const wasHandled = handleWaveEnemyPenetration(w, enemy, waveIndex);
+                    if (wasHandled) {
+                        return 'penetrated';
+                    }
+                }
+            }
+        }
+    }
+    return 'none';
+}
+
+// 检查波纹与敌人的交互（不分割波纹，只处理共振/警报）
+function checkWaveEnemyInteractions(w) {
     state.entities.enemies.forEach(e => {
         if(w.ownerId === e.id) return;
 
@@ -738,20 +932,21 @@ function checkWaveEnemyCollisions(w) {
             while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
             
             if(w.spread > Math.PI || angleDiff < w.spread/2) {
-                if (w.source === 'player') {
-                    const isFocused = w.spread < CFG.analyzeThreshold;
-                    state.entities.echoes.push({
-                        x: e.x, y: e.y, r: e.r, 
-                        type: isFocused ? 'analyze' : 'blur',
-                        life: 1.0, enemyId: e.id,
-                        color: getFreqColor(state.freq, e.freq)
-                    });
-                    e.lastPingTime = Date.now(); 
-                    e.pingType = isFocused ? 'analyze' : 'blur';
-                }
-
                 const freqDelta = Math.abs(w.freq - e.freq);
                 const isFocused = w.spread < CFG.analyzeThreshold;
+                
+                // 添加回声（只在聚焦分析时显示）
+                if (w.source === 'player' && isFocused) {
+                    state.entities.echoes.push({
+                        x: e.x, y: e.y, r: e.r, 
+                        type: 'analyze',
+                        life: 1.0, 
+                        enemyId: e.id,
+                        isResonance: freqDelta <= CFG.resTol // 标记是否共振
+                    });
+                    e.lastPingTime = Date.now(); 
+                    e.pingType = 'analyze';
+                }
                 
                 // 计算能量
                 const enemyDiameter = 2 * e.r;
@@ -767,6 +962,7 @@ function checkWaveEnemyCollisions(w) {
                 const minTotalEnergy = minEnergyPerPoint * standardCoveredArcLength;
                 const energyThreshold = minTotalEnergy * 0.1;
 
+                // 警报逻辑
                 if (w.source === 'player' && isFocused && freqDelta > CFG.resTol) {
                     if (e.state !== 'stunned') {
                         e.state = 'alert';
@@ -775,6 +971,7 @@ function checkWaveEnemyCollisions(w) {
                     }
                 }
 
+                // 共振逻辑
                 if (freqDelta <= CFG.resTol && e.resCool <= 0) {
                     emitWave(e.x, e.y, 0, Math.PI*2, e.freq, 'enemy', e.id);
                     e.resCool = CFG.resCooldown;
@@ -838,29 +1035,29 @@ function updateWave(w, i) {
     
     // 检查是否超出范围或能量耗尽
     if(w.r > w.maxR || w.energyPerPoint <= 0) {
-        state.entities.waves.splice(i, 1);
-        return false;
+        w._toRemove = true;
+        return;
+    }
+    
+    // 先检测与敌人的碰撞（分割波纹）
+    const enemyCollisionResult = handleWaveEnemyCollision(w, oldR, i);
+    if (enemyCollisionResult === 'bounced' || enemyCollisionResult === 'penetrated') {
+        // 波纹已被分割，标记删除
+        w._toRemove = true;
+        return;
     }
     
     // 检测与墙壁的碰撞
-    const collisionResult = handleWaveWallCollision(w, oldR, i);
-    // 注意：如果波纹被分割（bounced或penetrated），原波纹已经在handleWaveBounce或handleWavePenetration中被移除
-    // 如果返回'removed'，说明没有检测到被阻挡的角度，需要移除整个波纹
-    if (collisionResult === 'removed') {
-        state.entities.waves.splice(i, 1);
-        return false;
-    }
-    // 如果返回'bounced'或'penetrated'，原波纹已被移除，新片段已添加，直接返回false
-    if (collisionResult === 'bounced' || collisionResult === 'penetrated') {
-        return false;
+    const wallCollisionResult = handleWaveWallCollision(w, oldR, i);
+    if (wallCollisionResult === 'bounced' || wallCollisionResult === 'penetrated') {
+        w._toRemove = true;
+        return;
     }
     
-    // 检查与物品和敌人的碰撞
+    // 检查与物品和敌人的交互（不分割波纹）
     checkWaveItemCollisions(w);
-    checkWaveEnemyCollisions(w);
+    checkWaveEnemyInteractions(w);
     checkForcedResonance(w);
-    
-    return true;
 }
 
 // 更新敌人UI
@@ -1025,10 +1222,13 @@ function update() {
     updateCamera();
     updateItemsVisibility();
 
-    // 更新波纹
-    for(let i=state.entities.waves.length-1; i>=0; i--) {
+    // 更新波纹（标记-清理模式避免重叠）
+    // 第一遍：更新所有波纹，标记需要删除的
+    for(let i = 0; i < state.entities.waves.length; i++) {
         updateWave(state.entities.waves[i], i);
     }
+    // 第二遍：清理标记为删除的波纹
+    state.entities.waves = state.entities.waves.filter(w => !w._toRemove);
     
     // 更新敌人和检查交互
     const hasExeTarget = updateEnemies();
@@ -1053,19 +1253,38 @@ function draw() {
     // 绘制回声
     state.entities.echoes.forEach(e => {
         ctx.globalAlpha = e.life;
+        
         if(e.type === 'item') {
+            // 物品：绿色
             ctx.fillStyle = '#00ff00';
             ctx.beginPath(); ctx.arc(e.x, e.y, 5, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle = '#00ff00'; ctx.lineWidth=1; ctx.stroke();
-        }
-        else if(e.type === 'blur') {
-            ctx.fillStyle = e.color || 'rgba(255,255,255,0.1)';
-            const jx = (Math.random()-0.5)*10; const jy = (Math.random()-0.5)*10;
-            ctx.beginPath(); ctx.arc(e.x+jx, e.y+jy, 25, 0, Math.PI*2); ctx.fill();
+        } else if(e.type === 'analyze') {
+            // 分析回声：共振时绿色，否则白色
+            const color = e.isResonance ? '#00ff00' : '#ffffff';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); 
+            ctx.stroke();
+            ctx.fillStyle = color; 
+            ctx.beginPath(); 
+            ctx.arc(e.x, e.y, 4, 0, Math.PI*2); 
+            ctx.fill();
+        } else if(e.type === 'enemy_bounce') {
+            // 敌人反弹回声：白色
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); 
+            ctx.stroke();
         } else {
-            ctx.strokeStyle = e.color || '#fff'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); ctx.stroke();
-            ctx.fillStyle = e.color || '#fff'; ctx.beginPath(); ctx.arc(e.x, e.y, 4, 0, Math.PI*2); ctx.fill();
+            // 其他回声（墙壁等）：白色
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); 
+            ctx.stroke();
         }
     });
     ctx.globalAlpha = 1;
@@ -1081,28 +1300,61 @@ function draw() {
     ctx.globalAlpha = 1;
 
     // 绘制波纹
+    // 计算最大能量（300Hz、5度角、初始半径）
+    const maxEnergySpread = 5 * Math.PI / 180; // 5度
+    const maxEnergyCircumference = CFG.initialRadius * maxEnergySpread;
+    const maxEnergyTotal = CFG.baseWaveEnergy * (maxEnergySpread / CFG.minSpread);
+    const maxEnergyPerPoint = maxEnergyTotal / maxEnergyCircumference;
+    
     ctx.lineWidth = 2;
     state.entities.waves.forEach(w => {
         ctx.beginPath();
         const startA = w.angle - w.spread/2; const endA = w.angle + w.spread/2;
         ctx.arc(w.x, w.y, w.r, w.spread > Math.PI*1.9 ? 0 : startA, w.spread > Math.PI*1.9 ? Math.PI*2 : endA);
         
-        // 归一化能量用于渲染：使用初始最小角度时的能量作为参考
-        const minCircumference = CFG.initialRadius * CFG.minSpread;
-        const maxEnergyPerPoint = CFG.baseWaveEnergy / minCircumference;
-        const normalizedPower = Math.min(1.0, w.energyPerPoint / maxEnergyPerPoint);
+        // 计算能量归一化值（用于饱和度）
+        const energyRatio = Math.min(1.0, w.energyPerPoint / maxEnergyPerPoint);
         
-        // 使用浅色以便在深色背景上可见，确保最小透明度足够高
-        const minAlpha = 0.3; // 最小透明度30%
-        const alpha = Math.max(minAlpha, normalizedPower * 0.9); // 最大透明度90%
+        // 固定透明度
+        const alpha = 0.8;
         
-        // 玩家波纹：浅青色/白色
-        let color = `rgba(200, 255, 255, ${alpha})`;
-        // 敌人波纹：浅红色/粉红色
-        if(w.source === 'enemy') color = `rgba(255, 180, 180, ${alpha})`;
+        // 检查是否共振（只有玩家波纹会与敌人共振）
+        let isResonance = false;
+        if (w.source === 'player') {
+            for (let enemy of state.entities.enemies) {
+                const freqDelta = Math.abs(w.freq - enemy.freq);
+                if (freqDelta <= CFG.resTol) {
+                    const d = dist(enemy.x, enemy.y, w.x, w.y);
+                    if (Math.abs(d - w.r) < CFG.waveSpeed) {
+                        const angleToE = Math.atan2(enemy.y - w.y, enemy.x - w.x);
+                        let angleDiff = Math.abs(angleToE - w.angle);
+                        while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
+                        if(w.spread > Math.PI || angleDiff < w.spread/2) {
+                            isResonance = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        let color;
+        if (isResonance) {
+            // 共振时：绿色，饱和度表示能量
+            const saturation = Math.round(energyRatio * 100);
+            color = `hsla(120, ${saturation}%, 70%, ${alpha})`;
+        } else if (w.source === 'player') {
+            // 玩家波纹：青色，饱和度表示能量
+            const saturation = Math.round(energyRatio * 100);
+            color = `hsla(180, ${saturation}%, 80%, ${alpha})`;
+        } else {
+            // 敌人波纹：红色，饱和度表示能量
+            const saturation = Math.round(energyRatio * 100);
+            color = `hsla(0, ${saturation}%, 70%, ${alpha})`;
+        }
         
         ctx.strokeStyle = color;
-        ctx.lineWidth = w.spread < 1 ? 5 : 3; // 增加线宽使其更明显
+        ctx.lineWidth = w.spread < 1 ? 5 : 3;
         ctx.stroke();
     });
 
@@ -1297,6 +1549,69 @@ function getWaveBlockedAngles(wave, wall) {
     }
     
     // 添加最后一个范围
+    ranges.push({
+        start: (rangeStart / numRays) * wave.spread,
+        end: ((rangeEnd + 1) / numRays) * wave.spread
+    });
+    
+    return ranges;
+}
+
+// 计算波纹与圆形敌人碰撞时被阻挡的角度范围
+function getWaveBlockedAnglesByCircle(wave, enemy) {
+    const numRays = Math.max(32, Math.ceil(wave.spread * 32 / Math.PI));
+    const startAngle = wave.angle - wave.spread / 2;
+    const angleStep = wave.spread / numRays;
+    
+    const blockedIndices = [];
+    
+    // 检查每个角度是否被阻挡
+    for (let i = 0; i <= numRays; i++) {
+        const rayAngle = startAngle + angleStep * i;
+        const dx = Math.cos(rayAngle);
+        const dy = Math.sin(rayAngle);
+        
+        // 射线与圆的相交检测
+        const cx = enemy.x - wave.x;
+        const cy = enemy.y - wave.y;
+        
+        // 计算射线方向上最接近圆心的点的距离
+        const dot = cx * dx + cy * dy;
+        if (dot < 0) continue; // 圆在射线后方
+        
+        // 最近点到圆心的距离
+        const closestX = wave.x + dx * dot;
+        const closestY = wave.y + dy * dot;
+        const distToCenter = Math.hypot(closestX - enemy.x, closestY - enemy.y);
+        
+        // 如果射线穿过圆，且距离在波纹圆周附近
+        if (distToCenter <= enemy.r && Math.abs(dot - wave.r) < CFG.waveSpeed * 2) {
+            blockedIndices.push(i);
+        }
+    }
+    
+    if (blockedIndices.length === 0) {
+        return null;
+    }
+    
+    // 将连续的索引分组为范围
+    const ranges = [];
+    let rangeStart = blockedIndices[0];
+    let rangeEnd = blockedIndices[0];
+    
+    for (let i = 1; i < blockedIndices.length; i++) {
+        if (blockedIndices[i] === rangeEnd + 1) {
+            rangeEnd = blockedIndices[i];
+        } else {
+            ranges.push({
+                start: (rangeStart / numRays) * wave.spread,
+                end: ((rangeEnd + 1) / numRays) * wave.spread
+            });
+            rangeStart = blockedIndices[i];
+            rangeEnd = blockedIndices[i];
+        }
+    }
+    
     ranges.push({
         start: (rangeStart / numRays) * wave.spread,
         end: ((rangeEnd + 1) / numRays) * wave.spread
