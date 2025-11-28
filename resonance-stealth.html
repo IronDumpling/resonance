@@ -497,7 +497,7 @@ function updateItemsVisibility() {
 }
 
 // 处理波纹反弹（分割波纹）
-function handleWaveBounce(w, wall, energyOnBounce) {
+function handleWaveBounce(w, wall, energyOnBounce, waveIndex) {
     // 记录墙壁轮廓（仅玩家波纹，避免重复添加）
     if (w.source === 'player') {
         const existingEcho = state.entities.wallEchoes.find(we => we.wall === wall);
@@ -570,6 +570,11 @@ function handleWaveBounce(w, wall, energyOnBounce) {
             }
         }
         
+        // 先移除原波纹，避免重叠
+        if (waveIndex !== undefined && waveIndex >= 0) {
+            state.entities.waves.splice(waveIndex, 1);
+        }
+        
         // 添加新的波纹片段
         for (const newWave of newWaves) {
             const isFullCircle = newWave.spread > Math.PI * 1.9;
@@ -583,19 +588,108 @@ function handleWaveBounce(w, wall, energyOnBounce) {
     return false; // 没有检测到被阻挡的角度
 }
 
-// 处理波纹穿透
-function handleWavePenetration(w) {
-    const penetrationLoss = 0.1; // 穿透损失10%能量
-    w.baseEnergy *= (1 - penetrationLoss);
+// 处理波纹穿透（分割波纹）
+function handleWavePenetration(w, wall, waveIndex) {
+    const penetrationLoss = 0.3; // 穿透损失30%能量
     
-    // 重新计算能量
-    const isFullCircle = w.spread > Math.PI * 1.9;
-    const circumference = isFullCircle ? (2 * Math.PI * w.r) : (w.r * w.spread);
-    w.energyPerPoint = w.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+    // 计算被阻挡的角度范围（穿透的部分）
+    const blockedRanges = getWaveBlockedAngles(w, wall);
+    
+    if (blockedRanges && blockedRanges.length > 0) {
+        blockedRanges.sort((a, b) => a.start - b.start);
+        
+        const waveStartAngle = w.angle - w.spread / 2;
+        const newWaves = [];
+        let currentAngle = 0; // 相对于waveStartAngle的偏移
+        
+        for (const blockedRange of blockedRanges) {
+            const rangeStart = Math.max(0, Math.min(blockedRange.start, w.spread));
+            const rangeEnd = Math.max(0, Math.min(blockedRange.end, w.spread));
+            
+            // 添加被阻挡范围之前的部分（未穿透，不损失能量）
+            if (rangeStart > currentAngle) {
+                const remainingSpread = rangeStart - currentAngle;
+                if (remainingSpread > 0.01) {
+                    const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                    let normalizedAngle = newAngle;
+                    while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                    while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                    
+                    newWaves.push({
+                        x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                        angle: normalizedAngle,
+                        spread: remainingSpread,
+                        freq: w.freq,
+                        baseEnergy: w.baseEnergy * (remainingSpread / w.spread), // 不损失能量
+                        source: w.source,
+                        ownerId: w.ownerId
+                    });
+                }
+            }
+            
+            // 添加被阻挡范围的部分（穿透，损失能量）
+            const penetratedSpread = rangeEnd - rangeStart;
+            if (penetratedSpread > 0.01) {
+                const newAngle = waveStartAngle + rangeStart + penetratedSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: penetratedSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (penetratedSpread / w.spread) * (1 - penetrationLoss), // 损失30%能量
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+            
+            currentAngle = rangeEnd;
+        }
+        
+        // 添加最后一个被阻挡范围之后的部分（未穿透，不损失能量）
+        if (currentAngle < w.spread) {
+            const remainingSpread = w.spread - currentAngle;
+            if (remainingSpread > 0.01) {
+                const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: remainingSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (remainingSpread / w.spread), // 不损失能量
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+        }
+        
+        // 先移除原波纹，避免重叠
+        if (waveIndex !== undefined && waveIndex >= 0) {
+            state.entities.waves.splice(waveIndex, 1);
+        }
+        
+        // 添加新的波纹片段
+        for (const newWave of newWaves) {
+            const isFullCircle = newWave.spread > Math.PI * 1.9;
+            const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
+            newWave.energyPerPoint = newWave.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+            state.entities.waves.push(newWave);
+        }
+        
+        return true; // 表示波纹已被分割
+    }
+    return false; // 没有检测到被阻挡的角度
 }
 
 // 处理波纹与墙壁的碰撞
-function handleWaveWallCollision(w, oldR) {
+function handleWaveWallCollision(w, oldR, waveIndex) {
     for (let wall of state.entities.walls) {
         const collision = checkWaveWallCollision(w, wall);
         if (collision.hit) {
@@ -604,11 +698,14 @@ function handleWaveWallCollision(w, oldR) {
                 if (w.freq > wall.blockFreq) {
                     // 反弹
                     const energyOnBounce = w.energyPerPoint;
-                    const wasHandled = handleWaveBounce(w, wall, energyOnBounce);
+                    const wasHandled = handleWaveBounce(w, wall, energyOnBounce, waveIndex);
                     return wasHandled ? 'bounced' : 'removed';
                 } else {
                     // 穿透
-                    handleWavePenetration(w);
+                    const wasHandled = handleWavePenetration(w, wall, waveIndex);
+                    if (wasHandled) {
+                        return 'penetrated'; // 表示波纹已被分割
+                    }
                 }
             }
         }
@@ -746,9 +843,15 @@ function updateWave(w, i) {
     }
     
     // 检测与墙壁的碰撞
-    const collisionResult = handleWaveWallCollision(w, oldR);
-    if (collisionResult === 'bounced' || collisionResult === 'removed') {
+    const collisionResult = handleWaveWallCollision(w, oldR, i);
+    // 注意：如果波纹被分割（bounced或penetrated），原波纹已经在handleWaveBounce或handleWavePenetration中被移除
+    // 如果返回'removed'，说明没有检测到被阻挡的角度，需要移除整个波纹
+    if (collisionResult === 'removed') {
         state.entities.waves.splice(i, 1);
+        return false;
+    }
+    // 如果返回'bounced'或'penetrated'，原波纹已被移除，新片段已添加，直接返回false
+    if (collisionResult === 'bounced' || collisionResult === 'penetrated') {
         return false;
     }
     
