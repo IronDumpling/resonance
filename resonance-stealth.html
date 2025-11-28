@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>ECHO_CHAMBER: Instructions Update</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+            user-select: none;
+        }
+        canvas { display: block; }
+        
+        /* UI 层 */
+        #ui-layer {
+            position: absolute; top: 20px; left: 20px;
+            color: #33ccff; pointer-events: none; z-index: 10;
+        }
+        .hud-row {
+            margin-bottom: 8px; font-size: 16px;
+            text-shadow: 0 0 5px rgba(51, 204, 255, 0.5);
+        }
+        .val-warn { color: #ff3333; text-shadow: 0 0 5px #ff3333; }
+        
+        #freq-box {
+            border: 2px solid #33ccff; padding: 5px 10px;
+            display: inline-block; background: rgba(0,20,40,0.8);
+            font-weight: bold; font-size: 20px; transition: color 0.2s;
+        }
+        
+        /* 频率分析仪浮动UI */
+        .analyzer-tag {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #33ccff;
+            padding: 6px;
+            color: #fff;
+            font-size: 12px;
+            pointer-events: none;
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+            display: none;
+            box-shadow: 0 0 10px #33ccff;
+            z-index: 100;
+        }
+        .analyzer-bar {
+            width: 80px; height: 6px; background: #333; margin: 4px 0; position: relative; border-radius: 2px;
+        }
+        .analyzer-pip {
+            width: 4px; height: 10px; background: #fff; position: absolute; top: -2px; transition: left 0.1s;
+        }
+        .analyzer-center {
+            width: 2px; height: 10px; background: #33ccff; position: absolute; left: 40px; top: -2px;
+        }
+        .analyzer-text {
+            font-size: 12px; font-weight: bold; text-align: center;
+        }
+
+        /* 交互提示 (通用) */
+        .interact-hint {
+            position: absolute; display: none;
+            color: #fff; font-weight: bold; font-size: 14px;
+            text-shadow: 0 0 5px #fff; border: 1px solid #fff;
+            padding: 2px 6px; background: rgba(0,0,0,0.8);
+            transform: translate(-50%, -150%);
+            z-index: 101;
+        }
+        /* 处决特定样式 */
+        #execute-hint { color: #ff0000; border-color: #ff0000; text-shadow: 0 0 5px #ff0000; }
+        /* 拾取特定样式 */
+        #pickup-hint { color: #00ff00; border-color: #00ff00; text-shadow: 0 0 5px #00ff00; }
+
+        /* 受伤/过载红屏 */
+        #screen-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: red; opacity: 0; pointer-events: none; z-index: 5;
+            transition: opacity 0.1s;
+        }
+
+        /* 操作指南优化 */
+        .controls {
+            position: absolute; bottom: 20px; left: 20px;
+            color: #aaa; font-size: 13px; z-index: 10;
+            background: rgba(0, 10, 20, 0.8);
+            padding: 10px;
+            border-left: 3px solid #33ccff;
+            line-height: 1.6;
+        }
+        .key-btn {
+            color: #fff; font-weight: bold; background: #333; padding: 1px 4px; border-radius: 3px; font-size: 12px;
+        }
+        .highlight { color: #33ccff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="screen-flash"></div>
+
+<div id="ui-layer">
+    <div class="hud-row" id="hp-row">HEALTH: <span id="hp-val">100</span>%</div>
+    <div class="hud-row">ENERGY: <span id="energy-val">100</span>%</div>
+    <div class="hud-row">TUNER: <span id="freq-box">150 Hz</span></div>
+    <div class="hud-row" id="msg-log" style="color:#ffaa00; height:20px; font-size:14px;">System Online.</div>
+</div>
+
+<div id="world-ui-container"></div>
+<!-- 交互提示 -->
+<div id="execute-hint" class="interact-hint">[E] SIPHON CORE</div>
+<div id="pickup-hint" class="interact-hint">[E] PICKUP ENERGY</div>
+
+<!-- 优化后的操作指南 -->
+<div class="controls">
+    <div><span class="highlight">基础行动:</span> <span class="key-btn">WASD</span> 移动 &nbsp; <span class="key-btn">鼠标</span> 瞄准方向</div>
+    <div><span class="highlight">波纹系统:</span> <span class="key-btn">滚轮</span> 调节频率 &nbsp; <span class="key-btn">按住空格</span> 聚焦 &rarr; <span class="key-btn">松开</span> 发射 (耗能10)</div>
+    <div><span class="highlight">生存互动:</span> <span class="key-btn">E</span> 拾取物品 / 处决瘫痪敌人 &nbsp; <span class="key-btn">F</span> 治疗 (耗能30)</div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiContainer = document.getElementById('world-ui-container');
+const executeHint = document.getElementById('execute-hint');
+const pickupHint = document.getElementById('pickup-hint');
+const screenFlash = document.getElementById('screen-flash');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// --- 配置参数 ---
+const CFG = {
+    // 玩家
+    pSpeed: 3,
+    pViewDist: 280,
+    pViewAngle: Math.PI / 2.5,
+    maxHp: 100,
+    maxEnergy: 100,
+    healCost: 30,
+    healVal: 40,
+    energyFlaskVal: 50, // 能量瓶恢复量
+    
+    // 扫描与波
+    scanCost: 10,
+    forcedWaveCost: 15,
+    overloadDmgRatio: 2.0,
+    waveSpeed: 5,
+    waveMaxDist: 1500,  // 增大扫描范围
+    
+    // 聚焦参数
+    focusSpeed: 0.02,
+    minSpread: 0.08, 
+    maxSpread: Math.PI * 2,
+    analyzeThreshold: 0.5,
+    
+    // 频率
+    freqMin: 100,
+    freqMax: 300,
+    resTol: 15, 
+    
+    // 敌人
+    eSpeedPatrol: 0.6,
+    eSpeedChase: 1.5,
+    stunTime: 400, 
+    dmgVal: 20,
+    dmgCD: 60,
+    resCooldown: 120,
+    
+    // 波纹能量
+    energyCoeff: 0.1,        // 能量系数 k
+    energyThreshold: 0.1,    // 过载能量阈值比例
+    initialRadius: 5,         // 初始半径（用于能量衰减计算）
+    
+    // 阻挡物
+    wallFreqs: [150, 200, 250],  // 墙壁频率选项
+    wallColors: {              // 墙壁颜色映射
+        150: '#333333',
+        200: '#666666', 
+        250: '#999999'
+    },
+    
+    // 相机
+    cameraFOV: 1.5,            // 视野缩放（1.0 = 正常，>1.0 = 放大，<1.0 = 缩小）
+    cameraFollowSpeed: 0.1,     // 相机跟随速度（0-1，越大跟随越快）
+    cameraSmoothing: true      // 是否启用平滑跟随
+};
+
+// --- 游戏状态 ---
+const state = {
+    p: { x: canvas.width/2, y: canvas.height/2, a: 0, hp: 100, en: 100, invuln: 0, resCool: 0 },
+    keys: { w:0, a:0, s:0, d:0, space:0, f:0 },
+    mouse: { x:0, y:0 },
+    freq: 150,
+    focusLevel: 0,
+    isCharging: false,
+    camera: { x: canvas.width/2, y: canvas.height/2 }, // 相机位置
+    entities: {
+        walls: [], enemies: [], waves: [], echoes: [], particles: [], items: [], wallEchoes: [] // 新增物品列表和墙壁回声
+    }
+};
+
+// --- 初始化 ---
+function init() {
+    state.entities.walls = [];
+    state.entities.items = []; // Reset items
+    
+    let attempts = 0;
+    while(state.entities.walls.length < 6 && attempts < 200) {
+        attempts++;
+        const w = rand(80, 200);
+        const h = rand(80, 200);
+        const x = rand(100, canvas.width-200);
+        const y = rand(100, canvas.height-200);
+        
+        let overlap = false;
+        for (const other of state.entities.walls) {
+            if (x < other.x + other.w + 20 && x + w + 20 > other.x && 
+                y < other.y + other.h + 20 && y + h + 20 > other.y) {
+                overlap = true; break;
+            }
+        }
+        if (!overlap) {
+            const px = canvas.width/2; const py = canvas.height/2;
+            if (x < px + 150 && x + w > px - 150 && y < py + 150 && y + h > py - 150) overlap = true;
+        }
+        if (!overlap) {
+            const blockFreq = CFG.wallFreqs[Math.floor(Math.random() * CFG.wallFreqs.length)];
+            state.entities.walls.push({
+                x, y, w, h, 
+                blockFreq: blockFreq,
+                color: CFG.wallColors[blockFreq]
+            });
+        }
+    }
+
+    for(let i=0; i<4; i++) spawnEnemy();
+    
+    // 生成能量瓶
+    for(let i=0; i<5; i++) spawnItem('energy');
+    
+    // 初始化相机位置为玩家位置
+    state.camera.x = state.p.x;
+    state.camera.y = state.p.y;
+    
+    updateUI();
+    requestAnimationFrame(loop);
+}
+
+function spawnEnemy() {
+    let ex, ey, ok=false;
+    while(!ok) {
+        ex = rand(50, canvas.width-50); ey = rand(50, canvas.height-50);
+        if(dist(ex,ey,state.p.x,state.p.y) > 300) ok=true;
+    }
+    state.entities.enemies.push({
+        id: Math.random().toString(36).substr(2,9),
+        x: ex, y: ey, r: 16,
+        freq: Math.floor(rand(CFG.freqMin, CFG.freqMax)),
+        state: 'idle', timer: 0, angle: rand(0, Math.PI*2),
+        resCool: 0,
+        lastPingTime: 0, pingType: null,
+        uiElement: createAnalyzerUI()
+    });
+}
+
+function spawnItem(type) {
+    let ix, iy, ok=false;
+    let safeLoop = 0;
+    while(!ok && safeLoop < 100) {
+        safeLoop++;
+        ix = rand(50, canvas.width-50); iy = rand(50, canvas.height-50);
+        if(!checkWall(ix, iy)) ok=true; // 只要不在墙里就行
+    }
+    if(ok) {
+        state.entities.items.push({
+            type: type, x: ix, y: iy, r: 10, visibleTimer: 0 // 默认不可见
+        });
+    }
+}
+
+function createAnalyzerUI() {
+    const div = document.createElement('div');
+    div.className = 'analyzer-tag';
+    div.innerHTML = `<div style="text-align:center;margin-bottom:2px;">FREQ ANALYSIS</div><div class="analyzer-bar"><div class="analyzer-center"></div><div class="analyzer-pip" style="left:50%"></div></div><div class="analyzer-text" style="color:#aaa;">UNKNOWN</div>`;
+    uiContainer.appendChild(div);
+    return div;
+}
+
+// --- 输入处理 ---
+window.onkeydown = e => {
+    const k = e.key.toLowerCase();
+    if(state.keys.hasOwnProperty(k) || k===' ') {
+        state.keys[k===' '?'space':k] = true;
+    }
+    if(k==='e') tryInteract(); // E键通用交互
+};
+window.onkeyup = e => {
+    const k = e.key.toLowerCase();
+    if(state.keys.hasOwnProperty(k) || k===' ') {
+        state.keys[k===' '?'space':k] = false;
+        if(k===' ') releaseScan();
+    }
+};
+canvas.onmousemove = e => { 
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    const worldPos = screenToWorld(canvasX, canvasY);
+    state.mouse.x = worldPos.x; 
+    state.mouse.y = worldPos.y; 
+};
+window.onwheel = e => {
+    const d = Math.sign(e.deltaY) * -5;
+    state.freq = clamp(state.freq+d, CFG.freqMin, CFG.freqMax);
+    updateUI();
+};
+
+// --- 逻辑 ---
+function updateFocus() {
+    if(state.keys.space) {
+        if(!state.isCharging) {
+            state.isCharging = true;
+            state.focusLevel = 0;
+        }
+        if(state.isCharging) {
+            state.focusLevel = Math.min(1, state.focusLevel + 0.02);
+        }
+    }
+}
+
+function releaseScan() {
+    if(!state.isCharging) return;
+    
+    if(state.p.en < CFG.scanCost) {
+        logMsg("LOW ENERGY - CANNOT EMIT");
+        state.isCharging = false;
+        state.focusLevel = 0;
+        return;
+    }
+
+    state.p.en -= CFG.scanCost;
+    
+    const currentSpread = lerp(CFG.maxSpread, CFG.minSpread, state.focusLevel);
+    emitWave(state.p.x, state.p.y, state.p.a, currentSpread, state.freq, 'player');
+    
+    state.isCharging = false; 
+    state.focusLevel = 0; 
+    updateUI();
+}
+
+function emitWave(x, y, angle, spread, freq, source, ownerId) {
+    // 计算初始能量：基于频率的平方关系
+    const baseEnergy = CFG.energyCoeff * freq * freq;
+    // 总能量固定，能量密度 = 总能量 / 角度
+    const energyDensity = baseEnergy / (spread > 0.01 ? spread : 0.01);
+    
+    state.entities.waves.push({
+        x: x, y: y, r: CFG.initialRadius, maxR: CFG.waveMaxDist,
+        angle: angle, spread: spread, freq: freq, 
+        baseEnergy: baseEnergy,      // 初始总能量
+        energyDensity: energyDensity, // 能量密度
+        power: 1.0,                  // 归一化的能量（用于渲染）
+        source: source, ownerId: ownerId
+    });
+}
+
+// 统一交互逻辑 (拾取 + 处决)
+function tryInteract() {
+    // 1. 优先尝试处决
+    const enemies = state.entities.enemies.filter(e => e.state === 'stunned' && dist(e.x,e.y,state.p.x,state.p.y) < 60);
+    if(enemies.length > 0) {
+        const e = enemies[0];
+        state.entities.enemies = state.entities.enemies.filter(x => x !== e);
+        if(e.uiElement) e.uiElement.remove();
+        state.p.en = CFG.maxEnergy; // 修改：处决直接回满能量
+        logMsg("CORE SIPHONED (ENERGY RESTORED)");
+        spawnParticles(e.x, e.y, '#00ffff', 40);
+        setTimeout(spawnEnemy, 4000);
+        updateUI();
+        return;
+    }
+
+    // 2. 尝试拾取
+    const items = state.entities.items.filter(i => dist(i.x, i.y, state.p.x, state.p.y) < 40 && i.visibleTimer > 0);
+    if(items.length > 0) {
+        const item = items[0];
+        if(item.type === 'energy') {
+            state.p.en = Math.min(CFG.maxEnergy, state.p.en + CFG.energyFlaskVal);
+            logMsg(`ENERGY RESTORED (+${CFG.energyFlaskVal})`);
+            spawnParticles(item.x, item.y, '#00ff00', 20);
+            // 移除物品
+            state.entities.items = state.entities.items.filter(i => i !== item);
+            updateUI();
+        }
+        return;
+    }
+}
+
+function updateHeal() {
+    if(state.keys.f && state.p.hp < CFG.maxHp && state.p.en >= CFG.healCost) {
+        state.p.en -= CFG.healCost; state.p.hp = Math.min(CFG.maxHp, state.p.hp + CFG.healVal);
+        state.keys.f = false; spawnParticles(state.p.x, state.p.y, '#00ff00', 15);
+        logMsg("SYSTEM REPAIRED"); updateUI();
+    }
+}
+
+// 更新相机位置（跟随玩家）
+function updateCamera() {
+    const targetX = state.p.x;
+    const targetY = state.p.y;
+    
+    if (CFG.cameraSmoothing) {
+        // 平滑跟随
+        const dx = targetX - state.camera.x;
+        const dy = targetY - state.camera.y;
+        state.camera.x += dx * CFG.cameraFollowSpeed;
+        state.camera.y += dy * CFG.cameraFollowSpeed;
+    } else {
+        // 直接跟随
+        state.camera.x = targetX;
+        state.camera.y = targetY;
+    }
+}
+
+// 世界坐标转屏幕坐标（用于UI定位）
+function worldToScreen(wx, wy) {
+    const scale = CFG.cameraFOV;
+    const screenX = (wx - state.camera.x) * scale + canvas.width / 2;
+    const screenY = (wy - state.camera.y) * scale + canvas.height / 2;
+    return { x: screenX, y: screenY };
+}
+
+// 屏幕坐标转世界坐标（用于鼠标交互）
+function screenToWorld(sx, sy) {
+    const scale = CFG.cameraFOV;
+    const worldX = (sx - canvas.width / 2) / scale + state.camera.x;
+    const worldY = (sy - canvas.height / 2) / scale + state.camera.y;
+    return { x: worldX, y: worldY };
+}
+
+function getFreqColor(playerFreq, targetFreq) {
+    const diff = targetFreq - playerFreq;
+    const intensity = Math.min(Math.abs(diff) / 100, 1); 
+    if (Math.abs(diff) <= CFG.resTol) return '#00ff00';
+    else if (diff > 0) return `rgba(255, ${255 * (1-intensity)}, ${255 * (1-intensity)}, 1)`;
+    else return `rgba(${255 * (1-intensity)}, ${255 * (1-intensity)}, 255, 1)`;
+}
+
+function flashScreen(color, duration) {
+    screenFlash.style.backgroundColor = color;
+    screenFlash.style.opacity = 0.6;
+    setTimeout(() => screenFlash.style.opacity = 0, duration);
+}
+
+function update() {
+    updateFocus(); updateHeal();
+    let dx=0, dy=0;
+    if(state.keys.w) dy-=1; if(state.keys.s) dy+=1;
+    if(state.keys.a) dx-=1; if(state.keys.d) dx+=1;
+    if(dx||dy) {
+        const len = Math.hypot(dx,dy);
+        const spd = state.isCharging ? CFG.pSpeed * 0.3 : CFG.pSpeed;
+        const nx = state.p.x + (dx/len)*spd; const ny = state.p.y + (dy/len)*spd;
+        if(!checkWall(nx, state.p.y)) state.p.x = nx;
+        if(!checkWall(state.p.x, ny)) state.p.y = ny;
+    }
+    state.p.a = Math.atan2(state.mouse.y - state.p.y, state.mouse.x - state.p.x);
+    if(state.p.invuln > 0) state.p.invuln--;
+    if(state.p.resCool > 0) state.p.resCool--;
+    
+    // 相机跟随玩家
+    updateCamera();
+
+    // 物品可见性更新 (如果被手电筒照到)
+    state.entities.items.forEach(i => {
+        if(i.visibleTimer > 0) i.visibleTimer--;
+        if(isInCone(i.x, i.y) && checkLineOfSight(state.p.x, state.p.y, i.x, i.y)) {
+            i.visibleTimer = 10; // 只要在视野里，就保持可见
+        }
+    });
+
+    for(let i=state.entities.waves.length-1; i>=0; i--) {
+        const w = state.entities.waves[i];
+        const oldR = w.r;
+        w.r += CFG.waveSpeed;
+        
+        // 能量衰减：基于周长，E = E0 * (r0 / r)
+        // 使用更温和的衰减曲线，确保能到达更远距离
+        if (w.r > CFG.initialRadius) {
+            // 使用平方根衰减，比线性衰减更温和
+            const decayFactor = Math.sqrt(CFG.initialRadius / w.r);
+            w.power = decayFactor;
+        }
+        
+        // 降低最小power阈值，让波纹能传播更远
+        if(w.r > w.maxR || w.power <= 0.005) { state.entities.waves.splice(i,1); continue; }
+        
+        // 检测与墙壁的碰撞
+        let wallCollided = false;
+        for (let wall of state.entities.walls) {
+            const collision = checkWaveWallCollision(w, wall);
+            // 检查波纹圆周是否在当前帧内与墙壁相交
+            if (collision.hit) {
+                const distToWall = collision.dist;
+                // 如果碰撞距离在波纹半径范围内（考虑上一帧和当前帧的半径）
+                if (distToWall >= oldR - CFG.waveSpeed && distToWall <= w.r + CFG.waveSpeed) {
+                    wallCollided = true;
+                    // 判断穿透或反弹
+                    if (w.freq > wall.blockFreq) {
+                        // 穿透：能量衰减，继续传播
+                        const penetrationLoss = 0.3; // 穿透损失30%能量
+                        w.power *= (1 - penetrationLoss);
+                        
+                        // 记录墙壁轮廓（仅玩家波纹，避免重复添加）
+                        if (w.source === 'player') {
+                            // 检查是否已经存在该墙壁的回声
+                            const existingEcho = state.entities.wallEchoes.find(we => we.wall === wall);
+                            if (!existingEcho) {
+                                const energyAtHit = w.baseEnergy * w.power;
+                                state.entities.wallEchoes.push({
+                                    wall: wall,
+                                    life: 1.0,
+                                    energy: energyAtHit
+                                });
+                            } else {
+                                // 更新现有回声的生命值
+                                existingEcho.life = Math.min(1.0, existingEcho.life + 0.3);
+                            }
+                        }
+                    } else {
+                        // 反弹：暂不实现，直接移除波纹
+                        // 未来可以实现反射逻辑
+                        state.entities.waves.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (i >= state.entities.waves.length) continue; // 如果波纹被移除，跳过后续处理
+        
+        // --- 1. 检测波纹是否击中敌人/物品 ---
+        
+        // 物品扫描
+        state.entities.items.forEach(item => {
+            const d = dist(item.x, item.y, w.x, w.y);
+            if(Math.abs(d - w.r) < CFG.waveSpeed) {
+                // 物品被波纹扫到，短暂可见
+                item.visibleTimer = 120; // 可见2秒
+                state.entities.echoes.push({
+                    x: item.x, y: item.y, r: 2, type: 'item', life: 1.0
+                });
+            }
+        });
+
+        // 敌人扫描
+        state.entities.enemies.forEach(e => {
+            if(w.ownerId === e.id) return;
+
+            const d = dist(e.x, e.y, w.x, w.y);
+            if(Math.abs(d - w.r) < CFG.waveSpeed) {
+                const angleToE = Math.atan2(e.y - w.y, e.x - w.x);
+                let angleDiff = Math.abs(angleToE - w.angle);
+                while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
+                
+                if(w.spread > Math.PI || angleDiff < w.spread/2) {
+                    if (w.source === 'player') {
+                        const isFocused = w.spread < CFG.analyzeThreshold;
+                        state.entities.echoes.push({
+                            x: e.x, y: e.y, r: e.r, 
+                            type: isFocused ? 'analyze' : 'blur',
+                            life: 1.0, enemyId: e.id,
+                            color: getFreqColor(state.freq, e.freq)
+                        });
+                        e.lastPingTime = Date.now(); 
+                        e.pingType = isFocused ? 'analyze' : 'blur';
+                    }
+
+                    const freqDelta = Math.abs(w.freq - e.freq);
+                    const isFocused = w.spread < CFG.analyzeThreshold;
+                    // 计算当前能量密度（考虑衰减）- 使用能量密度更合理
+                    const currentEnergyDensity = w.energyDensity * w.power;
+                    // 阈值基于最小角度（最聚焦）时的能量密度
+                    // 确保100Hz最小角度时能过载：100Hz最小角度能量密度 = 0.1*100²/0.08 = 12500
+                    // 阈值设为最小能量密度的5%，即 12500 * 0.05 = 625
+                    // 这样即使在能量衰减到5%时（较远距离），仍能触发过载
+                    const minEnergyDensity = CFG.energyCoeff * CFG.freqMin * CFG.freqMin / CFG.minSpread;
+                    const energyThreshold = minEnergyDensity * 0.05;  // 固定5%阈值，确保100Hz最小角度能过载
+
+                    if (w.source === 'player' && isFocused && freqDelta > CFG.resTol) {
+                        if (e.state !== 'stunned') {
+                            e.state = 'alert';
+                            e.targetX = state.p.x; e.targetY = state.p.y;
+                            logMsg("HOSTILE ALERTED (HIGH ENERGY BEAM)");
+                        }
+                    }
+
+                    if (freqDelta <= CFG.resTol && e.resCool <= 0) {
+                        emitWave(e.x, e.y, 0, Math.PI*2, e.freq, 'enemy', e.id);
+                        e.resCool = CFG.resCooldown;
+                        spawnParticles(e.x, e.y, '#ffffff', 20);
+
+                        if (e.state === 'idle' || e.state === 'alert') {
+                            e.state = 'alert';
+                            e.targetX = w.x; e.targetY = w.y;
+                        }
+                        
+                        // 过载触发：频率匹配 + 聚焦 + 能量密度高于阈值
+                        if (w.source === 'player' && isFocused && currentEnergyDensity >= energyThreshold) {
+                            e.state = 'stunned';
+                            e.timer = CFG.stunTime;
+                            logMsg("TARGET STABILIZED");
+                        }
+                    }
+                }
+            }
+        });
+
+        // --- 2. 受迫共振 ---
+        if (w.source !== 'player') {
+            const dToP = dist(state.p.x, state.p.y, w.x, w.y);
+            if (Math.abs(dToP - w.r) < CFG.waveSpeed) {
+                const freqDelta = Math.abs(w.freq - state.freq);
+                
+                if (freqDelta <= CFG.resTol && state.p.resCool <= 0) {
+                    let energyCost = CFG.forcedWaveCost;
+                    let damage = 0;
+                    
+                    if (state.p.en < energyCost) {
+                        damage = (energyCost - state.p.en) * CFG.overloadDmgRatio;
+                        state.p.en = 0;
+                        takeDamage(damage);
+                        logMsg(`CRITICAL OVERLOAD (-${Math.floor(damage)} HP)`);
+                    } else {
+                        state.p.en -= energyCost;
+                        logMsg("SYSTEM OVERLOAD: ENERGY DRAIN");
+                    }
+
+                    flashScreen('#00ffff', 100); 
+                    emitWave(state.p.x, state.p.y, 0, Math.PI*2, state.freq, 'player');
+                    state.p.resCool = CFG.resCooldown;
+                    updateUI();
+                }
+            }
+        }
+    }
+    
+    // UI状态检查变量
+    let hasExeTarget = false;
+    let hasPickupTarget = false;
+
+    // 敌人更新 & 避障逻辑
+    state.entities.enemies.forEach(e => {
+        if(e.resCool > 0) e.resCool--;
+
+        const ui = e.uiElement;
+        if (Date.now() - e.lastPingTime < 2000 && e.pingType === 'analyze') {
+            const screenPos = worldToScreen(e.x, e.y - 20);
+            ui.style.display = 'block'; ui.style.left = screenPos.x + 'px'; ui.style.top = screenPos.y + 'px';
+            let diff = clamp((e.freq - state.freq) / 100, -1, 1);
+            const offset = 40 + (diff * 38);
+            ui.querySelector('.analyzer-pip').style.left = offset + 'px';
+            const text = ui.querySelector('.analyzer-text');
+            const pip = ui.querySelector('.analyzer-pip');
+            if(Math.abs(state.freq - e.freq) <= CFG.resTol) {
+                pip.style.backgroundColor = '#00ff00';
+                text.innerHTML = "<span style='color:#00ff00'>[● RESONANCE]</span>";
+            } else if(diff < 0) {
+                pip.style.backgroundColor = '#0088ff';
+                text.innerHTML = "<span style='color:#0088ff'>▼ BLUE SHIFT</span>"; 
+            } else {
+                pip.style.backgroundColor = '#ff4400';
+                text.innerHTML = "<span style='color:#ff4400'>▲ RED SHIFT</span>";
+            }
+        } else ui.style.display = 'none';
+        
+        const dToP = dist(e.x, e.y, state.p.x, state.p.y);
+        
+        if(e.state === 'stunned') {
+            e.timer--; if(e.timer<=0) e.state = 'alert';
+            if(dToP < 60) hasExeTarget = true;
+        } else {
+            if(dToP < 25) takeDamage(CFG.dmgVal);
+            
+            let spd = CFG.eSpeedPatrol; let tx = null, ty = null;
+            if(e.state === 'alert') { 
+                spd = CFG.eSpeedChase; 
+                tx = e.targetX || state.p.x; ty = e.targetY || state.p.y;
+                if(dist(e.x, e.y, tx, ty) < 10) e.state = 'idle';
+            }
+            else if(Math.random()<0.01) e.angle += (Math.random()-0.5);
+            
+            if(tx != null) {
+                // 目标导向力
+                let angleToTarget = Math.atan2(ty-e.y, tx-e.x);
+                
+                // 避障力 (Obstacle Avoidance)
+                // 简单射线检测前方，如果有墙，则偏转角度
+                const lookAheadDist = 40;
+                let avoidX = 0, avoidY = 0;
+                let hasObs = false;
+                
+                // 检测前方三个方向：正前，左前30度，右前30度
+                const checkAngles = [0, -0.5, 0.5];
+                for(let da of checkAngles) {
+                    const checkA = e.angle + da;
+                    const cx = e.x + Math.cos(checkA) * lookAheadDist;
+                    const cy = e.y + Math.sin(checkA) * lookAheadDist;
+                    if(checkWall(cx, cy)) {
+                        // 发现墙壁，产生反向推力
+                        hasObs = true;
+                        avoidX -= Math.cos(checkA) * 2.0; // 强烈的反推
+                        avoidY -= Math.sin(checkA) * 2.0;
+                    }
+                }
+                
+                if(hasObs) {
+                    // 融合 目标向量 和 避障向量
+                    const targetDx = Math.cos(angleToTarget);
+                    const targetDy = Math.sin(angleToTarget);
+                    // 避障权重更高
+                    const finalDx = targetDx + avoidX * 2.0;
+                    const finalDy = targetDy + avoidY * 2.0;
+                    e.angle = Math.atan2(finalDy, finalDx);
+                } else {
+                    e.angle = angleToTarget;
+                }
+            }
+            
+            const mx = Math.cos(e.angle)*spd; const my = Math.sin(e.angle)*spd;
+            if(!checkWall(e.x+mx, e.y+my)) { e.x+=mx; e.y+=my; } 
+            else {
+                // 还是撞了，随机滑行
+                e.angle += (Math.random() > 0.5 ? 1 : -1) * Math.PI/2;
+            }
+        }
+    });
+    
+    // 检查是否有可拾取物
+    state.entities.items.forEach(i => {
+        if(i.visibleTimer > 0 && dist(i.x, i.y, state.p.x, state.p.y) < 40) {
+            hasPickupTarget = true;
+        }
+    });
+
+    // UI 显示逻辑
+    if(hasExeTarget) {
+        const screenPos = worldToScreen(state.p.x, state.p.y - 40);
+        executeHint.style.display = 'block';
+        executeHint.style.left = screenPos.x + 'px'; executeHint.style.top = screenPos.y + 'px';
+        pickupHint.style.display = 'none'; // 处决优先
+    } else if(hasPickupTarget) {
+        const screenPos = worldToScreen(state.p.x, state.p.y - 40);
+        executeHint.style.display = 'none';
+        pickupHint.style.display = 'block';
+        pickupHint.style.left = screenPos.x + 'px'; pickupHint.style.top = screenPos.y + 'px';
+    } else {
+        executeHint.style.display = 'none';
+        pickupHint.style.display = 'none';
+    }
+    
+    state.entities.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.05; });
+    state.entities.particles = state.entities.particles.filter(p=>p.life>0);
+    state.entities.echoes.forEach(e => e.life -= 0.015);
+    state.entities.echoes = state.entities.echoes.filter(e => e.life>0);
+    state.entities.wallEchoes.forEach(we => we.life -= 0.02);
+    state.entities.wallEchoes = state.entities.wallEchoes.filter(we => we.life>0);
+    updateUI();
+}
+
+// --- 渲染 ---
+function draw() {
+    ctx.fillStyle = '#000510';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 应用相机变换
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(CFG.cameraFOV, CFG.cameraFOV);
+    ctx.translate(-state.camera.x, -state.camera.y);
+
+    // 绘制回声
+    state.entities.echoes.forEach(e => {
+        ctx.globalAlpha = e.life;
+        if(e.type === 'item') {
+            ctx.fillStyle = '#00ff00';
+            ctx.beginPath(); ctx.arc(e.x, e.y, 5, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#00ff00'; ctx.lineWidth=1; ctx.stroke();
+        }
+        else if(e.type === 'blur') {
+            ctx.fillStyle = e.color || 'rgba(255,255,255,0.1)';
+            const jx = (Math.random()-0.5)*10; const jy = (Math.random()-0.5)*10;
+            ctx.beginPath(); ctx.arc(e.x+jx, e.y+jy, 25, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.strokeStyle = e.color || '#fff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = e.color || '#fff'; ctx.beginPath(); ctx.arc(e.x, e.y, 4, 0, Math.PI*2); ctx.fill();
+        }
+    });
+    ctx.globalAlpha = 1;
+    
+    // 绘制墙壁轮廓（穿透时显示）
+    state.entities.wallEchoes.forEach(we => {
+        const alpha = we.life * 0.6; // 最大透明度60%
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = we.wall.color || '#888';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(we.wall.x, we.wall.y, we.wall.w, we.wall.h);
+    });
+    ctx.globalAlpha = 1;
+
+    // 绘制波纹
+    ctx.lineWidth = 2;
+    state.entities.waves.forEach(w => {
+        ctx.beginPath();
+        const startA = w.angle - w.spread/2; const endA = w.angle + w.spread/2;
+        ctx.arc(w.x, w.y, w.r, w.spread > Math.PI*1.9 ? 0 : startA, w.spread > Math.PI*1.9 ? Math.PI*2 : endA);
+        
+        let color = `rgba(0, 200, 255, ${w.power * 0.8})`;
+        if(w.source === 'enemy') color = `rgba(255, 50, 50, ${w.power * 0.8})`; 
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = w.spread < 1 ? 4 : 2;
+        ctx.stroke();
+    });
+
+    // 视野裁剪区
+    const visPoly = getVisibiltyPolygon(state.p.x, state.p.y, state.p.a);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(visPoly[0].x, visPoly[0].y);
+    for(let i=1; i<visPoly.length; i++) ctx.lineTo(visPoly[i].x, visPoly[i].y);
+    ctx.closePath();
+    ctx.clip();
+
+    // 光照
+    const grad = ctx.createRadialGradient(state.p.x, state.p.y, 10, state.p.x, state.p.y, CFG.pViewDist);
+    grad.addColorStop(0, 'rgba(200, 255, 255, 0.15)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad; ctx.fill();
+
+    // 实体 (墙壁, 敌人, 物品)
+    state.entities.walls.forEach(w => { 
+        ctx.fillStyle = w.color || '#222'; 
+        ctx.strokeStyle = w.color || '#555';
+        ctx.fillRect(w.x, w.y, w.w, w.h); 
+        ctx.strokeRect(w.x, w.y, w.w, w.h); 
+    });
+
+    state.entities.items.forEach(i => {
+        if(i.visibleTimer > 0) {
+            ctx.fillStyle = '#00ff00'; ctx.shadowBlur = 10; ctx.shadowColor = '#00ff00';
+            ctx.beginPath(); 
+            // 简单的瓶子形状
+            ctx.rect(i.x-3, i.y-6, 6, 12);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    });
+
+    state.entities.enemies.forEach(e => {
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI*2);
+        if(e.state === 'stunned') {
+            ctx.fillStyle = '#333'; ctx.strokeStyle = '#555'; ctx.lineWidth = 1; ctx.stroke();
+        } else {
+            ctx.fillStyle = '#111'; ctx.strokeStyle = '#333'; ctx.stroke();
+        }
+        ctx.fill();
+    });
+    ctx.restore();
+
+    // 玩家
+    ctx.save();
+    ctx.translate(state.p.x, state.p.y); ctx.rotate(state.p.a);
+    ctx.fillStyle = state.p.invuln > 0 ? '#fff' : '#00ffff';
+    ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-8, 6); ctx.lineTo(-8, -6); ctx.fill();
+    
+    if(state.isCharging) {
+        const spread = lerp(CFG.maxSpread, CFG.minSpread, state.focusLevel);
+        ctx.fillStyle = `rgba(0, 255, 255, ${0.1 + state.focusLevel*0.2})`;
+        ctx.beginPath(); ctx.moveTo(0,0);
+        ctx.arc(0,0, 100 + state.focusLevel*200, -spread/2, spread/2);
+        ctx.fill();
+    }
+    ctx.restore();
+
+    state.entities.particles.forEach(p => {
+        ctx.globalAlpha = p.life; ctx.fillStyle = p.c;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    
+    // 恢复相机变换
+    ctx.restore();
+}
+
+function rayRectIntersect(rx, ry, rdx, rdy, wx, wy, ww, wh) {
+    let tMin=0, tMax=Infinity;
+    if(Math.abs(rdx)<1e-5){ if(rx<wx||rx>wx+ww)return null; } else {
+        let t1=(wx-rx)/rdx, t2=(wx+ww-rx)/rdx;
+        tMin=Math.max(tMin, Math.min(t1,t2)); tMax=Math.min(tMax, Math.max(t1,t2));
+    }
+    if(Math.abs(rdy)<1e-5){ if(ry<wy||ry>wy+wh)return null; } else {
+        let t1=(wy-ry)/rdy, t2=(wy+wh-ry)/rdy;
+        tMin=Math.max(tMin, Math.min(t1,t2)); tMax=Math.min(tMax, Math.max(t1,t2));
+    }
+    if(tMin>tMax || tMax<0) return null;
+    return tMin>0 ? tMin : tMax>0?tMax:null;
+}
+
+// 检测波纹与墙壁的碰撞
+function checkWaveWallCollision(wave, wall) {
+    // 检查波纹是否与墙壁相交
+    // 对于扇形波纹，我们需要检查多个方向
+    const numRays = Math.max(8, Math.ceil(wave.spread * 8 / Math.PI));
+    const startAngle = wave.angle - wave.spread / 2;
+    const angleStep = wave.spread / numRays;
+    
+    let closestHit = null;
+    let closestDist = Infinity;
+    let hitNormal = null;
+    
+    for (let i = 0; i <= numRays; i++) {
+        const rayAngle = startAngle + angleStep * i;
+        const dx = Math.cos(rayAngle);
+        const dy = Math.sin(rayAngle);
+        
+        const hit = rayRectIntersect(wave.x, wave.y, dx, dy, wall.x, wall.y, wall.w, wall.h);
+        // 检查碰撞点是否在波纹圆周附近（允许一定误差）
+        if (hit !== null && hit > 0 && Math.abs(hit - wave.r) < CFG.waveSpeed * 2 && hit < closestDist) {
+            closestDist = hit;
+            const hitX = wave.x + dx * hit;
+            const hitY = wave.y + dy * hit;
+            
+            // 计算法线方向（从墙壁中心指向碰撞点）
+            const wallCenterX = wall.x + wall.w / 2;
+            const wallCenterY = wall.y + wall.h / 2;
+            const nx = hitX - wallCenterX;
+            const ny = hitY - wallCenterY;
+            const nLen = Math.hypot(nx, ny);
+            
+            // 确定是哪个面被击中
+            const distToLeft = Math.abs(hitX - wall.x);
+            const distToRight = Math.abs(hitX - (wall.x + wall.w));
+            const distToTop = Math.abs(hitY - wall.y);
+            const distToBottom = Math.abs(hitY - (wall.y + wall.h));
+            
+            const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+            
+            if (minDist === distToLeft) hitNormal = { x: -1, y: 0 };
+            else if (minDist === distToRight) hitNormal = { x: 1, y: 0 };
+            else if (minDist === distToTop) hitNormal = { x: 0, y: -1 };
+            else hitNormal = { x: 0, y: 1 };
+            
+            closestHit = { x: hitX, y: hitY, dist: hit };
+        }
+    }
+    
+    if (closestHit) {
+        return {
+            hit: true,
+            point: { x: closestHit.x, y: closestHit.y },
+            dist: closestHit.dist,
+            normal: hitNormal
+        };
+    }
+    return { hit: false };
+}
+function getVisibiltyPolygon(px, py, angle) {
+    const points=[{x:px,y:py}]; const num=120; const fov=CFG.pViewAngle; const start=angle-fov/2; const step=fov/num;
+    for(let i=0;i<=num;i++){
+        const th=start+step*i; const dx=Math.cos(th); const dy=Math.sin(th);
+        let cDist=CFG.pViewDist;
+        for(let w of state.entities.walls){
+            const d=rayRectIntersect(px,py,dx,dy,w.x,w.y,w.w,w.h);
+            if(d!==null && d<cDist) cDist=d;
+        }
+        points.push({x:px+dx*cDist, y:py+dy*cDist});
+    }
+    return points;
+}
+
+function rand(min,max){return Math.random()*(max-min)+min;}
+function dist(x1,y1,x2,y2){return Math.hypot(x1-x2, y1-y2);}
+function clamp(v,min,max){return Math.max(min, Math.min(max, v));}
+function lerp(a,b,t){return a + (b-a)*t;}
+function checkWall(x, y) {
+    if(x<0||x>canvas.width||y<0||y>canvas.height) return true;
+    for(let w of state.entities.walls) if(x>w.x && x<w.x+w.w && y>w.y && y<w.y+w.h) return true;
+    return false;
+}
+function checkLineOfSight(x1, y1, x2, y2) {
+    const steps = Math.ceil(dist(x1,y1,x2,y2)/10); const dx=(x2-x1)/steps; const dy=(y2-y1)/steps;
+    for(let i=1;i<steps;i++){
+        const cx=x1+dx*i; const cy=y1+dy*i;
+        for(let w of state.entities.walls) if(cx>w.x&&cx<w.x+w.w&&cy>w.y&&cy<w.y+w.h) return false;
+    }
+    return true;
+}
+function isInCone(tx, ty) {
+    const d = dist(tx,ty,state.p.x,state.p.y);
+    if(d > CFG.pViewDist) return false;
+    const angle = Math.atan2(ty-state.p.y, tx-state.p.x);
+    let diff = angle - state.p.a;
+    while(diff > Math.PI) diff-=Math.PI*2;
+    while(diff < -Math.PI) diff+=Math.PI*2;
+    return Math.abs(diff) < CFG.pViewAngle/2;
+}
+function takeDamage(val) {
+    if(state.p.invuln>0) return;
+    state.p.hp -= val; state.p.invuln = CFG.dmgCD;
+    flashScreen('red', 100);
+    logMsg("WARNING: HULL DAMAGE");
+    spawnParticles(state.p.x, state.p.y, '#ff0000', 10);
+    if(state.p.hp<=0) { alert("SIGNAL LOST. REBOOTING..."); location.reload(); }
+}
+function flashScreen(color, duration) {
+    screenFlash.style.backgroundColor = color; screenFlash.style.opacity = 0.6;
+    setTimeout(() => screenFlash.style.opacity = 0, duration);
+}
+function spawnParticles(x,y,c,n) {
+    for(let i=0;i<n;i++) state.entities.particles.push({x:x,y:y,vx:(Math.random()-0.5)*5,vy:(Math.random()-0.5)*5,life:1,c:c,s:Math.random()*3});
+}
+function logMsg(t) { document.getElementById('msg-log').innerText=t; }
+function updateUI() {
+    document.getElementById('hp-val').innerText = Math.floor(state.p.hp);
+    document.getElementById('hp-row').style.color = state.p.hp < 30 ? 'red' : '#33ccff';
+    document.getElementById('energy-val').innerText = Math.floor(state.p.en);
+    document.getElementById('freq-box').innerText = Math.floor(state.freq) + " Hz";
+}
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+init();
+
+</script>
+</body>
+</html>
