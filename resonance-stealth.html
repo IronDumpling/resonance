@@ -446,12 +446,6 @@ function screenToWorld(sx, sy) {
     return { x: worldX, y: worldY };
 }
 
-function flashScreen(color, duration) {
-    screenFlash.style.backgroundColor = color;
-    screenFlash.style.opacity = 0.6;
-    setTimeout(() => screenFlash.style.opacity = 0, duration);
-}
-
 // ========== 更新函数拆分 ==========
 
 // 更新玩家状态
@@ -936,13 +930,6 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
                     // 共振反应：被击中的敌人发射环形波纹
                     emitWave(enemy.x, enemy.y, 0, Math.PI*2, enemy.freq, 'enemy', enemy.id);
                     enemy.resCool = CFG.resCooldown;
-                    
-                    // 粒子效果
-                    if (isPerfectResonance) {
-                        spawnParticles(enemy.x, enemy.y, '#00ff00', 30);
-                    } else {
-                        spawnParticles(enemy.x, enemy.y, '#ffffff', 20);
-                    }
                     
                     // 敌人会警觉并追踪波纹来源位置
                     if (enemy.state === 'idle' || enemy.state === 'alert') {
