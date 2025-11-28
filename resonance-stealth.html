@@ -113,7 +113,7 @@
 <!-- 优化后的操作指南 -->
 <div class="controls">
     <div><span class="highlight">基础行动:</span> <span class="key-btn">WASD</span> 移动 &nbsp; <span class="key-btn">鼠标</span> 瞄准方向</div>
-    <div><span class="highlight">波纹系统:</span> <span class="key-btn">滚轮</span> 调节频率 &nbsp; <span class="key-btn">按住空格</span> 聚焦 &rarr; <span class="key-btn">松开</span> 发射 (耗能10)</div>
+    <div><span class="highlight">波纹系统:</span> <span class="key-btn">滚轮</span> 调节频率 &nbsp; <span class="key-btn">按住空格</span> 聚焦 &rarr; <span class="key-btn">松开</span> 发射 (短按5/长按10)</div>
     <div><span class="highlight">生存互动:</span> <span class="key-btn">E</span> 拾取物品 / 处决瘫痪敌人 &nbsp; <span class="key-btn">F</span> 治疗 (耗能30)</div>
 </div>
 
@@ -143,7 +143,8 @@ const CFG = {
     energyFlaskVal: 50, // 能量瓶恢复量
     
     // 扫描与波
-    scanCost: 10,
+    shortScanCost: 5,
+    longScanCost: 10,
     forcedWaveCost: 15,
     overloadDmgRatio: 2.0,
     waveSpeed: 5,
@@ -169,9 +170,9 @@ const CFG = {
     resCooldown: 120,
     
     // 波纹能量
-    energyCoeff: 0.1,        // 能量系数 k
+    baseWaveEnergy: 10000,   // 波纹固定基础能量N
     energyThreshold: 0.1,    // 过载能量阈值比例
-    initialRadius: 5,         // 初始半径（用于能量衰减计算）
+    initialRadius: 5,         // 初始半径
     
     // 阻挡物
     wallFreqs: [150, 200, 250],  // 墙壁频率选项
@@ -333,16 +334,24 @@ function updateFocus() {
 function releaseScan() {
     if(!state.isCharging) return;
     
-    if(state.p.en < CFG.scanCost) {
+    // 计算当前角度（弧度）
+    const currentSpread = lerp(CFG.maxSpread, CFG.minSpread, state.focusLevel);
+    // 240度 = 240 * Math.PI / 180 ≈ 4.18879 弧度
+    const spread240Deg = 240 * Math.PI / 180;
+    
+    // 根据角度计算能量消耗：大于240度（短按）消耗短按能量，小于等于240度（长按）消耗长按能量
+    const energyCost = currentSpread > spread240Deg ? CFG.shortScanCost : CFG.longScanCost;
+    
+    // 检查能量是否足够（检查最大消耗长按能量）
+    if(state.p.en < energyCost) {
         logMsg("LOW ENERGY - CANNOT EMIT");
         state.isCharging = false;
         state.focusLevel = 0;
         return;
     }
 
-    state.p.en -= CFG.scanCost;
+    state.p.en -= energyCost;
     
-    const currentSpread = lerp(CFG.maxSpread, CFG.minSpread, state.focusLevel);
     emitWave(state.p.x, state.p.y, state.p.a, currentSpread, state.freq, 'player');
     
     state.isCharging = false; 
@@ -351,17 +360,13 @@ function releaseScan() {
 }
 
 function emitWave(x, y, angle, spread, freq, source, ownerId) {
-    // 计算初始能量：基于频率的平方关系
-    const baseEnergy = CFG.energyCoeff * freq * freq;
-    // 总能量固定，能量密度 = 总能量 / 角度
-    const energyDensity = baseEnergy / (spread > 0.01 ? spread : 0.01);
+    // 使用固定的基础能量N
+    const baseEnergy = CFG.baseWaveEnergy;
     
     state.entities.waves.push({
         x: x, y: y, r: CFG.initialRadius, maxR: CFG.waveMaxDist,
         angle: angle, spread: spread, freq: freq, 
-        baseEnergy: baseEnergy,      // 初始总能量
-        energyDensity: energyDensity, // 能量密度
-        power: 1.0,                  // 归一化的能量（用于渲染）
+        baseEnergy: baseEnergy,      // 固定基础能量N
         source: source, ownerId: ownerId
     });
 }
@@ -486,16 +491,16 @@ function update() {
         const oldR = w.r;
         w.r += CFG.waveSpeed;
         
-        // 能量衰减：基于周长，E = E0 * (r0 / r)
-        // 使用更温和的衰减曲线，确保能到达更远距离
-        if (w.r > CFG.initialRadius) {
-            // 使用平方根衰减，比线性衰减更温和
-            const decayFactor = Math.sqrt(CFG.initialRadius / w.r);
-            w.power = decayFactor;
-        }
+        // 能量稀释：基于周长计算每个点的能量
+        // 如果spread接近2π（全圆），周长为2πR；否则为扇形周长 R * spread
+        const isFullCircle = w.spread > Math.PI * 1.9;
+        const circumference = isFullCircle ? (2 * Math.PI * w.r) : (w.r * w.spread);
         
-        // 降低最小power阈值，让波纹能传播更远
-        if(w.r > w.maxR || w.power <= 0.005) { state.entities.waves.splice(i,1); continue; }
+        // 每个点的能量 = 基础能量 / 周长
+        w.energyPerPoint = w.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+        
+        // 当能量为0或接近0时，停止传播
+        if(w.r > w.maxR || w.energyPerPoint <= 0) { state.entities.waves.splice(i,1); continue; }
         
         // 检测与墙壁的碰撞
         let wallCollided = false;
@@ -509,20 +514,28 @@ function update() {
                     wallCollided = true;
                     // 判断穿透或反弹
                     if (w.freq > wall.blockFreq) {
-                        // 穿透：能量衰减，继续传播
+                        // 记录穿透前的能量（用于墙壁回声）
+                        const energyBeforePenetration = w.energyPerPoint;
+                        
+                        // 穿透：能量损失，继续传播
                         const penetrationLoss = 0.3; // 穿透损失30%能量
-                        w.power *= (1 - penetrationLoss);
+                        w.baseEnergy *= (1 - penetrationLoss);
+                        
+                        // 重新计算能量（因为baseEnergy改变了）
+                        const isFullCircle = w.spread > Math.PI * 1.9;
+                        const circumference = isFullCircle ? (2 * Math.PI * w.r) : (w.r * w.spread);
+                        w.energyPerPoint = w.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
                         
                         // 记录墙壁轮廓（仅玩家波纹，避免重复添加）
                         if (w.source === 'player') {
                             // 检查是否已经存在该墙壁的回声
                             const existingEcho = state.entities.wallEchoes.find(we => we.wall === wall);
                             if (!existingEcho) {
-                                const energyAtHit = w.baseEnergy * w.power;
+                                // 使用穿透前的能量作为击中时的能量
                                 state.entities.wallEchoes.push({
                                     wall: wall,
                                     life: 1.0,
-                                    energy: energyAtHit
+                                    energy: energyBeforePenetration
                                 });
                             } else {
                                 // 更新现有回声的生命值
@@ -580,14 +593,29 @@ function update() {
 
                     const freqDelta = Math.abs(w.freq - e.freq);
                     const isFocused = w.spread < CFG.analyzeThreshold;
-                    // 计算当前能量密度（考虑衰减）- 使用能量密度更合理
-                    const currentEnergyDensity = w.energyDensity * w.power;
-                    // 阈值基于最小角度（最聚焦）时的能量密度
-                    // 确保100Hz最小角度时能过载：100Hz最小角度能量密度 = 0.1*100²/0.08 = 12500
-                    // 阈值设为最小能量密度的5%，即 12500 * 0.05 = 625
-                    // 这样即使在能量衰减到5%时（较远距离），仍能触发过载
-                    const minEnergyDensity = CFG.energyCoeff * CFG.freqMin * CFG.freqMin / CFG.minSpread;
-                    const energyThreshold = minEnergyDensity * 0.05;  // 固定5%阈值，确保100Hz最小角度能过载
+                    
+                    // 计算敌人被波纹覆盖的弧长（所有碰撞点的总能量）
+                    // 敌人中心到波纹中心的距离约等于 w.r（因为检测条件是 Math.abs(d - w.r) < CFG.waveSpeed）
+                    // 敌人覆盖波纹圆周的弧长：当波纹半径远大于敌人半径时，约等于 2*e.r
+                    // 更精确的计算：考虑敌人圆形与波纹圆周的交集
+                    // 简化计算：使用敌人直径作为覆盖弧长的近似值，但限制在波纹spread范围内
+                    const enemyDiameter = 2 * e.r;
+                    const maxArcLength = w.r * w.spread; // 波纹的最大弧长
+                    const coveredArcLength = Math.min(enemyDiameter, maxArcLength);
+                    // 总能量 = 每个点的能量 × 覆盖的弧长
+                    const totalEnergy = w.energyPerPoint * coveredArcLength;
+                    
+                    // 阈值：基于最小角度（最聚焦）时，敌人被完全覆盖的总能量
+                    // 最小角度时，敌人被覆盖的弧长 = w.r * minSpread（如果敌人足够大）
+                    // 但更合理的阈值是：最小角度时，覆盖一个标准敌人（半径e.r）的总能量
+                    const minCircumference = CFG.initialRadius * CFG.minSpread;
+                    const minEnergyPerPoint = CFG.baseWaveEnergy / minCircumference;
+                    // 假设标准敌人半径为16，计算最小角度时覆盖的总能量
+                    const standardEnemyR = 16;
+                    const standardEnemyAngleSpan = 2 * Math.asin(Math.min(1.0, standardEnemyR / CFG.initialRadius));
+                    const standardCoveredArcLength = CFG.initialRadius * Math.min(standardEnemyAngleSpan, CFG.minSpread);
+                    const minTotalEnergy = minEnergyPerPoint * standardCoveredArcLength;
+                    const energyThreshold = minTotalEnergy * 0.1;  // 固定10%阈值
 
                     if (w.source === 'player' && isFocused && freqDelta > CFG.resTol) {
                         if (e.state !== 'stunned') {
@@ -607,8 +635,8 @@ function update() {
                             e.targetX = w.x; e.targetY = w.y;
                         }
                         
-                        // 过载触发：频率匹配 + 聚焦 + 能量密度高于阈值
-                        if (w.source === 'player' && isFocused && currentEnergyDensity >= energyThreshold) {
+                        // 过载触发：频率匹配 + 聚焦 + 所有碰撞点的总能量高于阈值
+                        if (w.source === 'player' && isFocused && totalEnergy >= energyThreshold) {
                             e.state = 'stunned';
                             e.timer = CFG.stunTime;
                             logMsg("TARGET STABILIZED");
@@ -818,11 +846,22 @@ function draw() {
         const startA = w.angle - w.spread/2; const endA = w.angle + w.spread/2;
         ctx.arc(w.x, w.y, w.r, w.spread > Math.PI*1.9 ? 0 : startA, w.spread > Math.PI*1.9 ? Math.PI*2 : endA);
         
-        let color = `rgba(0, 200, 255, ${w.power * 0.8})`;
-        if(w.source === 'enemy') color = `rgba(255, 50, 50, ${w.power * 0.8})`; 
+        // 归一化能量用于渲染：使用初始最小角度时的能量作为参考
+        const minCircumference = CFG.initialRadius * CFG.minSpread;
+        const maxEnergyPerPoint = CFG.baseWaveEnergy / minCircumference;
+        const normalizedPower = Math.min(1.0, w.energyPerPoint / maxEnergyPerPoint);
+        
+        // 使用浅色以便在深色背景上可见，确保最小透明度足够高
+        const minAlpha = 0.3; // 最小透明度30%
+        const alpha = Math.max(minAlpha, normalizedPower * 0.9); // 最大透明度90%
+        
+        // 玩家波纹：浅青色/白色
+        let color = `rgba(200, 255, 255, ${alpha})`;
+        // 敌人波纹：浅红色/粉红色
+        if(w.source === 'enemy') color = `rgba(255, 180, 180, ${alpha})`;
         
         ctx.strokeStyle = color;
-        ctx.lineWidth = w.spread < 1 ? 4 : 2;
+        ctx.lineWidth = w.spread < 1 ? 5 : 3; // 增加线宽使其更明显
         ctx.stroke();
     });
 
