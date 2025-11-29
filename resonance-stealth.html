@@ -110,13 +110,6 @@
 <div id="execute-hint" class="interact-hint">[E] SIPHON CORE</div>
 <div id="pickup-hint" class="interact-hint">[E] PICKUP ENERGY</div>
 
-<!-- 优化后的操作指南 -->
-<div class="controls">
-    <div><span class="highlight">基础行动:</span> <span class="key-btn">WASD</span> 移动 &nbsp; <span class="key-btn">鼠标</span> 瞄准方向</div>
-    <div><span class="highlight">波纹系统:</span> <span class="key-btn">滚轮</span> 调节频率 &nbsp; <span class="key-btn">按住空格</span> 聚焦 &rarr; <span class="key-btn">松开</span> 发射 (短按5/长按10)</div>
-    <div><span class="highlight">生存互动:</span> <span class="key-btn">E</span> 拾取物品 / 处决瘫痪敌人 &nbsp; <span class="key-btn">F</span> 治疗 (耗能30)</div>
-</div>
-
 <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -189,6 +182,16 @@ const CFG = {
     cameraSmoothing: true      // 是否启用平滑跟随
 };
 
+// --- Instruction 定义 ---
+const INSTRUCTIONS = [
+    { id: 0, text: "WASD移动\n鼠标移动转向", distance: 0 },
+    { id: 1, text: "按空格释放波\n转动鼠标滚轮调整频率\n波会消耗能量", distance: 200 },
+    { id: 2, text: "万物皆有自己的频率", distance: 350 },
+    { id: 3, text: "低频会穿过\n高频会阻挡\n同频会共振", distance: 500 },
+    { id: 4, text: "按F消耗能量，恢复生命", distance: 650 },
+    { id: 5, text: "共振会受迫发出波\n先消耗能量，然后是生命", distance: 800 }
+];
+
 // --- 游戏状态 ---
 const state = {
     p: { x: canvas.width/2, y: canvas.height/2, a: 0, hp: 100, en: 100, invuln: 0, resCool: 0 },
@@ -199,17 +202,74 @@ const state = {
     isCharging: false,
     camera: { x: canvas.width/2, y: canvas.height/2 }, // 相机位置
     entities: {
-        walls: [], enemies: [], waves: [], echoes: [], particles: [], items: [], wallEchoes: [] // 新增物品列表和墙壁回声
+        walls: [], enemies: [], waves: [], echoes: [], particles: [], items: [], wallEchoes: [], instructions: [] // 新增物品列表、墙壁回声和教学文本
     }
 };
 
 // --- 初始化 ---
+function generateInstructions() {
+    const spawnX = canvas.width / 2;
+    const spawnY = canvas.height / 2;
+    const instructions = [];
+    
+    for (let i = 0; i < INSTRUCTIONS.length; i++) {
+        const inst = INSTRUCTIONS[i];
+        let x, y, attempts = 0;
+        let valid = false;
+        
+        // 尝试找到不重叠的位置
+        while (!valid && attempts < 100) {
+            attempts++;
+            // 从出生点向外辐射生成（使用固定角度分布）
+            const angle = (i * Math.PI * 2 / INSTRUCTIONS.length) + (Math.random() - 0.5) * 0.8;
+            x = spawnX + Math.cos(angle) * inst.distance;
+            y = spawnY + Math.sin(angle) * inst.distance;
+            
+            // 确保在画布内
+            if (x < 100 || x > canvas.width - 100 || 
+                y < 100 || y > canvas.height - 100) {
+                continue;
+            }
+            
+            // 检查是否与其他instruction重叠
+            let overlapsInst = false;
+            for (const other of instructions) {
+                if (dist(x, y, other.x, other.y) < 150) {
+                    overlapsInst = true;
+                    break;
+                }
+            }
+            
+            if (!overlapsInst) {
+                valid = true;
+            }
+        }
+        
+        if (valid) {
+            instructions.push({
+                id: inst.id,
+                x: x,
+                y: y,
+                text: inst.text,
+                distance: inst.distance
+            });
+        }
+    }
+    
+    return instructions;
+}
+
 function init() {
     state.entities.walls = [];
     state.entities.items = []; // Reset items
+    state.entities.instructions = []; // Reset instructions
     
+    // 先生成 instructions
+    state.entities.instructions = generateInstructions();
+    
+    // 生成墙壁（增加数量到12个，并避免与instructions重叠）
     let attempts = 0;
-    while(state.entities.walls.length < 6 && attempts < 200) {
+    while(state.entities.walls.length < 12 && attempts < 300) {
         attempts++;
         const w = rand(80, 200);
         const h = rand(80, 200);
@@ -217,16 +277,32 @@ function init() {
         const y = rand(100, canvas.height-200);
         
         let overlap = false;
+        
+        // 检查与其他墙壁重叠
         for (const other of state.entities.walls) {
             if (x < other.x + other.w + 20 && x + w + 20 > other.x && 
                 y < other.y + other.h + 20 && y + h + 20 > other.y) {
                 overlap = true; break;
             }
         }
+        
+        // 检查与出生点重叠
         if (!overlap) {
             const px = canvas.width/2; const py = canvas.height/2;
             if (x < px + 150 && x + w > px - 150 && y < py + 150 && y + h > py - 150) overlap = true;
         }
+        
+        // 检查与instructions重叠
+        if (!overlap) {
+            for (const inst of state.entities.instructions) {
+                if (x < inst.x + 100 && x + w > inst.x - 100 &&
+                    y < inst.y + 50 && y + h > inst.y - 50) {
+                    overlap = true;
+                    break;
+                }
+            }
+        }
+        
         if (!overlap) {
             const blockFreq = CFG.wallFreqs[Math.floor(Math.random() * CFG.wallFreqs.length)];
             state.entities.walls.push({
@@ -273,7 +349,20 @@ function spawnItem(type) {
     while(!ok && safeLoop < 100) {
         safeLoop++;
         ix = rand(50, canvas.width-50); iy = rand(50, canvas.height-50);
-        if(!checkWall(ix, iy)) ok=true; // 只要不在墙里就行
+        
+        // 检查是否在墙里
+        if(checkWall(ix, iy)) continue;
+        
+        // 检查是否与instructions重叠（保持60像素距离）
+        let overlapsInst = false;
+        for (const inst of state.entities.instructions) {
+            if (dist(ix, iy, inst.x, inst.y) < 60) {
+                overlapsInst = true;
+                break;
+            }
+        }
+        
+        if (!overlapsInst) ok = true;
     }
     if(ok) {
         state.entities.items.push({
@@ -1410,6 +1499,43 @@ function draw() {
         }
         ctx.fill();
     });
+    
+    // 绘制 instructions（像贴在地板上一样，遵守视野裁剪）
+    state.entities.instructions.forEach(inst => {
+        // 1. 检查距离（快速过滤）
+        const d = dist(inst.x, inst.y, state.p.x, state.p.y);
+        if (d > CFG.pViewDist) return;
+        
+        // 2. 检查是否被墙壁遮挡
+        if (!checkLineOfSight(state.p.x, state.p.y, inst.x, inst.y)) return;
+        
+        // 3. 绘制instruction
+        const lines = inst.text.split('\n');
+        const lineHeight = 36;
+        const fontSize = 28;
+        
+        // 计算文本尺寸
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const textHeight = lines.length * lineHeight;
+        
+        // 绘制文本（白色，带黑色阴影增强可读性）
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 6;
+        lines.forEach((line, i) => {
+            ctx.fillText(
+                line,
+                inst.x,
+                inst.y - textHeight/2 + (i + 0.5) * lineHeight
+            );
+        });
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    });
+    
     ctx.restore();
 
     // 玩家
