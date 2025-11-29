@@ -130,13 +130,13 @@ const CFG = {
     pViewDist: 280,
     pViewAngle: Math.PI / 2.5,
     maxHp: 100,
-    maxEnergy: 100,
+    maxEnergy: 100,         // 主能量上限
     healCost: 30,
     healVal: 40,
     energyFlaskVal: 50, // 能量瓶恢复量
     
     // 扫描与波
-    shortScanCost: 5,
+    shortScanCost: 5,       // 旧参数（不再直接使用，保留以便以后调试）
     longScanCost: 10,
     forcedWaveCost: 15,
     overloadDmgRatio: 2.0,
@@ -190,17 +190,20 @@ const CFG = {
 // --- Instruction 定义 ---
 const INSTRUCTIONS = [
     { id: 0, text: "WASD移动\n鼠标移动转向", distance: 0 },
-    { id: 1, text: "按空格释放波\n转动鼠标滚轮调整频率\n波会消耗能量", distance: 200 },
-    { id: 2, text: "万物皆有自己的频率", distance: 350 },
-    { id: 3, text: "低频会穿过\n高频会阻挡\n同频会共振", distance: 500 },
-    { id: 4, text: "按F消耗能量，恢复生命", distance: 650 },
-    { id: 5, text: "共振会受迫发出波\n先消耗能量，然后是生命", distance: 800 }
+    { id: 1, text: "波纹生物都有自己的频率\n它们会被同频的波纹吸引", distance: 50 },
+    { id: 2, text: "短按空格释放波\n长按空格聚焦波\n波会消耗能量", distance: 200 },
+    { id: 3, text: "转动鼠标滚轮调整频率\n频率越高、角度越聚焦\n消耗能量越大", distance: 350 },
+    { id: 4, text: "低频会穿过\n高频会阻挡\n同频会共振", distance: 400 },
+    { id: 5, text: "聚焦共振波能够使波纹生物过载\n利用这个机会解决它们", distance: 500 },
+    { id: 6, text: "共振会受迫发出波\n先消耗能量，然后是生命", distance: 600 },
+    { id: 7, text: "随时捡起能量瓶\n按R使用备用能量", distance: 650 },
+    { id: 8, text: "在危急时刻\n按F消耗能量，恢复生命", distance: 750 },
 ];
 
 // --- 游戏状态 ---
 const state = {
-    p: { x: canvas.width/2, y: canvas.height/2, a: 0, hp: 100, en: 100, invuln: 0, resCool: 0 },
-    keys: { w:0, a:0, s:0, d:0, space:0, f:0 },
+    p: { x: canvas.width/2, y: canvas.height/2, a: 0, hp: 100, en: 100, reserveEn: 0, invuln: 0, resCool: 0 },
+    keys: { w:0, a:0, s:0, d:0, space:0, f:0, r:0 },
     mouse: { x:0, y:0 },
     freq: 150,
     focusLevel: 0,
@@ -431,11 +434,12 @@ function releaseScan() {
     
     // 计算当前角度（弧度）
     const currentSpread = lerp(CFG.maxSpread, CFG.minSpread, state.focusLevel);
-    // 240度 = 240 * Math.PI / 180 ≈ 4.18879 弧度
-    const spread240Deg = 240 * Math.PI / 180;
     
-    // 根据角度计算能量消耗：大于240度（短按）消耗短按能量，小于等于240度（长按）消耗长按能量
-    const energyCost = currentSpread > spread240Deg ? CFG.shortScanCost : CFG.longScanCost;
+    // 能量消耗公式（1~10）：频率越高、角度越聚焦，消耗越大
+    const freqNorm = (state.freq - CFG.freqMin) / (CFG.freqMax - CFG.freqMin); // 0~1
+    const focusNorm = clamp(1 - currentSpread / CFG.maxSpread, 0, 1);           // 0~1（360°=0，极窄≈1）
+    const rawCost = 1 + 4 * freqNorm + 5 * focusNorm;                           // 理论范围约1~10
+    const energyCost = clamp(Math.round(rawCost), 1, 10);
     
     // 检查能量是否足够（检查最大消耗长按能量）
     if(state.p.en < energyCost) {
@@ -480,13 +484,23 @@ function tryInteract() {
         // 根据共振类型给予不同奖励
         if (e.isPerfectStun) {
             // 完美共振：能量回满
-            state.p.en = CFG.maxEnergy;
+            const totalBefore = state.p.en + state.p.reserveEn;
+            const toMain = Math.min(CFG.maxEnergy, totalBefore);
+            state.p.en = toMain;
+            state.p.reserveEn = Math.max(0, totalBefore - toMain);
             logMsg("PERFECT SIPHON - FULL ENERGY RESTORED");
             spawnParticles(e.x, e.y, '#00ff00', 50); // 绿色粒子
         } else {
             // 普通共振：能量+50%
             const energyGain = CFG.maxEnergy * 0.5;
-            state.p.en = Math.min(CFG.maxEnergy, state.p.en + energyGain);
+            let remainingGain = energyGain;
+            const canFillMain = CFG.maxEnergy - state.p.en;
+            const toMain = Math.min(canFillMain, remainingGain);
+            state.p.en += toMain;
+            remainingGain -= toMain;
+            if (remainingGain > 0) {
+                state.p.reserveEn += remainingGain;
+            }
             logMsg(`CORE SIPHONED (+${Math.floor(energyGain)} ENERGY)`);
             spawnParticles(e.x, e.y, '#00ffff', 40); // 青色粒子
         }
@@ -501,7 +515,14 @@ function tryInteract() {
     if(items.length > 0) {
         const item = items[0];
         if(item.type === 'energy') {
-            state.p.en = Math.min(CFG.maxEnergy, state.p.en + CFG.energyFlaskVal);
+            let remainingGain = CFG.energyFlaskVal;
+            const canFillMain = CFG.maxEnergy - state.p.en;
+            const toMain = Math.min(canFillMain, remainingGain);
+            state.p.en += toMain;
+            remainingGain -= toMain;
+            if (remainingGain > 0) {
+                state.p.reserveEn += remainingGain;
+            }
             logMsg(`ENERGY RESTORED (+${CFG.energyFlaskVal})`);
             spawnParticles(item.x, item.y, '#00ff00', 20);
             // 移除物品
@@ -517,6 +538,20 @@ function updateHeal() {
         state.p.en -= CFG.healCost; state.p.hp = Math.min(CFG.maxHp, state.p.hp + CFG.healVal);
         state.keys.f = false; spawnParticles(state.p.x, state.p.y, '#00ff00', 15);
         logMsg("SYSTEM REPAIRED"); updateUI();
+    }
+}
+
+// 使用备用能量补充主能量（R键）
+function updateReserveEnergy() {
+    if (state.keys.r && state.p.reserveEn > 0 && state.p.en < CFG.maxEnergy) {
+        const needed = CFG.maxEnergy - state.p.en;
+        const used = Math.min(needed, state.p.reserveEn);
+        state.p.en += used;
+        state.p.reserveEn -= used;
+        state.keys.r = false;
+        logMsg(`RESERVE TRANSFERRED (+${Math.floor(used)} ENERGY)`);
+        spawnParticles(state.p.x, state.p.y, '#33ccff', 15);
+        updateUI();
     }
 }
 
@@ -560,6 +595,7 @@ function screenToWorld(sx, sy) {
 function updatePlayer() {
     updateFocus(); 
     updateHeal();
+    updateReserveEnergy();
     
     // 移动
     let dx=0, dy=0;
@@ -1922,7 +1958,9 @@ function logMsg(t) { document.getElementById('msg-log').innerText=t; }
 function updateUI() {
     document.getElementById('hp-val').innerText = Math.floor(state.p.hp);
     document.getElementById('hp-row').style.color = state.p.hp < 30 ? 'red' : '#33ccff';
-    document.getElementById('energy-val').innerText = Math.floor(state.p.en);
+    const mainEn = Math.floor(state.p.en);
+    const reserveEn = Math.floor(state.p.reserveEn || 0);
+    document.getElementById('energy-val').innerText = reserveEn > 0 ? `${mainEn} (+${reserveEn})` : `${mainEn}`;
     document.getElementById('freq-box').innerText = Math.floor(state.freq) + " Hz";
 }
 function loop() { update(); draw(); requestAnimationFrame(loop); }
