@@ -99,8 +99,8 @@
 <div id="screen-flash"></div>
 
 <div id="ui-layer">
-    <div class="hud-row" id="hp-row">HEALTH: <span id="hp-val">100</span>%</div>
-    <div class="hud-row">ENERGY: <span id="energy-val">100</span>%</div>
+    <div class="hud-row" id="hp-row">HEALTH: <span id="hp-val">60/60</span></div>
+    <div class="hud-row">ENERGY: <span id="energy-val">100/100</span></div>
     <div class="hud-row">TUNER: <span id="freq-box">150 Hz</span></div>
     <div class="hud-row" id="msg-log" style="color:#ffaa00; height:20px; font-size:14px;">System Online.</div>
 </div>
@@ -130,15 +130,15 @@ const CFG = {
     pViewDist: 280,
     pViewAngle: Math.PI / 2.5,
     playerRadius: 14,          // 玩家碰撞半径（用于波纹命中与分割）
-    maxHp: 100,
+    maxHp: 60,
     maxEnergy: 100,         // 主能量上限
     healCost: 30,
-    healVal: 40,
+    healVal: 30,
     energyFlaskVal: 50, // 能量瓶恢复量
     
     // 扫描与波
     forcedWaveCost: 15,
-    overloadDmgRatio: 2.0,
+    overloadDmgRatio: 1.3,
     waveSpeed: 5,
     waveMaxDist: 1500,  // 增大扫描范围
     
@@ -201,7 +201,7 @@ const INSTRUCTIONS = [
 
 // --- 游戏状态 ---
 const state = {
-    p: { x: canvas.width/2, y: canvas.height/2, a: 0, hp: 100, en: 100, reserveEn: 0, invuln: 0, resCool: 0 },
+    p: { x: canvas.width/2, y: canvas.height/2, a: 0, hp: CFG.maxHp, en: CFG.maxEnergy, reserveEn: 0, invuln: 0, resCool: 0 },
     keys: { w:0, a:0, s:0, d:0, space:0, f:0, r:0 },
     mouse: { x:0, y:0 },
     freq: 150,
@@ -349,10 +349,10 @@ function init() {
         }
     }
 
-    for(let i=0; i<4; i++) spawnEnemy();
+    for(let i=0; i<5; i++) spawnEnemy();
     
     // 生成能量瓶
-    for(let i=0; i<5; i++) spawnItem('energy');
+    for(let i=0; i<8; i++) spawnItem('energy');
     
     // 初始化相机位置为玩家位置
     state.camera.x = state.p.x;
@@ -485,11 +485,11 @@ function releaseScan() {
     // 计算当前角度（弧度）
     const currentSpread = lerp(CFG.maxSpread, CFG.minSpread, state.focusLevel);
     
-    // 能量消耗公式（1~10）：频率越高、角度越聚焦，消耗越大
+    // 能量消耗公式（0~10）：频率越高、角度越聚焦，消耗越大
     const freqNorm = (state.freq - CFG.freqMin) / (CFG.freqMax - CFG.freqMin); // 0~1
-    const focusNorm = clamp(1 - currentSpread / CFG.maxSpread, 0, 1);           // 0~1（360°=0，极窄≈1）
-    const rawCost = 1 + 4 * freqNorm + 5 * focusNorm;                           // 理论范围约1~10
-    const energyCost = clamp(Math.round(rawCost), 1, 10);
+    const focusNorm = clamp(1 - currentSpread / CFG.maxSpread, 0, 1);          // 0~1（360°=0，极窄≈1）
+    const rawCost = 5 * freqNorm + 5 * focusNorm;                              // 理论范围约0~10
+    const energyCost = clamp(Math.round(rawCost), 0, 10);
     
     // 检查能量是否足够（检查最大消耗长按能量）
     if(state.p.en < energyCost) {
@@ -1226,13 +1226,13 @@ function handleWavePlayerPenetration(w, waveIndex) {
         }
         
         // 在玩家身上留下穿透回声（轻微）
-        if (w.source !== 'player') {
-            state.entities.echoes.push({
-                x: player.x, y: player.y, r: player.r,
-                type: 'player_resonance',
-                life: 0.6
-            });
-        }
+        // if (w.source !== 'player') {
+        //     state.entities.echoes.push({
+        //         x: player.x, y: player.y, r: player.r,
+        //         type: 'player_resonance',
+        //         life: 0.6
+        //     });
+        // }
         
         return true;
     }
@@ -1282,6 +1282,7 @@ function handleWavePlayerInteraction(w, oldR, waveIndex) {
         let energyCost = CFG.forcedWaveCost;
         let damage = 0;
         
+        // 能量不足时，造成过载伤害
         if (state.p.en < energyCost) {
             damage = (energyCost - state.p.en) * CFG.overloadDmgRatio;
             state.p.en = 0;
@@ -1400,7 +1401,7 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
                             state.entities.echoes.push({
                                 x: enemy.x, y: enemy.y, r: enemy.r, 
                                 type: 'analyze',
-                                life: isLongDuration ? 2.0 : 1.0,
+                                life: isLongDuration ? 5.0 : 2.0,
                                 enemyId: enemy.id,
                                 isResonance: isNormalResonance,
                                 isPerfect: isPerfectResonance
@@ -2339,11 +2340,12 @@ function spawnParticles(x,y,c,n) {
 }
 function logMsg(t) { document.getElementById('msg-log').innerText=t; }
 function updateUI() {
-    document.getElementById('hp-val').innerText = Math.floor(state.p.hp);
+    document.getElementById('hp-val').innerText = `${Math.floor(state.p.hp)}/${CFG.maxHp}`;
     document.getElementById('hp-row').style.color = state.p.hp < 30 ? 'red' : '#33ccff';
     const mainEn = Math.floor(state.p.en);
     const reserveEn = Math.floor(state.p.reserveEn || 0);
-    document.getElementById('energy-val').innerText = reserveEn > 0 ? `${mainEn} (+${reserveEn})` : `${mainEn}`;
+    let enText = `${mainEn}/${CFG.maxEnergy}`;
+    document.getElementById('energy-val').innerText = reserveEn > 0 ? `${enText} (+${reserveEn})` : enText;
     document.getElementById('freq-box').innerText = Math.floor(state.freq) + " Hz";
 }
 function loop() { update(); draw(); requestAnimationFrame(loop); }
