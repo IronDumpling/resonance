@@ -1067,7 +1067,8 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
         if(w.ownerId === enemy.id) continue;
         
         const d = dist(enemy.x, enemy.y, w.x, w.y);
-        if(Math.abs(d - w.r) < CFG.waveSpeed) {
+        // 使用上一帧半径 oldR 和当前半径 w.r，判断扩散环是否“扫过”敌人
+        if(d >= oldR && d <= w.r) {
             const angleToE = Math.atan2(enemy.y - w.y, enemy.x - w.x);
             let angleDiff = Math.abs(angleToE - w.angle);
             while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
@@ -1215,31 +1216,39 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
 }
 
 
-// 检查受迫共振
-function checkForcedResonance(w) {
+// 检查受迫共振（敌人波纹击中玩家）
+function checkForcedResonance(w, oldR) {
     if (w.source !== 'player') {
         const dToP = dist(state.p.x, state.p.y, w.x, w.y);
-        if (Math.abs(dToP - w.r) < CFG.waveSpeed) {
-            const freqDelta = Math.abs(w.freq - state.freq);
-            
-            if (freqDelta <= CFG.normalResTol && state.p.resCool <= 0) {
-                let energyCost = CFG.forcedWaveCost;
-                let damage = 0;
-                
-                if (state.p.en < energyCost) {
-                    damage = (energyCost - state.p.en) * CFG.overloadDmgRatio;
-                    state.p.en = 0;
-                    takeDamage(damage);
-                    logMsg(`CRITICAL OVERLOAD (-${Math.floor(damage)} HP)`);
-                } else {
-                    state.p.en -= energyCost;
-                    logMsg("SYSTEM OVERLOAD: ENERGY DRAIN");
-                }
+        // 使用 oldR/w.r 判断波纹是否真正扫过玩家
+        if (dToP >= oldR && dToP <= w.r) {
+            // 再做角度检查：玩家必须在波纹扇形范围内
+            const angleToP = Math.atan2(state.p.y - w.y, state.p.x - w.x);
+            let angleDiff = Math.abs(angleToP - w.angle);
+            while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
 
-                flashScreen('#00ffff', 100); 
-                emitWave(state.p.x, state.p.y, 0, Math.PI*2, state.freq, 'player');
-                state.p.resCool = CFG.resCooldown;
-                updateUI();
+            if(w.spread > Math.PI || angleDiff < w.spread/2) {
+                const freqDelta = Math.abs(w.freq - state.freq);
+                
+                if (freqDelta <= CFG.normalResTol && state.p.resCool <= 0) {
+                    let energyCost = CFG.forcedWaveCost;
+                    let damage = 0;
+                    
+                    if (state.p.en < energyCost) {
+                        damage = (energyCost - state.p.en) * CFG.overloadDmgRatio;
+                        state.p.en = 0;
+                        takeDamage(damage);
+                        logMsg(`CRITICAL OVERLOAD (-${Math.floor(damage)} HP)`);
+                    } else {
+                        state.p.en -= energyCost;
+                        logMsg("SYSTEM OVERLOAD: ENERGY DRAIN");
+                    }
+
+                    flashScreen('#00ffff', 100); 
+                    emitWave(state.p.x, state.p.y, 0, Math.PI*2, state.freq, 'player');
+                    state.p.resCool = CFG.resCooldown;
+                    updateUI();
+                }
             }
         }
     }
@@ -1278,7 +1287,7 @@ function updateWave(w, i) {
     
     // 检查与物品的交互（不分割波纹）
     checkWaveItemCollisions(w);
-    checkForcedResonance(w);
+    checkForcedResonance(w, oldR);
 }
 
 // 更新敌人UI
