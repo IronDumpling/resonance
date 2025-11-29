@@ -499,6 +499,22 @@ function emitWave(x, y, angle, spread, freq, source, ownerId) {
     });
 }
 
+// 增加能量（拾取或奖励）
+function gainEnergy(amount) {
+    let remaining = amount;
+    
+    // 1. 先填主能量
+    const spaceInMain = CFG.maxEnergy - state.p.en;
+    const toMain = Math.min(spaceInMain, remaining);
+    state.p.en += toMain;
+    remaining -= toMain;
+    
+    // 2. 溢出部分存入备用
+    if (remaining > 0) {
+        state.p.reserveEn += remaining;
+    }
+}
+
 // 统一交互逻辑 (拾取 + 处决)
 function tryInteract() {
     // 1. 优先尝试处决
@@ -511,23 +527,14 @@ function tryInteract() {
         // 根据共振类型给予不同奖励
         if (e.isPerfectStun) {
             // 完美共振：能量回满
-            const totalBefore = state.p.en + state.p.reserveEn;
-            const toMain = Math.min(CFG.maxEnergy, totalBefore);
-            state.p.en = toMain;
-            state.p.reserveEn = Math.max(0, totalBefore - toMain);
+            const energyGain = CFG.maxEnergy;
+            gainEnergy(energyGain);
             logMsg("PERFECT SIPHON - FULL ENERGY RESTORED");
             spawnParticles(e.x, e.y, '#00ff00', 50); // 绿色粒子
         } else {
             // 普通共振：能量+50%
             const energyGain = CFG.maxEnergy * 0.5;
-            let remainingGain = energyGain;
-            const canFillMain = CFG.maxEnergy - state.p.en;
-            const toMain = Math.min(canFillMain, remainingGain);
-            state.p.en += toMain;
-            remainingGain -= toMain;
-            if (remainingGain > 0) {
-                state.p.reserveEn += remainingGain;
-            }
+            gainEnergy(energyGain);
             logMsg(`CORE SIPHONED (+${Math.floor(energyGain)} ENERGY)`);
             spawnParticles(e.x, e.y, '#00ffff', 40); // 青色粒子
         }
@@ -542,14 +549,7 @@ function tryInteract() {
     if(items.length > 0) {
         const item = items[0];
         if(item.type === 'energy') {
-            let remainingGain = CFG.energyFlaskVal;
-            const canFillMain = CFG.maxEnergy - state.p.en;
-            const toMain = Math.min(canFillMain, remainingGain);
-            state.p.en += toMain;
-            remainingGain -= toMain;
-            if (remainingGain > 0) {
-                state.p.reserveEn += remainingGain;
-            }
+            gainEnergy(CFG.energyFlaskVal);
             logMsg(`ENERGY RESTORED (+${CFG.energyFlaskVal})`);
             spawnParticles(item.x, item.y, '#00ff00', 20);
             // 移除物品
