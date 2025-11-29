@@ -368,13 +368,35 @@ function spawnEnemy() {
         ex = rand(50, canvas.width-50); ey = rand(50, canvas.height-50);
         if(dist(ex,ey,state.p.x,state.p.y) > 300) ok=true;
     }
+    
+    // 为敌人生成巡逻路径点（2~3个）——在其周围一定范围内、且不在墙内
+    const waypoints = [];
+    const wpCount = 2 + Math.floor(Math.random() * 2); // 2~3 个
+    let wpAttempts = 0;
+    while (waypoints.length < wpCount && wpAttempts < 40) {
+        wpAttempts++;
+        const ang = rand(0, Math.PI * 2);
+        const distMin = 80, distMax = 200;
+        const d = rand(distMin, distMax);
+        const wx = ex + Math.cos(ang) * d;
+        const wy = ey + Math.sin(ang) * d;
+        // 确保在画布内且不在墙体中
+        if (wx < 40 || wx > canvas.width - 40 || wy < 40 || wy > canvas.height - 40) continue;
+        if (checkWall(wx, wy)) continue;
+        waypoints.push({ x: wx, y: wy });
+    }
+    
     state.entities.enemies.push({
         id: Math.random().toString(36).substr(2,9),
         x: ex, y: ey, r: 16,
         freq: Math.floor(rand(CFG.freqMin, CFG.freqMax)),
-        state: 'idle', timer: 0, angle: rand(0, Math.PI*2),
+        state: 'patrol', timer: 0, angle: rand(0, Math.PI*2),
         resCool: 0,
         lastPingTime: 0, pingType: null,
+        targetX: null, targetY: null,
+        searchTimer: 0,
+        waypoints: waypoints,
+        currentWPIndex: 0,
         uiElement: createAnalyzerUI()
     });
 }
@@ -561,6 +583,7 @@ function tryInteract() {
     }
 }
 
+// 玩家治疗
 function updateHeal() {
     if(state.keys.f && state.p.hp < CFG.maxHp && state.p.en >= CFG.healCost) {
         state.p.en -= CFG.healCost; state.p.hp = Math.min(CFG.maxHp, state.p.hp + CFG.healVal);
@@ -1242,9 +1265,7 @@ function handleWavePlayerInteraction(w, oldR, waveIndex) {
     if ((willBounce || isNormalResonance) && w.ownerId) {
         const enemy = state.entities.enemies.find(e => e.id === w.ownerId);
         if (enemy && enemy.state !== 'stunned') {
-            enemy.state = 'alert';
-            enemy.targetX = state.p.x;
-            enemy.targetY = state.p.y;
+            onEnemySensesPlayer(enemy, state.p.x, state.p.y);
             logMsg("HOSTILE LOCKED ON");
             spawnParticles(state.p.x, state.p.y, '#00ffff', 12);
         }
@@ -1434,10 +1455,8 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
                     enemy.resCool = CFG.resCooldown;
                     
                     // 敌人会警觉并追踪波纹来源位置
-                    if (enemy.state === 'idle' || enemy.state === 'alert') {
-                        enemy.state = 'alert';
-                        enemy.targetX = w.x; 
-                        enemy.targetY = w.y;
+                    if (enemy.state === 'idle' || enemy.state === 'alert' || enemy.state === 'patrol' || enemy.state === 'searching') {
+                        onEnemySensesPlayer(enemy, w.x, w.y);
                     }
                     
                     // 过载效果：基于能量阈值判断
@@ -1466,9 +1485,7 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
                 // 非共振时的警报逻辑（高能量波纹会触发警报）
                 if (!isNormalResonance && w.source === 'player' && showAnalyzeUI) {
                     if (enemy.state !== 'stunned') {
-                        enemy.state = 'alert';
-                        enemy.targetX = state.p.x; 
-                        enemy.targetY = state.p.y;
+                        onEnemySensesPlayer(enemy, state.p.x, state.p.y);
                         logMsg("HOSTILE ALERTED (HIGH ENERGY BEAM)");
                     }
                 }
@@ -1492,6 +1509,14 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
     return 'none';
 }
 
+// 敌人感知到玩家位置（统一触发入口）
+function onEnemySensesPlayer(enemy, playerX, playerY) {
+    if (!enemy || enemy.state === 'stunned') return;
+    enemy.state = 'alert';
+    enemy.targetX = playerX;
+    enemy.targetY = playerY;
+    enemy.searchTimer = 0;
+}
 
 // 更新单个波纹
 function updateWave(w, i) {
@@ -1574,20 +1599,75 @@ function updateEnemyUI(e) {
 
 // 更新敌人移动
 function updateEnemyMovement(e) {
-    let spd = CFG.eSpeedPatrol; 
-    let tx = null, ty = null;
+    // STUNNED 状态在 updateEnemies 中处理，这里直接返回
+    if (e.state === 'stunned') return;
     
-    if(e.state === 'alert') { 
-        spd = CFG.eSpeedChase; 
-        tx = e.targetX || state.p.x; 
-        ty = e.targetY || state.p.y;
-        if(dist(e.x, e.y, tx, ty) < 10) e.state = 'idle';
-    } else if(Math.random()<0.01) {
-        e.angle += (Math.random()-0.5);
+    // 搜寻状态：原地停顿并在中途发出搜索波
+    if (e.state === 'searching') {
+        if (e.searchTimer == null || e.searchTimer <= 0) {
+            e.searchTimer = 60;
+        }
+        e.searchTimer--;
+        
+        if (e.searchTimer === 30) {
+            // 主动搜索波
+            emitWave(e.x, e.y, 0, Math.PI * 2, e.freq, 'enemy', e.id);
+            // 视觉 Ping：强调“正在搜索”
+            state.entities.echoes.push({
+                x: e.x, y: e.y, r: e.r * 2,
+                type: 'enemy_search_ping',
+                life: 0.8
+            });
+        }
+        
+        if (e.searchTimer <= 0) {
+            e.state = 'patrol';
+        }
+        return;
     }
     
-    if(tx != null) {
-        let angleToTarget = Math.atan2(ty-e.y, tx-e.x);
+    let spd = CFG.eSpeedPatrol;
+    let tx = null, ty = null;
+    
+    if (e.state === 'alert') {
+        spd = CFG.eSpeedChase;
+        tx = (e.targetX != null ? e.targetX : state.p.x);
+        ty = (e.targetY != null ? e.targetY : state.p.y);
+        
+        const distToTarget = dist(e.x, e.y, tx, ty);
+        if (distToTarget < 10) {
+            // 到达最后已知位置，若仍未击中玩家，则进入搜寻阶段
+            e.state = 'searching';
+            e.searchTimer = 60;
+            return;
+        }
+    } else if (e.state === 'patrol') {
+        // 巡逻：沿 waypoints 循环
+        if (e.waypoints && e.waypoints.length > 0) {
+            const idx = e.currentWPIndex || 0;
+            const wp = e.waypoints[idx];
+            tx = wp.x;
+            ty = wp.y;
+            
+            const distToWP = dist(e.x, e.y, tx, ty);
+            if (distToWP < 5) {
+                e.currentWPIndex = (idx + 1) % e.waypoints.length;
+            }
+        } else {
+            // 没有路径点则使用原来的随机游走行为
+            if (Math.random() < 0.01) {
+                e.angle += (Math.random() - 0.5);
+            }
+        }
+    } else {
+        // 其他未知状态：退化为轻微游走
+        if (Math.random() < 0.01) {
+            e.angle += (Math.random() - 0.5);
+        }
+    }
+    
+    if (tx != null && ty != null) {
+        let angleToTarget = Math.atan2(ty - e.y, tx - e.x);
         
         // 避障逻辑
         const lookAheadDist = 40;
@@ -1595,18 +1675,18 @@ function updateEnemyMovement(e) {
         let hasObs = false;
         
         const checkAngles = [0, -0.5, 0.5];
-        for(let da of checkAngles) {
+        for (let da of checkAngles) {
             const checkA = e.angle + da;
             const cx = e.x + Math.cos(checkA) * lookAheadDist;
             const cy = e.y + Math.sin(checkA) * lookAheadDist;
-            if(checkWall(cx, cy)) {
+            if (checkWall(cx, cy)) {
                 hasObs = true;
                 avoidX -= Math.cos(checkA) * 2.0;
                 avoidY -= Math.sin(checkA) * 2.0;
             }
         }
         
-        if(hasObs) {
+        if (hasObs) {
             const targetDx = Math.cos(angleToTarget);
             const targetDy = Math.sin(angleToTarget);
             const finalDx = targetDx + avoidX * 2.0;
@@ -1617,13 +1697,13 @@ function updateEnemyMovement(e) {
         }
     }
     
-    const mx = Math.cos(e.angle)*spd; 
-    const my = Math.sin(e.angle)*spd;
-    if(!checkWall(e.x+mx, e.y+my)) {
-        e.x += mx; 
+    const mx = Math.cos(e.angle) * spd;
+    const my = Math.sin(e.angle) * spd;
+    if (!checkWall(e.x + mx, e.y + my)) {
+        e.x += mx;
         e.y += my;
     } else {
-        e.angle += (Math.random() > 0.5 ? 1 : -1) * Math.PI/2;
+        e.angle += (Math.random() > 0.5 ? 1 : -1) * Math.PI / 2;
     }
 }
 
@@ -1814,6 +1894,13 @@ function draw() {
             ctx.lineWidth = 3; // 比反弹轮廓稍粗
             ctx.beginPath(); 
             ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); 
+            ctx.stroke();
+        } else if(e.type === 'enemy_search_ping') {
+            // 敌人主动搜索 Ping：橙色粗环
+            ctx.strokeStyle = '#ff9900';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r * (1 + (1 - e.life) * 0.5), 0, Math.PI * 2);
             ctx.stroke();
         } else if(e.type === 'player_bounce') {
             // 玩家作为硬墙反弹：亮青色轮廓
@@ -2208,6 +2295,7 @@ function getVisibiltyPolygon(px, py, angle) {
     return points;
 }
 
+// -- 辅助函数 --
 function rand(min,max){return Math.random()*(max-min)+min;}
 function dist(x1,y1,x2,y2){return Math.hypot(x1-x2, y1-y2);}
 function clamp(v,min,max){return Math.max(min, Math.min(max, v));}
