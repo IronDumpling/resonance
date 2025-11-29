@@ -129,6 +129,7 @@ const CFG = {
     pSpeed: 3,
     pViewDist: 280,
     pViewAngle: Math.PI / 2.5,
+    playerRadius: 14,          // 玩家碰撞半径（用于波纹命中与分割）
     maxHp: 100,
     maxEnergy: 100,         // 主能量上限
     healCost: 30,
@@ -193,7 +194,7 @@ const INSTRUCTIONS = [
     { id: 3, text: "转动鼠标滚轮调整频率\n频率越高、角度越聚焦\n消耗能量越大", distance: 350 },
     { id: 4, text: "低频会穿过\n高频会阻挡\n同频会共振", distance: 400 },
     { id: 5, text: "聚焦共振波能够使波纹生物过载\n利用这个机会解决它们", distance: 500 },
-    { id: 6, text: "共振会受迫发出波\n先消耗能量，然后是生命", distance: 600 },
+    { id: 6, text: "生物共振后会受迫释放波纹\n先消耗能量，然后是生命", distance: 600 },
     { id: 7, text: "随时捡起能量瓶\n按R使用备用能量", distance: 650 },
     { id: 8, text: "在危急时刻\n按F消耗能量，恢复生命", distance: 750 },
 ];
@@ -1023,6 +1024,282 @@ function handleWaveEnemyPenetration(w, enemy, waveIndex) {
     return false;
 }
 
+// 处理波纹与玩家的反弹（分割波纹）
+function handleWavePlayerBounce(w, energyOnBounce, waveIndex) {
+    const player = { x: state.p.x, y: state.p.y, r: CFG.playerRadius };
+    const blockedRanges = getWaveBlockedAnglesByCircle(w, player);
+    
+    // 记录玩家轮廓回声（仅非玩家波纹）
+    if (w.source !== 'player') {
+        state.entities.echoes.push({
+            x: player.x, y: player.y, r: player.r,
+            type: 'player_bounce',
+            life: 1.0,
+            energy: energyOnBounce
+        });
+    }
+    
+    if (blockedRanges && blockedRanges.length > 0) {
+        blockedRanges.sort((a, b) => a.start - b.start);
+        
+        const waveStartAngle = w.angle - w.spread / 2;
+        const newWaves = [];
+        let currentAngle = 0;
+        
+        for (const blockedRange of blockedRanges) {
+            const rangeStart = Math.max(0, Math.min(blockedRange.start, w.spread));
+            const rangeEnd = Math.max(0, Math.min(blockedRange.end, w.spread));
+            
+            if (rangeStart > currentAngle) {
+                const remainingSpread = rangeStart - currentAngle;
+                if (remainingSpread > 0.01) {
+                    const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                    let normalizedAngle = newAngle;
+                    while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                    while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                    
+                    newWaves.push({
+                        x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                        angle: normalizedAngle,
+                        spread: remainingSpread,
+                        freq: w.freq,
+                        baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                        source: w.source,
+                        ownerId: w.ownerId,
+                        isOriginalWave: false
+                    });
+                }
+            }
+            currentAngle = rangeEnd;
+        }
+        
+        if (currentAngle < w.spread) {
+            const remainingSpread = w.spread - currentAngle;
+            if (remainingSpread > 0.01) {
+                const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: remainingSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+        }
+        
+        if (waveIndex !== undefined && waveIndex >= 0) {
+            state.entities.waves.splice(waveIndex, 1);
+        }
+        
+        for (const newWave of newWaves) {
+            const isFullCircle = newWave.spread > Math.PI * 1.9;
+            const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
+            newWave.energyPerPoint = newWave.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+            state.entities.waves.push(newWave);
+        }
+        
+        return true;
+    }
+    return false;
+}
+
+// 处理波纹与玩家的穿透（分割波纹）
+function handleWavePlayerPenetration(w, waveIndex) {
+    const penetrationLoss = 0.3;
+    const player = { x: state.p.x, y: state.p.y, r: CFG.playerRadius };
+    
+    const blockedRanges = getWaveBlockedAnglesByCircle(w, player);
+    if (blockedRanges && blockedRanges.length > 0) {
+        blockedRanges.sort((a, b) => a.start - b.start);
+        
+        const waveStartAngle = w.angle - w.spread / 2;
+        const newWaves = [];
+        let currentAngle = 0;
+        
+        for (const blockedRange of blockedRanges) {
+            const rangeStart = Math.max(0, Math.min(blockedRange.start, w.spread));
+            const rangeEnd = Math.max(0, Math.min(blockedRange.end, w.spread));
+            
+            // 未穿透部分：不损失能量
+            if (rangeStart > currentAngle) {
+                const remainingSpread = rangeStart - currentAngle;
+                if (remainingSpread > 0.01) {
+                    const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                    let normalizedAngle = newAngle;
+                    while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                    while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                    
+                    newWaves.push({
+                        x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                        angle: normalizedAngle,
+                        spread: remainingSpread,
+                        freq: w.freq,
+                        baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                        source: w.source,
+                        ownerId: w.ownerId,
+                        isOriginalWave: false
+                    });
+                }
+            }
+            
+            // 穿透玩家的部分：损失能量
+            const penetratedSpread = rangeEnd - rangeStart;
+            if (penetratedSpread > 0.01) {
+                const newAngle = waveStartAngle + rangeStart + penetratedSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: penetratedSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (penetratedSpread / w.spread) * (1 - penetrationLoss),
+                    source: w.source,
+                    ownerId: w.ownerId,
+                    isOriginalWave: false
+                });
+            }
+            
+            currentAngle = rangeEnd;
+        }
+        
+        if (currentAngle < w.spread) {
+            const remainingSpread = w.spread - currentAngle;
+            if (remainingSpread > 0.01) {
+                const newAngle = waveStartAngle + currentAngle + remainingSpread / 2;
+                let normalizedAngle = newAngle;
+                while (normalizedAngle < 0) normalizedAngle += Math.PI * 2;
+                while (normalizedAngle >= Math.PI * 2) normalizedAngle -= Math.PI * 2;
+                
+                newWaves.push({
+                    x: w.x, y: w.y, r: w.r, maxR: w.maxR,
+                    angle: normalizedAngle,
+                    spread: remainingSpread,
+                    freq: w.freq,
+                    baseEnergy: w.baseEnergy * (remainingSpread / w.spread),
+                    source: w.source,
+                    ownerId: w.ownerId
+                });
+            }
+        }
+        
+        if (waveIndex !== undefined && waveIndex >= 0) {
+            state.entities.waves.splice(waveIndex, 1);
+        }
+        
+        for (const newWave of newWaves) {
+            const isFullCircle = newWave.spread > Math.PI * 1.9;
+            const circumference = isFullCircle ? (2 * Math.PI * newWave.r) : (newWave.r * newWave.spread);
+            newWave.energyPerPoint = newWave.baseEnergy / (circumference > 0.01 ? circumference : 0.01);
+            state.entities.waves.push(newWave);
+        }
+        
+        // 在玩家身上留下穿透回声（轻微）
+        if (w.source !== 'player') {
+            state.entities.echoes.push({
+                x: player.x, y: player.y, r: player.r,
+                type: 'player_resonance',
+                life: 0.6
+            });
+        }
+        
+        return true;
+    }
+    return false;
+}
+
+// 敌人波纹击中玩家的统一处理（物理 / 共振 / AI / 波形反馈）
+function handleWavePlayerInteraction(w, oldR, waveIndex) {
+    // 忽略玩家自己的波纹
+    if (w.source === 'player') return 'none';
+    
+    const dToP = dist(state.p.x, state.p.y, w.x, w.y);
+    // 使用 oldR / w.r 判断扩散环本帧是否扫过玩家
+    if (dToP < oldR || dToP > w.r) return 'none';
+    
+    // 角度检查：玩家必须在扇形范围内，或波近似全向
+    const angleToP = Math.atan2(state.p.y - w.y, state.p.x - w.x);
+    let angleDiff = Math.abs(angleToP - w.angle);
+    while (angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI * 2);
+    if (!(w.spread > Math.PI || angleDiff < w.spread / 2)) return 'none';
+    
+    // 物理与共振判定
+    const playerFreq = state.freq;
+    const freqDelta = Math.abs(w.freq - playerFreq);
+    const isPerfectResonance = freqDelta <= CFG.perfectResTol;
+    const isNormalResonance = freqDelta <= CFG.normalResTol;
+    const willBounce = w.freq > playerFreq;
+    
+    // AI 感知层：仅在反弹或发生共振时，敌人记住玩家坐标
+    if ((willBounce || isNormalResonance) && w.ownerId) {
+        const enemy = state.entities.enemies.find(e => e.id === w.ownerId);
+        if (enemy && enemy.state !== 'stunned') {
+            enemy.state = 'alert';
+            enemy.targetX = state.p.x;
+            enemy.targetY = state.p.y;
+            logMsg("HOSTILE LOCKED ON");
+            spawnParticles(state.p.x, state.p.y, '#00ffff', 12);
+        }
+    }
+    
+    // 伤害 / 过载与受迫共振：只在发生共振且冷却就绪时触发
+    if (isNormalResonance && state.p.resCool <= 0) {
+        // 估算击中玩家的总能量
+        const playerDiameter = CFG.playerRadius * 2;
+        const maxArcLength = w.r * (w.spread > 0.001 ? w.spread : 0.001);
+        const coveredArcLength = Math.min(playerDiameter, maxArcLength);
+        const totalEnergyOnPlayer = w.energyPerPoint * coveredArcLength;
+        
+        let energyCost = CFG.forcedWaveCost;
+        let damage = 0;
+        
+        if (state.p.en < energyCost) {
+            damage = (energyCost - state.p.en) * CFG.overloadDmgRatio;
+            state.p.en = 0;
+            takeDamage(damage);
+            logMsg(`CRITICAL OVERLOAD (-${Math.floor(damage)} HP)`);
+        } else {
+            state.p.en -= energyCost;
+            logMsg("SYSTEM OVERLOAD: ENERGY DRAIN");
+        }
+        
+        // 高能量密度下的额外过载惩罚
+        const overloadThreshold = CFG.baseWaveEnergy * CFG.energyThreshold;
+        if (totalEnergyOnPlayer >= overloadThreshold) {
+            // 若之前未造成HP伤害，则再追加一次受损
+            if (damage === 0) {
+                takeDamage(CFG.dmgVal);
+            }
+            flashScreen('#00ffff', 150);
+        } else {
+            flashScreen('#00ffff', 100);
+        }
+        
+        // 玩家被迫发出自发波（与敌人受迫共振对称）
+        emitWave(state.p.x, state.p.y, 0, Math.PI * 2, state.freq, 'player');
+        state.p.resCool = CFG.resCooldown;
+        updateUI();
+    }
+    
+    // 波形反馈：根据“硬度”决定反弹或穿透的几何行为
+    if (willBounce) {
+        const energyOnBounce = w.energyPerPoint;
+        const handled = handleWavePlayerBounce(w, energyOnBounce, waveIndex);
+        return handled ? 'bounced' : 'none';
+    } else {
+        const handled = handleWavePlayerPenetration(w, waveIndex);
+        return handled ? 'penetrated' : 'none';
+    }
+}
+
 // 处理波纹与墙壁的碰撞
 function handleWaveWallCollision(w, oldR, waveIndex) {
     for (let wall of state.entities.walls) {
@@ -1216,44 +1493,6 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
 }
 
 
-// 检查受迫共振（敌人波纹击中玩家）
-function checkForcedResonance(w, oldR) {
-    if (w.source !== 'player') {
-        const dToP = dist(state.p.x, state.p.y, w.x, w.y);
-        // 使用 oldR/w.r 判断波纹是否真正扫过玩家
-        if (dToP >= oldR && dToP <= w.r) {
-            // 再做角度检查：玩家必须在波纹扇形范围内
-            const angleToP = Math.atan2(state.p.y - w.y, state.p.x - w.x);
-            let angleDiff = Math.abs(angleToP - w.angle);
-            while(angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - Math.PI*2);
-
-            if(w.spread > Math.PI || angleDiff < w.spread/2) {
-                const freqDelta = Math.abs(w.freq - state.freq);
-                
-                if (freqDelta <= CFG.normalResTol && state.p.resCool <= 0) {
-                    let energyCost = CFG.forcedWaveCost;
-                    let damage = 0;
-                    
-                    if (state.p.en < energyCost) {
-                        damage = (energyCost - state.p.en) * CFG.overloadDmgRatio;
-                        state.p.en = 0;
-                        takeDamage(damage);
-                        logMsg(`CRITICAL OVERLOAD (-${Math.floor(damage)} HP)`);
-                    } else {
-                        state.p.en -= energyCost;
-                        logMsg("SYSTEM OVERLOAD: ENERGY DRAIN");
-                    }
-
-                    flashScreen('#00ffff', 100); 
-                    emitWave(state.p.x, state.p.y, 0, Math.PI*2, state.freq, 'player');
-                    state.p.resCool = CFG.resCooldown;
-                    updateUI();
-                }
-            }
-        }
-    }
-}
-
 // 更新单个波纹
 function updateWave(w, i) {
     const oldR = w.r;
@@ -1278,6 +1517,13 @@ function updateWave(w, i) {
         return;
     }
     
+    // 检测与玩家的交互（物理 / 共振 / AI / 分割）
+    const playerCollisionResult = handleWavePlayerInteraction(w, oldR, i);
+    if (playerCollisionResult === 'bounced' || playerCollisionResult === 'penetrated') {
+        w._toRemove = true;
+        return;
+    }
+    
     // 检测与墙壁的碰撞
     const wallCollisionResult = handleWaveWallCollision(w, oldR, i);
     if (wallCollisionResult === 'bounced' || wallCollisionResult === 'penetrated') {
@@ -1287,7 +1533,6 @@ function updateWave(w, i) {
     
     // 检查与物品的交互（不分割波纹）
     checkWaveItemCollisions(w);
-    checkForcedResonance(w, oldR);
 }
 
 // 更新敌人UI
@@ -1569,6 +1814,20 @@ function draw() {
             ctx.lineWidth = 3; // 比反弹轮廓稍粗
             ctx.beginPath(); 
             ctx.arc(e.x, e.y, e.r, 0, Math.PI*2); 
+            ctx.stroke();
+        } else if(e.type === 'player_bounce') {
+            // 玩家作为硬墙反弹：亮青色轮廓
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+            ctx.stroke();
+        } else if(e.type === 'player_resonance') {
+            // 玩家被高能共振命中：青绿混色轮廓
+            ctx.strokeStyle = '#33ffcc';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r * (1 + (1 - e.life) * 0.2), 0, Math.PI * 2);
             ctx.stroke();
         } else {
             // 其他回声（墙壁等）：白色
