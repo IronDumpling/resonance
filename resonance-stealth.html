@@ -476,9 +476,21 @@ function tryInteract() {
         const e = enemies[0];
         state.entities.enemies = state.entities.enemies.filter(x => x !== e);
         if(e.uiElement) e.uiElement.remove();
-        state.p.en = CFG.maxEnergy; // 修改：处决直接回满能量
-        logMsg("CORE SIPHONED (ENERGY RESTORED)");
-        spawnParticles(e.x, e.y, '#00ffff', 40);
+        
+        // 根据共振类型给予不同奖励
+        if (e.isPerfectStun) {
+            // 完美共振：能量回满
+            state.p.en = CFG.maxEnergy;
+            logMsg("PERFECT SIPHON - FULL ENERGY RESTORED");
+            spawnParticles(e.x, e.y, '#00ff00', 50); // 绿色粒子
+        } else {
+            // 普通共振：能量+50%
+            const energyGain = CFG.maxEnergy * 0.5;
+            state.p.en = Math.min(CFG.maxEnergy, state.p.en + energyGain);
+            logMsg(`CORE SIPHONED (+${Math.floor(energyGain)} ENERGY)`);
+            spawnParticles(e.x, e.y, '#00ffff', 40); // 青色粒子
+        }
+        
         setTimeout(spawnEnemy, 4000);
         updateUI();
         return;
@@ -1098,11 +1110,12 @@ function handleWaveEnemyCollision(w, oldR, waveIndex) {
                     
                     if (totalEnergy >= overloadThreshold) {
                         enemy.state = 'stunned';
-                        // 完美共振：延长过载时间2倍
-                        enemy.timer = isPerfectResonance ? (CFG.stunTime * 2) : CFG.stunTime;
+                        enemy.isPerfectStun = isPerfectResonance; // 标记是否完美共振
+                        enemy.timer = isPerfectResonance ? (CFG.stunTime * 1.5) : CFG.stunTime;
+                        enemy.stunWaveCooldown = 0; // 用于完美共振持续发波
                         
                         if (isPerfectResonance) {
-                            logMsg("PERFECT RESONANCE - EXTENDED OVERLOAD");
+                            logMsg("PERFECT RESONANCE - TARGET DESTABILIZING");
                         } else {
                             logMsg("TARGET STABILIZED");
                         }
@@ -1300,6 +1313,7 @@ function updateEnemyMovement(e) {
 // 更新敌人
 function updateEnemies() {
     let hasExeTarget = false;
+    const enemiesToRemove = []; // 需要移除的敌人（完美共振死亡）
     
     state.entities.enemies.forEach(e => {
         if(e.resCool > 0) e.resCool--;
@@ -1309,13 +1323,44 @@ function updateEnemies() {
         const dToP = dist(e.x, e.y, state.p.x, state.p.y);
         
         if(e.state === 'stunned') {
-            e.timer--; 
-            if(e.timer<=0) e.state = 'alert';
+            e.timer--;
+            
+            // 完美共振：持续发出受迫共振波
+            if (e.isPerfectStun) {
+                if (e.stunWaveCooldown <= 0) {
+                    emitWave(e.x, e.y, 0, Math.PI * 2, e.freq, 'enemy', e.id);
+                    e.stunWaveCooldown = 60; // 每60帧（约1秒）发一次波
+                    spawnParticles(e.x, e.y, '#ff4400', 15); // 红色粒子表示危险
+                } else {
+                    e.stunWaveCooldown--;
+                }
+            }
+            
+            if(e.timer <= 0) {
+                if (e.isPerfectStun) {
+                    // 完美共振结束后：敌人死亡
+                    enemiesToRemove.push(e);
+                    spawnParticles(e.x, e.y, '#00ffff', 50);
+                    logMsg("HOSTILE DISINTEGRATED");
+                    setTimeout(spawnEnemy, 5000); // 5秒后重生新敌人
+                } else {
+                    // 普通共振结束后：恢复正常
+                    e.state = 'alert';
+                    e.isPerfectStun = false;
+                }
+            }
+            
             if(dToP < 60) hasExeTarget = true;
         } else {
             if(dToP < 25) takeDamage(CFG.dmgVal);
             updateEnemyMovement(e);
         }
+    });
+    
+    // 移除完美共振死亡的敌人
+    enemiesToRemove.forEach(e => {
+        state.entities.enemies = state.entities.enemies.filter(x => x !== e);
+        if(e.uiElement) e.uiElement.remove();
     });
     
     return hasExeTarget;
