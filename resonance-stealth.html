@@ -136,8 +136,6 @@ const CFG = {
     energyFlaskVal: 50, // 能量瓶恢复量
     
     // 扫描与波
-    shortScanCost: 5,       // 旧参数（不再直接使用，保留以便以后调试）
-    longScanCost: 10,
     forcedWaveCost: 15,
     overloadDmgRatio: 2.0,
     waveSpeed: 5,
@@ -274,6 +272,35 @@ function init() {
     
     // 先生成 instructions
     state.entities.instructions = generateInstructions();
+
+    // 在地图四周生成边界墙，让玩家看不到画布边缘
+    const borderThickness = 60;
+    const borderFreq = CFG.wallFreqs[CFG.wallFreqs.length - 1]; // 使用最高频率作为边界阻挡
+    const borderColor = CFG.wallColors[borderFreq];
+    // 上边界
+    state.entities.walls.push({
+        x: -borderThickness, y: -borderThickness,
+        w: canvas.width + borderThickness*2, h: borderThickness,
+        blockFreq: borderFreq, color: borderColor
+    });
+    // 下边界
+    state.entities.walls.push({
+        x: -borderThickness, y: canvas.height,
+        w: canvas.width + borderThickness*2, h: borderThickness,
+        blockFreq: borderFreq, color: borderColor
+    });
+    // 左边界
+    state.entities.walls.push({
+        x: -borderThickness, y: 0,
+        w: borderThickness, h: canvas.height,
+        blockFreq: borderFreq, color: borderColor
+    });
+    // 右边界
+    state.entities.walls.push({
+        x: canvas.width, y: 0,
+        w: borderThickness, h: canvas.height,
+        blockFreq: borderFreq, color: borderColor
+    });
     
     // 生成墙壁（增加数量到12个，并避免与instructions重叠）
     let attempts = 0;
